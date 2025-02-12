@@ -1,0 +1,46 @@
+# Local edge on :8088 mirroring CloudFront's path routing:
+#   /api/*   → the API (Gradle on the host :8080, or the `api` container under profile `full`)
+#   /media/* → LocalStack S3, rewritten to the media bucket (CloudFront → S3 media bucket)
+#   /*       → Expo web dev server on the host :8081 (CloudFront → S3 web bucket)
+{
+	admin off
+	auto_https off
+}
+
+:8088 {
+	# Used by the compose healthcheck.
+	handle /edge/health {
+		respond "edge ok" 200
+	}
+
+	handle /api/* {
+		reverse_proxy host.docker.internal:8080
+	}
+
+	handle /media/* {
+		# Path-style S3 on LocalStack: /media/{id}/... → /soundcheck-media/media/{id}/...
+		rewrite * /soundcheck-media{uri}
+		reverse_proxy localstack:4566 {
+			header_up Host localhost
+		}
+	}
+
+	handle {
+		reverse_proxy host.docker.internal:8081
+	}
+
+	# A clear message instead of a bare 502 when the upstream isn't running.
+	handle_errors {
+		@api path /api/*
+		@media path /media/*
+		handle @api {
+			respond "API not running — start it with `make api`" 503
+		}
+		handle @media {
+			respond "LocalStack not reachable — run `make up`" 503
+		}
+		handle {
+			respond "Expo dev server not running — start it with `make app`" 503
+		}
+	}
+}

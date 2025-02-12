@@ -44,13 +44,14 @@ keys: ## Generate the ES256 JWT signing key in .secrets/
 
 # ── Local stack ──────────────────────────────────────────────────────────────
 up: ## Start db, localstack, lgtm, edge in the background and wait until healthy
-	$(call not_yet,up)
+	@$(COMPOSE) up -d --wait --wait-timeout 180 db localstack lgtm edge
+	$(COMPOSE) ps
 
 down: ## Stop the local stack (keeps volumes)
-	$(call not_yet,down)
+	$(COMPOSE) --profile full down --remove-orphans
 
 reset: ## Stop the local stack and drop volumes
-	$(call not_yet,reset)
+	$(COMPOSE) --profile full down --remove-orphans --volumes
 
 # ── Run services ─────────────────────────────────────────────────────────────
 api: ## Run the API (roles api,scheduler) from Gradle against the local stack

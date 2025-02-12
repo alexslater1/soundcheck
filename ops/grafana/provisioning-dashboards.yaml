@@ -1,0 +1,13 @@
+# Grafana dashboard provisioning for grafana/otel-lgtm: every *.json in ops/grafana/dashboards is loaded.
+apiVersion: 1
+providers:
+  - name: soundcheck
+    orgId: 1
+    folder: Soundcheck
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /otel-lgtm/grafana/conf/provisioning/dashboards/custom
+      foldersFromFilesStructure: false
