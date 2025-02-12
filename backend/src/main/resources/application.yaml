@@ -45,6 +45,15 @@ soundcheck:
   roles: ${SOUNDCHECK_ROLES:api,scheduler,worker}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}
   features: {}
+  storage:
+    # Blank on AWS (task role, virtual-host style); LocalStack locally (static creds, path-style).
+    endpoint: ${S3_ENDPOINT:http://localhost:4566}
+    region: ${AWS_REGION:eu-west-2}
+    bucket: ${S3_BUCKET:soundcheck-media}
+    access-key: ${AWS_ACCESS_KEY_ID:test}
+    secret-key: ${AWS_SECRET_ACCESS_KEY:test}
+  queue:
+    url: ${SQS_QUEUE_URL:http://localhost:4566/000000000000/soundcheck-transcode}
 
 management:
   endpoints:
@@ -58,7 +67,7 @@ management:
       show-details: always
       group:
         readiness:
-          include: db,readinessState
+          include: db,s3,sqs,readinessState
   tracing:
     sampling:
       probability: ${TRACING_SAMPLE_PROBABILITY:1.0}

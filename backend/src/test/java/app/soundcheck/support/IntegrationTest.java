@@ -35,6 +35,8 @@ public abstract class IntegrationTest {
     static {
         POSTGRES.start();
         LOCALSTACK.start();
+        LocalStackResources.create(
+                LOCALSTACK.getEndpoint(), LOCALSTACK.getRegion(), LOCALSTACK.getAccessKey(), LOCALSTACK.getSecretKey());
     }
 
     @DynamicPropertySource
