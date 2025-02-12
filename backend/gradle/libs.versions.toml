@@ -1,0 +1,72 @@
+# Versions checked against Maven Central on 2025-02-12.
+# Boot-managed libraries (Flyway, jOOQ, Testcontainers, Micrometer, Jackson, JUnit…) take their version from the Boot BOM.
+[versions]
+spring-boot = "3.4.2"
+spring-modulith = "1.3.2"
+jooq = "3.19.18"               # must match Boot's managed jOOQ version (codegen classpath)
+aws-sdk = "2.30.18"
+shedlock = "6.2.0"
+uuid-generator = "5.1.0"
+springdoc = "2.8.4"
+archunit = "1.4.0"
+jqwik = "1.9.2"
+wiremock = "3.11.0"
+spotless = "7.0.2"
+palantir-java-format = "2.50.0"
+
+[libraries]
+# Spring Boot starters
+spring-boot-starter-web = { module = "org.springframework.boot:spring-boot-starter-web" }
+spring-boot-starter-validation = { module = "org.springframework.boot:spring-boot-starter-validation" }
+spring-boot-starter-security = { module = "org.springframework.boot:spring-boot-starter-security" }
+spring-boot-starter-oauth2-resource-server = { module = "org.springframework.boot:spring-boot-starter-oauth2-resource-server" }
+spring-boot-starter-actuator = { module = "org.springframework.boot:spring-boot-starter-actuator" }
+spring-boot-starter-aop = { module = "org.springframework.boot:spring-boot-starter-aop" }
+spring-boot-starter-jooq = { module = "org.springframework.boot:spring-boot-starter-jooq" }
+spring-boot-starter-test = { module = "org.springframework.boot:spring-boot-starter-test" }
+spring-boot-testcontainers = { module = "org.springframework.boot:spring-boot-testcontainers" }
+spring-security-test = { module = "org.springframework.security:spring-security-test" }
+spring-retry = { module = "org.springframework.retry:spring-retry" }
+micrometer-tracing-otel = { module = "io.micrometer:micrometer-tracing-bridge-otel" }
+opentelemetry-exporter-otlp = { module = "io.opentelemetry:opentelemetry-exporter-otlp" }
+jspecify = { module = "org.jspecify:jspecify" }
+micrometer-registry-otlp = { module = "io.micrometer:micrometer-registry-otlp" }
+flyway-postgresql = { module = "org.flywaydb:flyway-database-postgresql" }
+postgresql = { module = "org.postgresql:postgresql" }
+
+# Spring Modulith
+modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "spring-modulith" }
+modulith-starter-core = { module = "org.springframework.modulith:spring-modulith-starter-core" }
+modulith-starter-jdbc = { module = "org.springframework.modulith:spring-modulith-starter-jdbc" }
+modulith-starter-test = { module = "org.springframework.modulith:spring-modulith-starter-test" }
+modulith-actuator = { module = "org.springframework.modulith:spring-modulith-actuator" }
+
+# AWS SDK v2
+aws-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
+aws-s3 = { module = "software.amazon.awssdk:s3" }
+aws-sqs = { module = "software.amazon.awssdk:sqs" }
+aws-url-connection-client = { module = "software.amazon.awssdk:url-connection-client" }
+
+# Other runtime libraries
+shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.ref = "shedlock" }
+shedlock-jdbc-template = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-template", version.ref = "shedlock" }
+uuid-generator = { module = "com.fasterxml.uuid:java-uuid-generator", version.ref = "uuid-generator" }
+springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+
+# jOOQ code generation (codegen source set only)
+jooq-codegen = { module = "org.jooq:jooq-codegen", version.ref = "jooq" }
+jooq-meta = { module = "org.jooq:jooq-meta", version.ref = "jooq" }
+flyway-core = { module = "org.flywaydb:flyway-core" }
+
+# Tests
+testcontainers-postgresql = { module = "org.testcontainers:postgresql" }
+testcontainers-localstack = { module = "org.testcontainers:localstack" }
+testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
+wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "spring-boot" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }

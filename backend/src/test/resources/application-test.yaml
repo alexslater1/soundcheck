@@ -1,0 +1,8 @@
+# Test profile overrides (activated by IntegrationTest's dynamic properties; plain unit tests don't load it).
+logging:
+  structured:
+    format:
+      console: ""
+  level:
+    app.soundcheck: info
+    org.testcontainers: info

@@ -1,0 +1,11 @@
+# Profile `aws`: ECS Fargate tasks. Values come from task environment and Secrets Manager.
+management:
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_PROBABILITY:0.1}
+springdoc:
+  swagger-ui:
+    enabled: false
+logging:
+  level:
+    app.soundcheck: info

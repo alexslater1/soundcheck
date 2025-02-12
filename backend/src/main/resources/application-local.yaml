@@ -1,0 +1,5 @@
+# Profile `local`: Gradle-run API/worker against the Docker Compose stack.
+logging:
+  level:
+    app.soundcheck: debug
+    org.jooq.tools.LoggerListener: debug

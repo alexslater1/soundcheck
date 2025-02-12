@@ -55,10 +55,10 @@ reset: ## Stop the local stack and drop volumes
 
 # ── Run services ─────────────────────────────────────────────────────────────
 api: ## Run the API (roles api,scheduler) from Gradle against the local stack
-	$(call not_yet,api)
+	SOUNDCHECK_ROLES=api,scheduler $(GRADLE) bootRun --args='--spring.profiles.active=local'
 
 worker: ## Run the transcode worker (role worker) from Gradle; needs local FFmpeg
-	$(call not_yet,worker)
+	SOUNDCHECK_ROLES=worker SERVER_PORT=8090 $(GRADLE) bootRun --args='--spring.profiles.active=local'
 
 app: ## Start the Expo dev server (press w for web)
 	$(call not_yet,app)
@@ -71,10 +71,10 @@ web: ## Export the web build (expo export -p web)
 
 # ── Quality ──────────────────────────────────────────────────────────────────
 test: ## Run all unit and integration tests (backend, app, lab, infra)
-	$(call not_yet,test)
+	$(GRADLE) test
 
 verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
-	$(call not_yet,verify)
+	$(GRADLE) spotlessCheck build
 
 lab-check: ## ruff, mypy, pytest for the Python lab
 	$(call not_yet,lab-check)

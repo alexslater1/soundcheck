@@ -1,0 +1,90 @@
+# Base configuration. Every value that differs per environment comes from an environment variable
+# (documented in .env.example) with a local-stack default, so `make api` works out of the box.
+spring:
+  application:
+    name: soundcheck
+  main:
+    banner-mode: off
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/soundcheck}
+    username: ${DB_USER:soundcheck}
+    password: ${DB_PASSWORD:soundcheck}
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    # Flyway's own history table lives in public; module tables live in their schemas.
+  jooq:
+    sql-dialect: postgres
+  modulith:
+    events:
+      # The outbox table is created by Flyway (V001) in schema `shared`, not by Modulith.
+      jdbc:
+        schema: shared
+        schema-initialization:
+          enabled: false
+      completion-mode: archive
+      republish-outstanding-events-on-restart: true
+  mvc:
+    problemdetails:
+      enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  shutdown: graceful
+  error:
+    include-message: never
+    include-stacktrace: never
+
+soundcheck:
+  # Comma-separated process roles: api, scheduler, worker. Locally one process may run all.
+  roles: ${SOUNDCHECK_ROLES:api,scheduler,worker}
+  public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}
+  features: {}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,modulith
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: always
+      group:
+        readiness:
+          include: db,readinessState
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLE_PROBABILITY:1.0}
+  opentelemetry:
+    resource-attributes:
+      service.name: soundcheck
+      deployment.environment: ${SOUNDCHECK_ENV:local}
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
+    metrics:
+      export:
+        url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
+        step: 15s
+
+logging:
+  structured:
+    format:
+      console: ecs
+  level:
+    root: info
+    app.soundcheck: debug
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+  paths-to-match: /api/**
