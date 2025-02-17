@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "description": "Ordered feed-ranking features. The index is the position in feed.served_item.features real[]; all values are in [0, 1]. Loaded by Java (feed module) and Python (soundcheck_lab.schema). Changing the list bumps the version and regenerates parity-cases.json.",
+  "features": [
+    { "index": 0, "name": "follows_author", "description": "1 if the user follows the author" },
+    { "index": 1, "name": "follows_artist", "description": "1 if the user follows any tagged artist" },
+    { "index": 2, "name": "artist_affinity", "description": "max user_artist_affinity.score over tagged artists" },
+    { "index": 3, "name": "author_affinity", "description": "user_author_affinity.score" },
+    { "index": 4, "name": "genre_similarity", "description": "cosine(user genre vector, post genre vector)" },
+    { "index": 5, "name": "gig_relation", "description": "WENT = 1.0, GOING = 0.8, INTERESTED = 0.5, else 0" },
+    { "index": 6, "name": "proximity", "description": "exp(-d / 25), d = km from home location to the gig venue; 0 if unknown" },
+    { "index": 7, "name": "recency", "description": "2^(-ageHours / params.halfLifeHours)" },
+    { "index": 8, "name": "engagement_quality", "description": "Bayesian-smoothed engagement rate, min-max scaled by the global p99" },
+    { "index": 9, "name": "social_proof", "description": "1 - exp(-n / 2), n = followed users who liked/commented" },
+    { "index": 10, "name": "seen", "description": "1 if impressed by this user in the last 3 days" },
+    { "index": 11, "name": "position_prior", "description": "always 0 at serve time; absorbs position bias during training" }
+  ]
+}

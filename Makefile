@@ -75,25 +75,43 @@ web: ## Export the web build (expo export -p web)
 # ── Quality ──────────────────────────────────────────────────────────────────
 test: ## Run all unit and integration tests (backend, app, lab, infra)
 	$(GRADLE) test
-	cd $(CURDIR)/app && CI=1 npm test
+	cd $(CURDIR)/app
+	CI=1 npm test
+	cd $(CURDIR)/lab
+	uv run pytest -q
 
 verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	$(GRADLE) spotlessCheck build
-	cd $(CURDIR)/app && npm run format:check && npm run lint && npm run typecheck && CI=1 npm test
+	cd $(CURDIR)/app
+	npm run format:check
+	npm run lint
+	npm run typecheck
+	CI=1 npm test
+	npx orval
+	git diff --exit-code --stat -- src/api/generated
+	$(MAKE) lab-check
 
 lab-check: ## ruff, mypy, pytest for the Python lab
-	$(call not_yet,lab-check)
+	cd $(CURDIR)/lab
+	uv sync --quiet
+	uv run ruff check .
+	uv run ruff format --check .
+	uv run mypy
+	uv run pytest -q
 
 e2e: ## Playwright web journeys against the exported web build + local stack
 	$(call not_yet,e2e)
 
 openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT -PopenapiWrite=true
-	cd $(CURDIR)/app && npx orval
+	cd $(CURDIR)/app
+	npx orval
 
 openapi-check: ## Fail if regenerating the OpenAPI snapshot/client would change anything
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT
-	cd $(CURDIR)/app && npx orval && git diff --exit-code --stat -- src/api/generated || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
+	cd $(CURDIR)/app
+	npx orval
+	git diff --exit-code --stat -- src/api/generated || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 ingest: ## Run a gig ingestion (fixtures or live per INGESTION_MODE)
