@@ -2,14 +2,16 @@
 # Targets that aren't built yet print "not yet implemented" and exit 1.
 
 SHELL := /bin/bash
+# Each recipe runs as one script that stops at the first failing line.
+.SHELLFLAGS := -eu -o pipefail -c
 .DEFAULT_GOAL := help
 .ONESHELL:
 
 COMPOSE   := docker compose
-GRADLE    := cd backend && ./gradlew
-NPM_APP   := cd app && npm
-NPM_INFRA := cd infra && npm
-UV_LAB    := cd lab && uv
+GRADLE    := cd $(CURDIR)/backend && ./gradlew
+NPM_APP   := cd $(CURDIR)/app && npm
+NPM_INFRA := cd $(CURDIR)/infra && npm
+UV_LAB    := cd $(CURDIR)/lab && uv
 
 # Load .env if present so targets see the same variables as the services.
 ifneq (,$(wildcard .env))
@@ -61,23 +63,23 @@ worker: ## Run the transcode worker (role worker) from Gradle; needs local FFmpe
 	SOUNDCHECK_ROLES=worker SERVER_PORT=8090 $(GRADLE) bootRun --args='--spring.profiles.active=local'
 
 app: ## Start the Expo dev server (press w for web)
-	cd app && npx expo start
+	cd $(CURDIR)/app && npx expo start
 
 android: ## Build and install the Android dev build on the connected phone, then adb reverse 8088
-	cd app && npx expo run:android --device
+	cd $(CURDIR)/app && npx expo run:android --device
 	adb reverse tcp:8088 tcp:8088 && adb reverse tcp:8081 tcp:8081 && adb reverse tcp:4566 tcp:4566
 
 web: ## Export the web build (expo export -p web)
-	cd app && npx expo export -p web
+	cd $(CURDIR)/app && npx expo export -p web
 
 # ── Quality ──────────────────────────────────────────────────────────────────
 test: ## Run all unit and integration tests (backend, app, lab, infra)
 	$(GRADLE) test
-	cd app && CI=1 npm test
+	cd $(CURDIR)/app && CI=1 npm test
 
 verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	$(GRADLE) spotlessCheck build
-	cd app && npm run format:check && npm run lint && npm run typecheck && CI=1 npm test
+	cd $(CURDIR)/app && npm run format:check && npm run lint && npm run typecheck && CI=1 npm test
 
 lab-check: ## ruff, mypy, pytest for the Python lab
 	$(call not_yet,lab-check)
@@ -86,10 +88,12 @@ e2e: ## Playwright web journeys against the exported web build + local stack
 	$(call not_yet,e2e)
 
 openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
-	$(call not_yet,openapi)
+	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT -PopenapiWrite=true
+	cd $(CURDIR)/app && npx orval
 
 openapi-check: ## Fail if regenerating the OpenAPI snapshot/client would change anything
-	$(call not_yet,openapi-check)
+	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT
+	cd $(CURDIR)/app && npx orval && git diff --exit-code --stat -- src/api/generated || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 ingest: ## Run a gig ingestion (fixtures or live per INGESTION_MODE)

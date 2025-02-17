@@ -94,6 +94,8 @@ logging:
 springdoc:
   api-docs:
     path: /v3/api-docs
+  # Responses are JSON unless a controller says otherwise; orval needs a concrete media type for zod schemas.
+  default-produces-media-type: application/json
   swagger-ui:
     path: /swagger-ui.html
   paths-to-match: /api/**

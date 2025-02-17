@@ -1,0 +1,54 @@
+{
+  "components" : {
+    "schemas" : {
+      "HealthResponse" : {
+        "properties" : {
+          "status" : {
+            "type" : "string"
+          },
+          "time" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "version" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "status", "time", "version" ],
+        "type" : "object"
+      }
+    }
+  },
+  "info" : {
+    "description" : "Gig discovery and concert clips.",
+    "title" : "Soundcheck API",
+    "version" : "v1"
+  },
+  "openapi" : "3.1.0",
+  "paths" : {
+    "/api/v1/health" : {
+      "get" : {
+        "description" : "Returns UP when the API process is serving.",
+        "operationId" : "health",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "API health",
+        "tags" : [ "health" ]
+      }
+    }
+  },
+  "tags" : [ {
+    "description" : "Service health",
+    "name" : "health"
+  } ]
+}

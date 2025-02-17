@@ -113,6 +113,8 @@ tasks.withType<JavaCompile>().configureEach {
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
+    // `make openapi` passes -PopenapiWrite=true so OpenApiSnapshotIT rewrites contracts/openapi.json.
+    systemProperty("soundcheck.openapi.write", providers.gradleProperty("openapiWrite").getOrElse("false"))
     testLogging {
         events("failed", "skipped")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL

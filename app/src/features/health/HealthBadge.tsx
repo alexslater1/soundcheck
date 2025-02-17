@@ -1,15 +1,18 @@
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { useHealth } from '@/api/generated/health/health';
+import type { HealthResponse } from '@/api/generated/model';
+import type { ApiError } from '@/api/http';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
-import { useHealth } from './useHealth';
-
-/** Shows the API health fetched through the edge — a demo check ("API: UP"). */
+/** Shows the API health fetched through the edge with the orval-generated hook — a demo check. */
 export function HealthBadge() {
   const { colors } = useTheme();
-  const { data, isPending, isError, error, refetch } = useHealth();
+  const { data, isPending, isError, error, refetch } = useHealth<HealthResponse, ApiError>({
+    query: { refetchInterval: 15_000 },
+  });
 
   let content: React.ReactNode;
   if (isPending) {

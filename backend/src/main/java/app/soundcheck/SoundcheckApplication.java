@@ -1,5 +1,7 @@
 package app.soundcheck;
 
+import io.swagger.v3.oas.annotations.OpenAPIDefinition;
+import io.swagger.v3.oas.annotations.info.Info;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.modulith.Modulithic;
@@ -10,6 +12,8 @@ import org.springframework.modulith.Modulithic;
  */
 @SpringBootApplication
 @Modulithic(systemName = "Soundcheck", sharedModules = "shared")
+@OpenAPIDefinition(
+        info = @Info(title = "Soundcheck API", version = "v1", description = "Gig discovery and concert clips."))
 public class SoundcheckApplication {
 
     public static void main(String[] args) {
