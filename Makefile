@@ -79,6 +79,8 @@ test: ## Run all unit and integration tests (backend, app, lab, infra)
 	CI=1 npm test
 	cd $(CURDIR)/lab
 	uv run pytest -q
+	cd $(CURDIR)/infra
+	CI=1 npm test
 
 verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	$(GRADLE) spotlessCheck build
@@ -89,6 +91,9 @@ verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	CI=1 npm test
 	npx orval
 	git diff --exit-code --stat -- src/api/generated
+	cd $(CURDIR)/infra
+	npm run build
+	CI=1 npm test
 	$(MAKE) lab-check
 
 lab-check: ## ruff, mypy, pytest for the Python lab

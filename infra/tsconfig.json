@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "commonjs",
+    "lib": ["es2022"],
+    "strict": true,
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": false,
+    "inlineSourceMap": true,
+    "types": ["node", "jest"]
+  },
+  "include": ["bin/**/*.ts", "lib/**/*.ts", "test/**/*.ts"],
+  "exclude": ["node_modules", "cdk.out"]
+}
