@@ -61,20 +61,23 @@ worker: ## Run the transcode worker (role worker) from Gradle; needs local FFmpe
 	SOUNDCHECK_ROLES=worker SERVER_PORT=8090 $(GRADLE) bootRun --args='--spring.profiles.active=local'
 
 app: ## Start the Expo dev server (press w for web)
-	$(call not_yet,app)
+	cd app && npx expo start
 
 android: ## Build and install the Android dev build on the connected phone, then adb reverse 8088
-	$(call not_yet,android)
+	cd app && npx expo run:android --device
+	adb reverse tcp:8088 tcp:8088 && adb reverse tcp:8081 tcp:8081 && adb reverse tcp:4566 tcp:4566
 
 web: ## Export the web build (expo export -p web)
-	$(call not_yet,web)
+	cd app && npx expo export -p web
 
 # ── Quality ──────────────────────────────────────────────────────────────────
 test: ## Run all unit and integration tests (backend, app, lab, infra)
 	$(GRADLE) test
+	cd app && CI=1 npm test
 
 verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	$(GRADLE) spotlessCheck build
+	cd app && npm run format:check && npm run lint && npm run typecheck && CI=1 npm test
 
 lab-check: ## ruff, mypy, pytest for the Python lab
 	$(call not_yet,lab-check)
