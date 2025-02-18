@@ -6,8 +6,9 @@ import './searchParamsSize';
 
 /**
  * The orval mutator: every generated API call goes through `customFetch`. It prefixes the
- * base URL, attaches the access token and the `X-Client` hint, and maps RFC 9457 Problem Details to a
- * typed `ApiError`.
+ * base URL, attaches the access token and the `X-Client` hint, maps RFC 9457 Problem Details to a typed
+ * `ApiError`, and on 401 refreshes the session **single-flight** (one refresh in progress; concurrent
+ * 401s wait for it) and retries the original request once.
  */
 
 /** RFC 9457 Problem Details as the API emits them. */
@@ -42,12 +43,37 @@ export function clientKind(): ClientKind {
 }
 
 type TokenProvider = () => string | null | Promise<string | null>;
+/** Performs one refresh and returns the new access token, or null when the session is gone. */
+type RefreshHandler = () => Promise<string | null>;
 
 let accessTokenProvider: TokenProvider = () => null;
+let refreshHandler: RefreshHandler | null = null;
+let refreshInFlight: Promise<string | null> | null = null;
 
 /** Installed by the auth store; defaults to anonymous. */
 export function setAccessTokenProvider(provider: TokenProvider): void {
   accessTokenProvider = provider;
+}
+
+/** Installed by the auth feature; null disables refresh-and-retry. */
+export function setRefreshHandler(handler: RefreshHandler | null): void {
+  refreshHandler = handler;
+  refreshInFlight = null;
+}
+
+/** Single-flight: every caller during a refresh awaits the same promise. */
+export function refreshOnce(): Promise<string | null> {
+  if (!refreshHandler) {
+    return Promise.resolve(null);
+  }
+  if (!refreshInFlight) {
+    refreshInFlight = refreshHandler()
+      .catch(() => null)
+      .finally(() => {
+        refreshInFlight = null;
+      });
+  }
+  return refreshInFlight;
 }
 
 export function resolveUrl(url: string): string {
@@ -56,23 +82,21 @@ export function resolveUrl(url: string): string {
     : `${env.apiBaseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 }
 
-export async function customFetch<T>(url: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  headers.set('Accept', 'application/json, application/problem+json');
-  headers.set('X-Client', clientKind());
-  if (init.body !== undefined && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json');
-  }
-  const token = await accessTokenProvider();
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
+export type FetchOptions = RequestInit & {
+  /** Set on the auth endpoints themselves so a 401 there never triggers a refresh loop. */
+  skipRefresh?: boolean;
+};
 
-  let response: Response;
-  try {
-    response = await fetch(resolveUrl(url), { ...init, headers });
-  } catch {
-    throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server', undefined);
+export async function customFetch<T>(url: string, init: FetchOptions = {}): Promise<T> {
+  const { skipRefresh, ...requestInit } = init;
+  const token = await accessTokenProvider();
+  let response = await send(url, requestInit, token);
+
+  if (response.status === 401 && !skipRefresh && refreshHandler) {
+    const fresh = await refreshOnce();
+    if (fresh) {
+      response = await send(url, requestInit, fresh);
+    }
   }
 
   if (!response.ok) {
@@ -82,6 +106,24 @@ export async function customFetch<T>(url: string, init: RequestInit = {}): Promi
     return undefined as T;
   }
   return (await response.json()) as T;
+}
+
+async function send(url: string, init: RequestInit, token: string | null): Promise<Response> {
+  const headers = new Headers(init.headers);
+  headers.set('Accept', 'application/json, application/problem+json');
+  headers.set('X-Client', clientKind());
+  if (init.body !== undefined && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  try {
+    // credentials: 'include' lets the web refresh cookie travel to /api/v1/auth/*.
+    return await fetch(resolveUrl(url), { credentials: 'include', ...init, headers });
+  } catch {
+    throw new ApiError(0, 'NETWORK_ERROR', 'Could not reach the server', undefined);
+  }
 }
 
 async function toApiError(response: Response): Promise<ApiError> {
