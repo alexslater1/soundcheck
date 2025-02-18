@@ -6,10 +6,18 @@
  * OpenAPI spec version: v1
  */
 
+export * from './authResponse';
+export * from './authResponseRefreshToken';
 export * from './cityResponse';
 export * from './cityResponsePopulation';
 export * from './cityResponseRegion';
 export * from './genreResponse';
 export * from './genreResponseParentId';
 export * from './healthResponse';
+export * from './loginRequest';
+export * from './refreshRequest';
+export * from './refreshRequestRefreshToken';
+export * from './registerRequest';
 export * from './searchCitiesParams';
+export * from './userSummary';
+export * from './userSummaryAvatarUrl';

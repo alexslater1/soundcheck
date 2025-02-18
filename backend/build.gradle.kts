@@ -64,6 +64,7 @@ dependencies {
     implementation(libs.uuid.generator)
     implementation(libs.springdoc.webmvc.ui)
     runtimeOnly(libs.bouncycastle.provider) // Argon2id
+    implementation(libs.bucket4j.core) // rate limits
 
     codegenImplementation(platform(SpringBootPlugin.BOM_COORDINATES))
     codegenImplementation(libs.jooq.codegen)

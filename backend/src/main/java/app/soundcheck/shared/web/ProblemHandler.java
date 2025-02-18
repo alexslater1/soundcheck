@@ -41,6 +41,17 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(ProblemHandler.class);
 
+    @ExceptionHandler(RateLimitExceededException.class)
+    ResponseEntity<ProblemDetail> handleRateLimited(RateLimitExceededException ex) {
+        ProblemDetail problem = problem(ex.status(), ex.code(), ex.getMessage());
+        return ResponseEntity.status(ex.status())
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSeconds()))
+                .header("RateLimit-Limit", String.valueOf(ex.limit()))
+                .header("RateLimit-Remaining", "0")
+                .header("RateLimit-Reset", String.valueOf(ex.retryAfterSeconds()))
+                .body(problem);
+    }
+
     @ExceptionHandler(ApiException.class)
     ResponseEntity<ProblemDetail> handleApi(ApiException ex) {
         ProblemDetail problem = problem(ex.status(), ex.code(), ex.getMessage());

@@ -6,6 +6,7 @@ import org.flywaydb.core.Flyway;
 import org.jooq.codegen.GenerationTool;
 import org.jooq.meta.jaxb.Configuration;
 import org.jooq.meta.jaxb.Database;
+import org.jooq.meta.jaxb.ForcedType;
 import org.jooq.meta.jaxb.Generate;
 import org.jooq.meta.jaxb.Generator;
 import org.jooq.meta.jaxb.Jdbc;
@@ -74,7 +75,10 @@ public final class JooqFromFlyway {
                                     .withExcludes(
                                             "flyway_schema_history|spatial_ref_sys|event_publication|event_publication_archive")
                                     .withIncludeRoutines(false)
-                                    .withIncludeSequences(true))
+                                    .withIncludeSequences(true)
+                                    // citext (case-insensitive text) is a plain String in Java.
+                                    .withForcedTypes(
+                                            new ForcedType().withName("VARCHAR").withIncludeTypes("citext")))
                             .withGenerate(new Generate()
                                     .withRecords(true)
                                     .withPojos(false)

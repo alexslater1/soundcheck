@@ -2,6 +2,7 @@ package app.soundcheck.shared.web;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.soundcheck.shared.config.JacksonConfig;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
@@ -19,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 /** The Problem Details contract, exercised through a test-only controller. */
 @WebMvcTest(controllers = ProblemHandlerTest.ThrowingController.class)
-@Import({ProblemHandler.class, ProblemHandlerTest.ThrowingController.class})
+@Import({ProblemHandler.class, ProblemHandlerTest.ThrowingController.class, RateLimiter.class, JacksonConfig.class})
 @WithMockUser
 class ProblemHandlerTest {
 
