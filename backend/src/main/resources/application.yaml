@@ -63,6 +63,11 @@ soundcheck:
       audience: soundcheck-app
       access-ttl: 15m
       refresh-ttl: 30d
+  rate-limit:
+    # Auth limits (Bucket4j, per API instance).
+    auth:
+      per-ip-per-minute: ${AUTH_RATE_LIMIT_PER_IP:10}
+      per-email-per-minute: ${AUTH_RATE_LIMIT_PER_EMAIL:5}
   admin:
     # Bootstrap ADMIN account created on API start when absent; blank email disables it.
     email: ${SOUNDCHECK_ADMIN_EMAIL:}
