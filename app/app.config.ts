@@ -16,7 +16,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   android: {
     package: 'app.soundcheck',
     adaptiveIcon: {
-      foregroundImage: './assets/adaptive-icon.png',
+      foregroundImage: './assets/android-icon-foreground.png',
+      backgroundImage: './assets/android-icon-background.png',
+      monochromeImage: './assets/android-icon-monochrome.png',
       backgroundColor: '#0B0B10',
     },
   },

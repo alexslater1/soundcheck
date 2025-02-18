@@ -18,19 +18,19 @@ beforeEach(() => {
 
 describe('HealthBadge', () => {
   it('shows a loading state, then the API status', async () => {
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({ status: 'UP', version: '0.1.0', time: '2026-10-01T20:00:00Z' }),
-        {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        },
-      ),
-    );
+    // Resolve fetch by hand so the loading state is observable regardless of scheduler timing.
+    let resolveFetch: (response: Response) => void = () => {};
+    fetchMock.mockReturnValue(new Promise<Response>((resolve) => (resolveFetch = resolve)));
 
     await render(<HealthBadge />, { wrapper: Providers });
 
     expect(screen.getByText('Checking API…')).toBeOnTheScreen();
+    resolveFetch(
+      new Response(
+        JSON.stringify({ status: 'UP', version: '0.1.0', time: '2026-10-01T20:00:00Z' }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      ),
+    );
     await waitFor(() => expect(screen.getByTestId('health-status')).toHaveTextContent('API: UP'));
     expect(fetchMock.mock.calls[0]![0]).toBe('http://localhost:8088/api/v1/health');
   });
