@@ -63,6 +63,10 @@ soundcheck:
       audience: soundcheck-app
       access-ttl: 15m
       refresh-ttl: 30d
+  admin:
+    # Bootstrap ADMIN account created on API start when absent; blank email disables it.
+    email: ${SOUNDCHECK_ADMIN_EMAIL:}
+    password: ${SOUNDCHECK_ADMIN_PASSWORD:}
 
 management:
   endpoints:

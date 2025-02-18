@@ -23,7 +23,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up down reset api worker app android web test verify lab-check e2e \
+.PHONY: help setup install keys up openapi-check-client down reset api worker app android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips images dlq-redrive demo-preflight \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -103,8 +103,7 @@ verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	npm run lint
 	npm run typecheck
 	CI=1 npm test
-	npx orval
-	git diff --exit-code --stat -- src/api/generated
+	$(MAKE) openapi-check-client
 	cd $(CURDIR)/infra
 	npm run build
 	CI=1 npm test
@@ -128,9 +127,14 @@ openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
 
 openapi-check: ## Fail if regenerating the OpenAPI snapshot/client would change anything
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT
+	$(MAKE) openapi-check-client
+
+openapi-check-client: ## Fail if running orval changes app/src/api/generated (snapshot is checked by the backend tests)
 	cd $(CURDIR)/app
+	before=$$(find src/api/generated -type f | sort | xargs sha256sum | sha256sum)
 	npx orval
-	git diff --exit-code --stat -- src/api/generated || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
+	after=$$(find src/api/generated -type f | sort | xargs sha256sum | sha256sum)
+	[ "$$before" = "$$after" ] || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
 
 # ── Data ─────────────────────────────────────────────────────────────────────
 ingest: ## Run a gig ingestion (fixtures or live per INGESTION_MODE)

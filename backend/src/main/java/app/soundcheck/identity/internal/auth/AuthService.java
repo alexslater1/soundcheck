@@ -31,8 +31,8 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class AuthService {
 
-    static final Pattern HANDLE = Pattern.compile("^[a-z0-9_]{3,30}$");
-    static final Set<String> RESERVED_HANDLES = Set.of(
+    public static final Pattern HANDLE = Pattern.compile("^[a-z0-9_]{3,30}$");
+    public static final Set<String> RESERVED_HANDLES = Set.of(
             "admin",
             "administrator",
             "console",

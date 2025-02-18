@@ -48,6 +48,50 @@
         "required" : [ "id", "lat", "lng", "name" ],
         "type" : "object"
       },
+      "Counts" : {
+        "properties" : {
+          "followers" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "following" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "posts" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "followers", "following", "posts" ],
+        "type" : "object"
+      },
+      "DeleteMeRequest" : {
+        "properties" : {
+          "password" : {
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "password" ],
+        "type" : "object"
+      },
+      "GenreChoice" : {
+        "properties" : {
+          "genreId" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "weight" : {
+            "format" : "float",
+            "maximum" : 1.0,
+            "minimum" : 0.0,
+            "type" : "number"
+          }
+        },
+        "required" : [ "genreId", "weight" ],
+        "type" : "object"
+      },
       "GenreResponse" : {
         "properties" : {
           "id" : {
@@ -68,6 +112,34 @@
         "required" : [ "id", "name", "slug" ],
         "type" : "object"
       },
+      "GenreWeight" : {
+        "properties" : {
+          "genreId" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "weight" : {
+            "format" : "float",
+            "type" : "number"
+          }
+        },
+        "required" : [ "genreId", "weight" ],
+        "type" : "object"
+      },
+      "GenresRequest" : {
+        "properties" : {
+          "genres" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GenreChoice"
+            },
+            "maxItems" : 8,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        },
+        "required" : [ "genres" ],
+        "type" : "object"
+      },
       "HealthResponse" : {
         "properties" : {
           "status" : {
@@ -84,6 +156,30 @@
         "required" : [ "status", "time", "version" ],
         "type" : "object"
       },
+      "HomeCity" : {
+        "properties" : {
+          "id" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "lat" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "lng" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "region" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "lat", "lng", "name" ],
+        "type" : "object"
+      },
       "LoginRequest" : {
         "properties" : {
           "email" : {
@@ -98,6 +194,78 @@
           }
         },
         "required" : [ "email", "password" ],
+        "type" : "object"
+      },
+      "MeResponse" : {
+        "properties" : {
+          "avatarUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "bio" : {
+            "type" : [ "string", "null" ]
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/Counts"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "genres" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GenreWeight"
+            },
+            "type" : "array"
+          },
+          "handle" : {
+            "type" : "string"
+          },
+          "homeCity" : {
+            "$ref" : "#/components/schemas/HomeCity",
+            "type" : "null"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "onboarded" : {
+            "type" : "boolean"
+          },
+          "role" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role" ],
+        "type" : "object"
+      },
+      "ProfileResponse" : {
+        "properties" : {
+          "avatarUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "bio" : {
+            "type" : [ "string", "null" ]
+          },
+          "counts" : {
+            "$ref" : "#/components/schemas/Counts"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "handle" : {
+            "type" : "string"
+          },
+          "homeCityName" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "counts", "displayName", "handle", "id" ],
         "type" : "object"
       },
       "RefreshRequest" : {
@@ -133,6 +301,30 @@
           }
         },
         "required" : [ "displayName", "email", "handle", "password" ],
+        "type" : "object"
+      },
+      "UpdateMeRequest" : {
+        "properties" : {
+          "bio" : {
+            "maxLength" : 300,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "displayName" : {
+            "maxLength" : 50,
+            "minLength" : 1,
+            "type" : [ "string", "null" ]
+          },
+          "handle" : {
+            "maxLength" : 30,
+            "minLength" : 3,
+            "type" : [ "string", "null" ]
+          },
+          "homeCityId" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          }
+        },
         "type" : "object"
       },
       "UserSummary" : {
@@ -421,6 +613,147 @@
         "summary" : "API health",
         "tags" : [ "health" ]
       }
+    },
+    "/api/v1/me" : {
+      "delete" : {
+        "operationId" : "deleteMe",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/DeleteMeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Delete the account (password confirm); purge after 7 days",
+        "tags" : [ "me" ]
+      },
+      "get" : {
+        "operationId" : "getMe",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The signed-in user's account",
+        "tags" : [ "me" ]
+      },
+      "patch" : {
+        "operationId" : "updateMe",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateMeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edit profile fields (only the ones sent)",
+        "tags" : [ "me" ]
+      }
+    },
+    "/api/v1/me/genres" : {
+      "put" : {
+        "operationId" : "setMyGenres",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GenresRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Replace the explicit genre preferences (1–8)",
+        "tags" : [ "me" ]
+      }
+    },
+    "/api/v1/me/onboarding/complete" : {
+      "post" : {
+        "operationId" : "completeOnboarding",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/MeResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mark onboarding as done",
+        "tags" : [ "me" ]
+      }
+    },
+    "/api/v1/users/{handle}" : {
+      "get" : {
+        "operationId" : "getUserByHandle",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "handle",
+          "required" : true,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ProfileResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Public profile",
+        "tags" : [ "me" ]
+      }
     }
   },
   "tags" : [ {
@@ -429,6 +762,9 @@
   }, {
     "description" : "Genres and cities",
     "name" : "reference"
+  }, {
+    "description" : "Own account, onboarding, profiles",
+    "name" : "me"
   }, {
     "description" : "Service health",
     "name" : "health"

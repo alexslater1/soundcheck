@@ -51,6 +51,8 @@ public abstract class IntegrationTest {
         registry.add("soundcheck.storage.secret-key", LOCALSTACK::getSecretKey);
         registry.add("soundcheck.storage.bucket", () -> BUCKET);
         registry.add("soundcheck.queue.url", () -> LOCALSTACK.getEndpoint() + "/000000000000/" + QUEUE);
+        registry.add("soundcheck.admin.email", () -> "admin@test.local");
+        registry.add("soundcheck.admin.password", () -> "admin-test-passphrase");
         registry.add("management.otlp.tracing.export.enabled", () -> "false");
         registry.add("management.otlp.metrics.export.enabled", () -> "false");
     }
