@@ -52,6 +52,8 @@ class StoragePortsIT extends IntegrationTest {
                 HttpResponse.BodyHandlers.discarding());
         assertThat(put.statusCode()).isEqualTo(200);
 
+        // Real S3 rejects a PUT whose Content-Type differs from the signed one (SignatureDoesNotMatch, 403);
+        // LocalStack 4.1.1 accepts it, so that property is checked by the AWS smoke test, not here.
         var head = storage.head(key).orElseThrow();
         assertThat(head.contentLength()).isEqualTo(bytes.length);
         assertThat(head.contentType()).isEqualTo("video/mp4");

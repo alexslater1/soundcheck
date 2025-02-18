@@ -23,7 +23,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup keys up down reset api worker app android web test verify lab-check e2e \
+.PHONY: help setup install keys up down reset api worker app android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips images dlq-redrive demo-preflight \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -39,10 +39,22 @@ setup: ## Check the toolchain and create .env from .env.example if missing
 	done
 	docker compose version >/dev/null 2>&1 || { echo "  docker compose plugin MISSING"; ok=0; }
 	[ -f .env ] || { cp .env.example .env && echo "  created .env from .env.example — fill in your keys"; }
-	[ $$ok = 1 ] && echo "toolchain OK" || { echo "toolchain incomplete (see docs/SETUP.md)"; exit 1; }
+	[ $$ok = 1 ] || { echo "toolchain incomplete (see docs/SETUP.md)"; exit 1; }
+	echo "toolchain OK — installing app, infra and lab dependencies"
+	$(MAKE) install
 
-keys: ## Generate the ES256 JWT signing key in .secrets/
-	$(call not_yet,keys)
+install: ## Install app and infra npm packages and the lab's uv environment
+	cd $(CURDIR)/app && CI=1 npm ci --no-audit --no-fund --loglevel=error
+	cd $(CURDIR)/infra && CI=1 npm ci --no-audit --no-fund --loglevel=error
+	cd $(CURDIR)/lab && uv sync --quiet
+
+keys: ## Generate the ES256 JWT signing key pair into .secrets/jwt-es256.pem (private + public PEM blocks)
+	mkdir -p .secrets
+	if [ -f .secrets/jwt-es256.pem ]; then echo ".secrets/jwt-es256.pem exists — delete it to rotate"; exit 0; fi
+	openssl ecparam -name prime256v1 -genkey -noout | openssl pkcs8 -topk8 -nocrypt -out .secrets/jwt-es256.pem
+	openssl ec -in .secrets/jwt-es256.pem -pubout 2>/dev/null >> .secrets/jwt-es256.pem
+	chmod 600 .secrets/jwt-es256.pem
+	echo "wrote .secrets/jwt-es256.pem (ES256 / P-256; gitignored)"
 
 # ── Local stack ──────────────────────────────────────────────────────────────
 up: ## Start db, localstack, lgtm, edge in the background and wait until healthy
@@ -67,7 +79,7 @@ app: ## Start the Expo dev server (press w for web)
 
 android: ## Build and install the Android dev build on the connected phone, then adb reverse 8088
 	# The Android Gradle build needs JDK 17 (newer JDKs break AGP's CMake step); use SDKMAN's 17 when present.
-	J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1); [ -n "$$J17" ] && export JAVA_HOME="$$J17" || true
+	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
 	cd $(CURDIR)/app && npx expo run:android --device
 	adb reverse tcp:8088 tcp:8088 && adb reverse tcp:8081 tcp:8081 && adb reverse tcp:4566 tcp:4566
 

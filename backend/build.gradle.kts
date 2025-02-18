@@ -105,6 +105,14 @@ springBoot {
     buildInfo()
 }
 
+// Reference data shared with the repo's fixtures: the UK cities CSV is packaged as geo/uk-cities.csv.
+tasks.named<ProcessResources>("processResources") {
+    from(layout.projectDirectory.dir("../fixtures/geo")) {
+        include("uk-cities.csv")
+        into("geo")
+    }
+}
+
 tasks.withType<JavaCompile>().configureEach {
     options.encoding = "UTF-8"
     options.compilerArgs.addAll(listOf("-parameters", "-Xlint:deprecation"))
@@ -112,6 +120,8 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // OpenApiSnapshotIT compares against this file, so editing it must re-run the tests.
+    inputs.file(layout.projectDirectory.file("../contracts/openapi.json")).optional()
     systemProperty("junit.jupiter.execution.parallel.enabled", "false")
     // `make openapi` passes -PopenapiWrite=true so OpenApiSnapshotIT rewrites contracts/openapi.json.
     systemProperty("soundcheck.openapi.write", providers.gradleProperty("openapiWrite").getOrElse("false"))
@@ -144,9 +154,4 @@ spotless {
         target("*.gradle.kts")
         ktlint()
     }
-}
-
-// Convenience: `./gradlew bootRun --args='--spring.profiles.active=local'` is wrapped by `make api` / `make worker`.
-tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
-    jvmArgs("-XX:+UseZGC")
 }

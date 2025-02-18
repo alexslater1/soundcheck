@@ -1,6 +1,5 @@
 package app.soundcheck.media.internal.aws;
 
-import java.net.URI;
 import java.time.Duration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -60,7 +59,7 @@ class AwsClientsConfig {
                 .serviceConfiguration(S3Configuration.builder()
                         .pathStyleAccessEnabled(storage.endpointOverride().isPresent())
                         .build());
-        storage.endpointOverride().map(URI::toString).map(URI::create).ifPresent(builder::endpointOverride);
+        storage.endpointOverride().ifPresent(builder::endpointOverride);
         return builder.build();
     }
 

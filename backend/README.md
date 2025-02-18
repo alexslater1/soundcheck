@@ -9,6 +9,7 @@ make api                   # from the repo root: bootRun with roles api,schedule
 ```
 
 Layout: `app.soundcheck.<module>` with public API in the module root and implementation in `<module>.internal`;
-`shared` is the open kernel (ids, clock, problem details, security, generated jOOQ classes under `shared.jooq`).
+`shared` is the open kernel (ids, clock, problem details, security, generated jOOQ classes under `shared.jooq`, generated into `build/generated-src/jooq`, never committed).
+CORS: only the Expo dev origin `http://localhost:8081` is allowed; via the edge on :8088 no CORS is involved.
 Migrations: `src/main/resources/db/migration/V{NNN}__{module}_{what}.sql` (Flyway, forward-only).
 Module docs (diagrams, canvases) are written by `ModularityTests` to `build/spring-modulith-docs/`.

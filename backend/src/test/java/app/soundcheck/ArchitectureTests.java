@@ -94,14 +94,15 @@ class ArchitectureTests {
             noClasses()
                     .that()
                     .resideInAPackage(BASE + "." + module + "..")
-                    .should(useJooqSchemaPackagesOtherThan(allowed))
+                    .should(useJooqClassesOfAnotherSchema(allowed))
                     .as("module '" + module + "' may only query schema '" + schema + "' (and shared)")
                     .check(classes);
         }
     }
 
-    private static ArchCondition<JavaClass> useJooqSchemaPackagesOtherThan(Set<String> allowed) {
+    private static ArchCondition<JavaClass> useJooqClassesOfAnotherSchema(Set<String> allowed) {
         String jooqRoot = BASE + ".shared.jooq.";
+        // Used under noClasses().should(...): an event marked "satisfied" is a violation of the rule.
         return new ArchCondition<>("use jOOQ classes of another module's schema") {
             @Override
             public void check(JavaClass item, ConditionEvents events) {

@@ -71,7 +71,8 @@ public final class JooqFromFlyway {
                                     .withSchemata(SCHEMAS.stream()
                                             .map(s -> new SchemaMappingType().withInputSchema(s))
                                             .toList())
-                                    .withExcludes("flyway_schema_history|spatial_ref_sys|event_publication_archive")
+                                    .withExcludes(
+                                            "flyway_schema_history|spatial_ref_sys|event_publication|event_publication_archive")
                                     .withIncludeRoutines(false)
                                     .withIncludeSequences(true))
                             .withGenerate(new Generate()

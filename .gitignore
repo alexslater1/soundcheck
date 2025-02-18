@@ -15,7 +15,6 @@ contracts/openapi.tmp.json
 # Build output
 backend/build/
 backend/.gradle/
-backend/src/main/jooq/
 backend/.jqwik-database
 app/node_modules/
 app/.expo/

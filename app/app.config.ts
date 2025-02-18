@@ -44,7 +44,4 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   experiments: {
     typedRoutes: true,
   },
-  extra: {
-    appEnv: isProduction ? 'production' : 'development',
-  },
 });

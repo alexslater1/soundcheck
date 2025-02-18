@@ -1,4 +1,4 @@
-# Test profile overrides (activated by IntegrationTest's dynamic properties; plain unit tests don't load it).
+# Test profile overrides (IntegrationTest is @ActiveProfiles("test"); plain unit tests don't load it).
 logging:
   structured:
     format:

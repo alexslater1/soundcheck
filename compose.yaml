@@ -42,7 +42,6 @@ services:
     volumes:
       - ./ops/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
       - localstack-data:/var/lib/localstack
-      - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
       # The init hook creates the bucket and queues; "ready" means every stage has run.
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/init/ready | grep -q '\"completed\": true'"]

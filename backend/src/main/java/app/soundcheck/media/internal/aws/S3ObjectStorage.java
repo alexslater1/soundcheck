@@ -3,9 +3,7 @@ package app.soundcheck.media.internal.aws;
 import app.soundcheck.media.ObjectStorage;
 import java.net.URI;
 import java.nio.file.Path;
-import java.time.Clock;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
@@ -33,13 +31,11 @@ class S3ObjectStorage implements ObjectStorage {
     private final S3Client s3;
     private final S3Presigner presigner;
     private final String bucket;
-    private final Clock clock;
 
-    S3ObjectStorage(S3Client s3, S3Presigner presigner, StorageProperties properties, Clock clock) {
+    S3ObjectStorage(S3Client s3, S3Presigner presigner, StorageProperties properties) {
         this.s3 = s3;
         this.presigner = presigner;
         this.bucket = properties.bucket();
-        this.clock = clock;
     }
 
     @Override
@@ -53,8 +49,7 @@ class S3ObjectStorage implements ObjectStorage {
                         .contentLength(contentLength)
                         .build())
                 .build());
-        return new PresignedUrl(
-                URI.create(presigned.url().toString()), Instant.now(clock).plus(ttl));
+        return new PresignedUrl(URI.create(presigned.url().toString()), presigned.expiration());
     }
 
     @Override
@@ -78,8 +73,7 @@ class S3ObjectStorage implements ObjectStorage {
                         .partNumber(partNumber)
                         .build())
                 .build());
-        return new PresignedUrl(
-                URI.create(presigned.url().toString()), Instant.now(clock).plus(ttl));
+        return new PresignedUrl(URI.create(presigned.url().toString()), presigned.expiration());
     }
 
     @Override

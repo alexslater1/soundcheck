@@ -11,6 +11,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,6 +45,22 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
     ResponseEntity<ProblemDetail> handleApi(ApiException ex) {
         ProblemDetail problem = problem(ex.status(), ex.code(), ex.getMessage());
         return ResponseEntity.status(ex.status()).body(problem);
+    }
+
+    /**
+     * Security exceptions raised inside controllers/services (e.g. {@code @PreAuthorize}) must not be
+     * swallowed by the catch-all below: map them to the same 401/403 problems the filter chain writes.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    ResponseEntity<ProblemDetail> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(problem(HttpStatus.FORBIDDEN, "FORBIDDEN", "Not allowed"));
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    ResponseEntity<ProblemDetail> handleAuthentication(AuthenticationException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(problem(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required"));
     }
 
     @ExceptionHandler(Exception.class)

@@ -43,7 +43,7 @@ select = ["E", "F", "I", "UP", "B", "SIM", "N", "W"]
 [tool.mypy]
 python_version = "3.13"
 strict = true
-files = ["src"]
+files = ["src", "tests"]
 plugins = ["pydantic.mypy"]
 
 [tool.pytest.ini_options]

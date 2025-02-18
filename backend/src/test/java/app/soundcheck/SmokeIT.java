@@ -6,6 +6,9 @@ import app.soundcheck.support.IntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +36,10 @@ class SmokeIT extends IntegrationTest {
     void readinessIncludesTheDatabase() {
         ResponseEntity<String> response = rest.getForEntity("/actuator/health/readiness", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).contains("\"db\"").contains("\"status\":\"UP\"");
+        assertThat(response.getBody())
+                .contains("\"db\":{")
+                .contains("\"status\":\"UP\"")
+                .doesNotContain("DOWN");
     }
 
     @Test
@@ -41,6 +47,25 @@ class SmokeIT extends IntegrationTest {
         ResponseEntity<String> response = rest.getForEntity("/v3/api-docs", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).contains("\"operationId\":\"health\"");
+    }
+
+    @Test
+    void corsAllowsOnlyTheExpoDevOrigin() {
+        HttpHeaders allowed = new HttpHeaders();
+        allowed.setOrigin("http://localhost:8081");
+        allowed.set("Access-Control-Request-Method", "GET");
+        allowed.set("Access-Control-Request-Headers", "x-client");
+        ResponseEntity<Void> preflight =
+                rest.exchange("/api/v1/health", HttpMethod.OPTIONS, new HttpEntity<>(allowed), Void.class);
+        assertThat(preflight.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(preflight.getHeaders().getAccessControlAllowOrigin()).isEqualTo("http://localhost:8081");
+
+        HttpHeaders other = new HttpHeaders();
+        other.setOrigin("https://evil.example");
+        other.set("Access-Control-Request-Method", "GET");
+        ResponseEntity<Void> rejected =
+                rest.exchange("/api/v1/health", HttpMethod.OPTIONS, new HttpEntity<>(other), Void.class);
+        assertThat(rejected.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test

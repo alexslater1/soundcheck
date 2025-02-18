@@ -15,4 +15,12 @@ public record StorageProperties(String endpoint, String region, String bucket, S
     public Optional<URI> endpointOverride() {
         return endpoint == null || endpoint.isBlank() ? Optional.empty() : Optional.of(URI.create(endpoint));
     }
+
+    /** Never prints the secret key. */
+    @Override
+    public String toString() {
+        return "StorageProperties[endpoint=" + endpoint + ", region=" + region + ", bucket=" + bucket
+                + ", accessKey=" + (accessKey == null || accessKey.isBlank() ? "<none>" : "<set>")
+                + ", secretKey=<redacted>]";
+    }
 }

@@ -2,7 +2,7 @@
 
 Discover live music near you, share concert clips, and get a feed that learns what you care about.
 
-> **Status:** specification ready, implementation starting. This README is the starting point; the build fills in screenshots, the live URL and measured numbers.
+> **Status:** the local stack, backend skeleton, app shell, contract pipeline, lab and infra stubs and CI are built. Screenshots, the live URL and measured numbers come later.
 
 Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Native client, S3 video storage), built to scale.
 
