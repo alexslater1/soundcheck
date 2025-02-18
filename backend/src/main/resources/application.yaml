@@ -54,6 +54,15 @@ soundcheck:
     secret-key: ${AWS_SECRET_ACCESS_KEY:test}
   queue:
     url: ${SQS_QUEUE_URL:http://localhost:4566/000000000000/soundcheck-transcode}
+  auth:
+    jwt:
+      # PEM with PRIVATE KEY + PUBLIC KEY blocks (`make keys` → .secrets/jwt-es256.pem). Either wins over an ephemeral key.
+      private-key-pem: ${JWT_PRIVATE_KEY_PEM:}
+      private-key-path: ${JWT_PRIVATE_KEY_PATH:../.secrets/jwt-es256.pem}
+      issuer: soundcheck
+      audience: soundcheck-app
+      access-ttl: 15m
+      refresh-ttl: 30d
 
 management:
   endpoints:

@@ -13,6 +13,7 @@ jqwik = "1.9.2"
 wiremock = "3.11.0"
 spotless = "7.0.2"
 palantir-java-format = "2.50.0"
+bouncycastle = "1.80"          # Argon2id implementation used by Spring Security's Argon2PasswordEncoder
 
 [libraries]
 # Spring Boot starters
@@ -52,6 +53,7 @@ shedlock-spring = { module = "net.javacrumbs.shedlock:shedlock-spring", version.
 shedlock-jdbc-template = { module = "net.javacrumbs.shedlock:shedlock-provider-jdbc-template", version.ref = "shedlock" }
 uuid-generator = { module = "com.fasterxml.uuid:java-uuid-generator", version.ref = "uuid-generator" }
 springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+bouncycastle-provider = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
 
 # jOOQ code generation (codegen source set only)
 jooq-codegen = { module = "org.jooq:jooq-codegen", version.ref = "jooq" }

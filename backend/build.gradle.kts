@@ -63,6 +63,7 @@ dependencies {
     implementation(libs.shedlock.jdbc.template)
     implementation(libs.uuid.generator)
     implementation(libs.springdoc.webmvc.ui)
+    runtimeOnly(libs.bouncycastle.provider) // Argon2id
 
     codegenImplementation(platform(SpringBootPlugin.BOM_COORDINATES))
     codegenImplementation(libs.jooq.codegen)

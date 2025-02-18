@@ -4,11 +4,15 @@ import app.soundcheck.shared.web.ProblemAuthHandlers;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -17,10 +21,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Stateless API security: public paths are listed here; everything else needs a bearer
- * token. JWT validation (resource server) is added once the ES256 key exists.
+ * token, validated as an ES256 JWT; {@code @PreAuthorize} guards admin endpoints.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableWebSecurity
+@EnableMethodSecurity
 class SecurityConfig {
 
     static final String[] PUBLIC_PATHS = {
@@ -39,12 +44,20 @@ class SecurityConfig {
     static final List<String> LOCAL_DEV_ORIGINS = List.of("http://localhost:8081");
 
     @Bean
-    SecurityFilterChain apiSecurity(HttpSecurity http, ProblemAuthHandlers problemAuthHandlers) throws Exception {
+    SecurityFilterChain apiSecurity(
+            HttpSecurity http,
+            ProblemAuthHandlers problemAuthHandlers,
+            Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter)
+            throws Exception {
         return http.csrf(csrf ->
                         csrf.disable()) // bearer tokens, no cookies on the API (the web refresh cookie comes later)
                 .cors(Customizer.withDefaults())
                 .exceptionHandling(
                         ex -> ex.authenticationEntryPoint(problemAuthHandlers).accessDeniedHandler(problemAuthHandlers))
+                // ES256 access tokens issued by identity; decoder + role converter are identity beans.
+                .oauth2ResourceServer(rs -> rs.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+                        .authenticationEntryPoint(problemAuthHandlers)
+                        .accessDeniedHandler(problemAuthHandlers))
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
