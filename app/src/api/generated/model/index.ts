@@ -6,4 +6,10 @@
  * OpenAPI spec version: v1
  */
 
+export * from './cityResponse';
+export * from './cityResponsePopulation';
+export * from './cityResponseRegion';
+export * from './genreResponse';
+export * from './genreResponseParentId';
 export * from './healthResponse';
+export * from './searchCitiesParams';

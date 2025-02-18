@@ -1,6 +1,54 @@
 {
   "components" : {
     "schemas" : {
+      "CityResponse" : {
+        "properties" : {
+          "id" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "lat" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "lng" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "population" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "region" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "id", "lat", "lng", "name" ],
+        "type" : "object"
+      },
+      "GenreResponse" : {
+        "properties" : {
+          "id" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "parentId" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "slug" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "slug" ],
+        "type" : "object"
+      },
       "HealthResponse" : {
         "properties" : {
           "status" : {
@@ -26,6 +74,60 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/cities" : {
+      "get" : {
+        "operationId" : "searchCities",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 60,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/CityResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "UK city autocomplete (max 10, most populous first)",
+        "tags" : [ "reference" ]
+      }
+    },
+    "/api/v1/genres" : {
+      "get" : {
+        "operationId" : "listGenres",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GenreResponse"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Canonical genre list",
+        "tags" : [ "reference" ]
+      }
+    },
     "/api/v1/health" : {
       "get" : {
         "description" : "Returns UP when the API process is serving.",
@@ -48,6 +150,9 @@
     }
   },
   "tags" : [ {
+    "description" : "Genres and cities",
+    "name" : "reference"
+  }, {
     "description" : "Service health",
     "name" : "health"
   } ]
