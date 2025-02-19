@@ -72,6 +72,13 @@ describe('customFetch', () => {
     expect(apiError.problem?.type).toBe('https://soundcheck.app/problems/handle-taken');
   });
 
+  it('returns undefined for empty success bodies (202/204)', async () => {
+    fetchMock.mockResolvedValue(new Response(null, { status: 202 }));
+    await expect(customFetch('/api/v1/me', { method: 'DELETE' })).resolves.toBeUndefined();
+    fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
+    await expect(customFetch('/api/v1/auth/logout', { method: 'POST' })).resolves.toBeUndefined();
+  });
+
   it('maps non-JSON failures and network errors', async () => {
     fetchMock.mockResolvedValue(new Response('nope', { status: 502, statusText: 'Bad Gateway' }));
     await expect(customFetch('/x')).rejects.toMatchObject({ status: 502, code: 'HTTP_502' });

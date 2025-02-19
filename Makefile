@@ -117,8 +117,11 @@ lab-check: ## ruff, mypy, pytest for the Python lab
 	uv run mypy
 	uv run pytest -q
 
-e2e: ## Playwright web journeys against the exported web build + local stack
-	$(call not_yet,e2e)
+e2e: ## Playwright web journeys through the edge (needs `make up`, `make api` and `make app` running)
+	curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make up' and 'make api'"; exit 1; }
+	curl -sf -o /dev/null http://localhost:8081/ || { echo "Expo web server not running — run 'make app'"; exit 1; }
+	cd $(CURDIR)/app
+	CI=1 npx playwright test
 
 openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT -PopenapiWrite=true

@@ -63,6 +63,7 @@ export function AuthForm<T extends FieldValues>({
           setServerError(error.message);
         }
       } else {
+        console.error('Form submit failed', error);
         setServerError('Something went wrong');
       }
     }

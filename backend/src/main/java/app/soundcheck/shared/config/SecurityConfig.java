@@ -44,8 +44,13 @@ class SecurityConfig {
         "/swagger-ui/**",
     };
 
-    /** No CORS on AWS (same origin via CloudFront); locally only the Expo dev server origin. */
-    static final List<String> LOCAL_DEV_ORIGINS = List.of("http://localhost:8081");
+    /**
+     * The app's origins are the Expo dev server (:8081) and the local edge (:8088). The
+     * edge must be listed even though it proxies to us: with forwarded headers Tomcat reports port 80, so
+     * a browser request from :8088 looks cross-origin to Spring's CORS check. On AWS (CloudFront) nothing
+     * else is needed — same origin.
+     */
+    static final List<String> LOCAL_DEV_ORIGINS = List.of("http://localhost:8081", "http://localhost:8088");
 
     @Bean
     SecurityFilterChain apiSecurity(

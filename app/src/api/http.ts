@@ -102,10 +102,12 @@ export async function customFetch<T>(url: string, init: FetchOptions = {}): Prom
   if (!response.ok) {
     throw await toApiError(response);
   }
-  if (response.status === 204) {
+  // 202/204 and other empty bodies (e.g. DELETE /me) must not be parsed as JSON.
+  const text = await response.text();
+  if (text.length === 0) {
     return undefined as T;
   }
-  return (await response.json()) as T;
+  return JSON.parse(text) as T;
 }
 
 async function send(url: string, init: RequestInit, token: string | null): Promise<Response> {

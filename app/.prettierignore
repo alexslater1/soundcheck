@@ -6,3 +6,5 @@ ios
 src/api/generated
 coverage
 package-lock.json
+test-results
+playwright-report

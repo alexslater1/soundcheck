@@ -50,7 +50,7 @@ class SmokeIT extends IntegrationTest {
     }
 
     @Test
-    void corsAllowsOnlyTheExpoDevOrigin() {
+    void corsAllowsOnlyTheLocalAppOrigins() {
         HttpHeaders allowed = new HttpHeaders();
         allowed.setOrigin("http://localhost:8081");
         allowed.set("Access-Control-Request-Method", "GET");
@@ -59,6 +59,13 @@ class SmokeIT extends IntegrationTest {
                 rest.exchange("/api/v1/health", HttpMethod.OPTIONS, new HttpEntity<>(allowed), Void.class);
         assertThat(preflight.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(preflight.getHeaders().getAccessControlAllowOrigin()).isEqualTo("http://localhost:8081");
+
+        HttpHeaders edge = new HttpHeaders();
+        edge.setOrigin("http://localhost:8088");
+        edge.set("Access-Control-Request-Method", "POST");
+        assertThat(rest.exchange("/api/v1/health", HttpMethod.OPTIONS, new HttpEntity<>(edge), Void.class)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.OK);
 
         HttpHeaders other = new HttpHeaders();
         other.setOrigin("https://evil.example");
