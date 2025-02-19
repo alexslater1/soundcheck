@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Duration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ProblemDetail;
@@ -20,6 +22,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * because the email is in the JSON body.
  */
 @Component
+@Order(Ordered.HIGHEST_PRECEDENCE) // before the Spring Security chain (order -100)
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 

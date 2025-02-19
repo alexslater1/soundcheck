@@ -1,0 +1,1 @@
+common-passwords.txt is SecLists' "10k-most-common.txt" (https://github.com/danielmiessler/SecLists), MIT License, Copyright (c) 2012 Daniel Miessler. Downloaded 2025-02-19.

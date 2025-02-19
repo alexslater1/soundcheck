@@ -95,7 +95,9 @@ public class MeController {
             @Size(min = 3, max = 30) @Schema(nullable = true) String handle,
             @Schema(nullable = true) Integer homeCityId) {}
 
-    public record GenreChoice(@NotNull Integer genreId, @NotNull @DecimalMin("0.0") @DecimalMax("1.0") Float weight) {}
+    public record GenreChoice(
+            @NotNull @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(32767) Integer genreId,
+            @NotNull @DecimalMin("0.0") @DecimalMax("1.0") Float weight) {}
 
     public record GenresRequest(@NotEmpty @Size(max = 8) List<@Valid GenreChoice> genres) {}
 

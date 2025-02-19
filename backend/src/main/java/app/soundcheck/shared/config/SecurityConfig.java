@@ -53,8 +53,9 @@ class SecurityConfig {
             ProblemAuthHandlers problemAuthHandlers,
             Converter<Jwt, AbstractAuthenticationToken> jwtAuthenticationConverter)
             throws Exception {
-        return http.csrf(csrf ->
-                        csrf.disable()) // bearer tokens, no cookies on the API (the web refresh cookie comes later)
+        // CSRF tokens are unnecessary: APIs use bearer tokens; the only cookie (web refresh) is SameSite=Strict,
+        // scoped to /api/v1/auth and its endpoint also requires a custom header.
+        return http.csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .exceptionHandling(
                         ex -> ex.authenticationEntryPoint(problemAuthHandlers).accessDeniedHandler(problemAuthHandlers))

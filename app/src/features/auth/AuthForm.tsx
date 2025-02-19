@@ -50,14 +50,16 @@ export function AuthForm<T extends FieldValues>({
       await onSubmit(values);
     } catch (error) {
       if (error instanceof ApiError) {
-        const fieldErrors = error.problem?.errors ?? [];
+        const names = new Set<string>(fields.map((f) => String(f.name)));
+        const fieldErrors = (error.problem?.errors ?? []).filter((fe) => names.has(fe.field));
         for (const fe of fieldErrors) {
           setError(fe.field as Path<T>, { message: fe.message });
         }
         const byCode = codeToField(error.code);
-        if (byCode) {
+        if (byCode && names.has(byCode)) {
           setError(byCode as Path<T>, { message: error.message });
         } else if (fieldErrors.length === 0) {
+          // No field to attach it to (e.g. a wrong password on the delete-account form): show it inline.
           setServerError(error.message);
         }
       } else {
@@ -124,7 +126,7 @@ export function AuthForm<T extends FieldValues>({
 }
 
 /** Stable API codes that belong to one field. */
-function codeToField(code: string): string | null {
+export function codeToField(code: string): string | null {
   switch (code) {
     case 'EMAIL_TAKEN':
     case 'INVALID_CREDENTIALS':

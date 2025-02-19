@@ -67,13 +67,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   async bootstrap() {
-    const token = await refreshSession();
-    if (token) {
-      await get().reloadMe();
-      set({ status: 'signedIn' });
-    } else {
-      get().clear();
+    try {
+      const token = await refreshSession();
+      if (token) {
+        await get().reloadMe();
+        set({ status: 'signedIn' });
+        return;
+      }
+    } catch {
+      // Network down while resuming: fall through and start signed out rather than hang on the spinner.
     }
+    get().clear();
   },
 
   async signIn(email, password) {

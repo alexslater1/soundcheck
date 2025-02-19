@@ -57,9 +57,12 @@ public class RefreshTokenRepository {
                 .fetchOptional(RefreshTokenRepository::toRow);
     }
 
-    /** Marks one token used/revoked and, for rotation, which token replaced it. */
-    public void revoke(UUID id, @Nullable UUID replacedBy, Instant now) {
-        dsl.update(REFRESH_TOKEN)
+    /**
+     * Marks one token used/revoked and, for rotation, which token replaced it. Returns the number of
+     * rows updated: 0 means another request rotated this token first (concurrent reuse).
+     */
+    public int revoke(UUID id, @Nullable UUID replacedBy, Instant now) {
+        return dsl.update(REFRESH_TOKEN)
                 .set(REFRESH_TOKEN.REVOKED_AT, at(now))
                 .set(REFRESH_TOKEN.REPLACED_BY, replacedBy)
                 .where(REFRESH_TOKEN.ID.eq(id))

@@ -171,7 +171,12 @@ public class AuthService {
                 .filter(u -> !u.deleted())
                 .orElseThrow(() -> ApiException.unauthorized("REFRESH_INVALID", "Refresh token is not valid"));
         UUID newId = Ids.newId();
-        refreshTokens.revoke(presented.id(), newId, now);
+        // Atomic conditional update: if two requests race with the same token, exactly one wins the
+        // rotation; the loser is treated as reuse (family revoked), closing the race the SELECT alone leaves.
+        if (refreshTokens.revoke(presented.id(), newId, now) == 0) {
+            refreshTokens.revokeFamily(presented.familyId(), now);
+            throw ApiException.unauthorized("REFRESH_REUSED", "Refresh token was already used; sign in again");
+        }
         return startSession(user, presented.familyId(), newId, client, userAgent, now);
     }
 

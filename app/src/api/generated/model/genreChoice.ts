@@ -7,6 +7,10 @@
  */
 
 export interface GenreChoice {
+  /**
+   * @minimum 1
+   * @maximum 32767
+   */
   genreId: number;
   /**
    * @minimum 0

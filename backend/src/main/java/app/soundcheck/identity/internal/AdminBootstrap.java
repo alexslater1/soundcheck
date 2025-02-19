@@ -45,13 +45,14 @@ public class AdminBootstrap {
         this.clock = clock;
     }
 
+    /** Transactional here (not on {@code ensureAdmin}): a self-invocation would bypass the proxy. */
     @EventListener(ApplicationReadyEvent.class)
+    @Transactional
     public void onReady() {
         ensureAdmin();
     }
 
-    @Transactional
-    public boolean ensureAdmin() {
+    boolean ensureAdmin() {
         if (properties.email() == null || properties.email().isBlank()) {
             log.info("No SOUNDCHECK_ADMIN_EMAIL configured — skipping admin bootstrap");
             return false;
@@ -62,6 +63,10 @@ public class AdminBootstrap {
         }
         String email = properties.email().strip().toLowerCase(Locale.ROOT);
         if (users.emailExists(email)) {
+            users.findByEmail(email)
+                    .filter(u -> !"ADMIN".equals(u.role()))
+                    .ifPresent(u ->
+                            log.warn("Admin bootstrap: {} exists but has role {} — not promoted", email, u.role()));
             return false;
         }
         Instant now = Instant.now(clock);

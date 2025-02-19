@@ -41,14 +41,15 @@ class CityLoader {
         this.dsl = dsl;
     }
 
+    /** Transactional here (not on {@code load}): a self-invocation would bypass the proxy. */
     @EventListener(ApplicationReadyEvent.class)
+    @Transactional
     public void onReady() {
         int count = load();
         log.info("Loaded {} UK cities into catalog.city", count);
     }
 
-    @Transactional
-    public int load() {
+    int load() {
         List<Query> upserts = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(
                 new InputStreamReader(new ClassPathResource(RESOURCE).getInputStream(), StandardCharsets.UTF_8))) {

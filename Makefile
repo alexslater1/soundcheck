@@ -103,11 +103,11 @@ verify: ## Format check, lint, typecheck, all tests, openapi-check, parity
 	npm run lint
 	npm run typecheck
 	CI=1 npm test
-	$(MAKE) openapi-check-client
+	$(MAKE) -C $(CURDIR) openapi-check-client
 	cd $(CURDIR)/infra
 	npm run build
 	CI=1 npm test
-	$(MAKE) lab-check
+	$(MAKE) -C $(CURDIR) lab-check
 
 lab-check: ## ruff, mypy, pytest for the Python lab
 	cd $(CURDIR)/lab
@@ -127,7 +127,7 @@ openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
 
 openapi-check: ## Fail if regenerating the OpenAPI snapshot/client would change anything
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT
-	$(MAKE) openapi-check-client
+	$(MAKE) -C $(CURDIR) openapi-check-client
 
 openapi-check-client: ## Fail if running orval changes app/src/api/generated (snapshot is checked by the backend tests)
 	cd $(CURDIR)/app

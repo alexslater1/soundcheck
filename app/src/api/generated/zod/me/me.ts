@@ -95,6 +95,7 @@ export const updateMeResponse = zod.object({
 /**
  * @summary Replace the explicit genre preferences (1–8)
  */
+export const setMyGenresBodyGenresItemGenreIdMax = 32767;
 export const setMyGenresBodyGenresItemWeightMin = 0;
 
 export const setMyGenresBodyGenresItemWeightMax = 1;
@@ -105,7 +106,7 @@ export const setMyGenresBodyGenresMax = 8;
 
 export const setMyGenresBody = zod.object({
   "genres": zod.array(zod.object({
-  "genreId": zod.number(),
+  "genreId": zod.number().min(1).max(setMyGenresBodyGenresItemGenreIdMax),
   "weight": zod.number().min(setMyGenresBodyGenresItemWeightMin).max(setMyGenresBodyGenresItemWeightMax)
 })).min(setMyGenresBodyGenresMin).max(setMyGenresBodyGenresMax)
 })

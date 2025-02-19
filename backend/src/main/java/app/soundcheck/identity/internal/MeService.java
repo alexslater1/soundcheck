@@ -100,6 +100,9 @@ public class MeService {
                     .city(homeCityId)
                     .orElseThrow(() -> ApiException.badRequest("CITY_UNKNOWN", "Unknown city id " + homeCityId));
         }
+        if (displayName != null && displayName.isBlank()) {
+            throw ApiException.badRequest("DISPLAY_NAME_BLANK", "Display name cannot be blank");
+        }
         users.updateProfile(
                 userId,
                 displayName == null ? user.displayName() : displayName.strip(),

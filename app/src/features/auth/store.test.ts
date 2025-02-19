@@ -29,6 +29,10 @@ const me = {
   counts: { followers: 0, following: 0, posts: 0 },
 };
 
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 beforeEach(() => {
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -36,6 +40,21 @@ beforeEach(() => {
 });
 
 describe('auth store', () => {
+  it('bootstrap ends signed out (not stuck) when /me fails after a refresh', async () => {
+    const { refreshTokenStore } =
+      jest.requireActual<typeof import('@/lib/secureStore')>('@/lib/secureStore');
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    fetchMock.mockImplementation(async (url) =>
+      String(url).endsWith('/auth/refresh')
+        ? json(200, session)
+        : Promise.reject(new TypeError('offline')),
+    );
+
+    await useAuthStore.getState().bootstrap();
+
+    expect(useAuthStore.getState().status).toBe('signedOut');
+  });
+
   it('signIn stores the access token in memory and loads /me', async () => {
     fetchMock.mockImplementation(async (url) =>
       String(url).endsWith('/auth/login') ? json(200, session) : json(200, me),

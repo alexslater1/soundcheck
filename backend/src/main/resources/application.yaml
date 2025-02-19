@@ -35,6 +35,9 @@ spring:
 
 server:
   port: ${SERVER_PORT:8080}
+  # Caddy (local) and the ALB (AWS) sit in front: take the client IP from X-Forwarded-For sent by
+  # internal-network proxies only (Tomcat RemoteIpValve), so per-IP rate limits key on real clients.
+  forward-headers-strategy: native
   shutdown: graceful
   error:
     include-message: never
