@@ -1,0 +1,11 @@
+# gitleaks configuration (CI job `gitleaks`): the default rules plus one narrow, reviewed exception.
+[extend]
+useDefault = true
+
+[allowlist]
+# JwtKeys.toPem() wraps a key generated at runtime in PEM framing. The `private-key` rule matches the
+# "-----BEGIN PRIVATE KEY-----" string literal in the Java source; no key material is ever committed
+# (keys live in .secrets/, gitignored). Matching on the code expression keeps real PEM keys detectable.
+description = "JwtKeys.toPem() string literal, not key material"
+regexTarget = "match"
+regexes = ['''encodeToString\(privateKey\.getEncoded\(\)\)''']
