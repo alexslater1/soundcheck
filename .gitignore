@@ -16,6 +16,12 @@ contracts/openapi.tmp.json
 backend/build/
 backend/.gradle/
 backend/.jqwik-database
+# VS Code Java (Eclipse JDT) output and project files
+backend/bin/
+backend/.classpath
+backend/.project
+backend/.settings/
+backend/.factorypath
 app/node_modules/
 app/.expo/
 app/dist/
