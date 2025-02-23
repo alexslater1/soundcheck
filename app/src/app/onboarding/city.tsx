@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { StepError } from '@/features/onboarding/StepError';
+import { useSaveStep } from '@/features/onboarding/useSaveStep';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
@@ -21,22 +23,19 @@ export default function CityStep() {
   const [selected, setSelected] = useState<{ id: number; name: string } | null>(
     me?.homeCity ? { id: me.homeCity.id, name: me.homeCity.name } : null,
   );
-  const [saving, setSaving] = useState(false);
-  const { data, isFetching } = useSearchCities(
+  const { saving, error, run } = useSaveStep();
+  const { data, isFetching, isError } = useSearchCities(
     { q: query },
     { query: { placeholderData: (prev) => prev } },
   );
 
-  async function next() {
+  function next() {
     if (!selected) return;
-    setSaving(true);
-    try {
+    void run(async () => {
       await updateMe({ homeCityId: selected.id });
       await reloadMe();
       router.push('/onboarding/genres');
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   return (
@@ -61,7 +60,11 @@ export default function CityStep() {
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={
           <Text muted style={styles.empty}>
-            {isFetching ? 'Searching…' : 'No matches'}
+            {isError
+              ? 'Could not load cities. Check your connection.'
+              : isFetching
+                ? 'Searching…'
+                : 'No matches'}
           </Text>
         }
         renderItem={({ item }) => (
@@ -82,6 +85,7 @@ export default function CityStep() {
         style={styles.list}
       />
       <View style={styles.footer}>
+        <StepError message={error} />
         <Button
           title={selected ? `Continue as ${selected.name}` : 'Pick a city'}
           disabled={!selected || saving}
@@ -109,5 +113,5 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
   },
   empty: { padding: spacing.md },
-  footer: { paddingVertical: spacing.md },
+  footer: { paddingVertical: spacing.md, gap: spacing.sm },
 });

@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { StepError } from '@/features/onboarding/StepError';
 import {
   canContinue,
   fromMe,
@@ -18,6 +19,7 @@ import {
   WEIGHTS,
   type GenreSelection,
 } from '@/features/onboarding/genreSelection';
+import { useSaveStep } from '@/features/onboarding/useSaveStep';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
@@ -29,17 +31,14 @@ export default function GenresStep() {
   const reloadMe = useAuthStore((s) => s.reloadMe);
   const { data: genres, isPending, isError } = useListGenres();
   const [selection, setSelection] = useState<GenreSelection>(() => fromMe(me?.genres ?? []));
-  const [saving, setSaving] = useState(false);
+  const { saving, error, run } = useSaveStep();
 
-  async function next() {
-    setSaving(true);
-    try {
+  function next() {
+    void run(async () => {
       await setMyGenres({ genres: toRequest(selection) });
       await reloadMe();
       router.push('/onboarding/artists');
-    } finally {
-      setSaving(false);
-    }
+    });
   }
 
   return (
@@ -93,6 +92,7 @@ export default function GenresStep() {
         })}
       </ScrollView>
       <View style={styles.footer}>
+        <StepError message={error} />
         <Button
           title={`Continue (${selection.size}/${MAX_GENRES})`}
           disabled={!canContinue(selection) || saving}
@@ -119,5 +119,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     borderRadius: radius.sm,
   },
-  footer: { paddingVertical: spacing.md },
+  footer: { paddingVertical: spacing.md, gap: spacing.sm },
 });
