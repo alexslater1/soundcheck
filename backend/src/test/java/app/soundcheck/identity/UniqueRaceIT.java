@@ -3,15 +3,11 @@ package app.soundcheck.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.soundcheck.support.IntegrationTest;
+import app.soundcheck.support.Parallel;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -38,7 +34,7 @@ class UniqueRaceIT extends IntegrationTest {
     void concurrentRegistersWithOneEmailGiveOneAccountAndConflictsForTheRest() throws Exception {
         String email = "race-" + UUID.randomUUID() + "@example.com";
         List<ResponseEntity<Map<String, Object>>> responses =
-                inParallel(PARALLEL, i -> register(email, "race_" + shortId() + i));
+                Parallel.run(PARALLEL, i -> register(email, "race_" + shortId() + i));
 
         assertThat(responses)
                 .filteredOn(r -> r.getStatusCode() == HttpStatus.CREATED)
@@ -56,7 +52,7 @@ class UniqueRaceIT extends IntegrationTest {
     void concurrentRegistersWithOneHandleGiveOneAccountAndConflictsForTheRest() throws Exception {
         String handle = "race_" + shortId();
         List<ResponseEntity<Map<String, Object>>> responses =
-                inParallel(PARALLEL, i -> register("race-" + UUID.randomUUID() + "@example.com", handle));
+                Parallel.run(PARALLEL, i -> register("race-" + UUID.randomUUID() + "@example.com", handle));
 
         assertThat(responses)
                 .filteredOn(r -> r.getStatusCode() == HttpStatus.CREATED)
@@ -81,7 +77,7 @@ class UniqueRaceIT extends IntegrationTest {
         }
         String wanted = "wanted_" + shortId();
 
-        List<ResponseEntity<Map<String, Object>>> responses = inParallel(
+        List<ResponseEntity<Map<String, Object>>> responses = Parallel.run(
                 PARALLEL, i -> call(HttpMethod.PATCH, "/api/v1/me", Map.of("handle", wanted), tokens.get(i)));
 
         assertThat(responses)
@@ -94,32 +90,6 @@ class UniqueRaceIT extends IntegrationTest {
                     assertThat(r.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
                     assertThat(r.getBody()).containsEntry("code", "HANDLE_TAKEN");
                 });
-    }
-
-    private interface Indexed<T> {
-        T call(int index);
-    }
-
-    /** Runs {@code n} calls that all start at the same moment (a latch releases them together). */
-    static <T> List<T> inParallel(int n, Indexed<T> task) throws Exception {
-        CountDownLatch start = new CountDownLatch(1);
-        try (ExecutorService pool = Executors.newVirtualThreadPerTaskExecutor()) {
-            List<Future<T>> futures = new ArrayList<>();
-            for (int i = 0; i < n; i++) {
-                int index = i;
-                Callable<T> callable = () -> {
-                    start.await();
-                    return task.call(index);
-                };
-                futures.add(pool.submit(callable));
-            }
-            start.countDown();
-            List<T> results = new ArrayList<>();
-            for (Future<T> future : futures) {
-                results.add(future.get());
-            }
-            return results;
-        }
     }
 
     private ResponseEntity<Map<String, Object>> register(String email, String handle) {
