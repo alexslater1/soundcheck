@@ -3,6 +3,7 @@ package app.soundcheck.identity.internal;
 import static app.soundcheck.shared.jooq.identity.Tables.APP_USER;
 import static app.soundcheck.shared.jooq.identity.Tables.USER_GENRE_PREFERENCE;
 
+import app.soundcheck.shared.web.ApiException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -14,6 +15,7 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 /** jOOQ access to {@code identity.app_user} and {@code identity.user_genre_preference}. */
@@ -29,19 +31,48 @@ public class UserRepository {
         this.dsl = dsl;
     }
 
+    /** The names PostgreSQL gave the {@code unique} column constraints in V002. */
+    static final String EMAIL_UNIQUE = "app_user_email_key";
+
+    static final String HANDLE_UNIQUE = "app_user_handle_key";
+
+    /**
+     * @throws ApiException 409 {@code EMAIL_TAKEN} / {@code HANDLE_TAKEN} when another request took the
+     *     email or handle between the caller's existence check and this insert
+     */
     public void insert(UserRecord user) {
-        dsl.insertInto(APP_USER)
-                .set(APP_USER.ID, user.id())
-                .set(APP_USER.EMAIL, user.email())
-                .set(APP_USER.HANDLE, user.handle())
-                .set(APP_USER.DISPLAY_NAME, user.displayName())
-                .set(APP_USER.BIO, user.bio())
-                .set(APP_USER.ROLE, user.role())
-                .set(APP_USER.PASSWORD_HASH, user.passwordHash())
-                .set(APP_USER.HOME_CITY_ID, user.homeCityId())
-                .set(APP_USER.CREATED_AT, at(user.createdAt()))
-                .set(APP_USER.UPDATED_AT, at(user.createdAt()))
-                .execute();
+        try {
+            dsl.insertInto(APP_USER)
+                    .set(APP_USER.ID, user.id())
+                    .set(APP_USER.EMAIL, user.email())
+                    .set(APP_USER.HANDLE, user.handle())
+                    .set(APP_USER.DISPLAY_NAME, user.displayName())
+                    .set(APP_USER.BIO, user.bio())
+                    .set(APP_USER.ROLE, user.role())
+                    .set(APP_USER.PASSWORD_HASH, user.passwordHash())
+                    .set(APP_USER.HOME_CITY_ID, user.homeCityId())
+                    .set(APP_USER.CREATED_AT, at(user.createdAt()))
+                    .set(APP_USER.UPDATED_AT, at(user.createdAt()))
+                    .execute();
+        } catch (DataIntegrityViolationException e) {
+            throw taken(e);
+        }
+    }
+
+    /**
+     * The existence checks in the services give the friendly error in the common case, but two requests
+     * can both pass them; the unique constraint is what actually decides. Its violation becomes the same
+     * 409 instead of a 500. Anything else (a check constraint, a foreign key) is rethrown untouched.
+     */
+    private static RuntimeException taken(DataIntegrityViolationException e) {
+        String message = String.valueOf(e.getMostSpecificCause().getMessage());
+        if (message.contains(EMAIL_UNIQUE)) {
+            return ApiException.conflict("EMAIL_TAKEN", "An account with that email already exists");
+        }
+        if (message.contains(HANDLE_UNIQUE)) {
+            return ApiException.conflict("HANDLE_TAKEN", "That handle is taken");
+        }
+        return e;
     }
 
     public Optional<UserRecord> findById(UUID id) {
@@ -65,7 +96,11 @@ public class UserRepository {
         return dsl.fetchExists(APP_USER, APP_USER.HANDLE.eq(handle));
     }
 
-    /** Profile fields; a null {@code homeCity} leaves the city untouched. */
+    /**
+     * Profile fields; a null {@code homeCity} leaves the city untouched.
+     *
+     * @throws ApiException 409 {@code HANDLE_TAKEN} when a concurrent request took the handle first
+     */
     public void updateProfile(
             UUID id,
             String displayName,
@@ -89,7 +124,11 @@ public class UserRepository {
                                     "ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography",
                                     Object.class, DSL.val(homeLng), DSL.val(homeLat))));
         }
-        update.where(APP_USER.ID.eq(id)).execute();
+        try {
+            update.where(APP_USER.ID.eq(id)).execute();
+        } catch (DataIntegrityViolationException e) {
+            throw taken(e);
+        }
     }
 
     public void markOnboarded(UUID id, Instant now) {
