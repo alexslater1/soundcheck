@@ -25,7 +25,7 @@ endef
 
 .PHONY: help setup install keys up openapi-check-client down reset api worker app android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures seed-demo seed-scale simulate lab-train lab-eval \
-	lab-publish lab-loop load clips images dlq-redrive demo-preflight \
+	lab-publish lab-loop load clips images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
 help: ## List targets with one-line descriptions
