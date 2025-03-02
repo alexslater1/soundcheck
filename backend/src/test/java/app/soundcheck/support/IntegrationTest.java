@@ -2,6 +2,7 @@ package app.soundcheck.support;
 
 import org.springframework.boot.test.autoconfigure.actuate.observability.AutoConfigureObservability;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
@@ -16,6 +17,7 @@ import org.testcontainers.utility.DockerImageName;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @AutoConfigureObservability // tracing and metrics as in the application: Spring Boot's tests switch them off otherwise
 @ActiveProfiles("test")
+@Import(TestClockConfig.class)
 public abstract class IntegrationTest {
 
     public static final String POSTGIS_IMAGE = "postgis/postgis:17-3.5";
