@@ -753,7 +753,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Public profile",
+        "summary" : "Public profile (any signed-in user)",
         "tags" : [ "me" ]
       }
     }

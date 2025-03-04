@@ -404,7 +404,7 @@ export const useCompleteOnboarding = <TError = unknown,
       return useMutation(mutationOptions);
     }
     /**
- * @summary Public profile
+ * @summary Public profile (any signed-in user)
  */
 export const getGetUserByHandleUrl = (handle: string,) => {
 
@@ -477,7 +477,7 @@ export function useGetUserByHandle<TData = Awaited<ReturnType<typeof getUserByHa
 
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Public profile
+ * @summary Public profile (any signed-in user)
  */
 
 export function useGetUserByHandle<TData = Awaited<ReturnType<typeof getUserByHandle>>, TError = unknown>(

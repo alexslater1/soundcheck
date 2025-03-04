@@ -77,8 +77,13 @@ public class MeController {
         return ResponseEntity.accepted().build();
     }
 
+    /**
+     * "Public" means visible to every signed-in user, not to anonymous callers: only auth, health,
+     * genres and cities are exempt from the bearer token, and the profile carries viewer-relative
+     * fields ({@code isFollowing}, {@code isBlocked}).
+     */
     @GetMapping("/users/{handle}")
-    @Operation(operationId = "getUserByHandle", summary = "Public profile")
+    @Operation(operationId = "getUserByHandle", summary = "Public profile (any signed-in user)")
     public ProfileResponse profile(@PathVariable String handle) {
         return me.profile(handle)
                 .map(ProfileResponse::from)

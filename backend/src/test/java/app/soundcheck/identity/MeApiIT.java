@@ -141,6 +141,25 @@ class MeApiIT extends IntegrationTest {
         assertThat(me).containsEntry("role", "ADMIN").containsEntry("handle", "admin");
     }
 
+    /**
+     * Only a few endpoints work without a token; {@code /users/{handle}} is not one of them
+     * (its response carries viewer-relative fields, {@code isFollowing}/{@code isBlocked}).
+     */
+    @Test
+    void publicProfilesStillNeedASignedInViewer() {
+        String handle = "pv_" + UUID.randomUUID().toString().substring(0, 8);
+        Map<String, Object> session = register("pv-" + UUID.randomUUID() + "@example.com", handle);
+
+        ResponseEntity<Map<String, Object>> anonymous = call(HttpMethod.GET, "/api/v1/users/" + handle, null, null);
+        assertThat(anonymous.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(anonymous.getBody()).containsEntry("code", "UNAUTHENTICATED");
+
+        ResponseEntity<Map<String, Object>> signedIn =
+                call(HttpMethod.GET, "/api/v1/users/" + handle, null, (String) session.get("accessToken"));
+        assertThat(signedIn.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(signedIn.getBody()).containsEntry("handle", handle).doesNotContainKey("email");
+    }
+
     static final org.springframework.core.ParameterizedTypeReference<List<Map<String, Object>>> LIST =
             new org.springframework.core.ParameterizedTypeReference<>() {};
 

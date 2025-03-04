@@ -169,7 +169,7 @@ export const completeOnboardingResponse = zod.object({
 })
 
 /**
- * @summary Public profile
+ * @summary Public profile (any signed-in user)
  */
 export const getUserByHandleParams = zod.object({
   "handle": zod.string()
