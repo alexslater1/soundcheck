@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { nextRoute } from '@/features/auth/nextRoute';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -34,18 +35,10 @@ function RootStack() {
   }, [bootstrap]);
 
   // Signed out → auth screens; signed in but not onboarded → onboarding; otherwise the tabs.
+  // The rules live in nextRoute() (pure, table-tested); this effect only applies its answer.
   useEffect(() => {
-    if (status === 'unknown') return;
-    const group = segments[0];
-    const inAuth = group === '(auth)';
-    const inOnboarding = group === 'onboarding';
-    if (status === 'signedOut' && !inAuth) {
-      router.replace('/sign-in');
-    } else if (status === 'signedIn' && me && !me.onboarded && !inOnboarding) {
-      router.replace('/onboarding');
-    } else if (status === 'signedIn' && me?.onboarded && (inAuth || inOnboarding)) {
-      router.replace('/');
-    }
+    const target = nextRoute({ status, onboarded: me?.onboarded, group: segments[0] });
+    if (target) router.replace(target);
   }, [status, me, segments, router]);
 
   if (status === 'unknown') {
