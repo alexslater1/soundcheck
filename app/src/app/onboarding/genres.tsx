@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
-import { setMyGenres } from '@/api/generated/me/me';
+import { useSetMyGenres } from '@/api/generated/me/me';
 import { useListGenres } from '@/api/generated/reference/reference';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
@@ -32,10 +32,11 @@ export default function GenresStep() {
   const { data: genres, isPending, isError } = useListGenres();
   const [selection, setSelection] = useState<GenreSelection>(() => fromMe(me?.genres ?? []));
   const { saving, error, run } = useSaveStep();
+  const { mutateAsync: setMyGenres } = useSetMyGenres();
 
   function next() {
     void run(async () => {
-      await setMyGenres({ genres: toRequest(selection) });
+      await setMyGenres({ data: { genres: toRequest(selection) } });
       await reloadMe();
       router.push('/onboarding/artists');
     });

@@ -1,19 +1,27 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import type { PropsWithChildren } from 'react';
 
-import { completeOnboarding } from '@/api/generated/me/me';
 import { ApiError } from '@/api/http';
 import ArtistsStep from '@/app/onboarding/artists';
 import { useAuthStore } from '@/features/auth/store';
 
 import { saveErrorMessage } from './useSaveStep';
 
-jest.mock('@/api/generated/me/me', () => ({ completeOnboarding: jest.fn() }));
-
-const completeMock = completeOnboarding as jest.MockedFunction<typeof completeOnboarding>;
+// The step saves through the generated useCompleteOnboarding mutation hook, so the test drives the
+// real hook and http.ts and fakes only the network.
+const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 const reloadMe = jest.fn<Promise<void>, []>();
 
+function Providers({ children }: PropsWithChildren) {
+  // gcTime Infinity: no garbage-collection timer is left running when the test ends.
+  const client = new QueryClient({ defaultOptions: { mutations: { gcTime: Infinity } } });
+  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+}
+
 beforeEach(() => {
-  completeMock.mockReset();
+  fetchMock.mockReset();
+  globalThis.fetch = fetchMock as unknown as typeof fetch;
   reloadMe.mockReset().mockResolvedValue(undefined);
   useAuthStore.setState({ reloadMe });
 });
@@ -32,8 +40,8 @@ describe('saveErrorMessage', () => {
 
 describe('onboarding step error state (artists step)', () => {
   it('shows the error, keeps the user on the step, and lets them retry', async () => {
-    completeMock.mockRejectedValueOnce(new ApiError(0, 'NETWORK_ERROR', 'offline'));
-    await render(<ArtistsStep />);
+    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    await render(<ArtistsStep />, { wrapper: Providers });
 
     await fireEvent.press(screen.getByRole('button', { name: 'Finish' }));
 
@@ -45,9 +53,17 @@ describe('onboarding step error state (artists step)', () => {
     expect(reloadMe).not.toHaveBeenCalled();
 
     // Retry succeeds: the error clears and /me is reloaded (the root layout then redirects).
-    completeMock.mockResolvedValueOnce(undefined as never);
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify({ onboarded: true }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
     await fireEvent.press(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(reloadMe).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('step-error')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[1]![0]).toBe('http://localhost:8088/api/v1/me/onboarding/complete');
+    expect(fetchMock.mock.calls[1]![1]?.method).toBe('POST');
   });
 });

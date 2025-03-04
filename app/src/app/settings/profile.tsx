@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { z } from 'zod';
 
-import { updateMe } from '@/api/generated/me/me';
+import { useUpdateMe } from '@/api/generated/me/me';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { AuthForm } from '@/features/auth/AuthForm';
@@ -22,6 +22,7 @@ export default function EditProfileScreen() {
   const router = useRouter();
   const me = useAuthStore((s) => s.me);
   const reloadMe = useAuthStore((s) => s.reloadMe);
+  const { mutateAsync: updateMe } = useUpdateMe();
   if (!me) {
     return (
       <Screen>
@@ -45,7 +46,7 @@ export default function EditProfileScreen() {
         ]}
         submitLabel="Save"
         onSubmit={async (v) => {
-          await updateMe({ displayName: v.displayName, handle: v.handle, bio: v.bio });
+          await updateMe({ data: { displayName: v.displayName, handle: v.handle, bio: v.bio } });
           await reloadMe();
           router.back();
         }}

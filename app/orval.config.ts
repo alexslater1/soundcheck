@@ -69,8 +69,9 @@ export default defineConfig({
         fetch: {
           includeHttpResponseReturnType: false,
         },
+        // GET operations become useQuery hooks, everything else useMutation hooks (orval's default
+        // split). Forcing `useQuery: true` here made every operation, including PATCH/DELETE, a query.
         query: {
-          useQuery: true,
           signal: true,
         },
       },

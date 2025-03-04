@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, TextInput, View } from 'react-native';
 
-import { updateMe } from '@/api/generated/me/me';
+import { useUpdateMe } from '@/api/generated/me/me';
 import { useSearchCities } from '@/api/generated/reference/reference';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
@@ -24,6 +24,7 @@ export default function CityStep() {
     me?.homeCity ? { id: me.homeCity.id, name: me.homeCity.name } : null,
   );
   const { saving, error, run } = useSaveStep();
+  const { mutateAsync: updateMe } = useUpdateMe();
   const { data, isFetching, isError } = useSearchCities(
     { q: query },
     { query: { placeholderData: (prev) => prev } },
@@ -32,7 +33,7 @@ export default function CityStep() {
   function next() {
     if (!selected) return;
     void run(async () => {
-      await updateMe({ homeCityId: selected.id });
+      await updateMe({ data: { homeCityId: selected.id } });
       await reloadMe();
       router.push('/onboarding/genres');
     });

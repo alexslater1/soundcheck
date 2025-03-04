@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 
-import { completeOnboarding } from '@/api/generated/me/me';
+import { useCompleteOnboarding } from '@/api/generated/me/me';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -13,6 +13,7 @@ import { spacing } from '@/theme/tokens';
 export default function ArtistsStep() {
   const reloadMe = useAuthStore((s) => s.reloadMe);
   const { saving, error, run } = useSaveStep();
+  const { mutateAsync: completeOnboarding } = useCompleteOnboarding();
 
   function finish() {
     void run(async () => {
