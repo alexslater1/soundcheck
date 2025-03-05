@@ -1,11 +1,11 @@
 {
- "björn again tomorrow": {
+ "beyoncia": {
   "artists": [
    {
     "country": "GB",
-    "id": "255c2912-8cc0-4e83-a905-ad8a9b5b1fc1",
-    "name": "Björn Again Tomorrow",
-    "score": 71,
+    "id": "989ab7c0-9aac-4d73-90ce-add0b2795419",
+    "name": "Beyoncia",
+    "score": 100,
     "type": "Group"
    }
   ],
@@ -13,12 +13,26 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "copper machines": {
+ "bright motel": {
   "artists": [
    {
     "country": "GB",
-    "id": "e3063f7b-38bd-4e16-9bc9-301a1751ac33",
-    "name": "Copper Machines",
+    "id": "7001a75f-3f92-465c-8184-67109504428f",
+    "name": "Bright Motel",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "copper & the signals": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "322f80bb-498a-46e5-be27-18400e24151f",
+    "name": "Copper & The Signals",
     "score": 100,
     "type": "Group"
    }
@@ -45,7 +59,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "99af73fa-4a52-4576-9ed0-bc9c0762b89c",
+    "id": "45cd27c5-71f9-4569-bc0f-8ce2219b1a2e",
     "name": "Copper Wolves",
     "score": 100,
     "type": "Group"
@@ -55,13 +69,27 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "crooked orchard": {
+ "d.j. kettle": {
   "artists": [
    {
     "country": "GB",
-    "id": "dca9e854-39a7-4212-ab6a-a81575f6e36d",
-    "name": "Crooked Orchard",
-    "score": 100,
+    "id": "8eac13bc-3523-48aa-88ce-012997dd11d7",
+    "name": "D.J. Kettle",
+    "score": 71,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "distant engines": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "16b86148-e970-4b01-bfd8-6906ffd70ff4",
+    "name": "Distant Engines",
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -83,13 +111,55 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "electric & the bloom": {
+ "electric harbour": {
   "artists": [
    {
     "country": "GB",
-    "id": "322f80bb-498a-46e5-be27-18400e24151f",
-    "name": "Electric & The Bloom",
+    "id": "ea63b37d-8a40-4262-9b77-51bb2fec2a3e",
+    "name": "Electric Harbour",
     "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "electric radio": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "e3063f7b-38bd-4e16-9bc9-301a1751ac33",
+    "name": "Electric Radio",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "electric season": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "a0d3867e-6293-408b-a23c-e821c5f64d43",
+    "name": "Electric Season",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "feral machines": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "7260e9f4-03df-4d2f-bf1f-8dc3e471d950",
+    "name": "Feral Machines",
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -111,25 +181,11 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "feral weather": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "ff475a3c-fce9-4997-a5e5-4c65a81ab4ab",
-    "name": "Feral Weather",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
  "feral wolves": {
   "artists": [
    {
     "country": "GB",
-    "id": "314c3986-e1dc-4da0-b173-80f99326c67b",
+    "id": "bb795f2a-b9dc-47c6-b0e6-c06019869165",
     "name": "Feral Wolves",
     "score": 100,
     "type": "Group"
@@ -139,12 +195,12 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "golden & the kites": {
+ "glass colony": {
   "artists": [
    {
     "country": "GB",
-    "id": "45cd27c5-71f9-4569-bc0f-8ce2219b1a2e",
-    "name": "Golden & The Kites",
+    "id": "0e4069b9-a25e-47b2-9773-790ad3115c9e",
+    "name": "Glass Colony",
     "score": 100,
     "type": "Group"
    }
@@ -157,8 +213,36 @@
   "artists": [
    {
     "country": "GB",
-    "id": "e1cabfd9-b5aa-4982-a635-2861f0dc71b4",
+    "id": "c1b16409-446d-4b04-9c9e-fe81adb313a3",
     "name": "Golden Season",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "hollow & the atlas": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "969bc52c-b198-4a40-b9fb-b490408a2d15",
+    "name": "Hollow & The Atlas",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "hollow & the tides": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "f86348c2-ab67-4941-a42d-252b029ac9e5",
+    "name": "Hollow & The Tides",
     "score": 100,
     "type": "Group"
    }
@@ -181,13 +265,27 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "hollow tides": {
+ "low & the engines": {
   "artists": [
    {
     "country": "GB",
-    "id": "c28d1e82-a434-4af5-aaaa-a3d110a8e24d",
-    "name": "Hollow Tides",
-    "score": 71,
+    "id": "b27073b3-245e-4b33-a506-45049642652f",
+    "name": "Low & The Engines",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "low & the tides": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "6bccaa04-312b-482e-b104-52d61d937c80",
+    "name": "Low & The Tides",
+    "score": 100,
     "type": "Group"
    }
   ],
@@ -209,12 +307,68 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
+ "low embers": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "81e42c25-d122-4225-9445-20d42e8b340f",
+    "name": "Low Embers",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "low signals": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "dca9e854-39a7-4212-ab6a-a81575f6e36d",
+    "name": "Low Signals",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
  "lunar & the harbour": {
   "artists": [
    {
     "country": "GB",
-    "id": "dc0a7f29-f685-4fa7-b3cd-88b366a0e80b",
+    "id": "e5e396f9-bc82-4596-8f6c-fa40a6046fcf",
     "name": "Lunar & The Harbour",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "lunar engines": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "655966a2-3adf-451b-8ec2-01e024859ff1",
+    "name": "Lunar Engines",
+    "score": 71,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "marlow & the tide": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "80865a9b-6fc0-4a66-ac59-e9504da3182e",
+    "name": "Marlow & The Tide",
     "score": 100,
     "type": "Group"
    }
@@ -227,9 +381,9 @@
   "artists": [
    {
     "country": "GB",
-    "id": "0e4069b9-a25e-47b2-9773-790ad3115c9e",
+    "id": "dc5c8e55-e1fe-4c9b-bf41-ed7543745771",
     "name": "Midnight Colony",
-    "score": 100,
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -241,23 +395,9 @@
   "artists": [
    {
     "country": "GB",
-    "id": "989ab7c0-9aac-4d73-90ce-add0b2795419",
+    "id": "255c2912-8cc0-4e83-a905-ad8a9b5b1fc1",
     "name": "MØ-ON",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "neon & the embers": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "f35ae483-d0d4-4267-b7ff-0228fc0f7262",
-    "name": "Neon & The Embers",
-    "score": 100,
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -279,13 +419,13 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "neon sirens": {
+ "northern & the rivers": {
   "artists": [
    {
     "country": "GB",
-    "id": "81e42c25-d122-4225-9445-20d42e8b340f",
-    "name": "Neon Sirens",
-    "score": 100,
+    "id": "c28d1e82-a434-4af5-aaaa-a3d110a8e24d",
+    "name": "Northern & The Rivers",
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -293,12 +433,12 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "northern & the rivers": {
+ "northern avenue": {
   "artists": [
    {
     "country": "GB",
-    "id": "16b86148-e970-4b01-bfd8-6906ffd70ff4",
-    "name": "Northern & The Rivers",
+    "id": "90d5c68b-dd8c-4b1d-97ab-b0ddac42cd2f",
+    "name": "Northern Avenue",
     "score": 71,
     "type": "Group"
    }
@@ -311,7 +451,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "ea63b37d-8a40-4262-9b77-51bb2fec2a3e",
+    "id": "ca2d35a8-61e0-47c0-96ba-684dda555673",
     "name": "Northern Bloom",
     "score": 100,
     "type": "Group"
@@ -325,7 +465,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "5e067752-5632-4245-a1da-c2365ab67067",
+    "id": "4d38453a-74d7-46d1-af5f-445dacdbc090",
     "name": "Northern Weather",
     "score": 100,
     "type": "Group"
@@ -339,8 +479,22 @@
   "artists": [
    {
     "country": "GB",
-    "id": "cc435b7a-ecfa-4390-9e9c-6df538dbdc97",
+    "id": "b7cddcae-0eb2-4cf3-b77b-112ceea740d5",
     "name": "Paper & The Machines",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "paper season": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "57eda0f5-4415-47ca-a4a7-817cebc505fb",
+    "name": "Paper Season",
     "score": 71,
     "type": "Group"
    }
@@ -353,22 +507,8 @@
   "artists": [
    {
     "country": "GB",
-    "id": "bc62cfb7-247f-4f7b-8635-9f613a7eb279",
+    "id": "a9eb08c8-c6ff-458d-875a-522bfab522e4",
     "name": "Paper Tides",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "paper wolves": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "66873324-73bd-4e7d-a753-999327c8d6df",
-    "name": "Paper Wolves",
     "score": 100,
     "type": "Group"
    }
@@ -381,7 +521,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "9a6cd986-e4de-4695-96a3-a72b9314b0a6",
+    "id": "0279e860-299a-4aca-b819-d3d012bdb2ae",
     "name": "Quiet Mirrors",
     "score": 100,
     "type": "Group"
@@ -391,13 +531,27 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "second static": {
+ "second sirens": {
   "artists": [
    {
     "country": "GB",
-    "id": "c1b16409-446d-4b04-9c9e-fe81adb313a3",
-    "name": "Second Static",
+    "id": "9cb291a8-af4b-4ada-ac09-f65cc499f787",
+    "name": "Second Sirens",
     "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "sigrún rós": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "c8ae17ed-a460-46e7-bfb7-6993f5bb20d5",
+    "name": "Sigrún Rós",
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -409,7 +563,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "4b3f5d63-999c-482b-8876-496eeeaf85ad",
+    "id": "cc435b7a-ecfa-4390-9e9c-6df538dbdc97",
     "name": "Static Avenue",
     "score": 71,
     "type": "Group"
@@ -419,12 +573,12 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "the 1989s": {
+ "sudden arcade": {
   "artists": [
    {
     "country": "GB",
-    "id": "524308ae-6434-4137-a071-2e7da1ca7533",
-    "name": "The 1989s",
+    "id": "99af73fa-4a52-4576-9ed0-bc9c0762b89c",
+    "name": "Sudden Arcade",
     "score": 100,
     "type": "Group"
    }
@@ -433,97 +587,13 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "the copper wolves": {
+ "the feral cinema": {
   "artists": [
    {
     "country": "GB",
-    "id": "6bccaa04-312b-482e-b104-52d61d937c80",
-    "name": "The Copper Wolves",
+    "id": "9a6cd986-e4de-4695-96a3-a72b9314b0a6",
+    "name": "The Feral Cinema",
     "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the distant radio": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "57eda0f5-4415-47ca-a4a7-817cebc505fb",
-    "name": "The Distant Radio",
-    "score": 71,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the electric hours": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "4d38453a-74d7-46d1-af5f-445dacdbc090",
-    "name": "The Electric Hours",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the feral bloom": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "b27073b3-245e-4b33-a506-45049642652f",
-    "name": "The Feral Bloom",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the gentle embers": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "969bc52c-b198-4a40-b9fb-b490408a2d15",
-    "name": "The Gentle Embers",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the lunar colony": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "bb795f2a-b9dc-47c6-b0e6-c06019869165",
-    "name": "The Lunar Colony",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the lunar wolves": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "dc5c8e55-e1fe-4c9b-bf41-ed7543745771",
-    "name": "The Lunar Wolves",
-    "score": 71,
     "type": "Group"
    }
   ],
@@ -535,7 +605,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "e5e396f9-bc82-4596-8f6c-fa40a6046fcf",
+    "id": "5e067752-5632-4245-a1da-c2365ab67067",
     "name": "The Midnight Engines",
     "score": 100,
     "type": "Group"
@@ -545,13 +615,13 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "the midnight hours": {
+ "the midnight foxes": {
   "artists": [
    {
     "country": "GB",
-    "id": "90d5c68b-dd8c-4b1d-97ab-b0ddac42cd2f",
-    "name": "The Midnight Hours",
-    "score": 71,
+    "id": "fc747069-0dc7-46c2-8bfb-2d064e6a8e91",
+    "name": "The Midnight Foxes",
+    "score": 100,
     "type": "Group"
    }
   ],
@@ -573,12 +643,12 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "the neon arcade": {
+ "the northern mirrors": {
   "artists": [
    {
     "country": "GB",
-    "id": "3a750ba8-6c5e-4693-8f97-aa56c251b2c7",
-    "name": "The Neon Arcade",
+    "id": "66873324-73bd-4e7d-a753-999327c8d6df",
+    "name": "The Northern Mirrors",
     "score": 100,
     "type": "Group"
    }
@@ -587,41 +657,13 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "the pale radio": {
+ "the pale weather": {
   "artists": [
    {
     "country": "GB",
-    "id": "9cb291a8-af4b-4ada-ac09-f65cc499f787",
-    "name": "The Pale Radio",
+    "id": "bc62cfb7-247f-4f7b-8635-9f613a7eb279",
+    "name": "The Pale Weather",
     "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the pale sirens": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "fbce059d-d8a0-4388-88df-aa45a64b282e",
-    "name": "The Pale Sirens",
-    "score": 71,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the quiet harbour": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "7260e9f4-03df-4d2f-bf1f-8dc3e471d950",
-    "name": "The Quiet Harbour",
-    "score": 71,
     "type": "Group"
    }
   ],
@@ -633,9 +675,23 @@
   "artists": [
    {
     "country": "GB",
-    "id": "a9eb08c8-c6ff-458d-875a-522bfab522e4",
+    "id": "fbce059d-d8a0-4388-88df-aa45a64b282e",
     "name": "The Quiet Orchard",
-    "score": 100,
+    "score": 71,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "the salt wolves": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "4b3f5d63-999c-482b-8876-496eeeaf85ad",
+    "name": "The Salt Wolves",
+    "score": 71,
     "type": "Group"
    }
   ],
@@ -647,51 +703,9 @@
   "artists": [
    {
     "country": "GB",
-    "id": "7001a75f-3f92-465c-8184-67109504428f",
+    "id": "ff475a3c-fce9-4997-a5e5-4c65a81ab4ab",
     "name": "The Second Choir",
     "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the silver weather": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "a0d3867e-6293-408b-a23c-e821c5f64d43",
-    "name": "The Silver Weather",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the static harbour": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "fc747069-0dc7-46c2-8bfb-2d064e6a8e91",
-    "name": "The Static Harbour",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the the thes": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "8eac13bc-3523-48aa-88ce-012997dd11d7",
-    "name": "The The Thes",
-    "score": 71,
     "type": "Group"
    }
   ],
@@ -703,7 +717,7 @@
   "artists": [
    {
     "country": "GB",
-    "id": "0279e860-299a-4aca-b819-d3d012bdb2ae",
+    "id": "f35ae483-d0d4-4267-b7ff-0228fc0f7262",
     "name": "The Velvet Avenue",
     "score": 100,
     "type": "Group"
@@ -713,26 +727,12 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "the velvet machines": {
+ "the violet gardens": {
   "artists": [
    {
     "country": "GB",
-    "id": "ca2d35a8-61e0-47c0-96ba-684dda555673",
-    "name": "The Velvet Machines",
-    "score": 100,
-    "type": "Group"
-   }
-  ],
-  "count": 1,
-  "created": "2026-10-02T00:00:00.000Z",
-  "offset": 0
- },
- "the winter hours": {
-  "artists": [
-   {
-    "country": "GB",
-    "id": "b7cddcae-0eb2-4cf3-b77b-112ceea740d5",
-    "name": "The Winter Hours",
+    "id": "a1454dc0-dbcb-4038-9134-c63a48e411ed",
+    "name": "The Violet Gardens",
     "score": 100,
     "type": "Group"
    }
@@ -745,9 +745,9 @@
   "artists": [
    {
     "country": "GB",
-    "id": "655966a2-3adf-451b-8ec2-01e024859ff1",
+    "id": "314c3986-e1dc-4da0-b173-80f99326c67b",
     "name": "The Winter Radio",
-    "score": 71,
+    "score": 100,
     "type": "Group"
    }
   ],
@@ -755,12 +755,40 @@
   "created": "2026-10-02T00:00:00.000Z",
   "offset": 0
  },
- "violet mirrors": {
+ "velvet circuit": {
   "artists": [
    {
     "country": "GB",
-    "id": "f86348c2-ab67-4941-a42d-252b029ac9e5",
-    "name": "Violet Mirrors",
+    "id": "dc0a7f29-f685-4fa7-b3cd-88b366a0e80b",
+    "name": "Velvet Circuit",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "wild gardens": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "e1cabfd9-b5aa-4982-a635-2861f0dc71b4",
+    "name": "Wild Gardens",
+    "score": 100,
+    "type": "Group"
+   }
+  ],
+  "count": 1,
+  "created": "2026-10-02T00:00:00.000Z",
+  "offset": 0
+ },
+ "winter motel": {
+  "artists": [
+   {
+    "country": "GB",
+    "id": "3a750ba8-6c5e-4693-8f97-aa56c251b2c7",
+    "name": "Winter Motel",
     "score": 100,
     "type": "Group"
    }

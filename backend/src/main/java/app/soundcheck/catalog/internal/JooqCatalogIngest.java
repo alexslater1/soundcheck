@@ -1,0 +1,423 @@
+package app.soundcheck.catalog.internal;
+
+import static app.soundcheck.shared.jooq.catalog.Tables.ARTIST;
+import static app.soundcheck.shared.jooq.catalog.Tables.ARTIST_EXTERNAL_ID;
+import static app.soundcheck.shared.jooq.catalog.Tables.ARTIST_GENRE;
+import static app.soundcheck.shared.jooq.catalog.Tables.GENRE_ALIAS;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_EXTERNAL_ID;
+
+import app.soundcheck.catalog.ArtistDraft;
+import app.soundcheck.catalog.CatalogIngest;
+import app.soundcheck.catalog.GigDraft;
+import app.soundcheck.catalog.GigRef;
+import app.soundcheck.catalog.NameNormaliser;
+import app.soundcheck.catalog.VenueDraft;
+import app.soundcheck.shared.Ids;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.Field;
+import org.jooq.impl.DSL;
+import org.jspecify.annotations.Nullable;
+import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * jOOQ implementation of {@link CatalogIngest}. The matching primitives lean on PostgreSQL: PostGIS
+ * {@code ST_DWithin} on geography for "within N metres" and pg_trgm {@code similarity()} for fuzzy names.
+ */
+@Repository
+@Transactional
+class JooqCatalogIngest implements CatalogIngest {
+
+    private final DSLContext dsl;
+    private final Clock clock;
+
+    JooqCatalogIngest(DSLContext dsl, Clock clock) {
+        this.dsl = dsl;
+        this.clock = clock;
+    }
+
+    // ── venues ──────────────────────────────────────────────────────────────
+
+    @Override
+    public Optional<UUID> venueByExternalId(String source, String externalId) {
+        return dsl.select(VENUE_EXTERNAL_ID.VENUE_ID)
+                .from(VENUE_EXTERNAL_ID)
+                .where(VENUE_EXTERNAL_ID.SOURCE.eq(source))
+                .and(VENUE_EXTERNAL_ID.EXTERNAL_ID.eq(externalId))
+                .fetchOptional(VENUE_EXTERNAL_ID.VENUE_ID);
+    }
+
+    @Override
+    public Optional<UUID> venueNear(double lat, double lng, int metres, String name, double minSimilarity) {
+        Field<Double> similarity = similarity(VENUE.NAME_NORM, NameNormaliser.normalise(name));
+        // Expected index: venue_location_gix (GiST) for ST_DWithin; the handful of venues it returns are
+        // then compared by name.
+        return dsl.select(VENUE.ID)
+                .from(VENUE)
+                .where(DSL.condition("ST_DWithin({0}, {1}, {2})", VENUE.LOCATION, point(lat, lng), DSL.val(metres)))
+                .and(similarity.ge(minSimilarity))
+                .orderBy(similarity.desc(), VENUE.ID)
+                .limit(1)
+                .fetchOptional(VENUE.ID);
+    }
+
+    @Override
+    public Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity) {
+        Field<Double> similarity = similarity(VENUE.NAME_NORM, NameNormaliser.normalise(name));
+        // No index: catalog.venue holds a few thousand rows; revisit if EXPLAIN says otherwise.
+        return dsl.select(VENUE.ID)
+                .from(VENUE)
+                .where(DSL.upper(DSL.replace(VENUE.POSTCODE, " ", "")).eq(compactPostcode(postcode)))
+                .and(similarity.ge(minSimilarity))
+                .orderBy(similarity.desc(), VENUE.ID)
+                .limit(1)
+                .fetchOptional(VENUE.ID);
+    }
+
+    @Override
+    public UUID createVenue(VenueDraft venue) {
+        UUID id = Ids.newId();
+        OffsetDateTime now = now();
+        var insert = dsl.insertInto(VENUE)
+                .set(VENUE.ID, id)
+                .set(VENUE.NAME, venue.name())
+                .set(VENUE.NAME_NORM, NameNormaliser.normalise(venue.name()))
+                .set(VENUE.ADDRESS, venue.address())
+                .set(VENUE.CITY, venue.city())
+                .set(VENUE.POSTCODE, venue.postcode())
+                .set(VENUE.TIMEZONE, venue.timezone())
+                .set(VENUE.CREATED_AT, now)
+                .set(VENUE.UPDATED_AT, now);
+        if (venue.lat() != null && venue.lng() != null) {
+            // Map form avoids the set(Field, Object) / set(Field, Field) overload ambiguity on geography.
+            insert = insert.set(Map.of(VENUE.LOCATION, point(venue.lat(), venue.lng())));
+        }
+        insert.execute();
+        return id;
+    }
+
+    @Override
+    public void linkVenue(String source, String externalId, UUID venueId) {
+        dsl.insertInto(VENUE_EXTERNAL_ID)
+                .set(VENUE_EXTERNAL_ID.SOURCE, source)
+                .set(VENUE_EXTERNAL_ID.EXTERNAL_ID, externalId)
+                .set(VENUE_EXTERNAL_ID.VENUE_ID, venueId)
+                .onConflictDoNothing()
+                .execute();
+    }
+
+    // ── artists ─────────────────────────────────────────────────────────────
+
+    @Override
+    public Optional<UUID> artistByExternalId(String source, String externalId) {
+        return dsl.select(ARTIST_EXTERNAL_ID.ARTIST_ID)
+                .from(ARTIST_EXTERNAL_ID)
+                .where(ARTIST_EXTERNAL_ID.SOURCE.eq(source))
+                .and(ARTIST_EXTERNAL_ID.EXTERNAL_ID.eq(externalId))
+                .fetchOptional(ARTIST_EXTERNAL_ID.ARTIST_ID);
+    }
+
+    @Override
+    public Optional<UUID> artistByMbid(UUID mbid) {
+        return dsl.select(ARTIST.ID).from(ARTIST).where(ARTIST.MBID.eq(mbid)).fetchOptional(ARTIST.ID);
+    }
+
+    @Override
+    public Optional<UUID> artistByName(String name) {
+        // Expected index: artist_name_norm_trgm (pg_trgm GIN supports equality). Oldest first so the
+        // answer is stable if two artists share a normalised name.
+        return dsl.select(ARTIST.ID)
+                .from(ARTIST)
+                .where(ARTIST.NAME_NORM.eq(NameNormaliser.normalise(name)))
+                .orderBy(ARTIST.CREATED_AT, ARTIST.ID)
+                .limit(1)
+                .fetchOptional(ARTIST.ID);
+    }
+
+    @Override
+    public Optional<UUID> artistSimilar(String name, double minSimilarity, Collection<Short> genreIds, UUID venueId) {
+        String norm = NameNormaliser.normalise(name);
+        Field<Double> similarity = similarity(ARTIST.NAME_NORM, norm);
+        Condition sharesGenre = genreIds.isEmpty()
+                ? DSL.falseCondition()
+                : DSL.exists(DSL.selectOne()
+                        .from(ARTIST_GENRE)
+                        .where(ARTIST_GENRE.ARTIST_ID.eq(ARTIST.ID))
+                        .and(ARTIST_GENRE.GENRE_ID.in(genreIds)));
+        Condition playedVenue = DSL.exists(DSL.selectOne()
+                .from(GIG_ARTIST)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_ARTIST.GIG_ID))
+                .where(GIG_ARTIST.ARTIST_ID.eq(ARTIST.ID))
+                .and(GIG.VENUE_ID.eq(venueId)));
+        // Expected index: artist_name_norm_trgm — the % operator (similarity > 0.3) is index-assisted and
+        // narrows the candidates before the exact similarity() threshold is applied.
+        return dsl.select(ARTIST.ID)
+                .from(ARTIST)
+                .where(DSL.condition("{0} % {1}", ARTIST.NAME_NORM, DSL.val(norm)))
+                .and(similarity.ge(minSimilarity))
+                .and(sharesGenre.or(playedVenue))
+                .orderBy(similarity.desc(), ARTIST.ID)
+                .limit(1)
+                .fetchOptional(ARTIST.ID);
+    }
+
+    @Override
+    public UUID createArtist(ArtistDraft artist) {
+        UUID id = Ids.newId();
+        OffsetDateTime now = now();
+        dsl.insertInto(ARTIST)
+                .set(ARTIST.ID, id)
+                .set(ARTIST.NAME, artist.name())
+                .set(ARTIST.NAME_NORM, NameNormaliser.normalise(artist.name()))
+                .set(ARTIST.MBID, artist.mbid())
+                .set(ARTIST.IMAGE_URL, artist.imageUrl())
+                .set(ARTIST.CREATED_AT, now)
+                .set(ARTIST.UPDATED_AT, now)
+                .execute();
+        artist.genreWeights().forEach((genreId, weight) -> dsl.insertInto(ARTIST_GENRE)
+                .set(ARTIST_GENRE.ARTIST_ID, id)
+                .set(ARTIST_GENRE.GENRE_ID, genreId)
+                .set(ARTIST_GENRE.WEIGHT, weight)
+                .execute());
+        return id;
+    }
+
+    @Override
+    public void linkArtist(String source, String externalId, UUID artistId) {
+        dsl.insertInto(ARTIST_EXTERNAL_ID)
+                .set(ARTIST_EXTERNAL_ID.SOURCE, source)
+                .set(ARTIST_EXTERNAL_ID.EXTERNAL_ID, externalId)
+                .set(ARTIST_EXTERNAL_ID.ARTIST_ID, artistId)
+                .onConflictDoNothing()
+                .execute();
+    }
+
+    @Override
+    public void completeArtist(UUID artistId, @Nullable UUID mbid, @Nullable String imageUrl) {
+        if (mbid != null) {
+            // Only when no artist holds this MBID yet: the column is unique.
+            dsl.update(ARTIST)
+                    .set(ARTIST.MBID, mbid)
+                    .set(ARTIST.UPDATED_AT, now())
+                    .where(ARTIST.ID.eq(artistId))
+                    .and(ARTIST.MBID.isNull())
+                    .andNotExists(DSL.selectOne()
+                            .from(ARTIST.as("other"))
+                            .where(DSL.field(DSL.name("other", "mbid"), UUID.class)
+                                    .eq(mbid)))
+                    .execute();
+        }
+        if (imageUrl != null) {
+            dsl.update(ARTIST)
+                    .set(ARTIST.IMAGE_URL, imageUrl)
+                    .set(ARTIST.UPDATED_AT, now())
+                    .where(ARTIST.ID.eq(artistId))
+                    .and(ARTIST.IMAGE_URL.isNull())
+                    .execute();
+        }
+    }
+
+    @Override
+    public Map<String, GenreMatch> genresForAliases(Collection<String> aliases) {
+        Map<String, GenreMatch> matches = new HashMap<>();
+        if (aliases.isEmpty()) {
+            return matches;
+        }
+        // genre_alias.alias is citext, so the IN comparison is case-insensitive; keys are lower-cased here.
+        dsl.select(GENRE_ALIAS.ALIAS, GENRE_ALIAS.GENRE_ID, GENRE_ALIAS.WEIGHT)
+                .from(GENRE_ALIAS)
+                .where(GENRE_ALIAS.ALIAS.in(aliases))
+                .forEach(r -> matches.put(r.value1().toLowerCase(Locale.ROOT), new GenreMatch(r.value2(), r.value3())));
+        return matches;
+    }
+
+    // ── gigs ────────────────────────────────────────────────────────────────
+
+    @Override
+    public Optional<GigRef> gigBySource(String source, String externalId) {
+        return dsl.select(GIG_SOURCE.GIG_ID)
+                .from(GIG_SOURCE)
+                .where(GIG_SOURCE.SOURCE.eq(source))
+                .and(GIG_SOURCE.EXTERNAL_ID.eq(externalId))
+                .fetchOptional(GIG_SOURCE.GIG_ID)
+                .map(this::ref);
+    }
+
+    @Override
+    public Optional<GigRef> gigAtVenueAround(
+            UUID venueId,
+            Instant startsAt,
+            Duration window,
+            UUID headlinerId,
+            String title,
+            double minTitleSimilarity) {
+        Condition sameHeadliner = DSL.exists(DSL.selectOne()
+                .from(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(GIG.ID))
+                .and(GIG_ARTIST.BILLING_ORDER.eq((short) 0))
+                .and(GIG_ARTIST.ARTIST_ID.eq(headlinerId)));
+        Field<Double> titleSimilarity = DSL.field(
+                "similarity(lower({0}), {1})", Double.class, GIG.TITLE, DSL.val(title.toLowerCase(Locale.ROOT)));
+        // Expected index: gig_venue (venue_id, starts_at) — one venue, a six-hour range.
+        return dsl.select(GIG.ID)
+                .from(GIG)
+                .where(GIG.VENUE_ID.eq(venueId))
+                .and(GIG.STARTS_AT.between(at(startsAt.minus(window)), at(startsAt.plus(window))))
+                .and(sameHeadliner.or(titleSimilarity.ge(minTitleSimilarity)))
+                .orderBy(DSL.field(
+                        "abs(extract(epoch from ({0} - {1})))", Double.class, GIG.STARTS_AT, DSL.val(at(startsAt))))
+                .limit(1)
+                .fetchOptional(GIG.ID)
+                .map(this::ref);
+    }
+
+    @Override
+    public UUID createGig(GigDraft gig) {
+        UUID id = Ids.newId();
+        OffsetDateTime now = now();
+        dsl.insertInto(GIG)
+                .set(GIG.ID, id)
+                .set(GIG.TITLE, gig.title())
+                .set(GIG.VENUE_ID, gig.venueId())
+                .set(GIG.STARTS_AT, at(gig.startsAt()))
+                .set(GIG.DOORS_AT, gig.doorsAt() == null ? null : at(gig.doorsAt()))
+                .set(GIG.STATUS, gig.status())
+                .set(GIG.TICKET_URL, gig.ticketUrl())
+                .set(GIG.PRICE_MIN, gig.priceMin())
+                .set(GIG.PRICE_MAX, gig.priceMax())
+                .set(GIG.CURRENCY, gig.currency())
+                .set(GIG.IMAGE_URL, gig.imageUrl())
+                .set(GIG.CONTENT_HASH, gig.contentHash())
+                .set(GIG.CREATED_AT, now)
+                .set(GIG.UPDATED_AT, now)
+                .execute();
+        copyVenueLocation(id, gig.venueId());
+        insertLineup(id, gig.artistIds());
+        return id;
+    }
+
+    @Override
+    public void updateGig(UUID gigId, GigDraft gig) {
+        dsl.update(GIG)
+                .set(GIG.TITLE, gig.title())
+                .set(GIG.VENUE_ID, gig.venueId())
+                .set(GIG.STARTS_AT, at(gig.startsAt()))
+                .set(GIG.DOORS_AT, gig.doorsAt() == null ? null : at(gig.doorsAt()))
+                .set(GIG.STATUS, gig.status())
+                .set(GIG.TICKET_URL, gig.ticketUrl())
+                .set(GIG.PRICE_MIN, gig.priceMin())
+                .set(GIG.PRICE_MAX, gig.priceMax())
+                .set(GIG.CURRENCY, gig.currency())
+                .set(GIG.IMAGE_URL, gig.imageUrl())
+                .set(GIG.CONTENT_HASH, gig.contentHash())
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.ID.eq(gigId))
+                .execute();
+        copyVenueLocation(gigId, gig.venueId());
+        dsl.deleteFrom(GIG_ARTIST).where(GIG_ARTIST.GIG_ID.eq(gigId)).execute();
+        insertLineup(gigId, gig.artistIds());
+    }
+
+    @Override
+    public void linkGig(String source, String externalId, UUID gigId, @Nullable String url, Instant seenAt) {
+        dsl.insertInto(GIG_SOURCE)
+                .set(GIG_SOURCE.SOURCE, source)
+                .set(GIG_SOURCE.EXTERNAL_ID, externalId)
+                .set(GIG_SOURCE.GIG_ID, gigId)
+                .set(GIG_SOURCE.URL, url)
+                .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
+                .onConflict(GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID)
+                .doUpdate()
+                .set(GIG_SOURCE.URL, url)
+                .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
+                .execute();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<String> futureGigsNotSeenSince(String source, Instant before, Instant now, int limit) {
+        // Runs once per ingestion run; no dedicated index (gig_source is scanned by source).
+        return dsl.select(GIG_SOURCE.EXTERNAL_ID)
+                .from(GIG_SOURCE)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_SOURCE.GIG_ID))
+                .where(GIG_SOURCE.SOURCE.eq(source))
+                .and(GIG_SOURCE.LAST_SEEN_AT.lt(at(before)))
+                .and(GIG.STARTS_AT.gt(at(now)))
+                .orderBy(GIG.STARTS_AT)
+                .limit(limit)
+                .fetch(GIG_SOURCE.EXTERNAL_ID);
+    }
+
+    private GigRef ref(UUID gigId) {
+        byte[] hash =
+                dsl.select(GIG.CONTENT_HASH).from(GIG).where(GIG.ID.eq(gigId)).fetchOne(GIG.CONTENT_HASH);
+        List<GigRef.Listing> listings = dsl.select(GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID)
+                .from(GIG_SOURCE)
+                .where(GIG_SOURCE.GIG_ID.eq(gigId))
+                .fetch(r -> new GigRef.Listing(r.value1(), r.value2()));
+        return new GigRef(gigId, hash, listings);
+    }
+
+    /** {@code gig.location} is a copy of the venue's point so geo + time filters touch one table. */
+    private void copyVenueLocation(UUID gigId, UUID venueId) {
+        dsl.update(GIG)
+                .set(Map.of(
+                        GIG.LOCATION,
+                        DSL.select(VENUE.LOCATION)
+                                .from(VENUE)
+                                .where(VENUE.ID.eq(venueId))
+                                .asField()))
+                .where(GIG.ID.eq(gigId))
+                .execute();
+    }
+
+    private void insertLineup(UUID gigId, List<UUID> artistIds) {
+        for (int order = 0; order < artistIds.size(); order++) {
+            dsl.insertInto(GIG_ARTIST)
+                    .set(GIG_ARTIST.GIG_ID, gigId)
+                    .set(GIG_ARTIST.ARTIST_ID, artistIds.get(order))
+                    .set(GIG_ARTIST.BILLING_ORDER, (short) order)
+                    .execute();
+        }
+    }
+
+    private static Field<Double> similarity(Field<String> column, String value) {
+        return DSL.field("similarity({0}, {1})", Double.class, column, DSL.val(value));
+    }
+
+    private static Field<Object> point(double lat, double lng) {
+        return DSL.field(
+                "ST_SetSRID(ST_MakePoint({0}, {1}), 4326)::geography", Object.class, DSL.val(lng), DSL.val(lat));
+    }
+
+    static String compactPostcode(String postcode) {
+        return postcode.replace(" ", "").toUpperCase(Locale.ROOT);
+    }
+
+    private OffsetDateTime now() {
+        return at(Instant.now(clock));
+    }
+
+    private static OffsetDateTime at(Instant instant) {
+        return instant.atOffset(ZoneOffset.UTC);
+    }
+}

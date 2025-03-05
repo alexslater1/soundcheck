@@ -35,7 +35,7 @@ LONDON = ZoneInfo("Europe/London")
 
 # (city, lat, lng, Ticketmaster market id, market name, outward postcode, venues, share of events)
 CITIES = [
-    ("London", 51.50853, -0.12574, "202", "London", "N1", 9, 26),
+    ("London", 51.50853, -0.12574, "202", "London", "N1", 12, 26),
     ("Manchester", 53.48095, -2.23743, "205", "Wales and North West", "M1", 5, 12),
     ("Glasgow", 55.86515, -4.25763, "207", "Scotland", "G2", 4, 9),
     ("Leeds", 53.79648, -1.54785, "206", "North and North East", "LS1", 3, 7),
@@ -109,6 +109,12 @@ GENRE_WEIGHTS = [16, 12, 6, 12, 8, 6, 4, 8, 5, 5, 5, 3, 2, 2, 2, 1, 1, 2]
 UNMAPPED_TAGS = ["female vocalists", "seen live", "british", "00s", "favourites", "beautiful", "uk"]
 
 
+def norm(name: str) -> str:
+    """Roughly the backend's NameNormaliser, enough to keep invented names from colliding."""
+    words = "".join(c if c.isalnum() or c == " " else " " for c in name.lower().replace("&", " and ")).split()
+    return " ".join(words[1:] if words and words[0] == "the" else words)
+
+
 def stable_uuid(rng: random.Random) -> str:
     return str(uuid.UUID(int=rng.getrandbits(128), version=4))
 
@@ -131,13 +137,14 @@ def classification(genre: tuple[str, str] | None) -> list[dict]:
 
 def build_artists(rng: random.Random) -> list[dict]:
     names = list(TRICKY)
-    seen = set(names)
+    seen = {norm(n) for n in names}
     while len(names) < 150:
         style = rng.random()
         a, b = rng.choice(ARTIST_A), rng.choice(ARTIST_B)
         name = f"The {a} {b}" if style < 0.3 else (f"{a} {b}" if style < 0.85 else f"{a} & The {b}")
-        if name not in seen:
-            seen.add(name)
+        # No two invented acts may normalise to the same name ("Midnight Hours" / "The Midnight Hours").
+        if norm(name) not in seen:
+            seen.add(norm(name))
             names.append(name)
     artists = []
     for i, name in enumerate(names):
@@ -233,10 +240,16 @@ def build_events(rng: random.Random, artists: list[dict], venues: list[dict]) ->
     popular = sorted(artists, key=lambda a: -a["popularity"])
 
     events = []
+    taken: set[tuple[str, int]] = set()  # (venue id, day): a venue hosts one show a day
     for n in range(240):
-        day = FIRST_DAY + timedelta(days=rng.choices(range(DAYS), weights=[22, 12, 8, 10, 12, 16, 20])[0])
-        city = rng.choices(city_names, weights=city_weights)[0]
-        venue = rng.choice(by_city[city])
+        while True:
+            offset = rng.choices(range(DAYS), weights=[22, 12, 8, 10, 12, 16, 20])[0]
+            city = rng.choices(city_names, weights=city_weights)[0]
+            venue = rng.choice(by_city[city])
+            if (venue["id"], offset) not in taken:
+                taken.add((venue["id"], offset))
+                break
+        day = FIRST_DAY + timedelta(days=offset)
         # Headliners skew popular; supports are drawn from everyone.
         headliner = popular[min(int(rng.expovariate(1 / 28)), len(popular) - 1)]
         lineup = [headliner]
@@ -283,6 +296,14 @@ def build_events(rng: random.Random, artists: list[dict], venues: list[dict]) ->
         events.append(event)
 
     # ── deliberate edge cases (indices are fixed so tests can name them) ──
+    # The same show listed twice (a "VIP Package" listing): entity resolution merges it into the original.
+    for original, duplicate in ((30, 205), (31, 206)):
+        copy = json.loads(json.dumps(events[original]))
+        copy["id"] = events[duplicate]["id"]
+        copy["url"] = events[duplicate]["url"]
+        copy["name"] = events[original]["name"] + " - VIP Package"
+        copy["_links"] = events[duplicate]["_links"]
+        events[duplicate] = copy
     for i in (5, 61, 117, 173, 201, 233):  # no attraction attached -> skipped as NO_ARTISTS
         del events[i]["_embedded"]["attractions"]
         events[i]["name"] = rng.choice(["Indie Disco Night", "90s Rave Reunion", "Open Mic Showcase"])

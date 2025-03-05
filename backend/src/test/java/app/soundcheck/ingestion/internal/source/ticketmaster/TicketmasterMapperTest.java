@@ -72,12 +72,18 @@ class TicketmasterMapperTest {
 
     @Test
     void knownTimesComeFromTheUtcDateTime() {
-        // First event of the fixture: 18:00 local on 3 Oct 2026 (BST, UTC+1) → 17:00 UTC.
+        // Every October date in the fixture is in British Summer Time: local time is UTC + 1 hour.
         JsonNode event = firstPage.path("_embedded").path("events").path(0);
-        assertThat(event.path("dates").path("start").path("localTime").asText(""))
-                .isEqualTo("18:00:00");
+        JsonNode start = event.path("dates").path("start");
         SourceGig gig = byId.get(event.path("id").asText(""));
-        assertThat(gig.startsAt()).isEqualTo(Instant.parse("2026-10-03T17:00:00Z"));
+        assertThat(gig.startsAt())
+                .isEqualTo(Instant.parse(start.path("dateTime").asText("")));
+        assertThat(gig.startsAt())
+                .isEqualTo(java.time.LocalDate.parse(start.path("localDate").asText(""))
+                        .atTime(java.time.LocalTime.parse(
+                                start.path("localTime").asText("")))
+                        .minusHours(1)
+                        .toInstant(java.time.ZoneOffset.UTC));
     }
 
     @Test
