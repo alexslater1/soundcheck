@@ -236,16 +236,65 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<ArtistToEnrich> artistsToEnrich(Instant staleBefore, int limit) {
+        // Runs once per ingestion run over catalog.artist (tens of thousands of rows at most): no index.
+        return dsl.select(ARTIST.ID, ARTIST.NAME, ARTIST.MBID)
+                .from(ARTIST)
+                .where(ARTIST.ENRICHED_AT.isNull().or(ARTIST.ENRICHED_AT.lt(at(staleBefore))))
+                .orderBy(ARTIST.ENRICHED_AT.asc().nullsFirst(), ARTIST.CREATED_AT, ARTIST.ID)
+                .limit(limit)
+                .fetch(r -> new ArtistToEnrich(r.value1(), r.value2(), r.value3()));
+    }
+
+    @Override
+    public void replaceArtistGenres(UUID artistId, Map<Short, Float> genreWeights) {
+        if (genreWeights.isEmpty()) {
+            return;
+        }
+        dsl.deleteFrom(ARTIST_GENRE).where(ARTIST_GENRE.ARTIST_ID.eq(artistId)).execute();
+        genreWeights.forEach((genreId, weight) -> dsl.insertInto(ARTIST_GENRE)
+                .set(ARTIST_GENRE.ARTIST_ID, artistId)
+                .set(ARTIST_GENRE.GENRE_ID, genreId)
+                .set(ARTIST_GENRE.WEIGHT, weight)
+                .execute());
+    }
+
+    @Override
+    public void markArtistEnriched(UUID artistId, Instant at) {
+        dsl.update(ARTIST)
+                .set(ARTIST.ENRICHED_AT, at(at))
+                .set(ARTIST.UPDATED_AT, at(at))
+                .where(ARTIST.ID.eq(artistId))
+                .execute();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public int countWithGenres(Collection<UUID> artistIds) {
+        if (artistIds.isEmpty()) {
+            return 0;
+        }
+        return dsl.fetchCount(DSL.selectDistinct(ARTIST_GENRE.ARTIST_ID)
+                .from(ARTIST_GENRE)
+                .where(ARTIST_GENRE.ARTIST_ID.in(artistIds)));
+    }
+
+    @Override
     public Map<String, GenreMatch> genresForAliases(Collection<String> aliases) {
         Map<String, GenreMatch> matches = new HashMap<>();
         if (aliases.isEmpty()) {
             return matches;
         }
-        // genre_alias.alias is citext, so the IN comparison is case-insensitive; keys are lower-cased here.
-        dsl.select(GENRE_ALIAS.ALIAS, GENRE_ALIAS.GENRE_ID, GENRE_ALIAS.WEIGHT)
+        // genre_alias.alias is citext, but a bound varchar parameter makes PostgreSQL compare as text
+        // (case-sensitively), so both sides are lower-cased explicitly. ~130 rows: no index needed.
+        List<String> lowered =
+                aliases.stream().map(alias -> alias.toLowerCase(Locale.ROOT)).toList();
+        Field<String> alias = DSL.lower(GENRE_ALIAS.ALIAS.cast(String.class));
+        dsl.select(alias, GENRE_ALIAS.GENRE_ID, GENRE_ALIAS.WEIGHT)
                 .from(GENRE_ALIAS)
-                .where(GENRE_ALIAS.ALIAS.in(aliases))
-                .forEach(r -> matches.put(r.value1().toLowerCase(Locale.ROOT), new GenreMatch(r.value2(), r.value3())));
+                .where(alias.in(lowered))
+                .forEach(r -> matches.put(r.value1(), new GenreMatch(r.value2(), r.value3())));
         return matches;
     }
 

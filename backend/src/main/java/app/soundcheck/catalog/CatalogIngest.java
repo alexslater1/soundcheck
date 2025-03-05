@@ -55,6 +55,20 @@ public interface CatalogIngest {
     /** Fills in a MusicBrainz id or an image an existing artist does not have yet; never overwrites. */
     void completeArtist(UUID artistId, @Nullable UUID mbid, @Nullable String imageUrl);
 
+    /** Artists never enriched, or last enriched before {@code staleBefore}; never-enriched first. */
+    List<ArtistToEnrich> artistsToEnrich(Instant staleBefore, int limit);
+
+    /** What enrichment needs to know about an artist. */
+    record ArtistToEnrich(UUID id, String name, @Nullable UUID mbid) {}
+
+    /** Replaces the artist's genres (genre id → weight); an empty map leaves the existing genres alone. */
+    void replaceArtistGenres(UUID artistId, Map<Short, Float> genreWeights);
+
+    void markArtistEnriched(UUID artistId, Instant at);
+
+    /** How many of the given artists have at least one genre. */
+    int countWithGenres(Collection<UUID> artistIds);
+
     /** Genre ids and alias weights for source labels or tags (case-insensitive); unknown labels are absent. */
     Map<String, GenreMatch> genresForAliases(Collection<String> aliases);
 

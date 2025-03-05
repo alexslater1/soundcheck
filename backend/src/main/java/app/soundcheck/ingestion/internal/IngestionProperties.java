@@ -16,11 +16,36 @@ public record IngestionProperties(
         @DefaultValue("90") int horizonDays,
         /** Maximum API calls per run before it stops and is recorded as PARTIAL. */
         @DefaultValue("1500") int callBudget,
-        @DefaultValue Ticketmaster ticketmaster) {
+        @DefaultValue Ticketmaster ticketmaster,
+        @DefaultValue Lastfm lastfm,
+        @DefaultValue MusicBrainz musicbrainz,
+        @DefaultValue Enrichment enrichment) {
 
     public boolean live() {
         return "live".equalsIgnoreCase(mode);
     }
+
+    public record Lastfm(
+            @DefaultValue("https://ws.audioscrobbler.com") String baseUrl,
+            @DefaultValue("") String apiKey,
+            @DefaultValue("4") int requestsPerSecond) {}
+
+    public record MusicBrainz(
+            @DefaultValue("https://musicbrainz.org") String baseUrl,
+            /** MusicBrainz requires a descriptive User-Agent with a contact address. */
+            @DefaultValue("Soundcheck/0.1 (set MUSICBRAINZ_USER_AGENT)") String userAgent,
+            /** MusicBrainz allows one request per second per client. */
+            @DefaultValue("1") int requestsPerSecond,
+            /** A search hit is accepted as the artist only at or above this score. */
+            @DefaultValue("95") int minScore) {}
+
+    public record Enrichment(
+            /** Artists enriched longer ago than this are refreshed. */
+            @DefaultValue("30d") Duration staleAfter,
+            /** Cap per run: at 1 MusicBrainz request per second, 300 artists is about five minutes. */
+            @DefaultValue("300") int maxArtistsPerRun,
+            /** Last.fm tags used by fewer people than this are ignored. */
+            @DefaultValue("10") int minTagCount) {}
 
     public record Ticketmaster(
             @DefaultValue("https://app.ticketmaster.com") String baseUrl,
