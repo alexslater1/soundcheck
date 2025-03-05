@@ -1,0 +1,6412 @@
+{
+ "_embedded": {
+  "events": [
+   {
+    "name": "Velvet Circuit",
+    "type": "event",
+    "id": "G5vsyn00237",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00237",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:00:00",
+      "dateTime": "2026-10-09T18:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-jazz",
+       "name": "Jazz"
+      },
+      "subGenre": {
+       "id": "syn-jazz",
+       "name": "Jazz"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00237?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Night Arches",
+       "type": "venue",
+       "id": "KovZsyn00005",
+       "test": false,
+       "url": "https://tickets.example.com/venue/5",
+       "locale": "en-us",
+       "postalCode": "N1 4GJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "80 Marble Street"
+       },
+       "location": {
+        "longitude": "-0.100529",
+        "latitude": "51.505504"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00005?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Velvet Circuit",
+       "type": "attraction",
+       "id": "K8vZsyn00092",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00092",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-jazz",
+          "name": "Jazz"
+         },
+         "subGenre": {
+          "id": "syn-jazz",
+          "name": "Jazz"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00092?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "84eae59f-f447-4815-ae44-4f10074d1b64",
+          "url": "https://musicbrainz.org/artist/84eae59f-f447-4815-ae44-4f10074d1b64"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 45,
+      "max": 45
+     }
+    ]
+   },
+   {
+    "name": "Neon & The Lanterns: Autumn Tour",
+    "type": "event",
+    "id": "G5vsyn00017",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00017",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:15:00",
+      "dateTime": "2026-10-09T18:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00017?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Copper Hall",
+       "type": "venue",
+       "id": "KovZsyn00037",
+       "test": false,
+       "url": "https://tickets.example.com/venue/37",
+       "locale": "en-us",
+       "postalCode": "BN1 6DF",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Brighton"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "126 Lantern Street"
+       },
+       "location": {
+        "longitude": "-0.122553",
+        "latitude": "50.817581"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "South",
+         "id": "203"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00037?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Neon & The Lanterns",
+       "type": "attraction",
+       "id": "K8vZsyn00057",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00057",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00057?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Low & The Engines",
+       "type": "attraction",
+       "id": "K8vZsyn00096",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00096",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-pop",
+          "name": "Pop"
+         },
+         "subGenre": {
+          "id": "syn-pop-rock",
+          "name": "Pop Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00096?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "1189c83e-5c0d-4c46-8d86-f60d8e553c46",
+          "url": "https://musicbrainz.org/artist/1189c83e-5c0d-4c46-8d86-f60d8e553c46"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 10,
+      "max": 20
+     }
+    ]
+   },
+   {
+    "name": "Paper & The Circuit",
+    "type": "event",
+    "id": "G5vsyn00032",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00032",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:15:00",
+      "dateTime": "2026-10-09T18:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-metal",
+       "name": "Metal"
+      },
+      "subGenre": {
+       "id": "syn-heavy-metal",
+       "name": "Heavy Metal"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00032?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Copper Works",
+       "type": "venue",
+       "id": "KovZsyn00014",
+       "test": false,
+       "url": "https://tickets.example.com/venue/14",
+       "locale": "en-us",
+       "postalCode": "G2 5ED",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Glasgow"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "33 Orchard Street"
+       },
+       "location": {
+        "longitude": "-4.229481",
+        "latitude": "55.842267"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Scotland",
+         "id": "207"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00014?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Paper & The Circuit",
+       "type": "attraction",
+       "id": "K8vZsyn00077",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00077",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-metal",
+          "name": "Metal"
+         },
+         "subGenre": {
+          "id": "syn-heavy-metal",
+          "name": "Heavy Metal"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00077?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Salt Tides",
+       "type": "attraction",
+       "id": "K8vZsyn00109",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00109",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-house",
+          "name": "House"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00109?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "d017d459-a471-4364-95a7-3559fe15ed15",
+          "url": "https://musicbrainz.org/artist/d017d459-a471-4364-95a7-3559fe15ed15"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 8,
+      "max": 30.5
+     }
+    ]
+   },
+   {
+    "name": "Northern Machines",
+    "type": "event",
+    "id": "G5vsyn00051",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00051",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:15:00",
+      "dateTime": "2026-10-09T18:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-r&b",
+       "name": "R&B"
+      },
+      "subGenre": {
+       "id": "syn-soul",
+       "name": "Soul"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00051?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Velvet Club",
+       "type": "venue",
+       "id": "KovZsyn00036",
+       "test": false,
+       "url": "https://tickets.example.com/venue/36",
+       "locale": "en-us",
+       "postalCode": "CF10 7HF",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Cardiff"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "161 Brass Street"
+       },
+       "location": {
+        "longitude": "-3.195208",
+        "latitude": "51.472098"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00036?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Northern Machines",
+       "type": "attraction",
+       "id": "K8vZsyn00013",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00013",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-r&b",
+          "name": "R&B"
+         },
+         "subGenre": {
+          "id": "syn-soul",
+          "name": "Soul"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00013?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "84f90c42-5ef8-4736-9dfd-bcb46f05558d",
+          "url": "https://musicbrainz.org/artist/84f90c42-5ef8-4736-9dfd-bcb46f05558d"
+         }
+        ]
+       }
+      },
+      {
+       "name": "The Pale Sirens",
+       "type": "attraction",
+       "id": "K8vZsyn00081",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00081",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-hard-rock",
+          "name": "Hard Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00081?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 18.5,
+      "max": 28.5
+     }
+    ]
+   },
+   {
+    "name": "Café del Marlow",
+    "type": "event",
+    "id": "G5vsyn00141",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00141",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:15:00",
+      "dateTime": "2026-10-09T18:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-folk",
+       "name": "Folk"
+      },
+      "subGenre": {
+       "id": "syn-folk-rock",
+       "name": "Folk Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00141?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Tin Arches",
+       "type": "venue",
+       "id": "KovZsyn00021",
+       "test": false,
+       "url": "https://tickets.example.com/venue/21",
+       "locale": "en-us",
+       "postalCode": "B5 3JE",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Birmingham"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "33 Echo Street"
+       },
+       "location": {
+        "longitude": "-1.900034",
+        "latitude": "52.469541"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Midlands and Central",
+         "id": "204"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00021?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Café del Marlow",
+       "type": "attraction",
+       "id": "K8vZsyn00009",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00009",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-folk",
+          "name": "Folk"
+         },
+         "subGenre": {
+          "id": "syn-folk-rock",
+          "name": "Folk Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00009?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "9446acb1-7ed4-4997-8771-1b7664132585",
+          "url": "https://musicbrainz.org/artist/9446acb1-7ed4-4997-8771-1b7664132585"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 35,
+      "max": 57.5
+     }
+    ]
+   },
+   {
+    "name": "The Low Static: UK Tour",
+    "type": "event",
+    "id": "G5vsyn00219",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00219",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:15:00",
+      "dateTime": "2026-10-09T18:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-hip-hop-rap",
+       "name": "Hip-Hop/Rap"
+      },
+      "subGenre": {
+       "id": "syn-urban",
+       "name": "Urban"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00219?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Brass Works",
+       "type": "venue",
+       "id": "KovZsyn00002",
+       "test": false,
+       "url": "https://tickets.example.com/venue/2",
+       "locale": "en-us",
+       "postalCode": "N1 4HB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "147 Cinder Street"
+       },
+       "location": {
+        "longitude": "-0.153918",
+        "latitude": "51.509649"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00002?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Low Static",
+       "type": "attraction",
+       "id": "K8vZsyn00010",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00010",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00010?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "5285cbeb-e380-4032-99e6-953639aafc5e",
+          "url": "https://musicbrainz.org/artist/5285cbeb-e380-4032-99e6-953639aafc5e"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 22,
+      "max": 27
+     }
+    ]
+   },
+   {
+    "name": "The Static Harbour: Album Launch",
+    "type": "event",
+    "id": "G5vsyn00014",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00014",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-metal",
+       "name": "Metal"
+      },
+      "subGenre": {
+       "id": "syn-heavy-metal",
+       "name": "Heavy Metal"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00014?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Signal Works",
+       "type": "venue",
+       "id": "KovZsyn00039",
+       "test": false,
+       "url": "https://tickets.example.com/venue/39",
+       "locale": "en-us",
+       "postalCode": "NG1 8JG",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Nottingham"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "137 Iron Street"
+       },
+       "location": {
+        "longitude": "-1.151469",
+        "latitude": "52.972749"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Midlands and Central",
+         "id": "204"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00039?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Static Harbour",
+       "type": "attraction",
+       "id": "K8vZsyn00043",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00043",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-metal",
+          "name": "Metal"
+         },
+         "subGenre": {
+          "id": "syn-heavy-metal",
+          "name": "Heavy Metal"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00043?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Copper Rivers",
+       "type": "attraction",
+       "id": "K8vZsyn00054",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00054",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-r&b",
+          "name": "R&B"
+         },
+         "subGenre": {
+          "id": "syn-soul",
+          "name": "Soul"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00054?locale=en-us"
+        }
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "The Low Engines",
+    "type": "event",
+    "id": "G5vsyn00055",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00055",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-drum-&-bass",
+       "name": "Drum & Bass"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00055?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Cinder Tavern",
+       "type": "venue",
+       "id": "KovZsyn00001",
+       "test": false,
+       "url": "https://tickets.example.com/venue/1",
+       "locale": "en-us",
+       "postalCode": "N1 6JJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "116 Signal Street"
+       },
+       "location": {
+        "longitude": "-0.141506",
+        "latitude": "51.506955"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00001?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Low Engines",
+       "type": "attraction",
+       "id": "K8vZsyn00056",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00056",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-drum-&-bass",
+          "name": "Drum & Bass"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00056?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "7db17e42-f0e5-4e7d-a9a0-5d7e1c5211ce",
+          "url": "https://musicbrainz.org/artist/7db17e42-f0e5-4e7d-a9a0-5d7e1c5211ce"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 18.5,
+      "max": 28.5
+     }
+    ]
+   },
+   {
+    "name": "Violet Atlas",
+    "type": "event",
+    "id": "G5vsyn00062",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00062",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-indie-rock",
+       "name": "Indie Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00062?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Paper Assembly",
+       "type": "venue",
+       "id": "KovZsyn00029",
+       "test": false,
+       "url": "https://tickets.example.com/venue/29",
+       "locale": "en-us",
+       "postalCode": "NE1 3EJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Newcastle upon Tyne"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "115 Cinder Street"
+       },
+       "location": {
+        "longitude": "-1.582438",
+        "latitude": "54.983590"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00029?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Violet Atlas",
+       "type": "attraction",
+       "id": "K8vZsyn00076",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00076",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00076?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "403a0be4-b690-475b-9603-82e51779610d",
+          "url": "https://musicbrainz.org/artist/403a0be4-b690-475b-9603-82e51779610d"
+         }
+        ]
+       }
+      },
+      {
+       "name": "The Neon Arcade",
+       "type": "attraction",
+       "id": "K8vZsyn00027",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00027",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00027?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 15,
+      "max": 25
+     }
+    ]
+   },
+   {
+    "name": "Salt Tides",
+    "type": "event",
+    "id": "G5vsyn00067",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00067",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-house",
+       "name": "House"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00067?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Velvet Academy",
+       "type": "venue",
+       "id": "KovZsyn00008",
+       "test": false,
+       "url": "https://tickets.example.com/venue/8",
+       "locale": "en-us",
+       "postalCode": "N1 1DG",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "41 Iron Street"
+       },
+       "location": {
+        "longitude": "-0.143626",
+        "latitude": "51.503322"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00008?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Salt Tides",
+       "type": "attraction",
+       "id": "K8vZsyn00109",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00109",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-house",
+          "name": "House"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00109?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "d017d459-a471-4364-95a7-3559fe15ed15",
+          "url": "https://musicbrainz.org/artist/d017d459-a471-4364-95a7-3559fe15ed15"
+         }
+        ]
+       }
+      },
+      {
+       "name": "Bright Mirrors",
+       "type": "attraction",
+       "id": "K8vZsyn00074",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00074",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-folk",
+          "name": "Folk"
+         },
+         "subGenre": {
+          "id": "syn-folk-rock",
+          "name": "Folk Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00074?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "f7d10c22-bce3-4e2d-b133-0ceaa436b1e0",
+          "url": "https://musicbrainz.org/artist/f7d10c22-bce3-4e2d-b133-0ceaa436b1e0"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "The Quiet Orchard",
+    "type": "event",
+    "id": "G5vsyn00070",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00070",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-pop",
+       "name": "Pop"
+      },
+      "subGenre": {
+       "id": "syn-pop-rock",
+       "name": "Pop Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00070?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Signal Rooms",
+       "type": "venue",
+       "id": "KovZsyn00026",
+       "test": false,
+       "url": "https://tickets.example.com/venue/26",
+       "locale": "en-us",
+       "postalCode": "BS1 9JB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Bristol"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "166 Marble Street"
+       },
+       "location": {
+        "longitude": "-2.581818",
+        "latitude": "51.468245"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "South",
+         "id": "203"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00026?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Quiet Orchard",
+       "type": "attraction",
+       "id": "K8vZsyn00082",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00082",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-pop",
+          "name": "Pop"
+         },
+         "subGenre": {
+          "id": "syn-pop-rock",
+          "name": "Pop Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00082?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Pale Machines",
+       "type": "attraction",
+       "id": "K8vZsyn00099",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00099",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-blues",
+          "name": "Blues"
+         },
+         "subGenre": {
+          "id": "syn-blues",
+          "name": "Blues"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00099?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 8,
+      "max": 13
+     }
+    ]
+   },
+   {
+    "name": "Slow Orchard",
+    "type": "event",
+    "id": "G5vsyn00088",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00088",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": true,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-drum-&-bass",
+       "name": "Drum & Bass"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00088?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Signal Cellar",
+       "type": "venue",
+       "id": "KovZsyn00003",
+       "test": false,
+       "url": "https://tickets.example.com/venue/3",
+       "locale": "en-us",
+       "postalCode": "N1 3JJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "16 Tin Street"
+       },
+       "location": {
+        "longitude": "-0.122556",
+        "latitude": "51.494905"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00003?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Slow Orchard",
+       "type": "attraction",
+       "id": "K8vZsyn00080",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00080",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-drum-&-bass",
+          "name": "Drum & Bass"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00080?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "bc14ccf3-a54f-445f-bf54-8a86c5cb48f1",
+          "url": "https://musicbrainz.org/artist/bc14ccf3-a54f-445f-bf54-8a86c5cb48f1"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 27.5,
+      "max": 37.5
+     }
+    ]
+   },
+   {
+    "name": "The Low Engines",
+    "type": "event",
+    "id": "G5vsyn00113",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00113",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-drum-&-bass",
+       "name": "Drum & Bass"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00113?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Paper Cellar",
+       "type": "venue",
+       "id": "KovZsyn00027",
+       "test": false,
+       "url": "https://tickets.example.com/venue/27",
+       "locale": "en-us",
+       "postalCode": "L1 1AE",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Liverpool"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "23 Foundry Street"
+       },
+       "location": {
+        "longitude": "-3.016911",
+        "latitude": "53.394168"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00027?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Low Engines",
+       "type": "attraction",
+       "id": "K8vZsyn00056",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00056",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-drum-&-bass",
+          "name": "Drum & Bass"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00056?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "7db17e42-f0e5-4e7d-a9a0-5d7e1c5211ce",
+          "url": "https://musicbrainz.org/artist/7db17e42-f0e5-4e7d-a9a0-5d7e1c5211ce"
+         }
+        ]
+       }
+      },
+      {
+       "name": "Glass & The Foxes",
+       "type": "attraction",
+       "id": "K8vZsyn00113",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00113",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-classical",
+          "name": "Classical"
+         },
+         "subGenre": {
+          "id": "syn-classical",
+          "name": "Classical"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00113?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "8437be35-f09d-487a-816b-064c288fff66",
+          "url": "https://musicbrainz.org/artist/8437be35-f09d-487a-816b-064c288fff66"
+         }
+        ]
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "The Midnight Hours",
+    "type": "event",
+    "id": "G5vsyn00131",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00131",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-techno",
+       "name": "Techno"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00131?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Marble Club",
+       "type": "venue",
+       "id": "KovZsyn00013",
+       "test": false,
+       "url": "https://tickets.example.com/venue/13",
+       "locale": "en-us",
+       "postalCode": "M1 8AB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Manchester"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "120 Static Street"
+       },
+       "location": {
+        "longitude": "-2.218636",
+        "latitude": "53.471436"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00013?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Midnight Hours",
+       "type": "attraction",
+       "id": "K8vZsyn00062",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00062",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-techno",
+          "name": "Techno"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00062?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Wild Parade",
+       "type": "attraction",
+       "id": "K8vZsyn00050",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00050",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-house",
+          "name": "House"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00050?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Low Choir",
+       "type": "attraction",
+       "id": "K8vZsyn00058",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00058",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00058?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 22,
+      "max": 27
+     }
+    ]
+   },
+   {
+    "name": "Wild & The Static",
+    "type": "event",
+    "id": "G5vsyn00172",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00172",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00172?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Anchor Club",
+       "type": "venue",
+       "id": "KovZsyn00007",
+       "test": false,
+       "url": "https://tickets.example.com/venue/7",
+       "locale": "en-us",
+       "postalCode": "N1 3BH",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "126 Static Street"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00007?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Wild & The Static",
+       "type": "attraction",
+       "id": "K8vZsyn00034",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00034",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00034?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "2a214890-04d7-40be-bede-0ed1a2bf2cc1",
+          "url": "https://musicbrainz.org/artist/2a214890-04d7-40be-bede-0ed1a2bf2cc1"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 27.5,
+      "max": 37.5
+     }
+    ]
+   },
+   {
+    "name": "The Gentle Tides",
+    "type": "event",
+    "id": "G5vsyn00194",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00194",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-r&b",
+       "name": "R&B"
+      },
+      "subGenre": {
+       "id": "syn-soul",
+       "name": "Soul"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00194?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Echo Arches",
+       "type": "venue",
+       "id": "KovZsyn00009",
+       "test": false,
+       "url": "https://tickets.example.com/venue/9",
+       "locale": "en-us",
+       "postalCode": "M1 9ED",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Manchester"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "162 Copper Street"
+       },
+       "location": {
+        "longitude": "-2.264094",
+        "latitude": "53.472068"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00009?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Gentle Tides",
+       "type": "attraction",
+       "id": "K8vZsyn00085",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00085",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-r&b",
+          "name": "R&B"
+         },
+         "subGenre": {
+          "id": "syn-soul",
+          "name": "Soul"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00085?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "0bbfe3d9-4056-4909-bd97-758d12257e00",
+          "url": "https://musicbrainz.org/artist/0bbfe3d9-4056-4909-bd97-758d12257e00"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 35,
+      "max": 45
+     }
+    ]
+   },
+   {
+    "name": "Lunar & The Harbour",
+    "type": "event",
+    "id": "G5vsyn00209",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00209",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "19:30:00",
+      "dateTime": "2026-10-09T18:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-hip-hop-rap",
+       "name": "Hip-Hop/Rap"
+      },
+      "subGenre": {
+       "id": "syn-urban",
+       "name": "Urban"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00209?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Orchard Exchange",
+       "type": "venue",
+       "id": "KovZsyn00034",
+       "test": false,
+       "url": "https://tickets.example.com/venue/34",
+       "locale": "en-us",
+       "postalCode": "EH1 7FF",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Edinburgh"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "120 Cinder Street"
+       },
+       "location": {
+        "longitude": "-3.163421",
+        "latitude": "55.973463"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Scotland",
+         "id": "207"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00034?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Lunar & The Harbour",
+       "type": "attraction",
+       "id": "K8vZsyn00091",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00091",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00091?locale=en-us"
+        }
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "Neon & The Lanterns",
+    "type": "event",
+    "id": "G5vsyn00003",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00003",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:00:00",
+      "dateTime": "2026-10-09T19:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00003?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Marble Arches",
+       "type": "venue",
+       "id": "KovZsyn00030",
+       "test": false,
+       "url": "https://tickets.example.com/venue/30",
+       "locale": "en-us",
+       "postalCode": "NE1 9AE",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Newcastle upon Tyne"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "114 Copper Street"
+       },
+       "location": {
+        "longitude": "-1.620432",
+        "latitude": "54.992076"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00030?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Neon & The Lanterns",
+       "type": "attraction",
+       "id": "K8vZsyn00057",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00057",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00057?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Hollow Bloom",
+       "type": "attraction",
+       "id": "K8vZsyn00045",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00045",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-alternative-rock",
+          "name": "Alternative Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00045?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "7b0ae9eb-e7b4-4ee3-92ca-a6967b741267",
+          "url": "https://musicbrainz.org/artist/7b0ae9eb-e7b4-4ee3-92ca-a6967b741267"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 22.5,
+      "max": 30.0
+     },
+     {
+      "type": "vip",
+      "currency": "GBP",
+      "min": 60.0,
+      "max": 95.0
+     }
+    ]
+   },
+   {
+    "name": "The Velvet Machines",
+    "type": "event",
+    "id": "G5vsyn00120",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00120",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:00:00",
+      "dateTime": "2026-10-09T19:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "rescheduled"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00120?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Paper Assembly",
+       "type": "venue",
+       "id": "KovZsyn00022",
+       "test": false,
+       "url": "https://tickets.example.com/venue/22",
+       "locale": "en-us",
+       "postalCode": "B5 3BA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Birmingham"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "138 Paper Street"
+       },
+       "location": {
+        "longitude": "-1.868576",
+        "latitude": "52.478022"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Midlands and Central",
+         "id": "204"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00022?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Velvet Machines",
+       "type": "attraction",
+       "id": "K8vZsyn00033",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00033",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00033?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Violet Mirrors",
+       "type": "attraction",
+       "id": "K8vZsyn00114",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00114",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-folk",
+          "name": "Folk"
+         },
+         "subGenre": {
+          "id": "syn-folk-rock",
+          "name": "Folk Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00114?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 22,
+      "max": 22
+     }
+    ]
+   },
+   {
+    "name": "Lunar & The Harbour: Autumn Tour",
+    "type": "event",
+    "id": "G5vsyn00170",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00170",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:00:00",
+      "dateTime": "2026-10-09T19:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-hip-hop-rap",
+       "name": "Hip-Hop/Rap"
+      },
+      "subGenre": {
+       "id": "syn-urban",
+       "name": "Urban"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00170?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Night Rooms",
+       "type": "venue",
+       "id": "KovZsyn00018",
+       "test": false,
+       "url": "https://tickets.example.com/venue/18",
+       "locale": "en-us",
+       "postalCode": "LS1 5FA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Leeds"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "36 Willow Street"
+       },
+       "location": {
+        "longitude": "-1.565276",
+        "latitude": "53.799978"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00018?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Lunar & The Harbour",
+       "type": "attraction",
+       "id": "K8vZsyn00091",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00091",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00091?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Slow Orchard",
+       "type": "attraction",
+       "id": "K8vZsyn00080",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00080",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-drum-&-bass",
+          "name": "Drum & Bass"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00080?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "bc14ccf3-a54f-445f-bf54-8a86c5cb48f1",
+          "url": "https://musicbrainz.org/artist/bc14ccf3-a54f-445f-bf54-8a86c5cb48f1"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 12.5,
+      "max": 35.0
+     }
+    ]
+   },
+   {
+    "name": "Paper & The Circuit",
+    "type": "event",
+    "id": "G5vsyn00185",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00185",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:00:00",
+      "dateTime": "2026-10-09T19:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-metal",
+       "name": "Metal"
+      },
+      "subGenre": {
+       "id": "syn-heavy-metal",
+       "name": "Heavy Metal"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00185?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Paper Cellar",
+       "type": "venue",
+       "id": "KovZsyn00027",
+       "test": false,
+       "url": "https://tickets.example.com/venue/27",
+       "locale": "en-us",
+       "postalCode": "L1 1AE",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Liverpool"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "23 Foundry Street"
+       },
+       "location": {
+        "longitude": "-3.016911",
+        "latitude": "53.394168"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00027?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Paper & The Circuit",
+       "type": "attraction",
+       "id": "K8vZsyn00077",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00077",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-metal",
+          "name": "Metal"
+         },
+         "subGenre": {
+          "id": "syn-heavy-metal",
+          "name": "Heavy Metal"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00077?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 18.5,
+      "max": 41.0
+     }
+    ]
+   },
+   {
+    "name": "The Second Choir",
+    "type": "event",
+    "id": "G5vsyn00228",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00228",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:15:00",
+      "dateTime": "2026-10-09T19:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-alternative-rock",
+       "name": "Alternative Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00228?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Tin Arches",
+       "type": "venue",
+       "id": "KovZsyn00021",
+       "test": false,
+       "url": "https://tickets.example.com/venue/21",
+       "locale": "en-us",
+       "postalCode": "B5 3JE",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Birmingham"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "33 Echo Street"
+       },
+       "location": {
+        "longitude": "-1.900034",
+        "latitude": "52.469541"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Midlands and Central",
+         "id": "204"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00021?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Second Choir",
+       "type": "attraction",
+       "id": "K8vZsyn00122",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00122",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-alternative-rock",
+          "name": "Alternative Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00122?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 27.5,
+      "max": 27.5
+     }
+    ]
+   },
+   {
+    "name": "Salt Tides",
+    "type": "event",
+    "id": "G5vsyn00153",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00153",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:30:00",
+      "dateTime": "2026-10-09T19:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-house",
+       "name": "House"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00153?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Lantern Arches",
+       "type": "venue",
+       "id": "KovZsyn00019",
+       "test": false,
+       "url": "https://tickets.example.com/venue/19",
+       "locale": "en-us",
+       "postalCode": "LS1 4BD",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Leeds"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "129 Signal Street"
+       },
+       "location": {
+        "longitude": "-1.508880",
+        "latitude": "53.773290"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00019?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Salt Tides",
+       "type": "attraction",
+       "id": "K8vZsyn00109",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00109",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-house",
+          "name": "House"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00109?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "d017d459-a471-4364-95a7-3559fe15ed15",
+          "url": "https://musicbrainz.org/artist/d017d459-a471-4364-95a7-3559fe15ed15"
+         }
+        ]
+       }
+      },
+      {
+       "name": "The Midnight Engines",
+       "type": "attraction",
+       "id": "K8vZsyn00090",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00090",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-metal",
+          "name": "Metal"
+         },
+         "subGenre": {
+          "id": "syn-heavy-metal",
+          "name": "Heavy Metal"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00090?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Café del Marlow",
+       "type": "attraction",
+       "id": "K8vZsyn00009",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00009",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-folk",
+          "name": "Folk"
+         },
+         "subGenre": {
+          "id": "syn-folk-rock",
+          "name": "Folk Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00009?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "9446acb1-7ed4-4997-8771-1b7664132585",
+          "url": "https://musicbrainz.org/artist/9446acb1-7ed4-4997-8771-1b7664132585"
+         }
+        ]
+       }
+      },
+      {
+       "name": "MØ-ON",
+       "type": "attraction",
+       "id": "K8vZsyn00005",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00005",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-alternative-rock",
+          "name": "Alternative Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00005?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 45,
+      "max": 67.5
+     }
+    ]
+   },
+   {
+    "name": "Lunar & The Harbour",
+    "type": "event",
+    "id": "G5vsyn00171",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00171",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:30:00",
+      "dateTime": "2026-10-09T19:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-hip-hop-rap",
+       "name": "Hip-Hop/Rap"
+      },
+      "subGenre": {
+       "id": "syn-urban",
+       "name": "Urban"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00171?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Night Rooms",
+       "type": "venue",
+       "id": "KovZsyn00018",
+       "test": false,
+       "url": "https://tickets.example.com/venue/18",
+       "locale": "en-us",
+       "postalCode": "LS1 5FA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Leeds"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "36 Willow Street"
+       },
+       "location": {
+        "longitude": "-1.565276",
+        "latitude": "53.799978"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00018?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Lunar & The Harbour",
+       "type": "attraction",
+       "id": "K8vZsyn00091",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00091",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00091?locale=en-us"
+        }
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "Wild & The Hours",
+    "type": "event",
+    "id": "G5vsyn00203",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00203",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:30:00",
+      "dateTime": "2026-10-09T19:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00203?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Harbour Exchange",
+       "type": "venue",
+       "id": "KovZsyn00041",
+       "test": false,
+       "url": "https://tickets.example.com/venue/41",
+       "locale": "en-us",
+       "postalCode": "BT1 9FA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Belfast"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "134 Orchard Street"
+       },
+       "location": {
+        "longitude": "-5.939364",
+        "latitude": "54.608509"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Northern Ireland",
+         "id": "209"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00041?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Wild & The Hours",
+       "type": "attraction",
+       "id": "K8vZsyn00140",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00140",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00140?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "50e4edbe-46bf-46b2-b071-3e85dd1d571b",
+          "url": "https://musicbrainz.org/artist/50e4edbe-46bf-46b2-b071-3e85dd1d571b"
+         }
+        ]
+       }
+      },
+      {
+       "name": "The The Thes",
+       "type": "attraction",
+       "id": "K8vZsyn00008",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00008",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00008?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 12.5,
+      "max": 17.5
+     }
+    ]
+   },
+   {
+    "name": "The Neon Arcade",
+    "type": "event",
+    "id": "G5vsyn00218",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00218",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "20:30:00",
+      "dateTime": "2026-10-09T19:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-hip-hop-rap",
+       "name": "Hip-Hop/Rap"
+      },
+      "subGenre": {
+       "id": "syn-urban",
+       "name": "Urban"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00218?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Glass Institute",
+       "type": "venue",
+       "id": "KovZsyn00031",
+       "test": false,
+       "url": "https://tickets.example.com/venue/31",
+       "locale": "en-us",
+       "postalCode": "S1 7JF",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Sheffield"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "131 Cinder Street"
+       },
+       "location": {
+        "longitude": "-1.435879",
+        "latitude": "53.396318"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00031?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Neon Arcade",
+       "type": "attraction",
+       "id": "K8vZsyn00027",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00027",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00027?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 35,
+      "max": 57.5
+     }
+    ]
+   },
+   {
+    "name": "Velvet Circuit",
+    "type": "event",
+    "id": "G5vsyn00004",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00004",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:00:00",
+      "dateTime": "2026-10-09T20:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-jazz",
+       "name": "Jazz"
+      },
+      "subGenre": {
+       "id": "syn-jazz",
+       "name": "Jazz"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00004?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Paper Assembly",
+       "type": "venue",
+       "id": "KovZsyn00029",
+       "test": false,
+       "url": "https://tickets.example.com/venue/29",
+       "locale": "en-us",
+       "postalCode": "NE1 3EJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Newcastle upon Tyne"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "115 Cinder Street"
+       },
+       "location": {
+        "longitude": "-1.582438",
+        "latitude": "54.983590"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00029?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Velvet Circuit",
+       "type": "attraction",
+       "id": "K8vZsyn00092",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00092",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-jazz",
+          "name": "Jazz"
+         },
+         "subGenre": {
+          "id": "syn-jazz",
+          "name": "Jazz"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00092?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "84eae59f-f447-4815-ae44-4f10074d1b64",
+          "url": "https://musicbrainz.org/artist/84eae59f-f447-4815-ae44-4f10074d1b64"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 12.5,
+      "max": 17.5
+     }
+    ]
+   },
+   {
+    "name": "Distant Engines",
+    "type": "event",
+    "id": "G5vsyn00008",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00008",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:00:00",
+      "dateTime": "2026-10-09T20:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-pop",
+       "name": "Pop"
+      },
+      "subGenre": {
+       "id": "syn-pop-rock",
+       "name": "Pop Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00008?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Tin Club",
+       "type": "venue",
+       "id": "KovZsyn00024",
+       "test": false,
+       "url": "https://tickets.example.com/venue/24",
+       "locale": "en-us",
+       "postalCode": "BS1 3HB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Bristol"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "73 Velvet Street"
+       },
+       "location": {
+        "longitude": "-2.575110",
+        "latitude": "51.447451"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "South",
+         "id": "203"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00024?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Distant Engines",
+       "type": "attraction",
+       "id": "K8vZsyn00028",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00028",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-pop",
+          "name": "Pop"
+         },
+         "subGenre": {
+          "id": "syn-pop-rock",
+          "name": "Pop Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00028?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "f351f8a1-8143-440c-885f-b8a59e491c14",
+          "url": "https://musicbrainz.org/artist/f351f8a1-8143-440c-885f-b8a59e491c14"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 45,
+      "max": 45
+     }
+    ]
+   },
+   {
+    "name": "The Midnight Hours",
+    "type": "event",
+    "id": "G5vsyn00035",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00035",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:00:00",
+      "dateTime": "2026-10-09T20:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-techno",
+       "name": "Techno"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00035?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Signal Cellar",
+       "type": "venue",
+       "id": "KovZsyn00003",
+       "test": false,
+       "url": "https://tickets.example.com/venue/3",
+       "locale": "en-us",
+       "postalCode": "N1 3JJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "16 Tin Street"
+       },
+       "location": {
+        "longitude": "-0.122556",
+        "latitude": "51.494905"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00003?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Midnight Hours",
+       "type": "attraction",
+       "id": "K8vZsyn00062",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00062",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-techno",
+          "name": "Techno"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00062?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Pale Machines",
+       "type": "attraction",
+       "id": "K8vZsyn00099",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00099",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-blues",
+          "name": "Blues"
+         },
+         "subGenre": {
+          "id": "syn-blues",
+          "name": "Blues"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00099?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 22,
+      "max": 32
+     }
+    ]
+   },
+   {
+    "name": "MØ-ON",
+    "type": "event",
+    "id": "G5vsyn00059",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00059",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:00:00",
+      "dateTime": "2026-10-09T20:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-alternative-rock",
+       "name": "Alternative Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00059?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Night Arches",
+       "type": "venue",
+       "id": "KovZsyn00005",
+       "test": false,
+       "url": "https://tickets.example.com/venue/5",
+       "locale": "en-us",
+       "postalCode": "N1 4GJ",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "80 Marble Street"
+       },
+       "location": {
+        "longitude": "-0.100529",
+        "latitude": "51.505504"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00005?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "MØ-ON",
+       "type": "attraction",
+       "id": "K8vZsyn00005",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00005",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-alternative-rock",
+          "name": "Alternative Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00005?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 18.5,
+      "max": 28.5
+     }
+    ]
+   },
+   {
+    "name": "Neon Avenue",
+    "type": "event",
+    "id": "G5vsyn00157",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00157",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:00:00",
+      "dateTime": "2026-10-09T20:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-indie-rock",
+       "name": "Indie Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00157?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Echo Arches",
+       "type": "venue",
+       "id": "KovZsyn00009",
+       "test": false,
+       "url": "https://tickets.example.com/venue/9",
+       "locale": "en-us",
+       "postalCode": "M1 9ED",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Manchester"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "162 Copper Street"
+       },
+       "location": {
+        "longitude": "-2.264094",
+        "latitude": "53.472068"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00009?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Neon Avenue",
+       "type": "attraction",
+       "id": "K8vZsyn00048",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00048",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00048?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "b12b8108-1a2c-4639-8dd8-005954f2c3c7",
+          "url": "https://musicbrainz.org/artist/b12b8108-1a2c-4639-8dd8-005954f2c3c7"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 35,
+      "max": 57.5
+     }
+    ]
+   },
+   {
+    "name": "The Distant Radio",
+    "type": "event",
+    "id": "G5vsyn00152",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00152",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:15:00",
+      "dateTime": "2026-10-09T20:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-pop",
+       "name": "Pop"
+      },
+      "subGenre": {
+       "id": "syn-pop-rock",
+       "name": "Pop Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00152?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Signal Works",
+       "type": "venue",
+       "id": "KovZsyn00039",
+       "test": false,
+       "url": "https://tickets.example.com/venue/39",
+       "locale": "en-us",
+       "postalCode": "NG1 8JG",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Nottingham"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "137 Iron Street"
+       },
+       "location": {
+        "longitude": "-1.151469",
+        "latitude": "52.972749"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Midlands and Central",
+         "id": "204"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00039?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Distant Radio",
+       "type": "attraction",
+       "id": "K8vZsyn00024",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00024",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-pop",
+          "name": "Pop"
+         },
+         "subGenre": {
+          "id": "syn-pop-rock",
+          "name": "Pop Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00024?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Second Static",
+       "type": "attraction",
+       "id": "K8vZsyn00105",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00105",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-r&b",
+          "name": "R&B"
+         },
+         "subGenre": {
+          "id": "syn-soul",
+          "name": "Soul"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00105?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 18.5,
+      "max": 28.5
+     }
+    ]
+   },
+   {
+    "name": "The Velvet Machines",
+    "type": "event",
+    "id": "G5vsyn00206",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00206",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "21:30:00",
+      "dateTime": "2026-10-09T20:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00206?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Anchor Depot",
+       "type": "venue",
+       "id": "KovZsyn00006",
+       "test": false,
+       "url": "https://tickets.example.com/venue/6",
+       "locale": "en-us",
+       "postalCode": "N1 2AB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "140 Iron Street"
+       },
+       "location": {
+        "longitude": "-0.120356",
+        "latitude": "51.505052"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00006?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Velvet Machines",
+       "type": "attraction",
+       "id": "K8vZsyn00033",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00033",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00033?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Bright Motel",
+       "type": "attraction",
+       "id": "K8vZsyn00123",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00123",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-hip-hop-rap",
+          "name": "Hip-Hop/Rap"
+         },
+         "subGenre": {
+          "id": "syn-urban",
+          "name": "Urban"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00123?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "The Static Harbour",
+       "type": "attraction",
+       "id": "K8vZsyn00043",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00043",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-metal",
+          "name": "Metal"
+         },
+         "subGenre": {
+          "id": "syn-heavy-metal",
+          "name": "Heavy Metal"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00043?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 8,
+      "max": 8
+     }
+    ]
+   },
+   {
+    "name": "Neon Sirens",
+    "type": "event",
+    "id": "G5vsyn00098",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00098",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "23:00:00",
+      "dateTime": "2026-10-09T22:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-hard-rock",
+       "name": "Hard Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00098?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Echo Arches",
+       "type": "venue",
+       "id": "KovZsyn00009",
+       "test": false,
+       "url": "https://tickets.example.com/venue/9",
+       "locale": "en-us",
+       "postalCode": "M1 9ED",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Manchester"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "162 Copper Street"
+       },
+       "location": {
+        "longitude": "-2.264094",
+        "latitude": "53.472068"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00009?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Neon Sirens",
+       "type": "attraction",
+       "id": "K8vZsyn00133",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00133",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-hard-rock",
+          "name": "Hard Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00133?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Second Sirens",
+       "type": "attraction",
+       "id": "K8vZsyn00094",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00094",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00094?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "46a18ec4-26e4-4399-ab2d-01e838c3ef8e",
+          "url": "https://musicbrainz.org/artist/46a18ec4-26e4-4399-ab2d-01e838c3ef8e"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 12.5,
+      "max": 17.5
+     }
+    ]
+   },
+   {
+    "name": "Distant Mirrors",
+    "type": "event",
+    "id": "G5vsyn00111",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00111",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "23:00:00",
+      "dateTime": "2026-10-09T22:00:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-indie-rock",
+       "name": "Indie Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00111?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Tin Club",
+       "type": "venue",
+       "id": "KovZsyn00024",
+       "test": false,
+       "url": "https://tickets.example.com/venue/24",
+       "locale": "en-us",
+       "postalCode": "BS1 3HB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Bristol"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "73 Velvet Street"
+       },
+       "location": {
+        "longitude": "-2.575110",
+        "latitude": "51.447451"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "South",
+         "id": "203"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00024?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Distant Mirrors",
+       "type": "attraction",
+       "id": "K8vZsyn00053",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00053",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00053?locale=en-us"
+        }
+       }
+      }
+     ]
+    }
+   },
+   {
+    "name": "Indie Disco Night",
+    "type": "event",
+    "id": "G5vsyn00233",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00233",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "23:15:00",
+      "dateTime": "2026-10-09T22:15:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-indie-rock",
+       "name": "Indie Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00233?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Copper Rooms",
+       "type": "venue",
+       "id": "KovZsyn00004",
+       "test": false,
+       "url": "https://tickets.example.com/venue/4",
+       "locale": "en-us",
+       "postalCode": "N1 1AE",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "81 Glass Street"
+       },
+       "location": {
+        "longitude": "-0.141208",
+        "latitude": "51.530523"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00004?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 8,
+      "max": 18
+     }
+    ]
+   },
+   {
+    "name": "Neon & The Lanterns",
+    "type": "event",
+    "id": "G5vsyn00029",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00029",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "23:30:00",
+      "dateTime": "2026-10-09T22:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      },
+      "subGenre": {
+       "id": "syn-undefined",
+       "name": "Undefined"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00029?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Night Rooms",
+       "type": "venue",
+       "id": "KovZsyn00018",
+       "test": false,
+       "url": "https://tickets.example.com/venue/18",
+       "locale": "en-us",
+       "postalCode": "LS1 5FA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Leeds"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "36 Willow Street"
+       },
+       "location": {
+        "longitude": "-1.565276",
+        "latitude": "53.799978"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "North and North East",
+         "id": "206"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00018?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Neon & The Lanterns",
+       "type": "attraction",
+       "id": "K8vZsyn00057",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00057",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         },
+         "subGenre": {
+          "id": "syn-undefined",
+          "name": "Undefined"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00057?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Low Harbour",
+       "type": "attraction",
+       "id": "K8vZsyn00111",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00111",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-pop",
+          "name": "Pop"
+         },
+         "subGenre": {
+          "id": "syn-pop-rock",
+          "name": "Pop Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00111?locale=en-us"
+        }
+       }
+      },
+      {
+       "name": "Sigrún Rós",
+       "type": "attraction",
+       "id": "K8vZsyn00002",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00002",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00002?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "393850df-5283-4983-b951-c1dd8f8a28c8",
+          "url": "https://musicbrainz.org/artist/393850df-5283-4983-b951-c1dd8f8a28c8"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 45,
+      "max": 67.5
+     }
+    ]
+   },
+   {
+    "name": "Midnight Hours",
+    "type": "event",
+    "id": "G5vsyn00049",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00049",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "23:30:00",
+      "dateTime": "2026-10-09T22:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-alternative-rock",
+       "name": "Alternative Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00049?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Foundry Tavern",
+       "type": "venue",
+       "id": "KovZsyn00011",
+       "test": false,
+       "url": "https://tickets.example.com/venue/11",
+       "locale": "en-us",
+       "postalCode": "M1 8EA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Manchester"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "144 Marble Street"
+       },
+       "location": {
+        "longitude": "-2.226467",
+        "latitude": "53.472665"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00011?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Midnight Hours",
+       "type": "attraction",
+       "id": "K8vZsyn00037",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00037",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-alternative-rock",
+          "name": "Alternative Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00037?locale=en-us"
+        }
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 18.5,
+      "max": 18.5
+     }
+    ]
+   },
+   {
+    "name": "Lunar Hours: Autumn Tour",
+    "type": "event",
+    "id": "G5vsyn00211",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00211",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "localDate": "2026-10-09",
+      "localTime": "23:30:00",
+      "dateTime": "2026-10-09T22:30:00Z",
+      "dateTBD": false,
+      "dateTBA": false,
+      "timeTBA": false,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-rock",
+       "name": "Rock"
+      },
+      "subGenre": {
+       "id": "syn-indie-rock",
+       "name": "Indie Rock"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00211?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Foundry Tavern",
+       "type": "venue",
+       "id": "KovZsyn00011",
+       "test": false,
+       "url": "https://tickets.example.com/venue/11",
+       "locale": "en-us",
+       "postalCode": "M1 8EA",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "Manchester"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "144 Marble Street"
+       },
+       "location": {
+        "longitude": "-2.226467",
+        "latitude": "53.472665"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "Wales and North West",
+         "id": "205"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00011?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "Lunar Hours",
+       "type": "attraction",
+       "id": "K8vZsyn00071",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00071",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-rock",
+          "name": "Rock"
+         },
+         "subGenre": {
+          "id": "syn-indie-rock",
+          "name": "Indie Rock"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00071?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "6e7cc197-ec17-400b-b73c-9a9d2cf9cd1b",
+          "url": "https://musicbrainz.org/artist/6e7cc197-ec17-400b-b73c-9a9d2cf9cd1b"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 27.5,
+      "max": 27.5
+     }
+    ]
+   },
+   {
+    "name": "The Low Engines",
+    "type": "event",
+    "id": "G5vsyn00075",
+    "test": false,
+    "url": "https://tickets.example.com/event/G5vsyn00075",
+    "locale": "en-us",
+    "images": [],
+    "sales": {
+     "public": {
+      "startDateTime": "2026-06-01T09:00:00Z",
+      "startTBD": false
+     }
+    },
+    "dates": {
+     "start": {
+      "dateTBD": true,
+      "dateTBA": true,
+      "timeTBA": true,
+      "noSpecificTime": false
+     },
+     "timezone": "Europe/London",
+     "status": {
+      "code": "onsale"
+     },
+     "spanMultipleDays": false
+    },
+    "classifications": [
+     {
+      "primary": true,
+      "segment": {
+       "id": "KZFzniwnSyZfZ7v7nJ",
+       "name": "Music"
+      },
+      "genre": {
+       "id": "syn-dance-electronic",
+       "name": "Dance/Electronic"
+      },
+      "subGenre": {
+       "id": "syn-drum-&-bass",
+       "name": "Drum & Bass"
+      }
+     }
+    ],
+    "_links": {
+     "self": {
+      "href": "/discovery/v2/events/G5vsyn00075?locale=en-us"
+     }
+    },
+    "_embedded": {
+     "venues": [
+      {
+       "name": "The Anchor Depot",
+       "type": "venue",
+       "id": "KovZsyn00006",
+       "test": false,
+       "url": "https://tickets.example.com/venue/6",
+       "locale": "en-us",
+       "postalCode": "N1 2AB",
+       "timezone": "Europe/London",
+       "city": {
+        "name": "London"
+       },
+       "country": {
+        "name": "Great Britain",
+        "countryCode": "GB"
+       },
+       "address": {
+        "line1": "140 Iron Street"
+       },
+       "location": {
+        "longitude": "-0.120356",
+        "latitude": "51.505052"
+       },
+       "markets": [
+        {
+         "name": "All of United Kingdom",
+         "id": "201"
+        },
+        {
+         "name": "London",
+         "id": "202"
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/venues/KovZsyn00006?locale=en-us"
+        }
+       }
+      }
+     ],
+     "attractions": [
+      {
+       "name": "The Low Engines",
+       "type": "attraction",
+       "id": "K8vZsyn00056",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00056",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-drum-&-bass",
+          "name": "Drum & Bass"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00056?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "7db17e42-f0e5-4e7d-a9a0-5d7e1c5211ce",
+          "url": "https://musicbrainz.org/artist/7db17e42-f0e5-4e7d-a9a0-5d7e1c5211ce"
+         }
+        ]
+       }
+      },
+      {
+       "name": "Broken Colony",
+       "type": "attraction",
+       "id": "K8vZsyn00025",
+       "test": false,
+       "url": "https://tickets.example.com/artist/K8vZsyn00025",
+       "locale": "en-us",
+       "images": [],
+       "classifications": [
+        {
+         "primary": true,
+         "segment": {
+          "id": "KZFzniwnSyZfZ7v7nJ",
+          "name": "Music"
+         },
+         "genre": {
+          "id": "syn-dance-electronic",
+          "name": "Dance/Electronic"
+         },
+         "subGenre": {
+          "id": "syn-house",
+          "name": "House"
+         }
+        }
+       ],
+       "_links": {
+        "self": {
+         "href": "/discovery/v2/attractions/K8vZsyn00025?locale=en-us"
+        }
+       },
+       "externalLinks": {
+        "musicbrainz": [
+         {
+          "id": "e58fde17-62f3-4520-92e5-7a1017f9cf3c",
+          "url": "https://musicbrainz.org/artist/e58fde17-62f3-4520-92e5-7a1017f9cf3c"
+         }
+        ]
+       }
+      }
+     ]
+    },
+    "priceRanges": [
+     {
+      "type": "standard",
+      "currency": "GBP",
+      "min": 8,
+      "max": 13
+     }
+    ]
+   }
+  ]
+ },
+ "_links": {
+  "self": {
+   "href": "/discovery/v2/events.json?size=200&page=1&countryCode=GB"
+  }
+ },
+ "page": {
+  "size": 200,
+  "totalElements": 240,
+  "totalPages": 2,
+  "number": 1
+ }
+}

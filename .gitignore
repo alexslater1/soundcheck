@@ -5,6 +5,8 @@
 .secrets/
 
 # Generated / local data
+# Real API recordings stay local (provider terms); committed fixtures are synthetic.
+fixtures/recorded/
 fixtures/clips/*
 !fixtures/clips/README.md
 lab/data/

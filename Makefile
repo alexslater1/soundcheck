@@ -144,8 +144,9 @@ openapi-check-client: ## Fail if running orval changes app/src/api/generated (sn
 ingest: ## Run a gig ingestion (fixtures or live per INGESTION_MODE)
 	$(call not_yet,ingest)
 
-record-fixtures: ## Record external API responses into fixtures/
-	$(call not_yet,record-fixtures)
+record-fixtures: ## Record external API responses into fixtures/ (live calls; needs the keys in .env and `make up`)
+	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures'
+	$(CURDIR)/ops/scripts/check-fixture-secrets.sh
 
 seed-demo: ## Seed demo personas, clips and engagement (idempotent); TARGET=aws for the cloud
 	$(call not_yet,seed-demo)

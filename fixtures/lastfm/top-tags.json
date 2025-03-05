@@ -1,0 +1,5444 @@
+{
+ "beyoncia": {
+  "toptags": {
+   "@attr": {
+    "artist": "Beyoncia"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 56,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 37,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "björn again tomorrow": {
+  "toptags": {
+   "@attr": {
+    "artist": "Björn Again Tomorrow"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 61,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 32,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "bright mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "Bright Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "folk",
+     "url": "https://www.last.fm/tag/folk"
+    },
+    {
+     "count": 58,
+     "name": "singer-songwriter",
+     "url": "https://www.last.fm/tag/singer-songwriter"
+    },
+    {
+     "count": 33,
+     "name": "acoustic",
+     "url": "https://www.last.fm/tag/acoustic"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "bright motel": {
+  "toptags": {
+   "@attr": {
+    "artist": "Bright Motel"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 51,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 26,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 18,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "broken & the hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "Broken & The Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 67,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 48,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "broken colony": {
+  "toptags": {
+   "@attr": {
+    "artist": "Broken Colony"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 47,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 27,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 12,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "café del marlow": {
+  "toptags": {
+   "@attr": {
+    "artist": "Café del Marlow"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "copper & the signals": {
+  "toptags": {
+   "@attr": {
+    "artist": "Copper & The Signals"
+   },
+   "tag": [
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "copper bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Copper Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 77,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 42,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 15,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "copper machines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Copper Machines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 48,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 36,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 23,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "copper wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "Copper Wolves"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 47,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 35,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "crooked orchard": {
+  "toptags": {
+   "@attr": {
+    "artist": "Crooked Orchard"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 66,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 31,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "crooked wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "Crooked Wolves"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "techno",
+     "url": "https://www.last.fm/tag/techno"
+    },
+    {
+     "count": 48,
+     "name": "minimal",
+     "url": "https://www.last.fm/tag/minimal"
+    },
+    {
+     "count": 36,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "d.j. kettle": {
+  "toptags": {
+   "@attr": {
+    "artist": "D.J. Kettle"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 62,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 24,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "distant avenue": {
+  "toptags": {
+   "@attr": {
+    "artist": "Distant Avenue"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 49,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 24,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 18,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "distant engines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Distant Engines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 45,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 16,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "distant mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "Distant Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 51,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 22,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "electric & the bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Electric & The Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 39,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 21,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "electric harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "Electric Harbour"
+   },
+   "tag": [
+    {
+     "count": 3,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "electric radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "Electric Radio"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 55,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 29,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "electric season": {
+  "toptags": {
+   "@attr": {
+    "artist": "Electric Season"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 67,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 51,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 34,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "feral arcade": {
+  "toptags": {
+   "@attr": {
+    "artist": "Feral Arcade"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 45,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 22,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "feral machines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Feral Machines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 46,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 27,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "feral rivers": {
+  "toptags": {
+   "@attr": {
+    "artist": "Feral Rivers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 48,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 22,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "feral tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "Feral Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 76,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 34,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 26,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "feral weather": {
+  "toptags": {
+   "@attr": {
+    "artist": "Feral Weather"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "soul",
+     "url": "https://www.last.fm/tag/soul"
+    },
+    {
+     "count": 45,
+     "name": "rnb",
+     "url": "https://www.last.fm/tag/rnb"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 17,
+     "name": "neo-soul",
+     "url": "https://www.last.fm/tag/neo-soul"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "feral wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "Feral Wolves"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 57,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 22,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "florrie + the engine": {
+  "toptags": {
+   "@attr": {
+    "artist": "Florrie + The Engine"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 58,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 35,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "gentle arcade": {
+  "toptags": {
+   "@attr": {
+    "artist": "Gentle Arcade"
+   },
+   "tag": [
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "gentle bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Gentle Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 37,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 29,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 14,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "glass & the foxes": {
+  "toptags": {
+   "@attr": {
+    "artist": "Glass & The Foxes"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "glass colony": {
+  "toptags": {
+   "@attr": {
+    "artist": "Glass Colony"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 72,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 28,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 19,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "glass kites": {
+  "toptags": {
+   "@attr": {
+    "artist": "Glass Kites"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "golden & the kites": {
+  "toptags": {
+   "@attr": {
+    "artist": "Golden & The Kites"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "blues",
+     "url": "https://www.last.fm/tag/blues"
+    },
+    {
+     "count": 55,
+     "name": "blues rock",
+     "url": "https://www.last.fm/tag/blues+rock"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "golden bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Golden Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 49,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 31,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 24,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "golden season": {
+  "toptags": {
+   "@attr": {
+    "artist": "Golden Season"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 74,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 59,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "hollow & the atlas": {
+  "toptags": {
+   "@attr": {
+    "artist": "Hollow & The Atlas"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 43,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 25,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 16,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "hollow & the radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "Hollow & The Radio"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 58,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 25,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 19,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "hollow & the wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "Hollow & The Wolves"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 57,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 34,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 22,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "hollow bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Hollow Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 56,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 29,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "hollow season": {
+  "toptags": {
+   "@attr": {
+    "artist": "Hollow Season"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 70,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 47,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 27,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "lost & the static": {
+  "toptags": {
+   "@attr": {
+    "artist": "Lost & The Static"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 47,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 23,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 13,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "low & the engines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low & The Engines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 79,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 32,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "low & the tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low & The Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "afrobeats",
+     "url": "https://www.last.fm/tag/afrobeats"
+    },
+    {
+     "count": 79,
+     "name": "afrobeat",
+     "url": "https://www.last.fm/tag/afrobeat"
+    },
+    {
+     "count": 47,
+     "name": "amapiano",
+     "url": "https://www.last.fm/tag/amapiano"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "low choir": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low Choir"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 73,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 56,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 36,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "low embers": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low Embers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 51,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "low harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 50,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 22,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "low motel": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low Motel"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "jazz",
+     "url": "https://www.last.fm/tag/jazz"
+    },
+    {
+     "count": 35,
+     "name": "bebop",
+     "url": "https://www.last.fm/tag/bebop"
+    },
+    {
+     "count": 19,
+     "name": "smooth jazz",
+     "url": "https://www.last.fm/tag/smooth+jazz"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "low signals": {
+  "toptags": {
+   "@attr": {
+    "artist": "Low Signals"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 45,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 34,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 19,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "lunar & the harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "Lunar & The Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 74,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 49,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 26,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "lunar hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "Lunar Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 49,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 18,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "midnight hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "Midnight Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 63,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 45,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 22,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "midnight orchard": {
+  "toptags": {
+   "@attr": {
+    "artist": "Midnight Orchard"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 78,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 60,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "mø-on": {
+  "toptags": {
+   "@attr": {
+    "artist": "MØ-ON"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 62,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 39,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 25,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "neon & the lanterns": {
+  "toptags": {
+   "@attr": {
+    "artist": "Neon & The Lanterns"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "blues",
+     "url": "https://www.last.fm/tag/blues"
+    },
+    {
+     "count": 36,
+     "name": "blues rock",
+     "url": "https://www.last.fm/tag/blues+rock"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "neon avenue": {
+  "toptags": {
+   "@attr": {
+    "artist": "Neon Avenue"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 55,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 36,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 24,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "neon radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "Neon Radio"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 48,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 21,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 10,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 8,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "neon sirens": {
+  "toptags": {
+   "@attr": {
+    "artist": "Neon Sirens"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 69,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 51,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "northern & the rivers": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern & The Rivers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "drum and bass",
+     "url": "https://www.last.fm/tag/drum+and+bass"
+    },
+    {
+     "count": 40,
+     "name": "dnb",
+     "url": "https://www.last.fm/tag/dnb"
+    },
+    {
+     "count": 19,
+     "name": "jungle",
+     "url": "https://www.last.fm/tag/jungle"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "northern avenue": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Avenue"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "country",
+     "url": "https://www.last.fm/tag/country"
+    },
+    {
+     "count": 55,
+     "name": "americana",
+     "url": "https://www.last.fm/tag/americana"
+    },
+    {
+     "count": 27,
+     "name": "bluegrass",
+     "url": "https://www.last.fm/tag/bluegrass"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "northern bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 44,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 33,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "northern harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 54,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 42,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 21,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "northern machines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Machines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "soul",
+     "url": "https://www.last.fm/tag/soul"
+    },
+    {
+     "count": 51,
+     "name": "rnb",
+     "url": "https://www.last.fm/tag/rnb"
+    },
+    {
+     "count": 33,
+     "name": "neo-soul",
+     "url": "https://www.last.fm/tag/neo-soul"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "northern sirens": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Sirens"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 53,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 31,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 14,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "northern tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 36,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 17,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "northern weather": {
+  "toptags": {
+   "@attr": {
+    "artist": "Northern Weather"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "country",
+     "url": "https://www.last.fm/tag/country"
+    },
+    {
+     "count": 63,
+     "name": "americana",
+     "url": "https://www.last.fm/tag/americana"
+    },
+    {
+     "count": 35,
+     "name": "bluegrass",
+     "url": "https://www.last.fm/tag/bluegrass"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "pale machines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Pale Machines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "blues",
+     "url": "https://www.last.fm/tag/blues"
+    },
+    {
+     "count": 35,
+     "name": "blues rock",
+     "url": "https://www.last.fm/tag/blues+rock"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "paper & the circuit": {
+  "toptags": {
+   "@attr": {
+    "artist": "Paper & The Circuit"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 71,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 41,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "paper & the machines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Paper & The Machines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "reggae",
+     "url": "https://www.last.fm/tag/reggae"
+    },
+    {
+     "count": 36,
+     "name": "dub",
+     "url": "https://www.last.fm/tag/dub"
+    },
+    {
+     "count": 21,
+     "name": "dancehall",
+     "url": "https://www.last.fm/tag/dancehall"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "paper bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "Paper Bloom"
+   },
+   "tag": [
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "paper season": {
+  "toptags": {
+   "@attr": {
+    "artist": "Paper Season"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "techno",
+     "url": "https://www.last.fm/tag/techno"
+    },
+    {
+     "count": 68,
+     "name": "minimal",
+     "url": "https://www.last.fm/tag/minimal"
+    },
+    {
+     "count": 49,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "paper tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "Paper Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 35,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 20,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 7,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "paper wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "Paper Wolves"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "techno",
+     "url": "https://www.last.fm/tag/techno"
+    },
+    {
+     "count": 61,
+     "name": "minimal",
+     "url": "https://www.last.fm/tag/minimal"
+    },
+    {
+     "count": 48,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "quiet mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "Quiet Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 58,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 37,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 13,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "quiet signals": {
+  "toptags": {
+   "@attr": {
+    "artist": "Quiet Signals"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 68,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 48,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "salt tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "Salt Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 61,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 33,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 20,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "second & the embers": {
+  "toptags": {
+   "@attr": {
+    "artist": "Second & The Embers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 46,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 19,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "second sirens": {
+  "toptags": {
+   "@attr": {
+    "artist": "Second Sirens"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 73,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 39,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 26,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "second static": {
+  "toptags": {
+   "@attr": {
+    "artist": "Second Static"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "soul",
+     "url": "https://www.last.fm/tag/soul"
+    },
+    {
+     "count": 66,
+     "name": "rnb",
+     "url": "https://www.last.fm/tag/rnb"
+    },
+    {
+     "count": 32,
+     "name": "neo-soul",
+     "url": "https://www.last.fm/tag/neo-soul"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "sigrún rós": {
+  "toptags": {
+   "@attr": {
+    "artist": "Sigrún Rós"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 77,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 30,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 13,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "silver mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "Silver Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 66,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 23,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "slow orchard": {
+  "toptags": {
+   "@attr": {
+    "artist": "Slow Orchard"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "drum and bass",
+     "url": "https://www.last.fm/tag/drum+and+bass"
+    },
+    {
+     "count": 57,
+     "name": "dnb",
+     "url": "https://www.last.fm/tag/dnb"
+    },
+    {
+     "count": 42,
+     "name": "jungle",
+     "url": "https://www.last.fm/tag/jungle"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "slow tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "Slow Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "country",
+     "url": "https://www.last.fm/tag/country"
+    },
+    {
+     "count": 71,
+     "name": "americana",
+     "url": "https://www.last.fm/tag/americana"
+    },
+    {
+     "count": 52,
+     "name": "bluegrass",
+     "url": "https://www.last.fm/tag/bluegrass"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "static avenue": {
+  "toptags": {
+   "@attr": {
+    "artist": "Static Avenue"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 75,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 30,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 19,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 8,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "static harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "Static Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 66,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 43,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 33,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "sudden embers": {
+  "toptags": {
+   "@attr": {
+    "artist": "Sudden Embers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 75,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 55,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 33,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the 1989s": {
+  "toptags": {
+   "@attr": {
+    "artist": "The 1989s"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 66,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 23,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "the copper arcade": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Copper Arcade"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 79,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 59,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 39,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "the copper hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Copper Hours"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the copper lanterns": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Copper Lanterns"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "folk",
+     "url": "https://www.last.fm/tag/folk"
+    },
+    {
+     "count": 55,
+     "name": "singer-songwriter",
+     "url": "https://www.last.fm/tag/singer-songwriter"
+    },
+    {
+     "count": 27,
+     "name": "acoustic",
+     "url": "https://www.last.fm/tag/acoustic"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "the copper wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Copper Wolves"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 66,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 30,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "the distant choir": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Distant Choir"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the distant radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Distant Radio"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 39,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 29,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the electric hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Electric Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 44,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 22,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the feral bloom": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Feral Bloom"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 45,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 22,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the feral cinema": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Feral Cinema"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "afrobeats",
+     "url": "https://www.last.fm/tag/afrobeats"
+    },
+    {
+     "count": 55,
+     "name": "afrobeat",
+     "url": "https://www.last.fm/tag/afrobeat"
+    },
+    {
+     "count": 37,
+     "name": "amapiano",
+     "url": "https://www.last.fm/tag/amapiano"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the gentle embers": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Gentle Embers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "techno",
+     "url": "https://www.last.fm/tag/techno"
+    },
+    {
+     "count": 43,
+     "name": "minimal",
+     "url": "https://www.last.fm/tag/minimal"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 16,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "the gentle tides": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Gentle Tides"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "soul",
+     "url": "https://www.last.fm/tag/soul"
+    },
+    {
+     "count": 58,
+     "name": "rnb",
+     "url": "https://www.last.fm/tag/rnb"
+    },
+    {
+     "count": 21,
+     "name": "neo-soul",
+     "url": "https://www.last.fm/tag/neo-soul"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the golden hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Golden Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 73,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 31,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the low engines": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Low Engines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "drum and bass",
+     "url": "https://www.last.fm/tag/drum+and+bass"
+    },
+    {
+     "count": 67,
+     "name": "dnb",
+     "url": "https://www.last.fm/tag/dnb"
+    },
+    {
+     "count": 28,
+     "name": "jungle",
+     "url": "https://www.last.fm/tag/jungle"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the low static": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Low Static"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 46,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 23,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 8,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "the lunar colony": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Lunar Colony"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 75,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 34,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 22,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "the lunar wolves": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Lunar Wolves"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "the midnight engines": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Midnight Engines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 49,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 32,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the midnight hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Midnight Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "techno",
+     "url": "https://www.last.fm/tag/techno"
+    },
+    {
+     "count": 41,
+     "name": "minimal",
+     "url": "https://www.last.fm/tag/minimal"
+    },
+    {
+     "count": 16,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the midnight radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Midnight Radio"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 39,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 16,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "the neon arcade": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Neon Arcade"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 77,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 41,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 26,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the northern mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Northern Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 53,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 25,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "the pale radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Pale Radio"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the pale sirens": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Pale Sirens"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hard rock",
+     "url": "https://www.last.fm/tag/hard+rock"
+    },
+    {
+     "count": 66,
+     "name": "classic rock",
+     "url": "https://www.last.fm/tag/classic+rock"
+    },
+    {
+     "count": 46,
+     "name": "rock",
+     "url": "https://www.last.fm/tag/rock"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "the pale weather": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Pale Weather"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "techno",
+     "url": "https://www.last.fm/tag/techno"
+    },
+    {
+     "count": 46,
+     "name": "minimal",
+     "url": "https://www.last.fm/tag/minimal"
+    },
+    {
+     "count": 30,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 21,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    }
+   ]
+  }
+ },
+ "the quiet harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Quiet Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "soul",
+     "url": "https://www.last.fm/tag/soul"
+    },
+    {
+     "count": 46,
+     "name": "rnb",
+     "url": "https://www.last.fm/tag/rnb"
+    },
+    {
+     "count": 19,
+     "name": "neo-soul",
+     "url": "https://www.last.fm/tag/neo-soul"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "the quiet mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Quiet Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "hip-hop",
+     "url": "https://www.last.fm/tag/hip-hop"
+    },
+    {
+     "count": 66,
+     "name": "rap",
+     "url": "https://www.last.fm/tag/rap"
+    },
+    {
+     "count": 36,
+     "name": "uk rap",
+     "url": "https://www.last.fm/tag/uk+rap"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 15,
+     "name": "grime",
+     "url": "https://www.last.fm/tag/grime"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the quiet orchard": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Quiet Orchard"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 40,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 27,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 5,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the second choir": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Second Choir"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 56,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 24,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 17,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "the second lanterns": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Second Lanterns"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 79,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 61,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 24,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ },
+ "the silver hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Silver Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 71,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 41,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 19,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "the silver weather": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Silver Weather"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 61,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 45,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 26,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the static harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Static Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 42,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 27,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the sudden harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Sudden Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 40,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 26,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 9,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "the the thes": {
+  "toptags": {
+   "@attr": {
+    "artist": "The The Thes"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 66,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 46,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 23,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "the velvet avenue": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Velvet Avenue"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "jazz",
+     "url": "https://www.last.fm/tag/jazz"
+    },
+    {
+     "count": 79,
+     "name": "bebop",
+     "url": "https://www.last.fm/tag/bebop"
+    },
+    {
+     "count": 46,
+     "name": "smooth jazz",
+     "url": "https://www.last.fm/tag/smooth+jazz"
+    },
+    {
+     "count": 30,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 14,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the velvet machines": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Velvet Machines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "jazz",
+     "url": "https://www.last.fm/tag/jazz"
+    },
+    {
+     "count": 56,
+     "name": "bebop",
+     "url": "https://www.last.fm/tag/bebop"
+    },
+    {
+     "count": 41,
+     "name": "smooth jazz",
+     "url": "https://www.last.fm/tag/smooth+jazz"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "the violet arcade": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Violet Arcade"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the winter hours": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Winter Hours"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "jazz",
+     "url": "https://www.last.fm/tag/jazz"
+    },
+    {
+     "count": 62,
+     "name": "bebop",
+     "url": "https://www.last.fm/tag/bebop"
+    },
+    {
+     "count": 31,
+     "name": "smooth jazz",
+     "url": "https://www.last.fm/tag/smooth+jazz"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "the winter radio": {
+  "toptags": {
+   "@attr": {
+    "artist": "The Winter Radio"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "heavy metal",
+     "url": "https://www.last.fm/tag/heavy+metal"
+    },
+    {
+     "count": 37,
+     "name": "metalcore",
+     "url": "https://www.last.fm/tag/metalcore"
+    },
+    {
+     "count": 26,
+     "name": "metal",
+     "url": "https://www.last.fm/tag/metal"
+    },
+    {
+     "count": 8,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 8,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "velvet & the harbour": {
+  "toptags": {
+   "@attr": {
+    "artist": "Velvet & The Harbour"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 75,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 31,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 22,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 3,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "velvet circuit": {
+  "toptags": {
+   "@attr": {
+    "artist": "Velvet Circuit"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "jazz",
+     "url": "https://www.last.fm/tag/jazz"
+    },
+    {
+     "count": 50,
+     "name": "bebop",
+     "url": "https://www.last.fm/tag/bebop"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 23,
+     "name": "smooth jazz",
+     "url": "https://www.last.fm/tag/smooth+jazz"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    },
+    {
+     "count": 5,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    }
+   ]
+  }
+ },
+ "velvet rivers": {
+  "toptags": {
+   "@attr": {
+    "artist": "Velvet Rivers"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "soul",
+     "url": "https://www.last.fm/tag/soul"
+    },
+    {
+     "count": 68,
+     "name": "rnb",
+     "url": "https://www.last.fm/tag/rnb"
+    },
+    {
+     "count": 46,
+     "name": "neo-soul",
+     "url": "https://www.last.fm/tag/neo-soul"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 8,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "violet atlas": {
+  "toptags": {
+   "@attr": {
+    "artist": "Violet Atlas"
+   },
+   "tag": [
+    {
+     "count": 30,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 30,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 14,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "violet kites": {
+  "toptags": {
+   "@attr": {
+    "artist": "Violet Kites"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 47,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 30,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 18,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 12,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 8,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    }
+   ]
+  }
+ },
+ "violet mirrors": {
+  "toptags": {
+   "@attr": {
+    "artist": "Violet Mirrors"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "folk",
+     "url": "https://www.last.fm/tag/folk"
+    },
+    {
+     "count": 41,
+     "name": "singer-songwriter",
+     "url": "https://www.last.fm/tag/singer-songwriter"
+    },
+    {
+     "count": 24,
+     "name": "acoustic",
+     "url": "https://www.last.fm/tag/acoustic"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 8,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "wild & the static": {
+  "toptags": {
+   "@attr": {
+    "artist": "Wild & The Static"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "alternative rock",
+     "url": "https://www.last.fm/tag/alternative+rock"
+    },
+    {
+     "count": 56,
+     "name": "alternative",
+     "url": "https://www.last.fm/tag/alternative"
+    },
+    {
+     "count": 43,
+     "name": "emo",
+     "url": "https://www.last.fm/tag/emo"
+    },
+    {
+     "count": 32,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 5,
+     "name": "female vocalists",
+     "url": "https://www.last.fm/tag/female+vocalists"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    }
+   ]
+  }
+ },
+ "wild cinema": {
+  "toptags": {
+   "@attr": {
+    "artist": "Wild Cinema"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "indie rock",
+     "url": "https://www.last.fm/tag/indie+rock"
+    },
+    {
+     "count": 70,
+     "name": "indie",
+     "url": "https://www.last.fm/tag/indie"
+    },
+    {
+     "count": 38,
+     "name": "britpop",
+     "url": "https://www.last.fm/tag/britpop"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 15,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "uk",
+     "url": "https://www.last.fm/tag/uk"
+    },
+    {
+     "count": 3,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "wild engines": {
+  "toptags": {
+   "@attr": {
+    "artist": "Wild Engines"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 64,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 43,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 30,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 29,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 8,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 8,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "wild gardens": {
+  "toptags": {
+   "@attr": {
+    "artist": "Wild Gardens"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "pop",
+     "url": "https://www.last.fm/tag/pop"
+    },
+    {
+     "count": 68,
+     "name": "synthpop",
+     "url": "https://www.last.fm/tag/synthpop"
+    },
+    {
+     "count": 35,
+     "name": "dance pop",
+     "url": "https://www.last.fm/tag/dance+pop"
+    },
+    {
+     "count": 5,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 5,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 5,
+     "name": "british",
+     "url": "https://www.last.fm/tag/british"
+    }
+   ]
+  }
+ },
+ "wild parade": {
+  "toptags": {
+   "@attr": {
+    "artist": "Wild Parade"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "house",
+     "url": "https://www.last.fm/tag/house"
+    },
+    {
+     "count": 67,
+     "name": "deep house",
+     "url": "https://www.last.fm/tag/deep+house"
+    },
+    {
+     "count": 44,
+     "name": "electronic",
+     "url": "https://www.last.fm/tag/electronic"
+    },
+    {
+     "count": 30,
+     "name": "dance",
+     "url": "https://www.last.fm/tag/dance"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    },
+    {
+     "count": 5,
+     "name": "favourites",
+     "url": "https://www.last.fm/tag/favourites"
+    },
+    {
+     "count": 3,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    }
+   ]
+  }
+ },
+ "winter motel": {
+  "toptags": {
+   "@attr": {
+    "artist": "Winter Motel"
+   },
+   "tag": [
+    {
+     "count": 100,
+     "name": "folk",
+     "url": "https://www.last.fm/tag/folk"
+    },
+    {
+     "count": 54,
+     "name": "singer-songwriter",
+     "url": "https://www.last.fm/tag/singer-songwriter"
+    },
+    {
+     "count": 30,
+     "name": "acoustic",
+     "url": "https://www.last.fm/tag/acoustic"
+    },
+    {
+     "count": 14,
+     "name": "seen live",
+     "url": "https://www.last.fm/tag/seen+live"
+    },
+    {
+     "count": 14,
+     "name": "00s",
+     "url": "https://www.last.fm/tag/00s"
+    },
+    {
+     "count": 14,
+     "name": "beautiful",
+     "url": "https://www.last.fm/tag/beautiful"
+    }
+   ]
+  }
+ }
+}
