@@ -21,11 +21,15 @@ public interface CatalogIngest {
 
     Optional<UUID> venueByExternalId(String source, String externalId);
 
-    /** The most similarly named venue within {@code metres} of the point, if its similarity reaches the minimum. */
-    Optional<UUID> venueNear(double lat, double lng, int metres, String name, double minSimilarity);
+    /**
+     * The most similarly named venue within {@code metres} of the point, if its similarity reaches the
+     * minimum. Venues {@code notKnownTo} already knows under another id are skipped: a source's own ids
+     * are authoritative within that source (two rooms of one building are two venues to it).
+     */
+    Optional<UUID> venueNear(double lat, double lng, int metres, String name, double minSimilarity, String notKnownTo);
 
-    /** The most similarly named venue with the same postcode, if its similarity reaches the minimum. */
-    Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity);
+    /** The most similarly named venue with the same postcode, with the same exclusion as {@link #venueNear}. */
+    Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity, String notKnownTo);
 
     UUID createVenue(VenueDraft venue);
 

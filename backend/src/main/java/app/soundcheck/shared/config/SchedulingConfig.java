@@ -1,0 +1,31 @@
+package app.soundcheck.shared.config;
+
+import javax.sql.DataSource;
+import net.javacrumbs.shedlock.core.LockProvider;
+import net.javacrumbs.shedlock.provider.jdbctemplate.JdbcTemplateLockProvider;
+import net.javacrumbs.shedlock.spring.annotation.EnableSchedulerLock;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+/**
+ * {@code @Scheduled} jobs run only in processes with the {@code scheduler} role, and each
+ * job additionally takes a ShedLock row in {@code shared.shedlock}, so with several scheduler instances
+ * exactly one executes a given firing. Lock times use the database clock, not each instance's.
+ */
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnRole(Roles.SCHEDULER)
+@EnableScheduling
+@EnableSchedulerLock(defaultLockAtMostFor = "PT30M")
+class SchedulingConfig {
+
+    @Bean
+    LockProvider lockProvider(DataSource dataSource) {
+        return new JdbcTemplateLockProvider(JdbcTemplateLockProvider.Configuration.builder()
+                .withJdbcTemplate(new JdbcTemplate(dataSource))
+                .withTableName("shared.shedlock")
+                .usingDbTime()
+                .build());
+    }
+}

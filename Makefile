@@ -141,11 +141,12 @@ openapi-check-client: ## Fail if running orval changes app/src/api/generated (sn
 	[ "$$before" = "$$after" ] || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
 
 # ── Data ─────────────────────────────────────────────────────────────────────
-ingest: ## Run a gig ingestion (fixtures or live per INGESTION_MODE)
-	$(call not_yet,ingest)
+ingest: ## Run a gig ingestion once and exit (fixtures or live per INGESTION_MODE; needs `make up`)
+	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=ingest --logging.level.org.jooq.tools.LoggerListener=info'
+	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -c "select source, trigger, status, to_char(started_at, 'YYYY-MM-DD HH24:MI') as started, stats->>'fetched' as fetched, stats->>'created' as created, stats->>'updated' as updated, stats->>'unchanged' as unchanged, stats->>'merged' as merged, stats->>'skipped' as skipped, stats->>'errors' as errors, stats->>'apiCalls' as api_calls from ingestion.ingestion_run order by started_at desc limit 3"
 
 record-fixtures: ## Record external API responses into fixtures/ (live calls; needs the keys in .env and `make up`)
-	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures'
+	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures --logging.level.org.jooq.tools.LoggerListener=info'
 	$(CURDIR)/ops/scripts/check-fixture-secrets.sh
 
 seed-demo: ## Seed demo personas, clips and engagement (idempotent); TARGET=aws for the cloud

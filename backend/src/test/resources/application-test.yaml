@@ -13,3 +13,12 @@ soundcheck:
     auth:
       per-ip-per-minute: 10000
       per-email-per-minute: 10000
+  # Tests never call the real gig APIs, whatever INGESTION_MODE and the keys are in the developer's .env
+  # (the Makefile exports .env into `make test` / `make verify`). The live clients are tested with WireMock.
+  ingestion:
+    mode: fixtures
+    fixtures-dir: ../fixtures
+    ticketmaster:
+      api-key: ""
+    lastfm:
+      api-key: ""

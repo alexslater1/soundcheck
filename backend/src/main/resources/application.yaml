@@ -75,6 +75,10 @@ soundcheck:
     # fixtures (recorded JSON under fixtures/, no network) or live (real APIs, needs the keys below).
     mode: ${INGESTION_MODE:fixtures}
     fixtures-dir: ${INGESTION_FIXTURES_DIR:../fixtures}
+    horizon-days: ${INGESTION_HORIZON_DAYS:90}
+    call-budget: ${INGESTION_CALL_BUDGET:1500}
+    enrichment:
+      max-artists-per-run: ${INGESTION_ENRICH_MAX:300}
     ticketmaster:
       api-key: ${TICKETMASTER_API_KEY:}
     lastfm:

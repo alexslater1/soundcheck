@@ -152,6 +152,27 @@ class EntityResolutionIT extends IntegrationTest {
     }
 
     @Test
+    void whenTheOwningListingArrivesSecondItTakesOverAtOnceSoReRunsAreStable() {
+        SourceVenue venue = venue("tm-v-owner", "Anchor Ballroom", "L1 4BX", 53.4040, -2.9800);
+        SourceArtist act = artist("tm-a-owner", "Golden Parade", "Pop");
+        // The "VIP" listing has the larger id and is seen first; the plain listing (smaller id) owns the gig.
+        SourceGig vip =
+                gig("TICKETMASTER", "tm-owner-9", "Golden Parade - VIP Package", "2026-11-15T19:00:00Z", venue, act);
+        SourceGig plain = gig("TICKETMASTER", "tm-owner-1", "Golden Parade", "2026-11-15T19:00:00Z", venue, act);
+
+        assertThat(resolver.ingest(vip, new RunStats(), SEEN)).isEqualTo(Outcome.CREATED);
+        assertThat(resolver.ingest(plain, new RunStats(), SEEN)).isEqualTo(Outcome.MERGED);
+        UUID gigId = gigId("TICKETMASTER", "tm-owner-1");
+        assertThat(gigId("TICKETMASTER", "tm-owner-9")).isEqualTo(gigId);
+        assertThat(dsl.select(GIG.TITLE).from(GIG).where(GIG.ID.eq(gigId)).fetchOne(GIG.TITLE))
+                .isEqualTo("Golden Parade");
+
+        // The next run sees both listings again: nothing changes, in either order.
+        assertThat(resolver.ingest(vip, new RunStats(), SEEN)).isEqualTo(Outcome.UNCHANGED);
+        assertThat(resolver.ingest(plain, new RunStats(), SEEN)).isEqualTo(Outcome.UNCHANGED);
+    }
+
+    @Test
     void aChangedGigIsUpdatedAndAnUnchangedOneIsNot() {
         SourceVenue venue = venue("tm-v-change", "Cinder Depot", "LS2 7EY", 53.8008, -1.5491);
         SourceGig before = gig(
@@ -366,18 +387,45 @@ class EntityResolutionIT extends IntegrationTest {
                 SEEN);
         assertThat(venueId("SKIDDLE", "sk-v-far")).isNotEqualTo(brassId);
 
-        // (3) no coordinates, same postcode (formatted differently) and a loosely similar name.
+        // (3) no coordinates, same postcode (formatted differently) and a loosely similar name. A fresh
+        // venue is used: Skiddle already knows the Brass Lantern under another id (see the last case).
+        resolver.ingest(
+                gig(
+                        "TICKETMASTER",
+                        "tm-venues-4",
+                        "Lost Sirens",
+                        "2026-11-21T19:30:00Z",
+                        venue("tm-v-glass", "The Glass Institute", "NG1 6HL", 52.9561, -1.1502),
+                        artist("tm-a-sirens", "Lost Sirens")),
+                new RunStats(),
+                SEEN);
         resolver.ingest(
                 gig(
                         "SKIDDLE",
                         "sk-venues-4",
                         "Lost Sirens",
                         "2026-12-13T19:30:00Z",
-                        venue("sk-v-postcode", "Brass Lantern Live Room", "ng15fb", null, null),
+                        venue("sk-v-postcode", "Glass Institute Live Room", "ng16hl", null, null),
                         artist("sk-a-sirens", "Lost Sirens")),
                 new RunStats(),
                 SEEN);
-        assertThat(venueId("SKIDDLE", "sk-v-postcode")).isEqualTo(brassId);
+        assertThat(venueId("SKIDDLE", "sk-v-postcode")).isEqualTo(venueId("TICKETMASTER", "tm-v-glass"));
+
+        // The same source listing a second room in the same building under its own id: not merged,
+        // because a source's own venue ids are authoritative within that source.
+        RunStats secondRoom = new RunStats();
+        resolver.ingest(
+                gig(
+                        "TICKETMASTER",
+                        "tm-venues-5",
+                        "Lost Sirens",
+                        "2026-12-14T19:30:00Z",
+                        venue("tm-v-brass-2", "The Brass Lantern 2", "NG1 5FB", 52.9548, -1.1581),
+                        artist("tm-a-sirens", "Lost Sirens")),
+                secondRoom,
+                SEEN);
+        assertThat(venueId("TICKETMASTER", "tm-v-brass-2")).isNotEqualTo(brassId);
+        assertThat(secondRoom.venues.created).isEqualTo(1);
 
         assertThat(dsl.select(VENUE.NAME_NORM)
                         .from(VENUE)

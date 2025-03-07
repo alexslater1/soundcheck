@@ -59,6 +59,29 @@ class ArtistEnricherIT extends IntegrationTest {
                 .flatMap(p -> p.gigs().stream())
                 .forEach(g -> resolver.ingest(g, ingest, Instant.now(clock)));
 
+        // Another test class may already have run a full ingestion (which enriches) in the shared
+        // database. Put the fixture's artists back to "never enriched", and clear the MusicBrainz ids
+        // that did not come from the ticketing source, so this test observes a first enrichment.
+        List<String> withoutSourceMbid = fixtures.pages(Instant.EPOCH, Instant.EPOCH, new CallBudget(0))
+                .flatMap(p -> p.gigs().stream())
+                .flatMap(g -> g.artists().stream())
+                .filter(a -> a.mbid() == null)
+                .map(a -> a.externalId())
+                .distinct()
+                .toList();
+        dsl.update(ARTIST)
+                .setNull(ARTIST.MBID)
+                .where(ARTIST.ID.in(dsl.select(ARTIST_EXTERNAL_ID.ARTIST_ID)
+                        .from(ARTIST_EXTERNAL_ID)
+                        .where(ARTIST_EXTERNAL_ID.EXTERNAL_ID.in(withoutSourceMbid))))
+                .execute();
+        dsl.update(ARTIST)
+                .setNull(ARTIST.ENRICHED_AT)
+                .where(ARTIST.ID.in(dsl.select(ARTIST_EXTERNAL_ID.ARTIST_ID)
+                        .from(ARTIST_EXTERNAL_ID)
+                        .where(ARTIST_EXTERNAL_ID.EXTERNAL_ID.like("K8vZsyn%"))))
+                .execute();
+
         List<String> payloads = new ArrayList<>();
         PayloadSink sink = (source, request, body) -> payloads.add(source);
         ArtistEnricher.Result total = new ArtistEnricher.Result();

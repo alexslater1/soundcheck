@@ -44,6 +44,8 @@ public final class RunStats {
     public final Resolution venues = new Resolution();
     public final Resolution artists = new Resolution();
     public final Resolution gigs = new Resolution();
+    /** What the enrichment pass did (see {@code ArtistEnricher.Result}); empty until it has run. */
+    public Map<String, Object> enrichment = Map.of();
 
     private final Map<String, Integer> issueCounts = new TreeMap<>();
     private final List<SourceIssue> issueSample = new ArrayList<>();
@@ -83,6 +85,7 @@ public final class RunStats {
         map.put("venues", venues.toMap());
         map.put("artists", artists.toMap());
         map.put("gigs", gigs.toMap());
+        map.put("enrichment", enrichment);
         map.put("issueCounts", issueCounts);
         return map;
     }

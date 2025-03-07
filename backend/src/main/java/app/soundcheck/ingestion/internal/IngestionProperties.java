@@ -12,6 +12,12 @@ public record IngestionProperties(
         @DefaultValue("fixtures") String mode,
         /** Directory holding {@code ticketmaster/}, {@code lastfm/} and {@code musicbrainz/} recordings. */
         @DefaultValue("../fixtures") String fixturesDir,
+        /**
+         * Fixtures mode only: move every recorded date forward by whole days so the first recorded day is
+         * today. A recording is a snapshot of one week; without this it would show no upcoming gigs a
+         * week later. Local start times are kept (19:30 stays 19:30).
+         */
+        @DefaultValue("true") boolean fixturesShiftToToday,
         /** How far ahead gigs are fetched. */
         @DefaultValue("90") int horizonDays,
         /** Maximum API calls per run before it stops and is recorded as PARTIAL. */

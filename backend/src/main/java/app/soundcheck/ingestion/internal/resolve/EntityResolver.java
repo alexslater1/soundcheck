@@ -95,12 +95,15 @@ public class EntityResolver {
             stats.venues.matchedByExternalId++;
             return known.get();
         }
+        // Fuzzy rules only bridge *sources*: a venue this source already knows under another id is a
+        // different venue to it (Manchester Academy 1, 2 and 3 share a building and most of a name).
         Optional<UUID> fuzzy = Optional.empty();
         if (venue.lat() != null && venue.lng() != null) {
-            fuzzy = catalog.venueNear(venue.lat(), venue.lng(), VENUE_NEAR_METRES, venue.name(), VENUE_NEAR_SIMILARITY);
+            fuzzy = catalog.venueNear(
+                    venue.lat(), venue.lng(), VENUE_NEAR_METRES, venue.name(), VENUE_NEAR_SIMILARITY, source);
         }
         if (fuzzy.isEmpty() && venue.postcode() != null) {
-            fuzzy = catalog.venueByPostcode(venue.postcode(), venue.name(), VENUE_POSTCODE_SIMILARITY);
+            fuzzy = catalog.venueByPostcode(venue.postcode(), venue.name(), VENUE_POSTCODE_SIMILARITY, source);
         }
         UUID id;
         if (fuzzy.isPresent()) {
@@ -192,10 +195,19 @@ public class EntityResolver {
                 draft.title(),
                 GIG_TITLE_SIMILARITY);
         if (same.isPresent()) {
-            // Another source already has this gig: keep its fields, record the extra provenance.
+            // Another listing already has this gig: record the extra provenance. The gig keeps its fields
+            // unless the new listing is the one that owns them (see ownsFields); taking them over now,
+            // rather than on the next run, is what makes a re-run find everything unchanged.
             stats.gigs.matchedFuzzy++;
             stats.merged++;
-            catalog.linkGig(gig.source(), gig.externalId(), same.get().id(), gig.url(), seenAt);
+            GigRef existing = same.get();
+            catalog.linkGig(gig.source(), gig.externalId(), existing.id(), gig.url(), seenAt);
+            List<GigRef.Listing> listings = new ArrayList<>(existing.listings());
+            listings.add(new GigRef.Listing(gig.source(), gig.externalId()));
+            if (ownsFields(
+                    gig.source(), gig.externalId(), new GigRef(existing.id(), existing.contentHash(), listings))) {
+                catalog.updateGig(existing.id(), draft);
+            }
             return Outcome.MERGED;
         }
         stats.gigs.created++;

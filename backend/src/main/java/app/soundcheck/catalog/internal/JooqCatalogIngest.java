@@ -65,7 +65,8 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     @Override
-    public Optional<UUID> venueNear(double lat, double lng, int metres, String name, double minSimilarity) {
+    public Optional<UUID> venueNear(
+            double lat, double lng, int metres, String name, double minSimilarity, String notKnownTo) {
         Field<Double> similarity = similarity(VENUE.NAME_NORM, NameNormaliser.normalise(name));
         // Expected index: venue_location_gix (GiST) for ST_DWithin; the handful of venues it returns are
         // then compared by name.
@@ -73,22 +74,31 @@ class JooqCatalogIngest implements CatalogIngest {
                 .from(VENUE)
                 .where(DSL.condition("ST_DWithin({0}, {1}, {2})", VENUE.LOCATION, point(lat, lng), DSL.val(metres)))
                 .and(similarity.ge(minSimilarity))
+                .and(notKnownTo(notKnownTo))
                 .orderBy(similarity.desc(), VENUE.ID)
                 .limit(1)
                 .fetchOptional(VENUE.ID);
     }
 
     @Override
-    public Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity) {
+    public Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity, String notKnownTo) {
         Field<Double> similarity = similarity(VENUE.NAME_NORM, NameNormaliser.normalise(name));
         // No index: catalog.venue holds a few thousand rows; revisit if EXPLAIN says otherwise.
         return dsl.select(VENUE.ID)
                 .from(VENUE)
                 .where(DSL.upper(DSL.replace(VENUE.POSTCODE, " ", "")).eq(compactPostcode(postcode)))
                 .and(similarity.ge(minSimilarity))
+                .and(notKnownTo(notKnownTo))
                 .orderBy(similarity.desc(), VENUE.ID)
                 .limit(1)
                 .fetchOptional(VENUE.ID);
+    }
+
+    private static Condition notKnownTo(String source) {
+        return DSL.notExists(DSL.selectOne()
+                .from(VENUE_EXTERNAL_ID)
+                .where(VENUE_EXTERNAL_ID.VENUE_ID.eq(VENUE.ID))
+                .and(VENUE_EXTERNAL_ID.SOURCE.eq(source)));
     }
 
     @Override

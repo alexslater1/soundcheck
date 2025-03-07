@@ -24,13 +24,19 @@ class IngestionCli implements ApplicationRunner {
     private final IngestionProperties properties;
     private final GigSource source;
     private final FixtureRecorder recorder;
+    private final IngestionService service;
 
     IngestionCli(
-            ApplicationContext context, IngestionProperties properties, GigSource source, FixtureRecorder recorder) {
+            ApplicationContext context,
+            IngestionProperties properties,
+            GigSource source,
+            FixtureRecorder recorder,
+            IngestionService service) {
         this.context = context;
         this.properties = properties;
         this.source = source;
         this.recorder = recorder;
+        this.service = service;
     }
 
     @Override
@@ -44,6 +50,14 @@ class IngestionCli implements ApplicationRunner {
                         throw new IllegalStateException("record-fixtures needs INGESTION_MODE=live");
                     }
                     recorder.record(source);
+                }
+                case "ingest" -> {
+                    for (String name : service.sourceNames()) {
+                        IngestionService.RunResult result = service.run(name, "CLI");
+                        if (result.status().equals("FAILED")) {
+                            exit = 1;
+                        }
+                    }
                 }
                 default -> throw new IllegalArgumentException("Unknown soundcheck.ingestion.cli command: " + command);
             }
