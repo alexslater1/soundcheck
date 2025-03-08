@@ -3,6 +3,7 @@ package app.soundcheck.identity.internal;
 import static app.soundcheck.shared.jooq.identity.Tables.APP_USER;
 import static app.soundcheck.shared.jooq.identity.Tables.USER_GENRE_PREFERENCE;
 
+import app.soundcheck.catalog.GeoPoint;
 import app.soundcheck.shared.web.ApiException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -129,6 +130,18 @@ public class UserRepository {
         } catch (DataIntegrityViolationException e) {
             throw taken(e);
         }
+    }
+
+    /** The stored home-city centroid of a live user, if they picked a city. */
+    public Optional<GeoPoint> homeLocation(UUID id) {
+        return dsl.select(
+                        DSL.field("ST_Y({0}::geometry)", Double.class, APP_USER.HOME_LOCATION),
+                        DSL.field("ST_X({0}::geometry)", Double.class, APP_USER.HOME_LOCATION))
+                .from(APP_USER)
+                .where(APP_USER.ID.eq(id))
+                .and(APP_USER.DELETED_AT.isNull())
+                .and(APP_USER.HOME_LOCATION.isNotNull())
+                .fetchOptional(r -> new GeoPoint(r.value1(), r.value2()));
     }
 
     public void markOnboarded(UUID id, Instant now) {

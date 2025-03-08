@@ -1,5 +1,6 @@
 package app.soundcheck.shared.web;
 
+import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.util.List;
 import java.util.Locale;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 /**
@@ -74,6 +76,25 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
                 .body(problem(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required"));
     }
 
+    /**
+     * Constraint annotations on request parameters ({@code @Max(200) radiusKm}) in a {@code @Validated}
+     * controller fail with this exception rather than {@code MethodArgumentNotValidException}; it gets
+     * the same 400 shape. The field is the parameter name (the last node of the violation's path).
+     */
+    @ExceptionHandler(ConstraintViolationException.class)
+    ResponseEntity<ProblemDetail> handleConstraintViolation(ConstraintViolationException ex) {
+        List<Map<String, String>> errors = ex.getConstraintViolations().stream()
+                .map(violation -> {
+                    String path = violation.getPropertyPath().toString();
+                    return Map.of(
+                            "field", path.substring(path.lastIndexOf('.') + 1), "message", violation.getMessage());
+                })
+                .toList();
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed");
+        problem.setProperty(ERRORS_PROPERTY, errors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+    }
+
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> handleUnexpected(Exception ex) {
         log.error("Unhandled exception", ex);
@@ -86,6 +107,23 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
             MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
         List<Map<String, String>> errors = ex.getBindingResult().getFieldErrors().stream()
                 .map(fe -> Map.of("field", fe.getField(), "message", String.valueOf(fe.getDefaultMessage())))
+                .toList();
+        ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed");
+        problem.setProperty(ERRORS_PROPERTY, errors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(headers).body(problem);
+    }
+
+    /** The same 400 shape when Spring MVC's own method validation (no {@code @Validated} proxy) rejects a parameter. */
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+            HandlerMethodValidationException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        List<Map<String, String>> errors = ex.getParameterValidationResults().stream()
+                .flatMap(result -> result.getResolvableErrors().stream()
+                        .map(error -> Map.of(
+                                "field",
+                                String.valueOf(result.getMethodParameter().getParameterName()),
+                                "message",
+                                String.valueOf(error.getDefaultMessage()))))
                 .toList();
         ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed");
         problem.setProperty(ERRORS_PROPERTY, errors);

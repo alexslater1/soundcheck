@@ -1,6 +1,96 @@
 {
   "components" : {
     "schemas" : {
+      "ArtistDetail" : {
+        "properties" : {
+          "artist" : {
+            "$ref" : "#/components/schemas/ArtistSummary"
+          },
+          "followerCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "mbid" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "upcomingGigs" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigSummary"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "artist", "followerCount", "upcomingGigs" ],
+        "type" : "object"
+      },
+      "ArtistSummary" : {
+        "properties" : {
+          "genres" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "imageUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "isFollowing" : {
+            "type" : "boolean"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "genres", "id", "isFollowing", "name" ],
+        "type" : "object"
+      },
+      "Attendance" : {
+        "properties" : {
+          "attendanceCounts" : {
+            "$ref" : "#/components/schemas/AttendanceCounts"
+          },
+          "myAttendance" : {
+            "enum" : [ "INTERESTED", "GOING", "WENT" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "attendanceCounts" ],
+        "type" : "object"
+      },
+      "AttendanceCounts" : {
+        "properties" : {
+          "going" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "interested" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "went" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "going", "interested", "went" ],
+        "type" : "object"
+      },
+      "AttendanceRequest" : {
+        "properties" : {
+          "status" : {
+            "enum" : [ "INTERESTED", "GOING", "WENT" ],
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "status" ],
+        "type" : "object"
+      },
       "AuthResponse" : {
         "properties" : {
           "accessToken" : {
@@ -142,6 +232,104 @@
         "required" : [ "genres" ],
         "type" : "object"
       },
+      "GeoPoint" : {
+        "properties" : {
+          "lat" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "lng" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "lat", "lng" ],
+        "type" : "object"
+      },
+      "GigDetail" : {
+        "properties" : {
+          "attendanceCounts" : {
+            "$ref" : "#/components/schemas/AttendanceCounts"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigSummary"
+          },
+          "lineup" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ArtistSummary"
+            },
+            "type" : "array"
+          },
+          "postsCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sources" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SourceLink"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "attendanceCounts", "gig", "lineup", "postsCount", "sources" ],
+        "type" : "object"
+      },
+      "GigSummary" : {
+        "properties" : {
+          "currency" : {
+            "type" : [ "string", "null" ]
+          },
+          "distanceKm" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "headliner" : {
+            "$ref" : "#/components/schemas/ArtistSummary"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "imageUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "myAttendance" : {
+            "enum" : [ "INTERESTED", "GOING", "WENT" ],
+            "type" : [ "string", "null" ]
+          },
+          "priceMax" : {
+            "type" : [ "number", "null" ]
+          },
+          "priceMin" : {
+            "type" : [ "number", "null" ]
+          },
+          "startsAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "SCHEDULED", "POSTPONED", "RESCHEDULED", "CANCELLED" ],
+            "type" : "string"
+          },
+          "support" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ArtistSummary"
+            },
+            "type" : "array"
+          },
+          "ticketUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "venue" : {
+            "$ref" : "#/components/schemas/VenueSummary"
+          }
+        },
+        "required" : [ "headliner", "id", "startsAt", "status", "support", "title", "venue" ],
+        "type" : "object"
+      },
       "HealthResponse" : {
         "properties" : {
           "status" : {
@@ -242,6 +430,36 @@
         "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role" ],
         "type" : "object"
       },
+      "PageArtistSummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ArtistSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageGigSummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "ProfileResponse" : {
         "properties" : {
           "avatarUrl" : {
@@ -305,6 +523,36 @@
         "required" : [ "displayName", "email", "handle", "password" ],
         "type" : "object"
       },
+      "SearchResults" : {
+        "properties" : {
+          "artists" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ArtistSummary"
+            },
+            "type" : "array"
+          },
+          "gigs" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigSummary"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "artists", "gigs" ],
+        "type" : "object"
+      },
+      "SourceLink" : {
+        "properties" : {
+          "source" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "source" ],
+        "type" : "object"
+      },
       "UpdateMeRequest" : {
         "properties" : {
           "bio" : {
@@ -347,6 +595,55 @@
         },
         "required" : [ "displayName", "handle", "id" ],
         "type" : "object"
+      },
+      "VenueDetail" : {
+        "properties" : {
+          "address" : {
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint",
+            "type" : "null"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "postcode" : {
+            "type" : [ "string", "null" ]
+          },
+          "timezone" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name", "timezone" ],
+        "type" : "object"
+      },
+      "VenueSummary" : {
+        "properties" : {
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint",
+            "type" : "null"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ],
+        "type" : "object"
       }
     }
   },
@@ -357,6 +654,161 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/artists" : {
+      "get" : {
+        "operationId" : "listArtists",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "popular",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageArtistSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Search artists by name (?q=) or list popular ones",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/artists/{id}" : {
+      "get" : {
+        "operationId" : "getArtist",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ArtistDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Artist detail with the next five gigs",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/artists/{id}/follow" : {
+      "delete" : {
+        "operationId" : "unfollowArtist",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Unfollow an artist (idempotent)",
+        "tags" : [ "social" ]
+      },
+      "put" : {
+        "operationId" : "followArtist",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Follow an artist (idempotent)",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/artists/{id}/gigs" : {
+      "get" : {
+        "operationId" : "listArtistGigs",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "An artist's upcoming gigs",
+        "tags" : [ "catalog" ]
+      }
+    },
     "/api/v1/auth/login" : {
       "post" : {
         "operationId" : "login",
@@ -596,6 +1048,190 @@
         "tags" : [ "reference" ]
       }
     },
+    "/api/v1/gigs" : {
+      "get" : {
+        "operationId" : "listGigs",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "lat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
+          }
+        }, {
+          "in" : "query",
+          "name" : "radiusKm",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "genre",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Upcoming gigs near a point (default: the viewer's home city), ordered by start time",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/gigs/{id}" : {
+      "get" : {
+        "operationId" : "getGig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Gig detail: line-up, attendance counts, sources",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/gigs/{id}/attendance" : {
+      "delete" : {
+        "operationId" : "clearGigAttendance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Remove the viewer's attendance (idempotent)",
+        "tags" : [ "catalog" ]
+      },
+      "put" : {
+        "operationId" : "setGigAttendance",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AttendanceRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Attendance"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mark Interested / Going / Went (idempotent)",
+        "tags" : [ "catalog" ]
+      }
+    },
     "/api/v1/health" : {
       "get" : {
         "description" : "Returns UP when the API process is serving.",
@@ -711,6 +1347,55 @@
         "tags" : [ "me" ]
       }
     },
+    "/api/v1/me/gigs" : {
+      "get" : {
+        "operationId" : "listMyGigs",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "when",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Gigs the viewer marked, upcoming (default) or past",
+        "tags" : [ "catalog" ]
+      }
+    },
     "/api/v1/me/onboarding/complete" : {
       "post" : {
         "operationId" : "completeOnboarding",
@@ -728,6 +1413,42 @@
         },
         "summary" : "Mark onboarding as done",
         "tags" : [ "me" ]
+      }
+    },
+    "/api/v1/search" : {
+      "get" : {
+        "operationId" : "search",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "types",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SearchResults"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Top results per type (artists, gigs; max 5 each)",
+        "tags" : [ "catalog" ]
       }
     },
     "/api/v1/users/{handle}" : {
@@ -756,11 +1477,88 @@
         "summary" : "Public profile (any signed-in user)",
         "tags" : [ "me" ]
       }
+    },
+    "/api/v1/venues/{id}" : {
+      "get" : {
+        "operationId" : "getVenue",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VenueDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Venue detail",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/venues/{id}/gigs" : {
+      "get" : {
+        "operationId" : "listVenueGigs",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A venue's upcoming gigs",
+        "tags" : [ "catalog" ]
+      }
     }
   },
   "tags" : [ {
+    "description" : "Gigs, artists, venues, attendance, search",
+    "name" : "catalog"
+  }, {
     "description" : "Register, login, refresh, logout",
     "name" : "auth"
+  }, {
+    "description" : "Follows",
+    "name" : "social"
   }, {
     "description" : "Genres and cities",
     "name" : "reference"
