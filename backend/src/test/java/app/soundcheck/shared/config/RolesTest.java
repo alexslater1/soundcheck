@@ -29,7 +29,9 @@ class RolesTest {
             assertThat(ctx).doesNotHaveBean("apiOnly");
             assertThat(ctx).hasBean("workerOnly");
         });
-        runner.run(ctx -> {
+        // No roles. Set explicitly to blank rather than left unset: `make verify` exports the developer's
+        // .env, and a SOUNDCHECK_ROLES there would otherwise leak into this case.
+        runner.withPropertyValues("soundcheck.roles=").run(ctx -> {
             assertThat(ctx).doesNotHaveBean("apiOnly");
             assertThat(ctx).doesNotHaveBean("workerOnly");
         });
