@@ -1,0 +1,52 @@
+import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+
+import { useFollowArtist, useUnfollowArtist } from '@/api/generated/social/social';
+import { Button } from '@/components/ui/Button';
+
+/** Query keys of anything that shows artists (`/artists…`, gig lists and details, search). */
+const showsArtists = (key: readonly unknown[]) =>
+  typeof key[0] === 'string' && /\/(artists|gigs|search)(\/|$)/.test(key[0]);
+
+/**
+ * Follow / Following toggle, optimistic: the label flips at once and flips back if the request fails.
+ * The server state (`isFollowing` on every artist summary) is refetched afterwards.
+ */
+export function FollowButton({
+  artistId,
+  artistName,
+  isFollowing,
+}: {
+  artistId: string;
+  artistName: string;
+  isFollowing: boolean;
+}) {
+  const client = useQueryClient();
+  const follow = useFollowArtist();
+  const unfollow = useUnfollowArtist();
+  // null = show what the server said; a boolean = our optimistic answer while it catches up.
+  const [optimistic, setOptimistic] = useState<boolean | null>(null);
+  const following = optimistic ?? isFollowing;
+
+  async function toggle() {
+    const next = !following;
+    setOptimistic(next);
+    try {
+      await (next ? follow : unfollow).mutateAsync({ id: artistId });
+      await client.invalidateQueries({ predicate: (query) => showsArtists(query.queryKey) });
+      setOptimistic(null);
+    } catch {
+      setOptimistic(null); // back to the server's answer
+    }
+  }
+
+  return (
+    <Button
+      title={following ? 'Following' : 'Follow'}
+      accessibilityLabel={following ? `Unfollow ${artistName}` : `Follow ${artistName}`}
+      variant={following ? 'secondary' : 'primary'}
+      disabled={follow.isPending || unfollow.isPending}
+      onPress={() => void toggle()}
+    />
+  );
+}

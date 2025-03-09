@@ -2,9 +2,13 @@ import { expect, test } from '@playwright/test';
 
 /**
  * Sign up → onboarding (city, genres, artists) → Home shows the API health badge.
- * Runs against the real stack through the edge; the account is deleted at the end via Settings.
+ * an artist during onboarding, find a gig near the chosen city, mark Going.
+ * Runs against the real stack through the edge (the catalog must hold gigs: `make ingest`); the account
+ * is deleted at the end via Settings.
  */
-test('sign up, onboard, land on Home, delete the account', async ({ page }) => {
+test('sign up, onboard, follow an artist, mark a gig as Going, delete the account', async ({
+  page,
+}) => {
   page.on('console', (m) => {
     if (m.type() === 'error') console.log('BROWSER:', m.text());
   });
@@ -43,11 +47,40 @@ test('sign up, onboard, land on Home, delete the account', async ({ page }) => {
     .last()
     .click();
 
-  // Artists placeholder → finish → tabs.
+  // Artists: follow the first suggested artist, then finish → tabs.
   await expect(page.getByText('Follow some artists')).toBeVisible();
+  const firstFollow = page.getByRole('button', { name: /^Follow / }).first();
+  await expect(firstFollow).toBeVisible();
+  await firstFollow.click();
+  await expect(page.getByRole('button', { name: /^Unfollow / }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Finish' }).last().click();
   await expect(page.getByText('Soundcheck', { exact: true }).first()).toBeVisible();
   await expect(page.getByTestId('health-status')).toHaveText(/API: UP/);
+
+  // Find a gig near the onboarding city and mark Going.
+  await page.getByRole('tab', { name: /Gigs$/ }).click();
+  await expect(page.getByText('Within 25 km of Manchester')).toBeVisible();
+  const firstGig = page.getByTestId('gig-card').first();
+  await expect(firstGig).toBeVisible();
+  await firstGig.click();
+  const going = page.getByRole('button', { name: 'Going', exact: true });
+  await expect(going).toBeVisible();
+  await expect(page.getByText('LINE-UP')).toBeVisible();
+  const goingBefore = Number(
+    (await page.getByTestId('attendance-counts').innerText()).split(' ')[0],
+  );
+  await going.click();
+  await expect(going).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('attendance-counts')).toHaveText(
+    new RegExp(`^${goingBefore + 1} going`),
+  );
+  // The choice is stored on the server: it survives a reload of the gig page.
+  await page.reload();
+  await expect(page.getByRole('button', { name: 'Going', exact: true })).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+  await page.goto('/');
 
   // Me tab shows the profile; Settings → delete the account with the password.
   await page.getByRole('tab', { name: /Me$/ }).click();

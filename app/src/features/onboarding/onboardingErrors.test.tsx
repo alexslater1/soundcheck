@@ -19,6 +19,12 @@ function Providers({ children }: PropsWithChildren) {
   return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
 }
 
+const json = (body: unknown) =>
+  new Response(JSON.stringify(body), {
+    status: 200,
+    headers: { 'content-type': 'application/json' },
+  });
+
 beforeEach(() => {
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
@@ -40,7 +46,19 @@ describe('saveErrorMessage', () => {
 
 describe('onboarding step error state (artists step)', () => {
   it('shows the error, keeps the user on the step, and lets them retry', async () => {
-    fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
+    // The step also loads popular artists and genres; only the "complete" call is under test.
+    let completeCalls = 0;
+    fetchMock.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/api/v1/me/onboarding/complete')) {
+        completeCalls += 1;
+        if (completeCalls === 1) throw new TypeError('Failed to fetch');
+        return json({ onboarded: true });
+      }
+      if (url.includes('/api/v1/artists')) return json({ items: [], nextCursor: null });
+      if (url.endsWith('/api/v1/genres')) return json([]);
+      throw new Error(`unexpected request ${url}`);
+    });
     await render(<ArtistsStep />, { wrapper: Providers });
 
     await fireEvent.press(screen.getByRole('button', { name: 'Finish' }));
@@ -53,17 +71,13 @@ describe('onboarding step error state (artists step)', () => {
     expect(reloadMe).not.toHaveBeenCalled();
 
     // Retry succeeds: the error clears and /me is reloaded (the root layout then redirects).
-    fetchMock.mockResolvedValueOnce(
-      new Response(JSON.stringify({ onboarded: true }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
     await fireEvent.press(screen.getByRole('button', { name: 'Finish' }));
     await waitFor(() => expect(reloadMe).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('step-error')).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls[1]![0]).toBe('http://localhost:8088/api/v1/me/onboarding/complete');
-    expect(fetchMock.mock.calls[1]![1]?.method).toBe('POST');
+    const completes = fetchMock.mock.calls.filter(([input]) =>
+      String(input).endsWith('/api/v1/me/onboarding/complete'),
+    );
+    expect(completes).toHaveLength(2);
+    expect(completes[1]![1]?.method).toBe('POST');
   });
 });

@@ -69,6 +69,9 @@ function RootStack() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="gig/[id]" options={{ title: 'Gig' }} />
+        <Stack.Screen name="artist/[id]" options={{ title: 'Artist' }} />
+        <Stack.Screen name="venue/[id]" options={{ title: 'Venue' }} />
         <Stack.Screen name="console" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ title: 'Not found' }} />
       </Stack>

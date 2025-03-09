@@ -1,12 +1,11 @@
 import { Screen } from '@/components/ui/Screen';
-import { Text } from '@/components/ui/Text';
+import { GigsBrowser } from '@/features/gigs/GigsBrowser';
 
-/** Gigs placeholder. */
+/** Gigs tab: the route stays thin; the screen lives in `features/gigs`. */
 export default function GigsScreen() {
   return (
     <Screen>
-      <Text variant="title">Gigs</Text>
-      <Text muted>Real UK gigs near you arrive later.</Text>
+      <GigsBrowser />
     </Screen>
   );
 }
