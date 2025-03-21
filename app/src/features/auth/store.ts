@@ -9,6 +9,7 @@ import {
   setAccessTokenProvider,
   setRefreshHandler,
 } from '@/api/http';
+import { queryClient } from '@/api/queryClient';
 import { refreshTokenStore } from '@/lib/secureStore';
 
 /**
@@ -64,6 +65,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   clear() {
     set({ status: 'signedOut', accessToken: null, me: null });
     void refreshTokenStore.set(null);
+    // Everything cached was fetched as this user (their attendance, follows, distances): drop it so the
+    // next person to sign in on this device starts from nothing.
+    queryClient.clear();
   },
 
   async bootstrap() {

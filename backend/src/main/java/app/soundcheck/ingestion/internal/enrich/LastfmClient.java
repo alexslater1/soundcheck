@@ -3,6 +3,7 @@ package app.soundcheck.ingestion.internal.enrich;
 import app.soundcheck.ingestion.internal.IngestionProperties;
 import app.soundcheck.ingestion.internal.source.SourceException;
 import app.soundcheck.ingestion.internal.source.TransientSourceException;
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.bucket4j.Bandwidth;
@@ -12,6 +13,7 @@ import java.net.http.HttpClient;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -54,10 +56,11 @@ public class LastfmClient implements ArtistTags {
                 .build();
         this.json = json;
         this.apiKey = config.apiKey();
+        // One token, refilled every 1/n second: calls are evenly spaced, with no burst at the start.
         this.limiter = Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(config.requestsPerSecond())
-                        .refillGreedy(config.requestsPerSecond(), Duration.ofSeconds(1))
+                        .capacity(1)
+                        .refillIntervally(1, Duration.ofNanos(1_000_000_000L / config.requestsPerSecond()))
                         .build())
                 .build();
         this.meters = meters;
@@ -79,16 +82,18 @@ public class LastfmClient implements ArtistTags {
         JsonNode body;
         try {
             body = rest.get()
+                    // Values go in as URI variables, never spliced into the template: a name may contain
+                    // "+", "&" or "{", which must be percent-encoded ("Florence + The Machine").
                     .uri(uri -> {
                         uri.path(PATH).queryParam("method", "artist.gettoptags");
                         if (mbid != null) {
-                            uri.queryParam("mbid", mbid.toString());
+                            uri.queryParam("mbid", "{mbid}");
                         } else {
-                            uri.queryParam("artist", name).queryParam("autocorrect", "1");
+                            uri.queryParam("artist", "{artist}").queryParam("autocorrect", "1");
                         }
                         return uri.queryParam("format", "json")
-                                .queryParam("api_key", apiKey)
-                                .build();
+                                .queryParam("api_key", "{key}")
+                                .build(Map.of("mbid", String.valueOf(mbid), "artist", name, "key", apiKey));
                     })
                     .exchange((request, response) -> {
                         int status = response.getStatusCode().value();
@@ -97,7 +102,12 @@ public class LastfmClient implements ArtistTags {
                             throw new TransientSourceException("Last.fm answered " + status + " for " + described);
                         }
                         // Last.fm sends its error JSON with 4xx statuses too; read the body either way.
-                        return json.readTree(response.getBody());
+                        try {
+                            return json.readTree(response.getBody());
+                        } catch (JacksonException e) {
+                            count("unreadable");
+                            throw new TransientSourceException("Last.fm sent an unreadable body for " + described);
+                        }
                     });
         } catch (ResourceAccessException e) {
             count("io_error");

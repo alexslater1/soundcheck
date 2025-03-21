@@ -32,7 +32,12 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
   const set = useSetGigAttendance();
   const clear = useClearGigAttendance();
 
+  // One change at a time: two requests in flight could arrive in the wrong order, and the rollback of a
+  // late failure would overwrite the result of the newer one.
+  const busy = set.isPending || clear.isPending;
+
   async function choose(status: AttendanceStatus) {
+    if (busy) return;
     const next = detail.gig.myAttendance === status ? null : status;
     setFailed(false);
     await client.cancelQueries({ queryKey: key });
@@ -40,7 +45,17 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
     client.setQueryData<GigDetail>(key, (old) => (old ? applyAttendance(old, next) : old));
     try {
       if (next) {
-        await set.mutateAsync({ id: gigId, data: { status: next } });
+        // The server's answer is the truth: its counts replace the optimistic ones.
+        const saved = await set.mutateAsync({ id: gigId, data: { status: next } });
+        client.setQueryData<GigDetail>(key, (old) =>
+          old
+            ? {
+                ...old,
+                gig: { ...old.gig, myAttendance: saved.myAttendance },
+                attendanceCounts: saved.attendanceCounts,
+              }
+            : old,
+        );
       } else {
         await clear.mutateAsync({ id: gigId });
       }
@@ -60,6 +75,7 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
             key={option.status}
             label={option.label}
             selected={detail.gig.myAttendance === option.status}
+            disabled={busy}
             onPress={() => void choose(option.status)}
           />
         ))}

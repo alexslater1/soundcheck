@@ -1,4 +1,4 @@
-import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useGetArtist } from '@/api/generated/catalog/catalog';
 import { Screen } from '@/components/ui/Screen';
@@ -6,6 +6,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { GigCard } from '@/features/gigs/GigCard';
+import { openWebLink } from '@/lib/openLink';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -16,7 +17,7 @@ import { useGenreNames } from './useGenreNames';
 export function ArtistScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
-  const { data, isPending, isError, refetch } = useGetArtist(id);
+  const { data, isPending, refetch } = useGetArtist(id);
 
   if (isPending) {
     return (
@@ -29,7 +30,7 @@ export function ArtistScreen({ id }: { id: string }) {
       </Screen>
     );
   }
-  if (isError || !data) {
+  if (!data) {
     return (
       <Screen>
         <StateMessage
@@ -78,7 +79,7 @@ export function ArtistScreen({ id }: { id: string }) {
           variant="caption"
           muted
           accessibilityRole="link"
-          onPress={() => void Linking.openURL('https://www.last.fm')}
+          onPress={() => void openWebLink('https://www.last.fm')}
           style={styles.credit}
         >
           Genre tags from Last.fm · artist ids from MusicBrainz

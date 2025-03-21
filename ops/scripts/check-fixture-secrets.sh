@@ -11,9 +11,12 @@ status=0
 checked=0
 while IFS= read -r line; do
   case "$line" in ''|\#*) continue ;; esac
+  line="${line#export }"
   name="${line%%=*}"
   value="${line#*=}"
+  # Strip one pair of surrounding double or single quotes.
   value="${value%\"}"; value="${value#\"}"
+  value="${value%\'}"; value="${value#\'}"
   case "$name" in
     *KEY*|*TOKEN*|*SECRET*|*PASSWORD*) ;;
     *) continue ;;

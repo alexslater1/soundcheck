@@ -13,6 +13,7 @@ import { radius, spacing, touchTarget } from '@/theme/tokens';
 import { chipRange, DATE_CHIPS, type DateChip } from './dateChips';
 import { GigCard } from './GigCard';
 import { useGigList } from './useGigList';
+import { useWindowAnchor } from './useWindowAnchor';
 
 /** How long typing must pause before the search is sent. */
 const SEARCH_DEBOUNCE_MS = 300;
@@ -35,12 +36,13 @@ export function GigsBrowser() {
     return () => clearTimeout(timer);
   }, [text]);
 
-  // The window is fixed when the chip changes, not on every render: a new `from` each render would be
-  // a new query key each render.
+  // The window is computed from a stable anchor, not from `new Date()` on every render (that would be a
+  // new query key each render); the anchor moves when a chip is chosen or the tab is revisited later.
+  const { anchor, reset } = useWindowAnchor();
   const range = useMemo(() => {
-    const { from, to } = chipRange(chip, new Date());
+    const { from, to } = chipRange(chip, new Date(anchor));
     return { from: from.toISOString(), to: to.toISOString() };
-  }, [chip]);
+  }, [chip, anchor]);
 
   const list = useGigList({
     ...range,
@@ -79,7 +81,10 @@ export function GigsBrowser() {
               key={c.key}
               label={c.label}
               selected={chip === c.key}
-              onPress={() => setChip(c.key)}
+              onPress={() => {
+                setChip(c.key);
+                reset();
+              }}
             />
           ))}
         </ScrollView>
@@ -101,7 +106,7 @@ export function GigsBrowser() {
           <Skeleton height={96} />
           <Skeleton height={96} />
         </View>
-      ) : list.isError ? (
+      ) : list.isError && !list.data ? (
         <StateMessage
           testID="gigs-error"
           title="Could not load gigs"
@@ -113,8 +118,10 @@ export function GigsBrowser() {
           data={gigs}
           keyExtractor={(gig) => gig.id}
           renderItem={({ item }) => <GigCard gig={item} />}
+          testID="gig-list"
           onEndReached={() => {
-            if (list.hasNextPage && !list.isFetchingNextPage) void list.fetchNextPage();
+            if (list.hasNextPage && !list.isFetchingNextPage && !list.isError)
+              void list.fetchNextPage();
           }}
           onEndReachedThreshold={0.5}
           keyboardShouldPersistTaps="handled"
@@ -128,6 +135,13 @@ export function GigsBrowser() {
           ListFooterComponent={
             list.isFetchingNextPage ? (
               <Skeleton height={96} />
+            ) : list.isError ? (
+              // Loaded pages stay on screen; only the failed fetch is reported, with a retry.
+              <StateMessage
+                testID="gigs-more-error"
+                title="Could not load more gigs"
+                onRetry={() => void (list.hasNextPage ? list.fetchNextPage() : list.refetch())}
+              />
             ) : (
               <Text variant="caption" muted style={styles.credit}>
                 Listings from Ticketmaster

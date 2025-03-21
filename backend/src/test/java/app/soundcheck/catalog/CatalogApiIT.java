@@ -189,8 +189,28 @@ class CatalogApiIT extends IntegrationTest {
     @Test
     void withoutCoordinatesTheViewersHomeCityIsTheOrigin() {
         // No home city yet: the list is UK-wide and carries no distances.
-        JsonNode anywhere = ok(api.get("/api/v1/gigs?limit=1", fan));
+        gig("anywhere", base, venue("anywhere", 59.90, -1.30), "Anywhere Act");
+        JsonNode anywhere = ok(api.get("/api/v1/gigs?q=anywhere " + tag, fan));
+        assertThat(titles(anywhere)).containsExactly("anywhere " + tag);
+        assertThat(anywhere.path("items").path(0).has("distanceKm")).isTrue();
         assertThat(anywhere.path("items").path(0).path("distanceKm").isNull()).isTrue();
+
+        // Dates PostgreSQL cannot store are a 400, not a 500; a cursor carrying one is just an invalid cursor.
+        assertThat(api.get("/api/v1/gigs?from=2500-01-01T00:00:00Z", fan)
+                        .getBody()
+                        .path("code")
+                        .asText(""))
+                .isEqualTo("DATE_OUT_OF_RANGE");
+        assertThat(api.get("/api/v1/gigs?from=%2B300000-01-01T00:00:00Z", fan).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        String farFuture = java.util.Base64.getUrlEncoder()
+                .withoutPadding()
+                .encodeToString(("[\"+300000-01-01T00:00:00Z\",\"" + UUID.randomUUID() + "\"]").getBytes());
+        assertThat(api.get("/api/v1/gigs?cursor=" + farFuture, fan)
+                        .getBody()
+                        .path("code")
+                        .asText(""))
+                .isEqualTo("CURSOR_INVALID");
 
         // Manchester as home city → gigs within 25 km of its centroid, with distances.
         JsonNode cities = ok(api.get("/api/v1/cities?q=manchester", null));

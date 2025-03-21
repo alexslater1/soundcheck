@@ -1,11 +1,13 @@
 package app.soundcheck.ingestion.internal;
 
+import app.soundcheck.ingestion.internal.source.GigSource;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,10 +30,15 @@ class IngestionSchedule {
 
     private final IngestionService service;
     private final IngestionRuns runs;
+    private final List<GigSource> sources;
+    private final IngestionGuard guard;
     private final Clock clock;
 
-    IngestionSchedule(IngestionService service, IngestionRuns runs, Clock clock) {
+    IngestionSchedule(
+            IngestionService service, IngestionRuns runs, List<GigSource> sources, IngestionGuard guard, Clock clock) {
         this.service = service;
+        this.sources = sources;
+        this.guard = guard;
         this.runs = runs;
         this.clock = clock;
     }
@@ -40,11 +47,12 @@ class IngestionSchedule {
     @Scheduled(cron = "0 10 5 * * *", zone = "Europe/London")
     @SchedulerLock(name = "ingestion-daily", lockAtMostFor = "PT2H", lockAtLeastFor = "PT1M")
     void ingestDaily() {
-        for (String source : service.sourceNames()) {
+        for (GigSource source : sources) {
             try {
-                service.run(source, "SCHEDULE");
-            } catch (ApiException e) {
-                log.warn("Scheduled ingestion of {} skipped: {}", source, e.getMessage());
+                guard.check(source);
+                service.run(source.name(), "SCHEDULE");
+            } catch (ApiException | IllegalStateException e) {
+                log.warn("Scheduled ingestion of {} skipped: {}", source.name(), e.getMessage());
             }
         }
     }

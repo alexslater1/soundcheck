@@ -59,10 +59,10 @@ describe('AttendanceButtons', () => {
       '2 going · 0 interested · 0 went',
     );
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Going' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Going' }));
 
     // Optimistic: selected and counted while the request is still in flight.
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Going' })).toBeSelected());
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Going' })).toBeChecked());
     expect(screen.getByTestId('attendance-counts')).toHaveTextContent(/^3 going/);
     expect(fetchMock.mock.calls[0]![0]).toBe(
       `http://localhost:8088/api/v1/gigs/${GIG_ID}/attendance`,
@@ -72,7 +72,7 @@ describe('AttendanceButtons', () => {
 
     answer(json({ myAttendance: 'GOING', attendanceCounts: { interested: 0, going: 3, went: 0 } }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(screen.getByRole('button', { name: 'Going' })).toBeSelected();
+    expect(screen.getByRole('radio', { name: 'Going' })).toBeChecked();
     expect(screen.queryByTestId('attendance-error')).toBeNull();
   });
 
@@ -80,10 +80,10 @@ describe('AttendanceButtons', () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await renderButtons();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Interested' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Interested' }));
 
     await waitFor(() => expect(screen.getByTestId('attendance-error')).toBeOnTheScreen());
-    expect(screen.getByRole('button', { name: 'Interested' })).not.toBeSelected();
+    expect(screen.getByRole('radio', { name: 'Interested' })).not.toBeChecked();
     expect(screen.getByTestId('attendance-counts')).toHaveTextContent(
       '2 going · 0 interested · 0 went',
     );
@@ -96,11 +96,11 @@ describe('AttendanceButtons', () => {
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));
     await renderButtons();
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Going' }));
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Going' })).toBeSelected());
-    await fireEvent.press(screen.getByRole('button', { name: 'Going' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Going' }));
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Going' })).toBeChecked());
+    await fireEvent.press(screen.getByRole('radio', { name: 'Going' }));
 
-    await waitFor(() => expect(screen.getByRole('button', { name: 'Going' })).not.toBeSelected());
+    await waitFor(() => expect(screen.getByRole('radio', { name: 'Going' })).not.toBeChecked());
     expect(screen.getByTestId('attendance-counts')).toHaveTextContent(/^2 going/);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls[1]![1]?.method).toBe('DELETE');

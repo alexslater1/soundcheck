@@ -50,6 +50,24 @@ public final class RunStats {
     private final Map<String, Integer> issueCounts = new TreeMap<>();
     private final List<SourceIssue> issueSample = new ArrayList<>();
 
+    /**
+     * Adds another tally to this one. A gig is resolved into a scratch tally that is merged only once its
+     * transaction has committed, so a rolled-back gig leaves no trace in the run's counters.
+     */
+    public void merge(RunStats other) {
+        created += other.created;
+        updated += other.updated;
+        unchanged += other.unchanged;
+        merged += other.merged;
+        for (Resolution[] pair :
+                new Resolution[][] {{venues, other.venues}, {artists, other.artists}, {gigs, other.gigs}}) {
+            pair[0].created += pair[1].created;
+            pair[0].matchedByExternalId += pair[1].matchedByExternalId;
+            pair[0].matchedFuzzy += pair[1].matchedFuzzy;
+        }
+        other.issueSample.forEach(this::issue);
+    }
+
     /** Counts every issue; keeps the first {@link #MAX_ISSUES} as the sample. */
     public void issue(SourceIssue issue) {
         issueCounts.merge(issue.kind(), 1, Integer::sum);

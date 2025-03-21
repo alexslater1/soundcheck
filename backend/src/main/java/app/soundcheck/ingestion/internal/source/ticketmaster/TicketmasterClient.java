@@ -56,10 +56,11 @@ public class TicketmasterClient {
                 .build();
         this.json = json;
         this.apiKey = config.apiKey();
+        // One token, refilled every 1/n second: calls are evenly spaced, with no burst at the start.
         this.limiter = Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(config.requestsPerSecond())
-                        .refillGreedy(config.requestsPerSecond(), Duration.ofSeconds(1))
+                        .capacity(1)
+                        .refillIntervally(1, Duration.ofNanos(1_000_000_000L / config.requestsPerSecond()))
                         .build())
                 .build();
         this.maxRetryAfter = config.maxRetryAfter();

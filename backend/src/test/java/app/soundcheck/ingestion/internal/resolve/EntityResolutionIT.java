@@ -173,6 +173,138 @@ class EntityResolutionIT extends IntegrationTest {
     }
 
     @Test
+    void oneSourceListingTwoShowsOnOneNightKeepsThemApartButMergesPackagesAndExactDuplicates() {
+        SourceVenue venue = venue("tm-v-shows", "Willow Social", "EH1 3AA", 55.9510, -3.1900);
+        SourceArtist act = artist("tm-a-shows", "Nubian Parade", "Jazz");
+
+        // An early and a late show: same act, same venue, 2.5 hours apart, two Ticketmaster ids → two gigs.
+        // (The first live run merged 31 such pairs; a source's own ids mean something.)
+        assertThat(resolver.ingest(
+                        gig("TICKETMASTER", "tm-shows-early", "Nubian Parade", "2026-11-18T18:00:00Z", venue, act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.CREATED);
+        assertThat(resolver.ingest(
+                        gig("TICKETMASTER", "tm-shows-late", "Nubian Parade", "2026-11-18T20:30:00Z", venue, act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.CREATED);
+        assertThat(gigId("TICKETMASTER", "tm-shows-late")).isNotEqualTo(gigId("TICKETMASTER", "tm-shows-early"));
+
+        // The same show listed again at the same instant → merged.
+        assertThat(resolver.ingest(
+                        gig("TICKETMASTER", "tm-shows-early-dup", "Nubian Parade", "2026-11-18T18:00:00Z", venue, act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.MERGED);
+        assertThat(gigId("TICKETMASTER", "tm-shows-early-dup")).isEqualTo(gigId("TICKETMASTER", "tm-shows-early"));
+
+        // A package listing dated at the doors time (30 minutes before the late show) → merged into the
+        // nearest show, which keeps its own title and time because the plain listing stays primary.
+        assertThat(resolver.ingest(
+                        gig(
+                                "TICKETMASTER",
+                                "tm-shows-vip",
+                                "Nubian Parade - VIP Package",
+                                "2026-11-18T20:00:00Z",
+                                venue,
+                                act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.MERGED);
+        UUID late = gigId("TICKETMASTER", "tm-shows-late");
+        assertThat(gigId("TICKETMASTER", "tm-shows-vip")).isEqualTo(late);
+        var row = dsl.selectFrom(GIG).where(GIG.ID.eq(late)).fetchSingle();
+        assertThat(row.getTitle()).isEqualTo("Nubian Parade");
+        assertThat(row.getStartsAt().toInstant()).isEqualTo(Instant.parse("2026-11-18T20:30:00Z"));
+        assertThat(dsl.fetchCount(GIG_SOURCE, GIG_SOURCE.GIG_ID.eq(late).and(GIG_SOURCE.PRIMARY_LISTING.isTrue())))
+                .isEqualTo(1);
+
+        assertThat(EntityResolver.isPackage("ABBA Voyage - VIP Premium Package"))
+                .isTrue();
+        assertThat(EntityResolver.isPackage("The Pussycat Dolls - Venue Premium Tickets"))
+                .isTrue();
+        assertThat(EntityResolver.isPackage("Meet & Greet Upgrade: Pale Kites")).isTrue();
+        assertThat(EntityResolver.isPackage("Premiumfunk Orchestra")).isFalse();
+        assertThat(EntityResolver.isPackage("Nubian Parade")).isFalse();
+    }
+
+    @Test
+    void whenThePrimaryListingDisappearsAnotherListingTakesOver() {
+        SourceVenue venue = venue("tm-v-gone", "Harbour Cellar", "CF10 1AA", 51.4790, -3.1790);
+        SourceArtist act = artist("tm-a-gone", "Slow Embers", "Folk");
+        SourceGig first = gig("TICKETMASTER", "tm-gone-a", "Slow Embers", "2026-11-25T19:30:00Z", venue, act);
+        SourceGig second = gig("TICKETMASTER", "tm-gone-z", "Slow Embers", "2026-11-25T19:30:00Z", venue, act);
+        resolver.ingest(first, new RunStats(), SEEN);
+        assertThat(resolver.ingest(second, new RunStats(), SEEN)).isEqualTo(Outcome.MERGED);
+
+        // The next day the second listing reports a cancellation, but it is not the primary: ignored.
+        SourceGig cancelled = new SourceGig(
+                second.source(),
+                second.externalId(),
+                second.url(),
+                second.title(),
+                second.startsAt(),
+                null,
+                "CANCELLED",
+                second.ticketUrl(),
+                null,
+                null,
+                null,
+                null,
+                venue,
+                second.artists());
+        Instant nextDay = SEEN.plus(Duration.ofDays(1));
+        resolver.ingest(first, new RunStats(), nextDay);
+        assertThat(resolver.ingest(cancelled, new RunStats(), nextDay)).isEqualTo(Outcome.UNCHANGED);
+
+        // The first listing then vanishes from the source. Four days on, the surviving listing becomes
+        // primary and its cancellation reaches the gig.
+        assertThat(resolver.ingest(cancelled, new RunStats(), nextDay.plus(Duration.ofDays(4))))
+                .isEqualTo(Outcome.UPDATED);
+        UUID gigId = gigId("TICKETMASTER", "tm-gone-z");
+        assertThat(dsl.select(GIG.STATUS).from(GIG).where(GIG.ID.eq(gigId)).fetchOne(GIG.STATUS))
+                .isEqualTo("CANCELLED");
+        assertThat(dsl.select(GIG_SOURCE.EXTERNAL_ID)
+                        .from(GIG_SOURCE)
+                        .where(GIG_SOURCE.GIG_ID.eq(gigId))
+                        .and(GIG_SOURCE.PRIMARY_LISTING.isTrue())
+                        .fetch(GIG_SOURCE.EXTERNAL_ID))
+                .containsExactly("tm-gone-z");
+    }
+
+    @Test
+    void aVenueFirstSeenWithoutCoordinatesGetsThemLaterAndSoDoItsGigs() {
+        SourceArtist act = artist("tm-a-coords", "Quiet Atlas", "Rock");
+        resolver.ingest(
+                gig(
+                        "TICKETMASTER",
+                        "tm-coords-1",
+                        "Quiet Atlas",
+                        "2026-11-27T19:30:00Z",
+                        venue("tm-v-coords", "Paper Works", "S1 2BX", null, null),
+                        act),
+                new RunStats(),
+                SEEN);
+        UUID gigId = gigId("TICKETMASTER", "tm-coords-1");
+        assertThat(dsl.fetchValue("select location is null from catalog.gig where id = ?", gigId))
+                .isEqualTo(true);
+
+        resolver.ingest(
+                gig(
+                        "TICKETMASTER",
+                        "tm-coords-2",
+                        "Quiet Atlas",
+                        "2026-11-28T19:30:00Z",
+                        venue("tm-v-coords", "Paper Works", "S1 2BX", 53.3811, -1.4701),
+                        act),
+                new RunStats(),
+                SEEN);
+        assertThat(dsl.fetchValue("select ST_Y(location::geometry) from catalog.gig where id = ?", gigId))
+                .isEqualTo(53.3811);
+    }
+
+    @Test
     void aChangedGigIsUpdatedAndAnUnchangedOneIsNot() {
         SourceVenue venue = venue("tm-v-change", "Cinder Depot", "LS2 7EY", 53.8008, -1.5491);
         SourceGig before = gig(
@@ -303,6 +435,23 @@ class EntityResolutionIT extends IntegrationTest {
                 new RunStats(),
                 SEEN);
         assertThat(artistId("SKIDDLE", "sk-a-bcq-5")).isEqualTo(quartet);
+
+        // Same name, but a different MusicBrainz id: two acts that share a name → a new artist. (No genre and a
+        // venue the look-alike "Quartets" never played, so rule 4 has nothing to corroborate either.)
+        UUID otherMbid = UUID.fromString("9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d");
+        RunStats namesake = new RunStats();
+        resolver.ingest(
+                gig(
+                        "SKIDDLE",
+                        "sk-artists-7",
+                        "BCQ",
+                        "2026-12-07T20:00:00Z",
+                        elsewhere,
+                        new SourceArtist("sk-a-bcq-7", "The Brilliant Corners Quartet", otherMbid, List.of(), null)),
+                namesake,
+                SEEN);
+        assertThat(artistId("SKIDDLE", "sk-a-bcq-7")).isNotEqualTo(quartet);
+        assertThat(namesake.artists.created).isEqualTo(1);
 
         // A tribute act: similar name, same genre, same venue — but below 0.85, so it stays separate.
         RunStats tribute = new RunStats();

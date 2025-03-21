@@ -25,18 +25,21 @@ class IngestionCli implements ApplicationRunner {
     private final GigSource source;
     private final FixtureRecorder recorder;
     private final IngestionService service;
+    private final IngestionGuard guard;
 
     IngestionCli(
             ApplicationContext context,
             IngestionProperties properties,
             GigSource source,
             FixtureRecorder recorder,
-            IngestionService service) {
+            IngestionService service,
+            IngestionGuard guard) {
         this.context = context;
         this.properties = properties;
         this.source = source;
         this.recorder = recorder;
         this.service = service;
+        this.guard = guard;
     }
 
     @Override
@@ -52,6 +55,7 @@ class IngestionCli implements ApplicationRunner {
                     recorder.record(source);
                 }
                 case "ingest" -> {
+                    guard.check(source);
                     for (String name : service.sourceNames()) {
                         IngestionService.RunResult result = service.run(name, "CLI");
                         if (result.status().equals("FAILED")) {

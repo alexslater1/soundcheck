@@ -63,21 +63,21 @@ test('sign up, onboard, follow an artist, mark a gig as Going, delete the accoun
   const firstGig = page.getByTestId('gig-card').first();
   await expect(firstGig).toBeVisible();
   await firstGig.click();
-  const going = page.getByRole('button', { name: 'Going', exact: true });
+  const going = page.getByRole('radio', { name: 'Going', exact: true });
   await expect(going).toBeVisible();
   await expect(page.getByText('LINE-UP')).toBeVisible();
   const goingBefore = Number(
     (await page.getByTestId('attendance-counts').innerText()).split(' ')[0],
   );
   await going.click();
-  await expect(going).toHaveAttribute('aria-selected', 'true');
+  await expect(going).toHaveAttribute('aria-checked', 'true');
   await expect(page.getByTestId('attendance-counts')).toHaveText(
     new RegExp(`^${goingBefore + 1} going`),
   );
   // The choice is stored on the server: it survives a reload of the gig page.
   await page.reload();
-  await expect(page.getByRole('button', { name: 'Going', exact: true })).toHaveAttribute(
-    'aria-selected',
+  await expect(page.getByRole('radio', { name: 'Going', exact: true })).toHaveAttribute(
+    'aria-checked',
     'true',
   );
   await page.goto('/');

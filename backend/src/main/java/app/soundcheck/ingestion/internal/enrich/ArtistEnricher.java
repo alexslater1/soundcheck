@@ -73,22 +73,42 @@ public class ArtistEnricher {
         }
     }
 
-    public Result enrichPending(RunStats stats, PayloadSink sink) {
+    /**
+     * @param tick called once per artist, so a long pass can report that it is still alive
+     */
+    public Result enrichPending(RunStats stats, PayloadSink sink, Runnable tick) {
         Result result = new Result();
         Instant now = Instant.now(clock);
         List<ArtistToEnrich> pending =
                 catalog.artistsToEnrich(now.minus(settings.staleAfter()), settings.maxArtistsPerRun());
         for (ArtistToEnrich artist : pending) {
             result.artists++;
+            tick.run();
             try {
                 enrich(artist, result, stats, sink, now);
             } catch (SourceException e) {
+                // The source is unavailable or refused us: leave the artist pending for the next run.
                 result.errors++;
                 stats.issue("ENRICHMENT_FAILED", artist.id().toString(), e.getMessage());
                 log.warn("Enrichment failed for artist {}: {}", artist.id(), e.getMessage());
+            } catch (RuntimeException e) {
+                // Something about this artist's data broke us (an unreadable body, an unstorable payload).
+                // Retrying it first on every run would starve the others, so it is marked as handled and
+                // comes round again with the 30-day refresh.
+                result.errors++;
+                stats.issue(
+                        "ENRICHMENT_FAILED",
+                        artist.id().toString(),
+                        e.getClass().getSimpleName() + ": " + e.getMessage());
+                log.warn("Enrichment failed for artist {}: {}", artist.id(), e.toString());
+                catalog.markArtistEnriched(artist.id(), now);
             }
         }
         return result;
+    }
+
+    public Result enrichPending(RunStats stats, PayloadSink sink) {
+        return enrichPending(stats, sink, () -> {});
     }
 
     private void enrich(ArtistToEnrich artist, Result result, RunStats stats, PayloadSink sink, Instant now) {

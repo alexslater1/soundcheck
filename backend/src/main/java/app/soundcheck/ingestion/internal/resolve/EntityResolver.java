@@ -17,13 +17,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +33,8 @@ import org.springframework.transaction.annotation.Transactional;
  * counted in {@link RunStats}. One gig is one transaction, so a bad gig rolls back alone.
  *
  * <p>Catalog provides the SQL primitives ({@link CatalogIngest});
- * this class only decides.
+ * this class only decides. Each gig has exactly one <em>primary</em> listing, the only one whose changes
+ * are written to the gig; other listings of the same show only add provenance.
  */
 @Service
 public class EntityResolver {
@@ -44,7 +45,14 @@ public class EntityResolver {
     static final double ARTIST_SIMILARITY = 0.85;
     static final Duration GIG_WINDOW = Duration.ofHours(3);
     static final double GIG_TITLE_SIMILARITY = 0.6;
-    /** When several listings point at one gig, the most trusted source's listing owns its fields. Lower wins. */
+    /** A primary listing its source has not shown for this long is considered gone. */
+    static final Duration PRIMARY_STALE_AFTER = Duration.ofDays(3);
+
+    private static final Pattern PACKAGE = Pattern.compile(
+            "\\b(vip|premium|packages?|hospitality|upgrades?|platinum|meet\\s*(&|and|n)?\\s*greet|early entry|priority entry)\\b",
+            Pattern.CASE_INSENSITIVE);
+
+    /** When several listings point at one gig, a more trusted source's listing supplies its fields. Lower wins. */
     static final List<String> SOURCE_PRIORITY = List.of("TICKETMASTER", "SKIDDLE");
 
     /** What happened to the gig. */
@@ -93,6 +101,8 @@ public class EntityResolver {
         Optional<UUID> known = catalog.venueByExternalId(source, venue.externalId());
         if (known.isPresent()) {
             stats.venues.matchedByExternalId++;
+            // A venue first listed without coordinates gets them as soon as a source supplies them.
+            catalog.completeVenue(known.get(), venue.lat(), venue.lng());
             return known.get();
         }
         // Fuzzy rules only bridge *sources*: a venue this source already knows under another id is a
@@ -135,10 +145,10 @@ public class EntityResolver {
         Map<Short, Float> genres = genreWeights(artist.genres());
         Optional<UUID> match = artist.mbid() == null ? Optional.empty() : catalog.artistByMbid(artist.mbid());
         if (match.isEmpty()) {
-            match = catalog.artistByName(artist.name());
+            match = catalog.artistByName(artist.name(), artist.mbid());
         }
         if (match.isEmpty()) {
-            match = catalog.artistSimilar(artist.name(), ARTIST_SIMILARITY, genres.keySet(), venueId);
+            match = catalog.artistSimilar(artist.name(), ARTIST_SIMILARITY, genres.keySet(), venueId, artist.mbid());
         }
         UUID id;
         if (match.isPresent()) {
@@ -170,16 +180,24 @@ public class EntityResolver {
         return GenreWeights.topNormalised(raw, 3);
     }
 
-    // ── gig: (source, external id) → same venue ± 3 h with same headliner or similar title (merge) → create ──
+    // ── gig: this listing's id → same venue ± 3 h and same headliner or similar title (merge) → create ──
 
     private Outcome resolveGig(SourceGig gig, GigDraft draft, RunStats stats, Instant seenAt) {
         Optional<GigRef> known = catalog.gigBySource(gig.source(), gig.externalId());
         if (known.isPresent()) {
             stats.gigs.matchedByExternalId++;
             GigRef ref = known.get();
-            catalog.linkGig(gig.source(), gig.externalId(), ref.id(), gig.url(), seenAt); // refresh last_seen_at
-            if (Arrays.equals(ref.contentHash(), draft.contentHash())
-                    || !ownsFields(gig.source(), gig.externalId(), ref)) {
+            catalog.linkGig(gig.source(), gig.externalId(), ref.id(), gig.url(), seenAt, false); // refresh last_seen_at
+            GigRef.Listing primary = ref.primary();
+            boolean mine = primary.source().equals(gig.source())
+                    && primary.externalId().equals(gig.externalId());
+            if (!mine && primary.lastSeenAt().isBefore(seenAt.minus(PRIMARY_STALE_AFTER))) {
+                // The primary listing has disappeared from its source: this one takes over, so the gig
+                // keeps following a listing that is still alive (a cancellation would otherwise be missed).
+                catalog.makePrimary(ref.id(), gig.source(), gig.externalId());
+                mine = true;
+            }
+            if (!mine || Arrays.equals(ref.contentHash(), draft.contentHash())) {
                 stats.unchanged++;
                 return Outcome.UNCHANGED;
             }
@@ -187,48 +205,65 @@ public class EntityResolver {
             stats.updated++;
             return Outcome.UPDATED;
         }
-        Optional<GigRef> same = catalog.gigAtVenueAround(
+        for (GigRef candidate : catalog.gigsAtVenueAround(
                 draft.venueId(),
                 draft.startsAt(),
                 GIG_WINDOW,
                 draft.artistIds().getFirst(),
                 draft.title(),
-                GIG_TITLE_SIMILARITY);
-        if (same.isPresent()) {
-            // Another listing already has this gig: record the extra provenance. The gig keeps its fields
-            // unless the new listing is the one that owns them (see ownsFields); taking them over now,
-            // rather than on the next run, is what makes a re-run find everything unchanged.
+                GIG_TITLE_SIMILARITY)) {
+            if (!sameShow(gig, candidate)) {
+                continue;
+            }
             stats.gigs.matchedFuzzy++;
             stats.merged++;
-            GigRef existing = same.get();
-            catalog.linkGig(gig.source(), gig.externalId(), existing.id(), gig.url(), seenAt);
-            List<GigRef.Listing> listings = new ArrayList<>(existing.listings());
-            listings.add(new GigRef.Listing(gig.source(), gig.externalId()));
-            if (ownsFields(
-                    gig.source(), gig.externalId(), new GigRef(existing.id(), existing.contentHash(), listings))) {
-                catalog.updateGig(existing.id(), draft);
+            catalog.linkGig(gig.source(), gig.externalId(), candidate.id(), gig.url(), seenAt, false);
+            if (takesOver(gig, candidate)) {
+                catalog.makePrimary(candidate.id(), gig.source(), gig.externalId());
+                catalog.updateGig(candidate.id(), draft);
             }
             return Outcome.MERGED;
         }
         stats.gigs.created++;
         stats.created++;
         UUID id = catalog.createGig(draft);
-        catalog.linkGig(gig.source(), gig.externalId(), id, gig.url(), seenAt);
+        catalog.linkGig(gig.source(), gig.externalId(), id, gig.url(), seenAt, true);
         return Outcome.CREATED;
     }
 
     /**
-     * One gig can have several listings: two sources, or one source listing a show twice ("VIP Package").
-     * If each rewrote the gig, every run would flip its fields back and forth. So exactly one listing owns
-     * them: the one from the most trusted source, and among those the smallest external id (any stable
-     * rule would do; this one needs no extra column).
+     * Is the incoming listing the same show as this candidate (same venue, within ± 3 h, same headliner or
+     * a similar title)? Across sources, yes: two sources rarely agree on the minute, and one may give the
+     * doors time. Within one source the source's own ids mean something: an 18:00 and a 20:30 listing of the
+     * same act are an early and a late show. They are one show only when they start at the same instant,
+     * or when one of the two is a package listing ("… - VIP Package", "Venue Premium Tickets"), which
+     * sources often date at the doors time.
      */
-    static boolean ownsFields(String source, String externalId, GigRef ref) {
-        GigRef.Listing owner = ref.listings().stream()
-                .min(Comparator.comparingInt((GigRef.Listing l) -> priority(l.source()))
-                        .thenComparing(GigRef.Listing::externalId))
-                .orElseThrow();
-        return owner.source().equals(source) && owner.externalId().equals(externalId);
+    static boolean sameShow(SourceGig incoming, GigRef candidate) {
+        if (!candidate.listedBy(incoming.source())) {
+            return true;
+        }
+        return candidate.startsAt().equals(incoming.startsAt())
+                || isPackage(incoming.title())
+                || isPackage(candidate.title());
+    }
+
+    /**
+     * Should the incoming listing become the gig's primary one (and so supply its fields)? Yes when it comes
+     * from a more trusted source than the current primary, or when the gig currently carries a package
+     * listing's title and this is the plain listing of the same source.
+     */
+    static boolean takesOver(SourceGig incoming, GigRef existing) {
+        GigRef.Listing primary = existing.primary();
+        if (priority(incoming.source()) != priority(primary.source())) {
+            return priority(incoming.source()) < priority(primary.source());
+        }
+        return isPackage(existing.title()) && !isPackage(incoming.title());
+    }
+
+    /** Titles of hospitality and upgrade listings that duplicate a show. */
+    static boolean isPackage(String title) {
+        return PACKAGE.matcher(title).find();
     }
 
     private static int priority(String source) {

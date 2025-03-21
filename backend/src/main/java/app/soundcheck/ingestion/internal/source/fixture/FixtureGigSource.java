@@ -51,6 +51,25 @@ public class FixtureGigSource implements GigSource {
         return TicketmasterMapper.SOURCE;
     }
 
+    /**
+     * The committed fixtures are invented and say so with a top-level {@code "synthetic": true};
+     * a real recording replayed from {@code fixtures/recorded} has no such marker.
+     */
+    @Override
+    public boolean synthetic() {
+        List<Path> files = files();
+        if (files.isEmpty()) {
+            return false;
+        }
+        try {
+            return json.readTree(Files.readAllBytes(files.getFirst()))
+                    .path("synthetic")
+                    .asBoolean(false);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read fixture " + files.getFirst(), e);
+        }
+    }
+
     /** Every recorded page, in file-name order. The window and the budget do not apply to a recording. */
     @Override
     public Stream<SourcePage> pages(Instant from, Instant to, CallBudget budget) {

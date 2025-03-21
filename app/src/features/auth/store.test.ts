@@ -1,3 +1,5 @@
+import { queryClient } from '@/api/queryClient';
+
 import { refreshSession, useAuthStore } from './store';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
@@ -90,5 +92,16 @@ describe('auth store', () => {
     expect(await refreshSession()).toBeNull();
     expect(useAuthStore.getState().status).toBe('signedIn');
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('drops every cached response when the session ends', async () => {
+    queryClient.setQueryData(['/api/v1/gigs/g1'], { gig: { myAttendance: 'GOING' } });
+    queryClient.setQueryData(['/api/v1/artists/a1'], { artist: { isFollowing: true } });
+
+    useAuthStore.getState().clear();
+
+    expect(queryClient.getQueryData(['/api/v1/gigs/g1'])).toBeUndefined();
+    expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+    expect(useAuthStore.getState().status).toBe('signedOut');
   });
 });

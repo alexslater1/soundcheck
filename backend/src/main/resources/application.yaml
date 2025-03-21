@@ -77,6 +77,8 @@ soundcheck:
     fixtures-dir: ${INGESTION_FIXTURES_DIR:../fixtures}
     horizon-days: ${INGESTION_HORIZON_DAYS:90}
     call-budget: ${INGESTION_CALL_BUDGET:1500}
+    # Refuse to mix the invented fixture gigs with real ones in one database (see IngestionGuard).
+    allow-mixed-data: ${INGESTION_ALLOW_MIXED_DATA:false}
     enrichment:
       max-artists-per-run: ${INGESTION_ENRICH_MAX:300}
     ticketmaster:

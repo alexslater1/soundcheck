@@ -84,7 +84,7 @@ public final class TicketmasterMapper {
             issues.add(new SourceIssue("NO_ARTISTS", id, title));
             return null;
         }
-        String url = text(event.path("url"));
+        String url = webUrl(text(event.path("url")));
         Price price = price(event.path("priceRanges"));
         return new SourceGig(
                 SOURCE,
@@ -99,15 +99,7 @@ public final class TicketmasterMapper {
                 price.max(),
                 price.currency(),
                 image(event.path("images")),
-                new SourceVenue(
-                        venueId,
-                        venueName.strip(),
-                        text(venueNode.path("address").path("line1")),
-                        text(venueNode.path("city").path("name")),
-                        text(venueNode.path("postalCode")),
-                        coordinate(venueNode.path("location").path("latitude")),
-                        coordinate(venueNode.path("location").path("longitude")),
-                        zone.getId()),
+                venue(venueNode, venueId, venueName, zone),
                 artists);
     }
 
@@ -117,7 +109,9 @@ public final class TicketmasterMapper {
      */
     static @Nullable Instant startsAt(JsonNode start, ZoneId zone) {
         String localDate = text(start.path("localDate"));
-        if (localDate == null || start.path("dateTBD").asBoolean(false)) {
+        if (localDate == null
+                || start.path("dateTBD").asBoolean(false)
+                || start.path("dateTBA").asBoolean(false)) {
             return null;
         }
         boolean timeKnown = !start.path("timeTBA").asBoolean(false)
@@ -228,7 +222,7 @@ public final class TicketmasterMapper {
         String best = null;
         long bestRank = Long.MAX_VALUE;
         for (JsonNode image : images) {
-            String url = text(image.path("url"));
+            String url = webUrl(text(image.path("url")));
             if (url == null) {
                 continue;
             }
@@ -259,14 +253,42 @@ public final class TicketmasterMapper {
         return DEFAULT_ZONE;
     }
 
-    /** Ticketmaster sends coordinates as strings; (0, 0) means "unknown". */
+    private static SourceVenue venue(JsonNode node, String id, String name, ZoneId zone) {
+        Double lat = coordinate(node.path("location").path("latitude"));
+        Double lng = coordinate(node.path("location").path("longitude"));
+        // Ticketmaster writes "unknown" as (0, 0). One axis at zero is a real place (the Greenwich
+        // meridian runs through London), so only the pair is treated as missing.
+        boolean unknown = lat == null || lng == null || (lat == 0.0 && lng == 0.0);
+        return new SourceVenue(
+                id,
+                name.strip(),
+                text(node.path("address").path("line1")),
+                text(node.path("city").path("name")),
+                text(node.path("postalCode")),
+                unknown ? null : lat,
+                unknown ? null : lng,
+                zone.getId());
+    }
+
+    /** Ticketmaster sends coordinates as strings. */
     private static @Nullable Double coordinate(JsonNode node) {
         try {
-            double value = node.isNumber() ? node.asDouble() : Double.parseDouble(String.valueOf(text(node)));
-            return value == 0.0 ? null : value;
+            return node.isNumber() ? Double.valueOf(node.asDouble()) : Double.valueOf(String.valueOf(text(node)));
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * Only {@code http(s)} URLs are kept. The app opens ticket links with the system handler, and a
+     * source must not be able to hand it a {@code javascript:}, {@code intent:} or custom-scheme URL.
+     */
+    static @Nullable String webUrl(@Nullable String url) {
+        if (url == null) {
+            return null;
+        }
+        String lower = url.strip().toLowerCase(Locale.ROOT);
+        return lower.startsWith("https://") || lower.startsWith("http://") ? url.strip() : null;
     }
 
     private static @Nullable Instant instant(@Nullable String iso) {

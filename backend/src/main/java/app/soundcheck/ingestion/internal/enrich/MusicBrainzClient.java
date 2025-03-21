@@ -3,6 +3,7 @@ package app.soundcheck.ingestion.internal.enrich;
 import app.soundcheck.ingestion.internal.IngestionProperties;
 import app.soundcheck.ingestion.internal.source.SourceException;
 import app.soundcheck.ingestion.internal.source.TransientSourceException;
+import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.bucket4j.Bandwidth;
@@ -49,10 +50,11 @@ public class MusicBrainzClient implements MbidLookup {
                 .defaultHeader(HttpHeaders.ACCEPT, "application/json")
                 .build();
         this.json = json;
+        // One token, refilled every 1/n second: calls are evenly spaced, with no burst at the start.
         this.limiter = Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(config.requestsPerSecond())
-                        .refillGreedy(config.requestsPerSecond(), Duration.ofSeconds(1))
+                        .capacity(1)
+                        .refillIntervally(1, Duration.ofNanos(1_000_000_000L / config.requestsPerSecond()))
                         .build())
                 .build();
         this.minScore = config.minScore();
@@ -89,7 +91,12 @@ public class MusicBrainzClient implements MbidLookup {
                             count("client_error");
                             throw new SourceException("MusicBrainz answered " + status + " for " + described);
                         }
-                        return json.readTree(response.getBody());
+                        try {
+                            return json.readTree(response.getBody());
+                        } catch (JacksonException e) {
+                            count("unreadable");
+                            throw new TransientSourceException("MusicBrainz sent an unreadable body for " + described);
+                        }
                     });
         } catch (ResourceAccessException e) {
             count("io_error");

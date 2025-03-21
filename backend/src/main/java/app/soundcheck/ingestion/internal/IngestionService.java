@@ -46,6 +46,7 @@ public class IngestionService {
     private static final double UK_SOUTH = 49.8, UK_NORTH = 60.9, UK_WEST = -8.7, UK_EAST = 1.8;
 
     private static final int NOT_SEEN_SAMPLE = 50;
+    private static final Duration HEARTBEAT_EVERY = Duration.ofSeconds(30);
 
     private static final Logger log = LoggerFactory.getLogger(IngestionService.class);
 
@@ -98,13 +99,12 @@ public class IngestionService {
         UUID runId = runs.start(sourceName, trigger, startedAt);
         RunStats stats = new RunStats();
         CallBudget budget = new CallBudget(properties.callBudget());
-        String status;
-        String error = null;
+        Heartbeat heartbeat = new Heartbeat(runId);
+        String status = "FAILED";
+        String error = "aborted before the run could finish";
         try {
-            fetchAndResolve(source, runId, startedAt, budget, stats);
-            PayloadSink sink =
-                    (from, request, body) -> runs.savePayload(runId, from, request, body, Instant.now(clock));
-            stats.enrichment = enricher.enrichPending(stats, sink).toMap();
+            fetchAndResolve(source, runId, startedAt, budget, stats, heartbeat);
+            enrich(runId, stats, heartbeat);
             if (budget.exhausted()) {
                 status = "PARTIAL";
                 stats.issue("BUDGET_EXHAUSTED", null, "stopped after " + budget.used() + " API calls");
@@ -112,21 +112,58 @@ public class IngestionService {
                 status = "SUCCEEDED";
                 flagGigsNoLongerListed(sourceName, runId, stats);
             }
+            error = null;
         } catch (RuntimeException e) {
             // The source gave up (after its retries) or something unexpected broke: keep what was ingested.
-            status = "FAILED";
             error = e.getClass().getSimpleName() + ": " + e.getMessage();
             log.error("Ingestion run {} for {} failed: {}", runId, sourceName, error);
+        } finally {
+            // Also reached for an Error (e.g. out of memory): the row must not be left RUNNING, which
+            // would block the next trigger until the heartbeat expires.
+            stats.apiCalls = budget.used();
+            runs.finish(runId, sourceName, status, stats, error, Instant.now(clock));
+            meters.counter("soundcheck.ingestion.runs", "source", sourceName, "status", status)
+                    .increment();
+            log.info("Ingestion run {} for {} finished {}: {}", runId, sourceName, status, stats.toMap());
         }
-        stats.apiCalls = budget.used();
-        runs.finish(runId, sourceName, status, stats, error, Instant.now(clock));
-        meters.counter("soundcheck.ingestion.runs", "source", sourceName, "status", status)
-                .increment();
-        log.info("Ingestion run {} for {} finished {}: {}", runId, sourceName, status, stats.toMap());
         return new RunResult(runId, sourceName, status, stats.toMap());
     }
 
-    private void fetchAndResolve(GigSource source, UUID runId, Instant startedAt, CallBudget budget, RunStats stats) {
+    /**
+     * Enrichment is best-effort: the gigs are already in the catalog, so nothing that goes wrong here may
+     * turn the run into FAILED. Artists it could not enrich are picked up by the next run.
+     */
+    private void enrich(UUID runId, RunStats stats, Heartbeat heartbeat) {
+        PayloadSink sink = (from, request, body) -> runs.savePayload(runId, from, request, body, Instant.now(clock));
+        try {
+            stats.enrichment =
+                    enricher.enrichPending(stats, sink, heartbeat::beat).toMap();
+        } catch (RuntimeException e) {
+            stats.issue("ENRICHMENT_ABORTED", null, e.getClass().getSimpleName() + ": " + e.getMessage());
+            log.warn("Enrichment stopped early in run {}: {}", runId, e.toString());
+        }
+    }
+
+    /** Updates the run's heartbeat at most every 30 seconds. */
+    private final class Heartbeat {
+        private final UUID runId;
+        private Instant last = Instant.EPOCH;
+
+        Heartbeat(UUID runId) {
+            this.runId = runId;
+        }
+
+        void beat() {
+            Instant now = Instant.now(clock);
+            if (Duration.between(last, now).compareTo(HEARTBEAT_EVERY) >= 0) {
+                runs.heartbeat(runId, now);
+                last = now;
+            }
+        }
+    }
+
+    private void fetchAndResolve(
+            GigSource source, UUID runId, Instant startedAt, CallBudget budget, RunStats stats, Heartbeat heartbeat) {
         Instant from = startedAt.truncatedTo(ChronoUnit.DAYS);
         Instant to = from.plus(Duration.ofDays(properties.horizonDays()));
         Set<String> seenExternalIds = new HashSet<>();
@@ -150,8 +187,13 @@ public class IngestionService {
                         continue;
                     }
                     qualityChecks(gig, startedAt, stats);
+                    heartbeat.beat();
                     try {
-                        resolver.ingest(gig, stats, startedAt);
+                        // A scratch tally, merged only after the gig's transaction committed: a gig that
+                        // rolls back must not leave "created" counts behind.
+                        RunStats delta = new RunStats();
+                        resolver.ingest(gig, delta, startedAt);
+                        stats.merge(delta);
                     } catch (RuntimeException e) {
                         stats.errors++;
                         stats.issue(

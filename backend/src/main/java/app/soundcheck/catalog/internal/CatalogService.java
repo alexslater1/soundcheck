@@ -125,14 +125,21 @@ public class CatalogService {
                 throw ApiException.badRequest("GENRE_UNKNOWN", "Unknown genre " + query.genre());
             }
         }
-        Instant from = query.from() == null ? Instant.now(clock) : query.from();
+        Instant from;
+        Instant to;
+        try {
+            from = query.from() == null ? Instant.now(clock) : Cursor.storable(query.from());
+            to = query.to() == null ? null : Cursor.storable(query.to());
+        } catch (IllegalArgumentException e) {
+            throw ApiException.badRequest("DATE_OUT_OF_RANGE", "from and to must be between 1900 and 2200");
+        }
         return page(
                 viewer,
                 new GigFilter(
                         origin,
                         origin == null ? null : radius,
                         from,
-                        query.to(),
+                        to,
                         genreIds,
                         query.q(),
                         null,

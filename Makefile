@@ -24,7 +24,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up openapi-check-client down reset api worker app android web test verify lab-check e2e \
-	openapi openapi-check ingest record-fixtures seed-demo seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest record-fixtures purge-fixtures seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -145,6 +145,8 @@ ingest: ## Run a gig ingestion once and exit (fixtures or live per INGESTION_MOD
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=ingest --logging.level.org.jooq.tools.LoggerListener=info'
 	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -c "select source, trigger, status, to_char(started_at, 'YYYY-MM-DD HH24:MI') as started, stats->>'fetched' as fetched, stats->>'created' as created, stats->>'updated' as updated, stats->>'unchanged' as unchanged, stats->>'merged' as merged, stats->>'skipped' as skipped, stats->>'errors' as errors, stats->>'apiCalls' as api_calls from ingestion.ingestion_run order by started_at desc limit 3"
 
+purge-fixtures: ## Remove the synthetic fixture gigs, venues and artists from the local database (needs `make up`)
+	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -v ON_ERROR_STOP=1 -f - < $(CURDIR)/ops/scripts/purge-synthetic.sql
 record-fixtures: ## Record external API responses into fixtures/ (live calls; needs the keys in .env and `make up`)
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures --logging.level.org.jooq.tools.LoggerListener=info'
 	$(CURDIR)/ops/scripts/check-fixture-secrets.sh

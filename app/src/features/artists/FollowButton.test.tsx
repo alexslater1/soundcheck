@@ -32,7 +32,7 @@ describe('FollowButton', () => {
     answer(new Response(null, { status: 204 }));
   });
 
-  it('goes back to the server state when the request fails', async () => {
+  it('goes back to the server state and offers a retry when the request fails', async () => {
     fetchMock.mockRejectedValueOnce(new TypeError('Failed to fetch'));
     await render(<FollowButton artistId="a1" artistName="Pale Kites" isFollowing />, {
       wrapper: Providers,
@@ -42,6 +42,10 @@ describe('FollowButton', () => {
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(fetchMock.mock.calls[0]![1]?.method).toBe('DELETE');
-    await waitFor(() => expect(screen.getByText('Following')).toBeOnTheScreen());
+    // Back to the server's state ("following"), and the button says the change was not saved.
+    await waitFor(() => expect(screen.getByText('Try again')).toBeOnTheScreen());
+    expect(
+      screen.getByRole('button', { name: 'Could not save. Try again: unfollow Pale Kites' }),
+    ).toBeOnTheScreen();
   });
 });

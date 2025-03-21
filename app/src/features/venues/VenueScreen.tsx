@@ -1,4 +1,4 @@
-import { Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useGetVenue, useListVenueGigs } from '@/api/generated/catalog/catalog';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { GigCard } from '@/features/gigs/GigCard';
+import { openWebLink } from '@/lib/openLink';
 import { spacing } from '@/theme/tokens';
 
 /** Venue page: address, a link out to a maps app (maps are out of scope), upcoming gigs. */
@@ -25,7 +26,7 @@ export function VenueScreen({ id }: { id: string }) {
       </Screen>
     );
   }
-  if (venue.isError || !venue.data) {
+  if (!venue.data) {
     return (
       <Screen>
         <StateMessage
@@ -52,7 +53,7 @@ export function VenueScreen({ id }: { id: string }) {
           variant="secondary"
           accessibilityRole="link"
           onPress={() =>
-            void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${mapsQuery}`)
+            void openWebLink(`https://www.google.com/maps/search/?api=1&query=${mapsQuery}`)
           }
         />
         <Text variant="label" muted style={styles.heading}>
@@ -60,7 +61,7 @@ export function VenueScreen({ id }: { id: string }) {
         </Text>
         {gigs.isPending ? (
           <Skeleton height={96} />
-        ) : gigs.isError ? (
+        ) : !gigs.data ? (
           <StateMessage title="Could not load gigs" onRetry={() => void gigs.refetch()} />
         ) : gigs.data.items.length === 0 ? (
           <Text muted testID="venue-no-gigs">

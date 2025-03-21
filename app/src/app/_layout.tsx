@@ -1,18 +1,16 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
+import { queryClient } from '@/api/queryClient';
 import { nextRoute } from '@/features/auth/nextRoute';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
 /** Root providers: QueryClient, Theme; redirects by auth/onboarding state. */
 export default function RootLayout() {
-  const [queryClient] = useState(
-    () => new QueryClient({ defaultOptions: { queries: { staleTime: 10_000, retry: 1 } } }),
-  );
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>

@@ -150,19 +150,21 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     @Override
-    public Optional<UUID> artistByName(String name) {
+    public Optional<UUID> artistByName(String name, @Nullable UUID mbid) {
         // Expected index: artist_name_norm_trgm (pg_trgm GIN supports equality). Oldest first so the
         // answer is stable if two artists share a normalised name.
         return dsl.select(ARTIST.ID)
                 .from(ARTIST)
                 .where(ARTIST.NAME_NORM.eq(NameNormaliser.normalise(name)))
+                .and(sameActAs(mbid))
                 .orderBy(ARTIST.CREATED_AT, ARTIST.ID)
                 .limit(1)
                 .fetchOptional(ARTIST.ID);
     }
 
     @Override
-    public Optional<UUID> artistSimilar(String name, double minSimilarity, Collection<Short> genreIds, UUID venueId) {
+    public Optional<UUID> artistSimilar(
+            String name, double minSimilarity, Collection<Short> genreIds, UUID venueId, @Nullable UUID mbid) {
         String norm = NameNormaliser.normalise(name);
         Field<Double> similarity = similarity(ARTIST.NAME_NORM, norm);
         Condition sharesGenre = genreIds.isEmpty()
@@ -184,9 +186,15 @@ class JooqCatalogIngest implements CatalogIngest {
                 .where(DSL.condition("{0} % {1}", ARTIST.NAME_NORM, DSL.val(norm)))
                 .and(similarity.ge(minSimilarity))
                 .and(sharesGenre.or(playedVenue))
+                .and(sameActAs(mbid))
                 .orderBy(similarity.desc(), ARTIST.ID)
                 .limit(1)
                 .fetchOptional(ARTIST.ID);
+    }
+
+    /** Two MusicBrainz ids that differ mean two different acts, however alike the names are. */
+    private static Condition sameActAs(@Nullable UUID mbid) {
+        return mbid == null ? DSL.noCondition() : ARTIST.MBID.isNull().or(ARTIST.MBID.eq(mbid));
     }
 
     @Override
@@ -321,7 +329,7 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     @Override
-    public Optional<GigRef> gigAtVenueAround(
+    public List<GigRef> gigsAtVenueAround(
             UUID venueId,
             Instant startsAt,
             Duration window,
@@ -336,16 +344,22 @@ class JooqCatalogIngest implements CatalogIngest {
         Field<Double> titleSimilarity = DSL.field(
                 "similarity(lower({0}), {1})", Double.class, GIG.TITLE, DSL.val(title.toLowerCase(Locale.ROOT)));
         // Expected index: gig_venue (venue_id, starts_at) — one venue, a six-hour range.
-        return dsl.select(GIG.ID)
+        return dsl
+                .select(GIG.ID)
                 .from(GIG)
                 .where(GIG.VENUE_ID.eq(venueId))
                 .and(GIG.STARTS_AT.between(at(startsAt.minus(window)), at(startsAt.plus(window))))
                 .and(sameHeadliner.or(titleSimilarity.ge(minTitleSimilarity)))
-                .orderBy(DSL.field(
-                        "abs(extract(epoch from ({0} - {1})))", Double.class, GIG.STARTS_AT, DSL.val(at(startsAt))))
-                .limit(1)
-                .fetchOptional(GIG.ID)
-                .map(this::ref);
+                .orderBy(
+                        DSL.field(
+                                "abs(extract(epoch from ({0} - {1})))",
+                                Double.class, GIG.STARTS_AT, DSL.val(at(startsAt))),
+                        GIG.ID)
+                .limit(5)
+                .fetch(GIG.ID)
+                .stream()
+                .map(this::ref)
+                .toList();
     }
 
     @Override
@@ -396,18 +410,66 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     @Override
-    public void linkGig(String source, String externalId, UUID gigId, @Nullable String url, Instant seenAt) {
+    public void linkGig(
+            String source, String externalId, UUID gigId, @Nullable String url, Instant seenAt, boolean primary) {
         dsl.insertInto(GIG_SOURCE)
                 .set(GIG_SOURCE.SOURCE, source)
                 .set(GIG_SOURCE.EXTERNAL_ID, externalId)
                 .set(GIG_SOURCE.GIG_ID, gigId)
                 .set(GIG_SOURCE.URL, url)
                 .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
+                .set(GIG_SOURCE.PRIMARY_LISTING, primary)
                 .onConflict(GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID)
                 .doUpdate()
                 .set(GIG_SOURCE.URL, url)
                 .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
                 .execute();
+    }
+
+    @Override
+    public void makePrimary(UUID gigId, String source, String externalId) {
+        // Clear first: the partial unique index allows one primary listing per gig at any moment.
+        dsl.update(GIG_SOURCE)
+                .set(GIG_SOURCE.PRIMARY_LISTING, false)
+                .where(GIG_SOURCE.GIG_ID.eq(gigId))
+                .and(GIG_SOURCE.PRIMARY_LISTING.isTrue())
+                .execute();
+        dsl.update(GIG_SOURCE)
+                .set(GIG_SOURCE.PRIMARY_LISTING, true)
+                .where(GIG_SOURCE.SOURCE.eq(source))
+                .and(GIG_SOURCE.EXTERNAL_ID.eq(externalId))
+                .and(GIG_SOURCE.GIG_ID.eq(gigId))
+                .execute();
+    }
+
+    @Override
+    public void completeVenue(UUID venueId, @Nullable Double lat, @Nullable Double lng) {
+        if (lat == null || lng == null) {
+            return;
+        }
+        int filled = dsl.update(VENUE)
+                .set(Map.of(VENUE.LOCATION, point(lat, lng)))
+                .set(VENUE.UPDATED_AT, now())
+                .where(VENUE.ID.eq(venueId))
+                .and(VENUE.LOCATION.isNull())
+                .execute();
+        if (filled == 1) {
+            dsl.update(GIG)
+                    .set(Map.of(GIG.LOCATION, point(lat, lng)))
+                    .where(GIG.VENUE_ID.eq(venueId))
+                    .and(GIG.LOCATION.isNull())
+                    .execute();
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long countListings(String source, @Nullable String externalIdPrefix) {
+        Condition where = GIG_SOURCE.SOURCE.eq(source);
+        if (externalIdPrefix != null) {
+            where = where.and(GIG_SOURCE.EXTERNAL_ID.like(DSL.escape(externalIdPrefix, '!') + "%", '!'));
+        }
+        return dsl.fetchCount(GIG_SOURCE, where);
     }
 
     @Override
@@ -427,13 +489,17 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     private GigRef ref(UUID gigId) {
-        byte[] hash =
-                dsl.select(GIG.CONTENT_HASH).from(GIG).where(GIG.ID.eq(gigId)).fetchOne(GIG.CONTENT_HASH);
-        List<GigRef.Listing> listings = dsl.select(GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID)
+        var gig = dsl.select(GIG.CONTENT_HASH, GIG.TITLE, GIG.STARTS_AT)
+                .from(GIG)
+                .where(GIG.ID.eq(gigId))
+                .fetchSingle();
+        List<GigRef.Listing> listings = dsl.select(
+                        GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID, GIG_SOURCE.PRIMARY_LISTING, GIG_SOURCE.LAST_SEEN_AT)
                 .from(GIG_SOURCE)
                 .where(GIG_SOURCE.GIG_ID.eq(gigId))
-                .fetch(r -> new GigRef.Listing(r.value1(), r.value2()));
-        return new GigRef(gigId, hash, listings);
+                .fetch(r -> new GigRef.Listing(
+                        r.value1(), r.value2(), r.value3(), r.value4().toInstant()));
+        return new GigRef(gigId, gig.value1(), gig.value2(), gig.value3().toInstant(), listings);
     }
 
     /** {@code gig.location} is a copy of the venue's point so geo + time filters touch one table. */

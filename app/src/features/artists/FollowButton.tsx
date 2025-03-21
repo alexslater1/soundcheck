@@ -26,24 +26,33 @@ export function FollowButton({
   const unfollow = useUnfollowArtist();
   // null = show what the server said; a boolean = our optimistic answer while it catches up.
   const [optimistic, setOptimistic] = useState<boolean | null>(null);
+  const [failed, setFailed] = useState(false);
   const following = optimistic ?? isFollowing;
 
   async function toggle() {
     const next = !following;
     setOptimistic(next);
+    setFailed(false);
     try {
       await (next ? follow : unfollow).mutateAsync({ id: artistId });
       await client.invalidateQueries({ predicate: (query) => showsArtists(query.queryKey) });
       setOptimistic(null);
     } catch {
       setOptimistic(null); // back to the server's answer
+      setFailed(true);
     }
   }
 
   return (
     <Button
-      title={following ? 'Following' : 'Follow'}
-      accessibilityLabel={following ? `Unfollow ${artistName}` : `Follow ${artistName}`}
+      title={failed ? 'Try again' : following ? 'Following' : 'Follow'}
+      accessibilityLabel={
+        failed
+          ? `Could not save. Try again: ${following ? 'unfollow' : 'follow'} ${artistName}`
+          : following
+            ? `Unfollow ${artistName}`
+            : `Follow ${artistName}`
+      }
       variant={following ? 'secondary' : 'primary'}
       disabled={follow.isPending || unfollow.isPending}
       onPress={() => void toggle()}

@@ -341,6 +341,9 @@ def write_ticketmaster(events: list[dict]) -> int:
     pages = [events[i : i + PAGE_SIZE] for i in range(0, len(events), PAGE_SIZE)]
     for number, chunk in enumerate(pages):
         body = {
+            # Not a Ticketmaster field: marks the page as invented, so the application can refuse to mix it
+            # with real listings in one database.
+            "synthetic": True,
             "_embedded": {"events": chunk},
             "_links": {"self": {"href": f"/discovery/v2/events.json?size={PAGE_SIZE}&page={number}&countryCode=GB"}},
             "page": {"size": PAGE_SIZE, "totalElements": len(events), "totalPages": len(pages), "number": number},

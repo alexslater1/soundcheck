@@ -7,6 +7,9 @@ import { GigsBrowser } from './GigsBrowser';
 // The cards link to /gig/[id]; outside a navigator the link just renders its child.
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: ReactNode }) => children,
+  // Outside a navigator "focus" is simply "mounted".
+  useFocusEffect: (effect: () => void) =>
+    jest.requireActual<typeof import('react')>('react').useEffect(effect, [effect]),
 }));
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
@@ -94,14 +97,14 @@ describe('GigsBrowser', () => {
     await waitFor(() => expect(screen.getByTestId('gigs-empty')).toBeOnTheScreen());
 
     // Only top-level genres are offered as chips.
-    expect(screen.queryByRole('button', { name: 'Indie' })).toBeNull();
-    await fireEvent.press(screen.getByRole('button', { name: 'Jazz' }));
+    expect(screen.queryByRole('radio', { name: 'Indie' })).toBeNull();
+    await fireEvent.press(screen.getByRole('radio', { name: 'Jazz' }));
     await waitFor(() => expect(gigRequests().at(-1)!.searchParams.get('genre')).toBe('jazz'));
 
     await fireEvent.changeText(screen.getByLabelText('Search gigs'), '  wolves ');
     await waitFor(() => expect(gigRequests().at(-1)!.searchParams.get('q')).toBe('wolves'));
 
-    await fireEvent.press(screen.getByRole('button', { name: 'Tonight' }));
+    await fireEvent.press(screen.getByRole('radio', { name: 'Tonight' }));
     await waitFor(() => {
       const last = gigRequests().at(-1)!;
       const span =
@@ -123,5 +126,29 @@ describe('GigsBrowser', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
 
     await waitFor(() => expect(screen.getByText('Pale Kites')).toBeOnTheScreen());
+  });
+
+  it('asks for the next page with the cursor, and a failed page keeps what is already shown', async () => {
+    let failNext = false;
+    respondWith((url) => {
+      const cursor = url.searchParams.get('cursor');
+      if (!cursor) return json({ items: [gig('g1', 'First Page Act')], nextCursor: 'CURSOR-1' });
+      if (failNext) throw new TypeError('Failed to fetch');
+      return json({ items: [gig('g2', 'Second Page Act')], nextCursor: null });
+    });
+    await render(<GigsBrowser />, { wrapper: Providers });
+    await waitFor(() => expect(screen.getByText('First Page Act')).toBeOnTheScreen());
+
+    failNext = true;
+    await fireEvent(screen.getByTestId('gig-list'), 'endReached');
+    await waitFor(() => expect(screen.getByTestId('gigs-more-error')).toBeOnTheScreen());
+    expect(gigRequests().at(-1)!.searchParams.get('cursor')).toBe('CURSOR-1');
+    expect(screen.getByText('First Page Act')).toBeOnTheScreen(); // not replaced by a full-screen error
+    expect(screen.queryByTestId('gigs-error')).toBeNull();
+
+    failNext = false;
+    await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(screen.getByText('Second Page Act')).toBeOnTheScreen());
+    expect(screen.getByText('First Page Act')).toBeOnTheScreen();
   });
 });

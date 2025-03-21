@@ -1,5 +1,5 @@
 import { Link } from 'expo-router';
-import { Image, Linking, ScrollView, StyleSheet, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useGetGig } from '@/api/generated/catalog/catalog';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { ArtistRow } from '@/features/artists/ArtistRow';
 import { useGenreNames } from '@/features/artists/useGenreNames';
+import { isWebUrl, openWebLink } from '@/lib/openLink';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -19,7 +20,7 @@ import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } 
 export function GigDetailScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
-  const { data, isPending, isError, refetch } = useGetGig(id);
+  const { data, isPending, refetch } = useGetGig(id);
 
   if (isPending) {
     return (
@@ -32,7 +33,8 @@ export function GigDetailScreen({ id }: { id: string }) {
       </Screen>
     );
   }
-  if (isError || !data) {
+  // A failed background refetch keeps the data it already had; the error screen is for having nothing.
+  if (!data) {
     return (
       <Screen>
         <StateMessage
@@ -49,7 +51,7 @@ export function GigDetailScreen({ id }: { id: string }) {
   const status = statusLabel(gig.status);
   const price = formatPrice(gig.priceMin, gig.priceMax, gig.currency);
   const distance = formatDistance(gig.distanceKm);
-  const ticketUrl = gig.ticketUrl;
+  const ticketUrl = isWebUrl(gig.ticketUrl) ? gig.ticketUrl : null;
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.gap}>
@@ -84,7 +86,7 @@ export function GigDetailScreen({ id }: { id: string }) {
           <Button
             title={ticketLabel(data.sources)}
             accessibilityRole="link"
-            onPress={() => void Linking.openURL(ticketUrl)}
+            onPress={() => void openWebLink(ticketUrl)}
           />
         ) : null}
 

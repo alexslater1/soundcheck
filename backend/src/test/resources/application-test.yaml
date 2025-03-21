@@ -18,6 +18,9 @@ soundcheck:
   ingestion:
     mode: fixtures
     fixtures-dir: ../fixtures
+    # The fixture's own dates (3–9 Oct 2026): tests that move the clock or run across midnight must not
+    # see every fixture gig "change" because the shift moved by a day.
+    fixtures-shift-to-today: false
     ticketmaster:
       api-key: ""
     lastfm:

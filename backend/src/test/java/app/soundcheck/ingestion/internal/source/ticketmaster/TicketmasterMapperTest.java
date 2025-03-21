@@ -161,6 +161,44 @@ class TicketmasterMapperTest {
     }
 
     @Test
+    void onlyWebUrlsAreKeptAndOnlyZeroZeroMeansNoCoordinates() throws Exception {
+        JsonMapper json = JsonMappers.builder().build();
+        JsonNode page = json.readTree(
+                """
+                {"_embedded":{"events":[
+                  {"id":"E1","name":"Act","url":"javascript:alert(1)",
+                   "dates":{"start":{"localDate":"2026-10-03","localTime":"20:00:00","dateTime":"2026-10-03T19:00:00Z"}},
+                   "images":[{"ratio":"16_9","url":"intent://evil#Intent;end","width":1024}],
+                   "_embedded":{"venues":[{"id":"V1","name":"Meridian Hall","location":{"latitude":"51.4779","longitude":"0"}}],
+                                "attractions":[{"id":"A1","name":"Act"}]}},
+                  {"id":"E2","name":"Act","url":"https://tickets.example.com/e2",
+                   "dates":{"start":{"localDate":"2026-10-04","dateTBA":true}},
+                   "_embedded":{"venues":[{"id":"V2","name":"Nowhere","location":{"latitude":"0","longitude":"0"}}],
+                                "attractions":[{"id":"A1","name":"Act"}]}},
+                  {"id":"E3","name":"Act","url":"https://tickets.example.com/e3",
+                   "dates":{"start":{"localDate":"2026-10-05","localTime":"20:00:00","dateTime":"2026-10-05T19:00:00Z"}},
+                   "_embedded":{"venues":[{"id":"V2","name":"Nowhere","location":{"latitude":"0","longitude":"0"}}],
+                                "attractions":[{"id":"A1","name":"Act"}]}}]},
+                 "page":{"totalElements":3,"totalPages":1}}
+                """);
+        TicketmasterMapper.Mapped mapped = TicketmasterMapper.map(page);
+
+        // E2 has no announced date and is skipped.
+        assertThat(mapped.gigs()).extracting(SourceGig::externalId).containsExactly("E1", "E3");
+        SourceGig meridian = mapped.gigs().getFirst();
+        // A javascript: or intent: URL from a source must never reach the app's "open link".
+        assertThat(meridian.url()).isNull();
+        assertThat(meridian.ticketUrl()).isNull();
+        assertThat(meridian.imageUrl()).isNull();
+        // Longitude 0 is the Greenwich meridian, a real place; only (0, 0) means "unknown".
+        assertThat(meridian.venue().lat()).isEqualTo(51.4779);
+        assertThat(meridian.venue().lng()).isEqualTo(0.0);
+        assertThat(mapped.gigs().getLast().venue().lat()).isNull();
+        assertThat(mapped.gigs().getLast().venue().lng()).isNull();
+        assertThat(mapped.gigs().getLast().ticketUrl()).isEqualTo("https://tickets.example.com/e3");
+    }
+
+    @Test
     void placeholderArtworkIsOnlyUsedWhenNothingElseExists() throws Exception {
         JsonMapper json = JsonMappers.builder().build();
         JsonNode page = json.readTree(

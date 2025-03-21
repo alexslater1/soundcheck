@@ -17,4 +17,9 @@ public interface GigSource {
      * next call(s). It ends early when {@code budget} runs out (check {@link CallBudget#exhausted()}).
      */
     Stream<SourcePage> pages(Instant from, Instant to, CallBudget budget);
+
+    /** True when this source replays invented data (the committed fixtures), not real listings. */
+    default boolean synthetic() {
+        return false;
+    }
 }

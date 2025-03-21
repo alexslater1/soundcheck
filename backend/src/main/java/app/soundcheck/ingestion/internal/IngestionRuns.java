@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
+import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
@@ -33,8 +34,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class IngestionRuns {
 
-    /** A RUNNING row older than this belongs to a process that died; it is closed as FAILED. */
-    static final Duration ABANDONED_AFTER = Duration.ofHours(6);
+    /**
+     * A RUNNING row whose heartbeat is older than this belongs to a process that died (Ctrl-C, OOM kill);
+     * the next trigger closes it as FAILED. A live run beats at least every 30 seconds; the longest silence
+     * it can have is one call's retries (a few minutes at most).
+     */
+    static final Duration ABANDONED_AFTER = Duration.ofMinutes(10);
 
     private final DSLContext dsl;
     private final JsonMapper json;
@@ -59,7 +64,8 @@ public class IngestionRuns {
                 .set(INGESTION_RUN.ERROR, "abandoned: still RUNNING after " + ABANDONED_AFTER)
                 .where(INGESTION_RUN.SOURCE.eq(source))
                 .and(INGESTION_RUN.STATUS.eq("RUNNING"))
-                .and(INGESTION_RUN.STARTED_AT.lt(at(now.minus(ABANDONED_AFTER))))
+                .and(DSL.coalesce(INGESTION_RUN.HEARTBEAT_AT, INGESTION_RUN.STARTED_AT)
+                        .lt(at(now.minus(ABANDONED_AFTER))))
                 .execute();
         UUID id = Ids.newId();
         try {
@@ -69,12 +75,22 @@ public class IngestionRuns {
                     .set(INGESTION_RUN.TRIGGER, trigger)
                     .set(INGESTION_RUN.STATUS, "RUNNING")
                     .set(INGESTION_RUN.STARTED_AT, at(now))
+                    .set(INGESTION_RUN.HEARTBEAT_AT, at(now))
                     .execute();
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict(
                     "INGESTION_ALREADY_RUNNING", "An ingestion run for " + source + " is in progress");
         }
         return id;
+    }
+
+    /** "Still alive": see {@link #ABANDONED_AFTER}. */
+    public void heartbeat(UUID runId, Instant now) {
+        dsl.update(INGESTION_RUN)
+                .set(INGESTION_RUN.HEARTBEAT_AT, at(now))
+                .where(INGESTION_RUN.ID.eq(runId))
+                .and(INGESTION_RUN.STATUS.eq("RUNNING"))
+                .execute();
     }
 
     /** Keeps a raw response replayable; {@code request} never contains secrets. */
@@ -98,6 +114,7 @@ public class IngestionRuns {
                 .set(INGESTION_RUN.ISSUES, JSONB.valueOf(toJson(stats.issueSample())))
                 .set(INGESTION_RUN.ERROR, error)
                 .where(INGESTION_RUN.ID.eq(runId))
+                .and(INGESTION_RUN.STATUS.eq("RUNNING")) // a run already closed as abandoned stays closed
                 .execute();
         events.publishEvent(new GigsIngested(runId, source, status, stats.created, stats.updated, stats.merged, now));
     }

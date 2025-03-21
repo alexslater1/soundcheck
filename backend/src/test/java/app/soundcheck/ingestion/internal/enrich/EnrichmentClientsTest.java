@@ -143,6 +143,28 @@ class EnrichmentClientsTest {
     }
 
     @Test
+    void lastfmNamesWithPlusAmpersandOrBracesArriveIntactAndAnUnreadableBodyIsRetried() {
+        // "+" would be read as a space, "&" would end the parameter and "{…}" would be taken for a URI
+        // template variable if the name were spliced into the URL instead of percent-encoded.
+        String name = "Florence + The Machine & {friends}";
+        api.stubFor(get(urlPathEqualTo("/2.0/"))
+                .withQueryParam("artist", equalTo(name))
+                .inScenario("garbled")
+                .whenScenarioStateIs(Scenario.STARTED)
+                .willReturn(aResponse().withStatus(200).withBody("<html>temporarily unavailable</html>"))
+                .willSetStateTo("ok"));
+        api.stubFor(get(urlPathEqualTo("/2.0/"))
+                .withQueryParam("artist", equalTo(name))
+                .inScenario("garbled")
+                .whenScenarioStateIs("ok")
+                .willReturn(json("{\"toptags\":{\"tag\":[{\"count\":100,\"name\":\"indie\"}]}}")));
+
+        assertThat(lastfm.topTags(null, name, sink)).containsExactly(new ArtistTags.Tag("indie", 100));
+
+        api.verify(2, getRequestedFor(urlPathEqualTo("/2.0/")).withQueryParam("artist", equalTo(name)));
+    }
+
+    @Test
     void lastfmTemporaryErrorsAreRetriedAndOtherErrorsAreNot() {
         api.stubFor(get(urlPathEqualTo("/2.0/"))
                 .inScenario("busy")

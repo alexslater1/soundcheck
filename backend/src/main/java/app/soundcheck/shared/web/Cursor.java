@@ -37,11 +37,27 @@ public record Cursor(Instant at, UUID id) {
             if (parts.length != 2) {
                 throw invalid();
             }
-            return new Cursor(Instant.parse(parts[0]), UUID.fromString(parts[1]));
+            return new Cursor(storable(Instant.parse(parts[0])), UUID.fromString(parts[1]));
         } catch (IllegalArgumentException | DateTimeParseException e) {
             throw invalid();
         }
     }
+
+    /**
+     * Rejects instants outside what the database can store ({@code Instant} reaches year ±1,000,000,000;
+     * PostgreSQL's timestamptz does not). The API only deals with gig dates, so 1900–2200 is generous.
+     *
+     * @throws IllegalArgumentException for an out-of-range instant
+     */
+    public static Instant storable(Instant instant) {
+        if (instant.isBefore(MIN) || instant.isAfter(MAX)) {
+            throw new IllegalArgumentException("instant out of range");
+        }
+        return instant;
+    }
+
+    private static final Instant MIN = Instant.parse("1900-01-01T00:00:00Z");
+    private static final Instant MAX = Instant.parse("2200-01-01T00:00:00Z");
 
     /** Page size: 20 when absent, otherwise clamped to 1..50. */
     public static int limit(@Nullable Integer requested) {

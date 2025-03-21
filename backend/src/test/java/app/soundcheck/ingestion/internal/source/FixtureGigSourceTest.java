@@ -31,6 +31,7 @@ class FixtureGigSourceTest {
         FixtureGigSource source =
                 new FixtureGigSource(properties, JsonMappers.builder().build(), clock);
         assertThat(source.name()).isEqualTo("TICKETMASTER");
+        assertThat(source.synthetic()).isTrue(); // the committed pages carry "synthetic": true
         CallBudget budget = new CallBudget(10);
         List<SourcePage> pages =
                 source.pages(Instant.EPOCH, Instant.EPOCH, budget).toList();
