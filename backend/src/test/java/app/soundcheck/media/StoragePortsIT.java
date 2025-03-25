@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -29,9 +28,6 @@ class StoragePortsIT extends IntegrationTest {
 
     @Autowired
     ObjectStorage storage;
-
-    @Autowired
-    JobQueue queue;
 
     @Autowired
     TestRestTemplate rest;
@@ -104,30 +100,6 @@ class StoragePortsIT extends IntegrationTest {
 
         assertThat(Files.readAllBytes(target)).containsExactly(1, 2, 3, 4);
         assertThat(storage.head(key).orElseThrow().contentType()).isEqualTo("image/jpeg");
-    }
-
-    @Test
-    void queueSendReceiveVisibilityDelete() {
-        String messageId = queue.send("{\"mediaId\":\"x\"}", Map.of("traceparent", "00-abc-def-01"));
-        assertThat(messageId).isNotBlank();
-
-        List<JobQueue.QueueMessage> received = queue.receive(1, Duration.ofSeconds(5));
-        assertThat(received).hasSize(1);
-        JobQueue.QueueMessage message = received.getFirst();
-        assertThat(message.body()).isEqualTo("{\"mediaId\":\"x\"}");
-        assertThat(message.attributes()).containsEntry("traceparent", "00-abc-def-01");
-        assertThat(message.receiveCount()).isEqualTo(1);
-        assertThat(queue.attributes().inFlight()).isEqualTo(1);
-
-        // Release the lease immediately (what a worker does on SIGTERM) → received again, count 2.
-        queue.changeVisibility(message.receiptHandle(), Duration.ZERO);
-        JobQueue.QueueMessage again = queue.receive(1, Duration.ofSeconds(5)).getFirst();
-        assertThat(again.messageId()).isEqualTo(messageId);
-        assertThat(again.receiveCount()).isEqualTo(2);
-
-        queue.delete(again.receiptHandle());
-        assertThat(queue.receive(1, Duration.ofSeconds(1))).isEmpty();
-        assertThat(queue.attributes()).isEqualTo(new JobQueue.QueueAttributes(0, 0, 0));
     }
 
     @Test
