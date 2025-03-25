@@ -18,6 +18,11 @@
 	}
 
 	handle /media/* {
+		# Read-only, like the CloudFront behaviour (GET, HEAD, OPTIONS). LocalStack does not enforce
+		# bucket policies, so without this anyone could PUT or DELETE media through the edge.
+		@write not method GET HEAD OPTIONS
+		respond @write "media is read-only" 405
+
 		# Path-style S3 on LocalStack: /media/{id}/... → /soundcheck-media/media/{id}/...
 		rewrite * /soundcheck-media{uri}
 		reverse_proxy localstack:4566 {

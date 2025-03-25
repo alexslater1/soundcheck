@@ -7,6 +7,7 @@ import app.soundcheck.media.JobQueue.QueueMessage;
 import app.soundcheck.media.MediaFailed;
 import app.soundcheck.media.MediaReady;
 import app.soundcheck.media.ObjectStorage;
+import app.soundcheck.media.internal.MediaProperties;
 import app.soundcheck.media.internal.transcode.MediaRejectedException;
 import app.soundcheck.media.internal.transcode.ProbeResult;
 import app.soundcheck.media.internal.transcode.Rung;
@@ -104,6 +105,9 @@ class TranscodePipelineIT extends IntegrationTest {
     WorkerProperties props;
 
     @Autowired
+    MediaProperties mediaProperties;
+
+    @Autowired
     JsonMapper json;
 
     @Autowired
@@ -186,7 +190,9 @@ class TranscodePipelineIT extends IntegrationTest {
         String prefix = "media/" + mediaId + "/v1/";
         JsonNode playback = api.get("/api/v1/media/" + mediaId, owner).getBody();
         assertThat(playback.path("status").asText("")).isEqualTo("READY");
-        assertThat(playback.path("hlsUrl").asText("")).endsWith("/" + prefix + "master.m3u8");
+        // … built from PUBLIC_BASE_URL (the edge locally, CloudFront on AWS), not from the bucket's address.
+        assertThat(playback.path("hlsUrl").asText(""))
+                .isEqualTo(mediaProperties.publicBaseUrl() + "/" + prefix + "master.m3u8");
         assertThat(playback.path("posterUrl").asText("")).endsWith("/" + prefix + "poster.jpg");
         assertThat(playback.path("thumbUrl").asText("")).endsWith("/" + prefix + "thumb.webp");
         assertThat(playback.path("blurhash").asText("")).hasSize(28); // 4×3 components
