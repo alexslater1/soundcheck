@@ -57,6 +57,11 @@ soundcheck:
     secret-key: ${AWS_SECRET_ACCESS_KEY:test}
   queue:
     url: ${SQS_QUEUE_URL:http://localhost:4566/000000000000/soundcheck-transcode}
+  worker:
+    # The transcode worker. One job at a time per 2 vCPUs: FFmpeg uses the cores.
+    enabled: ${WORKER_ENABLED:true}
+    concurrency: ${WORKER_CONCURRENCY:1}
+    work-dir: ${WORKER_WORK_DIR:/tmp/soundcheck}
   media:
     # Where /media/* is served from: the Caddy edge locally, CloudFront on AWS.
     public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}

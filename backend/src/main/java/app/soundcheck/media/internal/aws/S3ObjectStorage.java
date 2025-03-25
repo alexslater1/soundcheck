@@ -144,6 +144,18 @@ class S3ObjectStorage implements ObjectStorage {
     }
 
     @Override
+    public void putFile(String key, Path source, String contentType, String cacheControl) {
+        s3.putObject(
+                PutObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .contentType(contentType)
+                        .cacheControl(cacheControl)
+                        .build(),
+                source);
+    }
+
+    @Override
     public void copy(String sourceKey, String targetKey) {
         s3.copyObject(CopyObjectRequest.builder()
                 .sourceBucket(bucket)

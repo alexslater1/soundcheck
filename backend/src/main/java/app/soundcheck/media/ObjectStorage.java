@@ -40,6 +40,9 @@ public interface ObjectStorage {
 
     void putFile(String key, Path source, String contentType);
 
+    /** Uploads a file with a {@code Cache-Control} header (versioned media outputs are immutable). */
+    void putFile(String key, Path source, String contentType, String cacheControl);
+
     void copy(String sourceKey, String targetKey);
 
     void delete(String key);
