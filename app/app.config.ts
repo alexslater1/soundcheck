@@ -32,6 +32,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-dev-client',
     'expo-secure-store',
     'expo-font',
+    'expo-video',
     [
       'expo-build-properties',
       {

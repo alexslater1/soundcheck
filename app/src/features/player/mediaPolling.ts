@@ -1,0 +1,44 @@
+import type { Playback } from '@/api/generated/model';
+
+/** How long the app keeps asking whether a clip is ready. */
+export const POLL_GIVE_UP_MS = 5 * 60 * 1000;
+const MAX_DELAY_MS = 10_000;
+
+/** A status the worker will not change any more. */
+export function isSettled(status: Playback['status']): boolean {
+  return status === 'READY' || status === 'REJECTED' || status === 'FAILED' || status === 'DELETED';
+}
+
+/**
+ * When to ask again, given how many answers have arrived: 1 s, 2 s, 4 s, 8 s, then every 10 s; `false`
+ * (stop) once the clip is settled or the schedule has waited five minutes. Most clips are ready within seconds, so the early polls are quick, and a
+ * slow one does not cost a request per second for minutes.
+ */
+export function nextPollDelay(
+  status: Playback['status'] | undefined,
+  pollsSoFar: number,
+): number | false {
+  if (status !== undefined && isSettled(status)) {
+    return false;
+  }
+  if (waitedAfter(pollsSoFar) >= POLL_GIVE_UP_MS) {
+    return false;
+  }
+  return delayAfter(pollsSoFar);
+}
+
+function delayAfter(polls: number): number {
+  return Math.min(1000 * 2 ** Math.max(0, polls - 1), MAX_DELAY_MS);
+}
+
+/**
+ * How long the schedule has waited by the time `polls` answers are in: the sum of the delays so far.
+ * Counting from the number of polls keeps this a pure function (no clock to read while rendering).
+ */
+function waitedAfter(polls: number): number {
+  let waited = 0;
+  for (let i = 1; i < polls; i++) {
+    waited += delayAfter(i);
+  }
+  return waited;
+}
