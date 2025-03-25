@@ -57,6 +57,9 @@ soundcheck:
     secret-key: ${AWS_SECRET_ACCESS_KEY:test}
   queue:
     url: ${SQS_QUEUE_URL:http://localhost:4566/000000000000/soundcheck-transcode}
+  media:
+    # Where /media/* is served from: the Caddy edge locally, CloudFront on AWS.
+    public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}
   auth:
     jwt:
       # PEM with PRIVATE KEY + PUBLIC KEY blocks (`make keys` → .secrets/jwt-es256.pem). Either wins over an ephemeral key.

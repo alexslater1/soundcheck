@@ -13,6 +13,11 @@ soundcheck:
     auth:
       per-ip-per-minute: 10000
       per-email-per-minute: 10000
+  media:
+    # Small enough that a test can exceed it with real bytes (three 8 MiB parts), and no hourly cap on
+    # uploads (the shared test context makes many).
+    max-video-size: 20MB
+    uploads-per-hour: 100000
   # Tests never call the real gig APIs, whatever INGESTION_MODE and the keys are in the developer's .env
   # (the Makefile exports .env into `make test` / `make verify`). The live clients are tested with WireMock.
   ingestion:

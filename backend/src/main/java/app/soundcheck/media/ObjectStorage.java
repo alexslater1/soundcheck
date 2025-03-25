@@ -23,7 +23,12 @@ public interface ObjectStorage {
     /** Presigned PUT for one part (1-based) of a multipart upload. */
     PresignedUrl presignUploadPart(String key, String uploadId, int partNumber, Duration ttl);
 
-    /** Completes a multipart upload from the parts' ETags, in part order. */
+    /**
+     * Completes a multipart upload from the parts' ETags, in part order.
+     *
+     * @throws InvalidUploadException when storage rejects the request: unknown upload id, a missing or
+     *     mismatching part, or a part that is too small
+     */
     void completeMultipart(String key, String uploadId, List<CompletedPart> parts);
 
     void abortMultipart(String key, String uploadId);
@@ -38,6 +43,13 @@ public interface ObjectStorage {
     void copy(String sourceKey, String targetKey);
 
     void delete(String key);
+
+    /** The client's description of what it uploaded does not match what storage holds. */
+    class InvalidUploadException extends RuntimeException {
+        public InvalidUploadException(String message) {
+            super(message);
+        }
+    }
 
     /** A URL a client can use until {@code expiresAt}; never logged. */
     record PresignedUrl(URI url, Instant expiresAt) {}

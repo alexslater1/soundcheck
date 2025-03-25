@@ -19,6 +19,7 @@ import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
@@ -84,13 +85,25 @@ class S3ObjectStorage implements ObjectStorage {
                         .eTag(p.etag())
                         .build())
                 .toList();
-        s3.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .uploadId(uploadId)
-                .multipartUpload(
-                        CompletedMultipartUpload.builder().parts(completed).build())
-                .build());
+        try {
+            s3.completeMultipartUpload(CompleteMultipartUploadRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .uploadId(uploadId)
+                    .multipartUpload(
+                            CompletedMultipartUpload.builder().parts(completed).build())
+                    .build());
+        } catch (S3Exception e) {
+            // 4xx: the upload id is unknown, or a part is missing, mismatching or too small. That is the
+            // client's description being wrong, not storage being down.
+            if (e.statusCode() >= 400 && e.statusCode() < 500) {
+                throw new InvalidUploadException(
+                        e.awsErrorDetails() == null
+                                ? "invalid multipart upload"
+                                : e.awsErrorDetails().errorCode());
+            }
+            throw e;
+        }
     }
 
     @Override
