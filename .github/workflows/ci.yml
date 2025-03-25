@@ -75,7 +75,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: "${{ github.ref != 'refs/heads/main' }}"
-      - name: "Build, codegen and test (Testcontainers: PostGIS + LocalStack)"
+      # The media pipeline tests run the real ffmpeg/ffprobe; the runner image has neither.
+      - name: Install FFmpeg
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg && ffmpeg -version | head -1
+      - name: "Build, codegen and test (Testcontainers: PostGIS + LocalStack; FFmpeg)"
         working-directory: backend
         run: ./gradlew spotlessCheck build --no-daemon --console=plain
       - name: Upload test reports
