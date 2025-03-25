@@ -34,6 +34,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-font',
     'expo-video',
     [
+      'expo-image-picker',
+      {
+        cameraPermission: 'Soundcheck uses the camera to record clips at gigs.',
+        microphonePermission: 'Soundcheck uses the microphone to record sound with your clips.',
+      },
+    ],
+    'react-native-compressor',
+    [
       'expo-build-properties',
       {
         android: {

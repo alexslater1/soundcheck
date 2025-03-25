@@ -1,12 +1,5 @@
-import { Screen } from '@/components/ui/Screen';
-import { Text } from '@/components/ui/Text';
+import { CreateScreen } from '@/features/upload/CreateScreen';
 
-/** Create placeholder. */
-export default function CreateScreen() {
-  return (
-    <Screen>
-      <Text variant="title">Create</Text>
-      <Text muted>Record, compress and upload a clip.</Text>
-    </Screen>
-  );
+export default function CreateRoute() {
+  return <CreateScreen />;
 }
