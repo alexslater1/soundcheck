@@ -4,6 +4,7 @@ import app.soundcheck.media.MediaUploaded;
 import app.soundcheck.media.ObjectStorage;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.idempotency.IdempotencyKeys;
+import app.soundcheck.shared.observability.Traceparent;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.RateLimiter;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -92,6 +93,7 @@ public class UploadService {
     private final ApplicationEventPublisher events;
     private final MediaProperties properties;
     private final JsonMapper json;
+    private final Traceparent traceparent;
     private final Clock clock;
 
     public UploadService(
@@ -102,8 +104,10 @@ public class UploadService {
             ApplicationEventPublisher events,
             MediaProperties properties,
             JsonMapper json,
+            Traceparent traceparent,
             Clock clock) {
         this.assets = assets;
+        this.traceparent = traceparent;
         this.storage = storage;
         this.idempotency = idempotency;
         this.rateLimiter = rateLimiter;
@@ -220,7 +224,8 @@ public class UploadService {
         assets.markUploaded(asset.id(), "UPLOADED", head.contentLength(), now);
         if (asset.video()) {
             // Recorded in the outbox by this transaction; relayed to the transcode queue after the commit.
-            events.publishEvent(new MediaUploaded(asset.id(), ownerId, now));
+            events.publishEvent(new MediaUploaded(
+                    asset.id(), ownerId, now, traceparent.current().orElse(null)));
             return "UPLOADED";
         }
         // Images (avatars) need no transcoding: copy to the served prefix and they are ready.
