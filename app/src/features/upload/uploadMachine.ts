@@ -42,12 +42,29 @@ export async function runUpload(deps: UploadDeps): Promise<void> {
     return;
   }
   try {
-    const alreadyCompleted = entry.state === 'PROCESSING' && entry.mediaId !== null;
-    const mediaId = alreadyCompleted ? entry.mediaId! : await upload(deps);
+    const mediaId =
+      entry.mediaId !== null &&
+      (entry.state === 'PROCESSING' || (await accepted(entry.mediaId, deps)))
+        ? entry.mediaId
+        : await upload(deps);
     deps.update({ state: 'PROCESSING', progress: 1, error: null });
     await pollUntilSettled(mediaId, deps);
   } catch (error) {
     deps.update({ state: 'FAILED', error: describe(error) });
+  }
+}
+
+/**
+ * Has the server already accepted this upload? True after a `complete` that succeeded on the server
+ * while its answer never reached the app. Asking for the ticket again would then be refused
+ * (409 UPLOAD_ALREADY_COMPLETED), so a retry must not start over. When the server cannot be asked,
+ * assume it has not: the normal path will say what is wrong.
+ */
+async function accepted(mediaId: string, deps: UploadDeps): Promise<boolean> {
+  try {
+    return (await deps.api.getMedia(mediaId)).status !== 'AWAITING_UPLOAD';
+  } catch {
+    return false;
   }
 }
 

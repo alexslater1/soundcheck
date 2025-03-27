@@ -34,8 +34,8 @@ export type UploadState =
 
 /**
  * One entry of the upload queue, persisted after every change so a later version can resume after an
- * app restart. The presigned URLs are deliberately not stored: asking for the ticket again with
- * the same idempotency key returns the same one.
+ * app restart. The presigned URLs are deliberately not stored: asking again with the same
+ * idempotency key returns the same upload with freshly signed URLs.
  */
 export type UploadEntry = {
   localId: string;

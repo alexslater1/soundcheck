@@ -203,11 +203,12 @@ describe('runUpload', () => {
         progress: 0.8,
       }),
       ticket: multipartTicket,
+      statuses: ['AWAITING_UPLOAD', 'READY'], // the server is still waiting for the bytes
     });
 
     await runUpload(h.deps);
 
-    // The same idempotency key returns the same ticket; only the missing part is sent.
+    // The same idempotency key returns the same upload (with fresh URLs); only the missing part is sent.
     expect(h.deps.api.createUpload).toHaveBeenCalledWith(expect.anything(), 'key-1');
     expect(h.deps.transport.putPart.mock.calls.map(([url]) => url)).toEqual([
       'https://s3.test/part-3',
@@ -218,6 +219,50 @@ describe('runUpload', () => {
       { partNumber: 3, etag: '"etag-3"' },
     ]);
     expect(h.entry()).toMatchObject({ state: 'READY', error: null });
+  });
+
+  it('goes straight to polling when the server already accepted the upload (a complete whose answer was lost)', async () => {
+    // The earlier run sent every byte and called complete; the server committed, the response never arrived.
+    const h = harness({
+      start: entry({
+        state: 'FAILED',
+        error: 'Network request failed',
+        mediaId: 'media-1',
+        strategy: 'MULTIPART',
+        parts: { 1: '"etag-1"', 2: '"etag-2"', 3: '"etag-3"' },
+        progress: 1,
+      }),
+      ticket: multipartTicket,
+      statuses: ['PROCESSING', 'READY'],
+    });
+
+    await runUpload(h.deps);
+
+    // Asking for the ticket again would be refused (409 UPLOAD_ALREADY_COMPLETED): it is not asked for.
+    expect(h.deps.api.createUpload).not.toHaveBeenCalled();
+    expect(h.deps.transport.putPart).not.toHaveBeenCalled();
+    expect(h.deps.api.completeUpload).not.toHaveBeenCalled();
+    expect(h.entry()).toMatchObject({ state: 'READY', error: null });
+  });
+
+  it('uploads again when the server still waits for the bytes, or cannot be asked', async () => {
+    const waiting = harness({
+      start: entry({ state: 'FAILED', mediaId: 'media-1', strategy: 'SINGLE', bytes: 3 * MIB }),
+      ticket: singleTicket,
+      statuses: ['AWAITING_UPLOAD', 'READY'],
+    });
+    await runUpload(waiting.deps);
+    expect(waiting.deps.transport.putWhole).toHaveBeenCalledTimes(1);
+    expect(waiting.entry().state).toBe('READY');
+
+    const offline = harness({
+      start: entry({ state: 'FAILED', mediaId: 'media-1', strategy: 'SINGLE', bytes: 3 * MIB }),
+      ticket: singleTicket,
+    });
+    offline.deps.api.getMedia.mockRejectedValueOnce(new Error('offline'));
+    await runUpload(offline.deps);
+    expect(offline.deps.api.createUpload).toHaveBeenCalledTimes(1);
+    expect(offline.entry().state).toBe('READY');
   });
 
   it('never has more than four parts in flight', async () => {
