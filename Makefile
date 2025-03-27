@@ -8,12 +8,15 @@ SHELL := /bin/bash
 .ONESHELL:
 
 COMPOSE   := docker compose
-GRADLE    := cd $(CURDIR)/backend && ./gradlew
+# One command, so that `VAR=value $(GRADLE) task` really passes VAR to Gradle. (As `cd backend && ./gradlew`
+# the variables applied to `cd` only: `make worker` ran every role on port 8080.)
+GRADLE    := $(CURDIR)/backend/gradlew -p $(CURDIR)/backend
 NPM_APP   := cd $(CURDIR)/app && npm
 NPM_INFRA := cd $(CURDIR)/infra && npm
 UV_LAB    := cd $(CURDIR)/lab && uv
 
-# Load .env if present so targets see the same variables as the services.
+# Load .env if present so targets see the same variables as the services. A value in .env wins over the
+# shell environment; to override one for a single run put it after make: `make ingest INGESTION_MODE=fixtures`.
 ifneq (,$(wildcard .env))
 include .env
 export
@@ -118,9 +121,10 @@ lab-check: ## ruff, mypy, pytest for the Python lab
 	uv run mypy
 	uv run pytest -q
 
-e2e: ## Playwright web journeys through the edge (needs `make up`, `make api` and `make app` running)
+e2e: ## Playwright web journeys through the edge (needs `make up`, `make api`, `make worker` and `make app` running, and `make clips` once)
 	curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make up' and 'make api'"; exit 1; }
 	curl -sf -o /dev/null http://localhost:8081/ || { echo "Expo web server not running — run 'make app'"; exit 1; }
+	ls $(CURDIR)/fixtures/clips/clip-*.mp4 >/dev/null 2>&1 || { echo "No synthetic clips — run 'make clips' (the upload journey needs them)"; exit 1; }
 	cd $(CURDIR)/app
 	CI=1 npx playwright test
 
@@ -141,7 +145,7 @@ openapi-check-client: ## Fail if running orval changes app/src/api/generated (sn
 	[ "$$before" = "$$after" ] || { echo "generated client is stale — run 'make openapi' and commit"; exit 1; }
 
 # ── Data ─────────────────────────────────────────────────────────────────────
-ingest: ## Run a gig ingestion once and exit (fixtures or live per INGESTION_MODE; needs `make up`)
+ingest: ## Run a gig ingestion once and exit (per INGESTION_MODE in .env; offline: make ingest INGESTION_MODE=fixtures; needs `make up`)
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=ingest --logging.level.org.jooq.tools.LoggerListener=info'
 	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -c "select source, trigger, status, to_char(started_at, 'YYYY-MM-DD HH24:MI') as started, stats->>'fetched' as fetched, stats->>'created' as created, stats->>'updated' as updated, stats->>'unchanged' as unchanged, stats->>'merged' as merged, stats->>'skipped' as skipped, stats->>'errors' as errors, stats->>'apiCalls' as api_calls from ingestion.ingestion_run order by started_at desc limit 3"
 
