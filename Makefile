@@ -25,7 +25,7 @@ endef
 
 .PHONY: help setup install keys up openapi-check-client down reset api worker app android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures purge-fixtures seed-demo seed-scale simulate lab-train lab-eval \
-	lab-publish lab-loop load clips images dlq-redrive demo-preflight guide \
+	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
 help: ## List targets with one-line descriptions
@@ -157,8 +157,11 @@ seed-demo: ## Seed demo personas, clips and engagement (idempotent); TARGET=aws 
 seed-scale: ## Generate the performance dataset (PROFILE=small|medium|large) into DB_NAME=soundcheck_perf
 	$(call not_yet,seed-scale)
 
-clips: ## Generate synthetic test clips into fixtures/clips/ with FFmpeg
-	$(call not_yet,clips)
+clips: ## Generate 20 synthetic test clips into fixtures/clips/ with FFmpeg (deterministic)
+	python3 $(CURDIR)/ops/scripts/make_clips.py
+
+clips-check: ## Regenerate the clips into a temp dir and prove they are byte-identical to fixtures/clips/
+	python3 $(CURDIR)/ops/scripts/make_clips.py --check
 
 # ── Ranking lab ──────────────────────────────────────────────────────────────
 simulate: ## Run the engagement simulator against the local API
