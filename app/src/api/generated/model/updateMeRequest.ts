@@ -5,12 +5,14 @@
  * Gig discovery and concert clips.
  * OpenAPI spec version: v1
  */
+import type { UpdateMeRequestAvatarMediaId } from './updateMeRequestAvatarMediaId';
 import type { UpdateMeRequestBio } from './updateMeRequestBio';
 import type { UpdateMeRequestDisplayName } from './updateMeRequestDisplayName';
 import type { UpdateMeRequestHandle } from './updateMeRequestHandle';
 import type { UpdateMeRequestHomeCityId } from './updateMeRequestHomeCityId';
 
 export interface UpdateMeRequest {
+  avatarMediaId?: UpdateMeRequestAvatarMediaId;
   /**
    * @minLength 0
    * @maxLength 300

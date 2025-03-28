@@ -35,7 +35,8 @@ export const loginResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "displayName": zod.string(),
   "handle": zod.string(),
-  "id": zod.string().uuid()
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
 })
 })
 
@@ -71,7 +72,8 @@ export const refreshResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "displayName": zod.string(),
   "handle": zod.string(),
-  "id": zod.string().uuid()
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
 })
 })
 
@@ -110,7 +112,8 @@ export const registerResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "displayName": zod.string(),
   "handle": zod.string(),
-  "id": zod.string().uuid()
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
 })
 })
 

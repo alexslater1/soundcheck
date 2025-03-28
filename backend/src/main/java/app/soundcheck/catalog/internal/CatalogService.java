@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -340,6 +341,40 @@ public class CatalogService {
     // ── assembly ────────────────────────────────────────────────────────────
 
     /** Runs the filter for {@code limit + 1} rows; the extra row only signals that a next page exists. */
+    // ── for other modules (CatalogViews) ──────────────────────────────────────────────────────────
+
+    @Transactional(readOnly = true)
+    public Map<UUID, GigSummary> gigsByIds(UUID viewer, Collection<UUID> gigIds) {
+        Map<UUID, GigSummary> byId = new LinkedHashMap<>();
+        summaries(viewer, repository.gigsByIds(gigIds)).forEach(gig -> byId.put(gig.id(), gig));
+        return byId;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<UUID, ArtistSummary> artistsByIds(UUID viewer, Collection<UUID> artistIds) {
+        Map<UUID, ArtistSummary> byId = new LinkedHashMap<>();
+        artistSummaries(viewer, List.copyOf(new LinkedHashSet<>(artistIds)))
+                .forEach(artist -> byId.put(artist.id(), artist));
+        return byId;
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> lineup(UUID gigId) {
+        return repository.lineups(List.of(gigId)).stream()
+                .map(LineupEntry::artistId)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public boolean venueExists(UUID venueId) {
+        return repository.venueExists(venueId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UUID> gigIdsAtVenue(UUID venueId, int limit) {
+        return repository.gigIdsAtVenue(venueId, limit);
+    }
+
     private Page<GigSummary> page(UUID viewer, GigFilter filter, @Nullable GeoPoint origin) {
         List<GigRow> rows = repository.gigs(filter);
         boolean more = rows.size() > filter.limit();

@@ -51,8 +51,8 @@ public class MeController {
     @PatchMapping("/me")
     @Operation(operationId = "updateMe", summary = "Edit profile fields (only the ones sent)")
     public MeResponse updateMe(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateMeRequest body) {
-        return MeResponse.from(
-                me.update(userId(jwt), body.displayName(), body.bio(), body.handle(), body.homeCityId()));
+        return MeResponse.from(me.update(
+                userId(jwt), body.displayName(), body.bio(), body.handle(), body.homeCityId(), body.avatarMediaId()));
     }
 
     @PutMapping("/me/genres")
@@ -98,7 +98,10 @@ public class MeController {
             @Size(min = 1, max = 50) @Schema(nullable = true) String displayName,
             @Size(max = 300) @Schema(nullable = true) String bio,
             @Size(min = 3, max = 30) @Schema(nullable = true) String handle,
-            @Schema(nullable = true) Integer homeCityId) {}
+            @Schema(nullable = true) Integer homeCityId,
+
+            /** A READY image the caller uploaded; null leaves the avatar as it is. */
+            @Schema(nullable = true) UUID avatarMediaId) {}
 
     public record GenreChoice(
             @NotNull @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(32767) Integer genreId,
@@ -138,7 +141,7 @@ public class MeController {
                     u.id(),
                     u.handle(),
                     u.displayName(),
-                    null,
+                    m.avatarUrl(),
                     u.email(),
                     u.bio(),
                     m.homeCity() == null ? null : HomeCity.from(m.homeCity()),
@@ -167,7 +170,7 @@ public class MeController {
                     u.id(),
                     u.handle(),
                     u.displayName(),
-                    null,
+                    m.avatarUrl(),
                     u.bio(),
                     m.homeCity() == null ? null : m.homeCity().name(),
                     new Counts(0, 0, 0));

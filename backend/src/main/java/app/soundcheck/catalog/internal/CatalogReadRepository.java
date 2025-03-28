@@ -221,6 +221,49 @@ class CatalogReadRepository {
                 .fetchOptional(r -> toGigRow(r, distanceKm));
     }
 
+    /** Gigs by id (no distance). Expected index: the primary key. */
+    List<GigRow> gigsByIds(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Field<Double> noDistance = DSL.inline((Double) null);
+        return dsl.select(
+                        GIG.ID,
+                        GIG.TITLE,
+                        GIG.STARTS_AT,
+                        GIG.STATUS,
+                        GIG.IMAGE_URL,
+                        GIG.TICKET_URL,
+                        GIG.PRICE_MIN,
+                        GIG.PRICE_MAX,
+                        GIG.CURRENCY,
+                        VENUE.ID,
+                        VENUE.NAME,
+                        VENUE.CITY,
+                        VENUE_LAT,
+                        VENUE_LNG,
+                        noDistance)
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(GIG.ID.in(ids))
+                .fetch(r -> toGigRow(r, noDistance));
+    }
+
+    /** Expected index: gig_venue (venue_id, starts_at). */
+    List<UUID> gigIdsAtVenue(UUID venueId, int limit) {
+        return dsl.select(GIG.ID)
+                .from(GIG)
+                .where(GIG.VENUE_ID.eq(venueId))
+                .orderBy(GIG.STARTS_AT.desc())
+                .limit(limit)
+                .fetch(GIG.ID);
+    }
+
+    boolean venueExists(UUID id) {
+        return dsl.fetchExists(VENUE, VENUE.ID.eq(id));
+    }
+
     boolean gigExists(UUID id) {
         return dsl.fetchExists(GIG, GIG.ID.eq(id));
     }

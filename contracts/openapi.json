@@ -178,6 +178,34 @@
         "required" : [ "followers", "following", "posts" ],
         "type" : "object"
       },
+      "CreatePostRequest" : {
+        "properties" : {
+          "artistIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
+          "caption" : {
+            "maxLength" : 2200,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "gigId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "mediaId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "mediaId" ],
+        "type" : "object"
+      },
       "CreateUploadRequest" : {
         "properties" : {
           "bytes" : {
@@ -522,6 +550,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "PagePost" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Post"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PartRequest" : {
         "properties" : {
           "etag" : {
@@ -582,6 +625,54 @@
           }
         },
         "required" : [ "status" ],
+        "type" : "object"
+      },
+      "Post" : {
+        "properties" : {
+          "artists" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ArtistSummary"
+            },
+            "type" : "array"
+          },
+          "author" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          },
+          "caption" : {
+            "type" : [ "string", "null" ]
+          },
+          "commentCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigSummary",
+            "type" : "null"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "likeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "likedByMe" : {
+            "type" : "boolean"
+          },
+          "playback" : {
+            "$ref" : "#/components/schemas/Playback"
+          },
+          "publishedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "PENDING_MEDIA", "PUBLISHED", "FAILED", "HIDDEN", "DELETED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "artists", "author", "commentCount", "id", "likeCount", "likedByMe", "playback", "status" ],
         "type" : "object"
       },
       "ProfileResponse" : {
@@ -679,6 +770,10 @@
       },
       "UpdateMeRequest" : {
         "properties" : {
+          "avatarMediaId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "bio" : {
             "maxLength" : 300,
             "minLength" : 0,
@@ -752,6 +847,9 @@
           "id" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "isFollowing" : {
+            "type" : [ "boolean", "null" ]
           }
         },
         "required" : [ "displayName", "handle", "id" ],
@@ -968,6 +1066,51 @@
         },
         "summary" : "An artist's upcoming gigs",
         "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/artists/{id}/posts" : {
+      "get" : {
+        "operationId" : "listArtistPosts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePost"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Published clips tagged with an artist, newest first",
+        "tags" : [ "posts" ]
       }
     },
     "/api/v1/auth/login" : {
@@ -1393,6 +1536,51 @@
         "tags" : [ "catalog" ]
       }
     },
+    "/api/v1/gigs/{id}/posts" : {
+      "get" : {
+        "operationId" : "listGigPosts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePost"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Published clips from a gig, newest first",
+        "tags" : [ "posts" ]
+      }
+    },
     "/api/v1/health" : {
       "get" : {
         "description" : "Returns UP when the API process is serving.",
@@ -1576,6 +1764,43 @@
         "tags" : [ "me" ]
       }
     },
+    "/api/v1/me/posts" : {
+      "get" : {
+        "operationId" : "listMyPosts",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePost"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The caller's own posts in every status (processing and failed included), newest first",
+        "tags" : [ "posts" ]
+      }
+    },
     "/api/v1/media/uploads" : {
       "post" : {
         "operationId" : "createUpload",
@@ -1699,6 +1924,90 @@
         "tags" : [ "media" ]
       }
     },
+    "/api/v1/posts" : {
+      "post" : {
+        "operationId" : "createPost",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreatePostRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Post"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Post an uploaded clip (PENDING_MEDIA until it is transcoded, PUBLISHED if it already is)",
+        "tags" : [ "posts" ]
+      }
+    },
+    "/api/v1/posts/{id}" : {
+      "delete" : {
+        "operationId" : "deletePost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Delete a post (its author, or an admin)",
+        "tags" : [ "posts" ]
+      },
+      "get" : {
+        "operationId" : "getPost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Post"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One post",
+        "tags" : [ "posts" ]
+      }
+    },
     "/api/v1/search" : {
       "get" : {
         "operationId" : "search",
@@ -1760,6 +2069,51 @@
         },
         "summary" : "Public profile (any signed-in user)",
         "tags" : [ "me" ]
+      }
+    },
+    "/api/v1/users/{id}/posts" : {
+      "get" : {
+        "operationId" : "listUserPosts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePost"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's published posts, newest first",
+        "tags" : [ "posts" ]
       }
     },
     "/api/v1/venues/{id}" : {
@@ -1832,6 +2186,51 @@
         "summary" : "A venue's upcoming gigs",
         "tags" : [ "catalog" ]
       }
+    },
+    "/api/v1/venues/{id}/posts" : {
+      "get" : {
+        "operationId" : "listVenuePosts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePost"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Published clips from gigs at a venue, newest first",
+        "tags" : [ "posts" ]
+      }
     }
   },
   "tags" : [ {
@@ -1852,6 +2251,9 @@
   }, {
     "description" : "Own account, onboarding, profiles",
     "name" : "me"
+  }, {
+    "description" : "Posts and lists of posts",
+    "name" : "posts"
   }, {
     "description" : "Service health",
     "name" : "health"

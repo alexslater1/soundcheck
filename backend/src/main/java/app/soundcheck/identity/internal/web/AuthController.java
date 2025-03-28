@@ -1,6 +1,7 @@
 package app.soundcheck.identity.internal.web;
 
-import app.soundcheck.identity.internal.UserRecord;
+import app.soundcheck.identity.UserSummary;
+import app.soundcheck.identity.Users;
 import app.soundcheck.identity.internal.auth.AuthService;
 import app.soundcheck.shared.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
@@ -10,7 +11,6 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -39,10 +39,13 @@ public class AuthController {
     static final String COOKIE_PATH = "/api/v1/auth";
 
     private final AuthService auth;
+    private final Users users;
     private final long refreshCookieMaxAgeSeconds;
 
-    public AuthController(AuthService auth, app.soundcheck.identity.internal.auth.AuthProperties properties) {
+    public AuthController(
+            AuthService auth, Users users, app.soundcheck.identity.internal.auth.AuthProperties properties) {
         this.auth = auth;
+        this.users = users;
         this.refreshCookieMaxAgeSeconds = properties.jwt().refreshTtl().toSeconds();
     }
 
@@ -109,7 +112,13 @@ public class AuthController {
                 session.accessToken(),
                 session.expiresIn(),
                 web ? null : session.refreshToken(),
-                UserSummary.from(session.user()));
+                users.summary(session.user().id())
+                        .orElseGet(() -> new UserSummary(
+                                session.user().id(),
+                                session.user().handle(),
+                                session.user().displayName(),
+                                null,
+                                null)));
         ResponseEntity.BodyBuilder response = ResponseEntity.status(status);
         if (web) {
             response.header(
@@ -143,11 +152,4 @@ public class AuthController {
     /** Session response: {@code refreshToken} is present for Android only. */
     public record AuthResponse(
             String accessToken, long expiresIn, @Schema(nullable = true) String refreshToken, UserSummary user) {}
-
-    public record UserSummary(UUID id, String handle, String displayName, @Schema(nullable = true) String avatarUrl) {
-
-        static UserSummary from(UserRecord user) {
-            return new UserSummary(user.id(), user.handle(), user.displayName(), null);
-        }
-    }
 }

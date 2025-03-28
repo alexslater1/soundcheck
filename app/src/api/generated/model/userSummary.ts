@@ -6,10 +6,12 @@
  * OpenAPI spec version: v1
  */
 import type { UserSummaryAvatarUrl } from './userSummaryAvatarUrl';
+import type { UserSummaryIsFollowing } from './userSummaryIsFollowing';
 
 export interface UserSummary {
   avatarUrl?: UserSummaryAvatarUrl;
   displayName: string;
   handle: string;
   id: string;
+  isFollowing?: UserSummaryIsFollowing;
 }

@@ -8,6 +8,7 @@ import app.soundcheck.shared.web.ApiException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -25,6 +26,9 @@ public class UserRepository {
 
     /** One explicit genre preference. */
     public record GenrePreference(short genreId, float weight) {}
+
+    /** What a user summary is built from. */
+    public record SummaryRow(UUID id, String handle, String displayName, @Nullable UUID avatarMediaId) {}
 
     private final DSLContext dsl;
 
@@ -87,6 +91,26 @@ public class UserRepository {
 
     public Optional<UserRecord> findByHandle(String handle) {
         return dsl.selectFrom(APP_USER).where(APP_USER.HANDLE.eq(handle)).fetchOptional(UserRepository::toRecord);
+    }
+
+    /** Live users among the ids. Expected index: the primary key. */
+    public List<SummaryRow> summaries(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return dsl.select(APP_USER.ID, APP_USER.HANDLE, APP_USER.DISPLAY_NAME, APP_USER.AVATAR_MEDIA_ID)
+                .from(APP_USER)
+                .where(APP_USER.ID.in(ids))
+                .and(APP_USER.DELETED_AT.isNull())
+                .fetch(r -> new SummaryRow(r.value1(), r.value2(), r.value3(), r.value4()));
+    }
+
+    public void setAvatar(UUID id, UUID mediaId, Instant now) {
+        dsl.update(APP_USER)
+                .set(APP_USER.AVATAR_MEDIA_ID, mediaId)
+                .set(APP_USER.UPDATED_AT, at(now))
+                .where(APP_USER.ID.eq(id))
+                .execute();
     }
 
     public boolean emailExists(String email) {

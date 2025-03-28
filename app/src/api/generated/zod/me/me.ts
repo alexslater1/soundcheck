@@ -59,6 +59,7 @@ export const updateMeBodyHandleMax = 30;
 
 
 export const updateMeBody = zod.object({
+  "avatarMediaId": zod.string().uuid().nullish(),
   "bio": zod.string().min(updateMeBodyBioMin).max(updateMeBodyBioMax).nullish(),
   "displayName": zod.string().min(1).max(updateMeBodyDisplayNameMax).nullish(),
   "handle": zod.string().min(updateMeBodyHandleMin).max(updateMeBodyHandleMax).nullish(),

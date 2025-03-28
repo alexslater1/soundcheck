@@ -2,6 +2,7 @@ package app.soundcheck.media.internal;
 
 import app.soundcheck.media.MediaUploaded;
 import app.soundcheck.media.ObjectStorage;
+import app.soundcheck.media.Playback;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.idempotency.IdempotencyKeys;
 import app.soundcheck.shared.observability.Traceparent;
@@ -71,27 +72,6 @@ public class UploadService {
             Instant expiresAt) {}
 
     public record CompletedPart(int partNumber, String etag) {}
-
-    /** What a client needs to show or play the asset. */
-    public record Playback(
-            @Schema(
-                            allowableValues = {
-                                "AWAITING_UPLOAD",
-                                "UPLOADED",
-                                "PROCESSING",
-                                "READY",
-                                "REJECTED",
-                                "FAILED",
-                                "DELETED"
-                            })
-                    String status,
-            @Schema(nullable = true) String hlsUrl,
-            @Schema(nullable = true) String posterUrl,
-            @Schema(nullable = true) String thumbUrl,
-            @Schema(nullable = true) String blurhash,
-            @Schema(nullable = true) Integer durationMs,
-            @Schema(nullable = true) Integer width,
-            @Schema(nullable = true) Integer height) {}
 
     private final MediaAssetRepository assets;
     private final ObjectStorage storage;

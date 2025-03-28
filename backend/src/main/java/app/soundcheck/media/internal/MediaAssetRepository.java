@@ -5,6 +5,7 @@ import static app.soundcheck.shared.jooq.media.Tables.MEDIA_ASSET;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -47,6 +48,14 @@ public class MediaAssetRepository {
 
     public Optional<MediaAsset> find(UUID id) {
         return dsl.selectFrom(MEDIA_ASSET).where(MEDIA_ASSET.ID.eq(id)).fetchOptional(MediaAssetRepository::toAsset);
+    }
+
+    /** The assets with these ids (missing ids are simply absent). Expected index: the primary key. */
+    public List<MediaAsset> findAll(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return dsl.selectFrom(MEDIA_ASSET).where(MEDIA_ASSET.ID.in(ids)).fetch(MediaAssetRepository::toAsset);
     }
 
     /** Reads the row and locks it until the transaction ends ({@code SELECT … FOR UPDATE}). */

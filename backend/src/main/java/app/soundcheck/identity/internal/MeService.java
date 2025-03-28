@@ -3,8 +3,11 @@ package app.soundcheck.identity.internal;
 import app.soundcheck.catalog.City;
 import app.soundcheck.catalog.ReferenceData;
 import app.soundcheck.identity.UserDeleted;
+import app.soundcheck.identity.UserSummary;
+import app.soundcheck.identity.Users;
 import app.soundcheck.identity.internal.auth.AuthService;
 import app.soundcheck.identity.internal.auth.RefreshTokenRepository;
+import app.soundcheck.shared.media.PublicImages;
 import app.soundcheck.shared.web.ApiException;
 import java.time.Clock;
 import java.time.Instant;
@@ -29,7 +32,11 @@ public class MeService {
     static final int MAX_GENRES = 8;
 
     /** Everything {@code GET /me} shows; counts are zero until social/content exist. */
-    public record Me(UserRecord user, @Nullable City homeCity, List<UserRepository.GenrePreference> genres) {}
+    public record Me(
+            UserRecord user,
+            @Nullable City homeCity,
+            List<UserRepository.GenrePreference> genres,
+            @Nullable String avatarUrl) {}
 
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
@@ -37,14 +44,20 @@ public class MeService {
     private final PasswordEncoder passwordEncoder;
     private final ApplicationEventPublisher events;
     private final Clock clock;
+    private final Users summaries;
+    private final PublicImages images;
 
     public MeService(
+            Users summaries,
+            PublicImages images,
             UserRepository users,
             RefreshTokenRepository refreshTokens,
             ReferenceData referenceData,
             PasswordEncoder passwordEncoder,
             ApplicationEventPublisher events,
             Clock clock) {
+        this.summaries = summaries;
+        this.images = images;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.referenceData = referenceData;
@@ -64,14 +77,18 @@ public class MeService {
     @Transactional(readOnly = true)
     public Me me(UUID userId) {
         UserRecord user = current(userId);
-        return new Me(user, city(user.homeCityId()), users.genres(userId));
+        return new Me(user, city(user.homeCityId()), users.genres(userId), avatarUrl(userId));
+    }
+
+    private @Nullable String avatarUrl(UUID userId) {
+        return summaries.summary(userId).map(UserSummary::avatarUrl).orElse(null);
     }
 
     @Transactional(readOnly = true)
     public Optional<Me> profile(String handle) {
         return users.findByHandle(handle.strip().toLowerCase(Locale.ROOT))
                 .filter(u -> !u.deleted())
-                .map(u -> new Me(u, city(u.homeCityId()), users.genres(u.id())));
+                .map(u -> new Me(u, city(u.homeCityId()), users.genres(u.id()), avatarUrl(u.id())));
     }
 
     public Me update(
@@ -79,8 +96,13 @@ public class MeService {
             @Nullable String displayName,
             @Nullable String bio,
             @Nullable String handle,
-            @Nullable Integer homeCityId) {
+            @Nullable Integer homeCityId,
+            @Nullable UUID avatarMediaId) {
         UserRecord user = current(userId);
+        if (avatarMediaId != null && !images.readyImageOwnedBy(avatarMediaId, userId)) {
+            // Not an image, not ready, or somebody else's: one answer for all three, so ids cannot be probed.
+            throw ApiException.badRequest("AVATAR_INVALID", "avatarMediaId must be an image you uploaded");
+        }
         String newHandle = user.handle();
         if (handle != null) {
             newHandle = handle.strip().toLowerCase(Locale.ROOT);
@@ -112,6 +134,9 @@ public class MeService {
                 city == null ? null : city.lat(),
                 city == null ? null : city.lng(),
                 Instant.now(clock));
+        if (avatarMediaId != null) {
+            users.setAvatar(userId, avatarMediaId, Instant.now(clock));
+        }
         return me(userId);
     }
 
