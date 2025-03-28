@@ -12,6 +12,8 @@ const mockPick = jest.fn<Promise<PickResult>, []>();
 const mockStartUpload = jest.fn(async (_localId: string) => undefined);
 const mockResume = jest.fn();
 const mockCompress = jest.fn();
+const mockDiscard = jest.fn();
+const mockRemove = jest.fn((localId: string) => useUploadQueue.getState().remove(localId));
 
 jest.mock('./pickVideo', () => ({
   pickFromLibrary: () => mockPick(),
@@ -20,9 +22,11 @@ jest.mock('./pickVideo', () => ({
 jest.mock('./uploadRunner', () => ({
   startUpload: (localId: string) => mockStartUpload(localId),
   resumeProcessing: (ownerId: string) => mockResume(ownerId),
+  removeUpload: (localId: string) => mockRemove(localId),
 }));
 jest.mock('./compress', () => ({
   compressVideo: (...args: unknown[]) => mockCompress(...args),
+  discardFile: (uri: string) => mockDiscard(uri),
 }));
 jest.mock('expo-router', () => {
   const React = jest.requireActual<typeof import('react')>('react');
@@ -82,6 +86,7 @@ describe('CreateScreen', () => {
       ownerId: 'user-1',
       fileUri: 'file:///cache/compressed.mp4',
       bytes: 18 * 1024 * 1024,
+      temporary: true, // the app's own file: deleted once the server has the bytes
       state: 'QUEUED',
       clientMeta: {
         originalBytes: 60 * 1024 * 1024,
@@ -91,6 +96,26 @@ describe('CreateScreen', () => {
     });
     expect(mockStartUpload).toHaveBeenCalledWith(entry!.localId);
     expect(screen.getByText('Compressed 60.0 MB → 18.0 MB (70% smaller)')).toBeTruthy();
+    expect(mockDiscard).not.toHaveBeenCalled();
+  });
+
+  it('uploads the original and deletes the compressed file when compression made it bigger', async () => {
+    mockPick.mockResolvedValue({ kind: 'picked', video });
+    mockCompress.mockResolvedValue({
+      uri: 'file:///cache/compressed.mp4',
+      bytes: 70 * 1024 * 1024,
+      elapsedMs: 4200,
+    });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByText('Choose a video'));
+
+    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      fileUri: 'file:///DCIM/clip.mp4',
+      temporary: false, // the user's own file is never deleted
+    });
+    expect(mockDiscard).toHaveBeenCalledWith('file:///cache/compressed.mp4');
   });
 
   it('refuses a clip that is too long without uploading anything', async () => {
@@ -150,6 +175,7 @@ describe('CreateScreen', () => {
       useUploadQueue.getState().patch(failed, { state: 'FAILED', error: 'again' }),
     );
     await fireEvent.press(screen.getAllByText('Remove')[1]!);
+    expect(mockRemove).toHaveBeenCalledWith(failed);
     expect(useUploadQueue.getState().entries.map((e) => e.localId)).not.toContain(failed);
   });
 });

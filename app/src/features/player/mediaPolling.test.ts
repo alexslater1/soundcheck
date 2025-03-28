@@ -1,4 +1,25 @@
-import { isSettled, nextPollDelay, POLL_GIVE_UP_MS } from './mediaPolling';
+import { clipPollInterval, isSettled, nextPollDelay, POLL_GIVE_UP_MS } from './mediaPolling';
+
+describe('clipPollInterval', () => {
+  it('follows the backoff while requests succeed', () => {
+    expect(clipPollInterval({ status: 'pending', data: undefined, dataUpdateCount: 0 })).toBe(1000);
+    expect(
+      clipPollInterval({ status: 'success', data: { status: 'PROCESSING' }, dataUpdateCount: 3 }),
+    ).toBe(4000);
+    expect(
+      clipPollInterval({ status: 'success', data: { status: 'READY' }, dataUpdateCount: 4 }),
+    ).toBe(false);
+  });
+
+  it('stops when a request has failed, instead of asking every second for ever', () => {
+    // A 404 (not the viewer's clip, or not ready for them): no data ever arrives, so the count of
+    // successful answers never moves and a backoff based on it alone would never advance.
+    expect(clipPollInterval({ status: 'error', data: undefined, dataUpdateCount: 0 })).toBe(false);
+    expect(
+      clipPollInterval({ status: 'error', data: { status: 'PROCESSING' }, dataUpdateCount: 5 }),
+    ).toBe(false);
+  });
+});
 
 describe('nextPollDelay', () => {
   it('backs off 1 s, 2 s, 4 s, 8 s and then stays at 10 s', () => {

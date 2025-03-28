@@ -84,6 +84,11 @@ async function upload(deps: UploadDeps): Promise<string> {
     },
     entry.idempotencyKey,
   );
+  if (entry.mediaId !== null && entry.mediaId !== ticket.mediaId) {
+    // The server opened a new upload (the idempotency key had expired after a day): the ETags kept
+    // from the old one belong to a multipart upload that no longer exists.
+    deps.update({ parts: {}, progress: 0 });
+  }
   deps.update({ mediaId: ticket.mediaId, strategy: ticket.strategy, state: 'UPLOADING' });
 
   const source = { uri: entry.fileUri, bytes: entry.bytes };

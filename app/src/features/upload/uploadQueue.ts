@@ -11,7 +11,12 @@ const IN_FLIGHT: UploadState[] = ['QUEUED', 'REQUESTING', 'UPLOADING', 'COMPLETI
 type UploadQueueState = {
   /** Newest first. Entries of every account that used this device; screens filter by owner. */
   entries: (UploadEntry & { ownerId: string })[];
-  enqueue: (ownerId: string, video: PickedVideo, clientMeta: ClientMeta) => string;
+  enqueue: (
+    ownerId: string,
+    video: PickedVideo,
+    clientMeta: ClientMeta,
+    temporary?: boolean,
+  ) => string;
   patch: (localId: string, patch: Partial<UploadEntry>) => void;
   remove: (localId: string) => void;
 };
@@ -45,7 +50,7 @@ export const useUploadQueue = create<UploadQueueState>()(
   persist(
     (set) => ({
       entries: [],
-      enqueue: (ownerId, video, clientMeta) => {
+      enqueue: (ownerId, video, clientMeta, temporary = false) => {
         const localId = newUuid();
         const entry: UploadEntry & { ownerId: string } = {
           localId,
@@ -60,6 +65,7 @@ export const useUploadQueue = create<UploadQueueState>()(
           width: video.width,
           height: video.height,
           clientMeta,
+          temporary,
           state: 'QUEUED',
           progress: 0,
           mediaId: null,

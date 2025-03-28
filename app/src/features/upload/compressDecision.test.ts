@@ -13,7 +13,7 @@ const original: PickedVideo = {
 
 describe('chooseUpload', () => {
   it('uploads the compressed file and records both sizes and the time', () => {
-    const { video, clientMeta } = chooseUpload(
+    const { video, clientMeta, temporary, discard } = chooseUpload(
       original,
       { uri: 'file:///compressed.mp4', bytes: 18_000_000, elapsedMs: 4200 },
       'android',
@@ -31,16 +31,22 @@ describe('chooseUpload', () => {
       compressedBytes: 18_000_000,
       compressMs: 4200,
     });
+    // The compressed file is the app's own: it is deleted after the upload, not now.
+    expect(temporary).toBe(true);
+    expect(discard).toBeNull();
   });
 
   it('uploads the original when compression made the file bigger, and still records the attempt', () => {
-    const { video, clientMeta } = chooseUpload(
+    const { video, clientMeta, temporary, discard } = chooseUpload(
       original,
       { uri: 'file:///compressed.mp4', bytes: 61_000_000, elapsedMs: 3000 },
       'android',
     );
 
     expect(video).toBe(original);
+    // The useless compressed file is thrown away at once; the user's original is never the app's to delete.
+    expect(discard).toBe('file:///compressed.mp4');
+    expect(temporary).toBe(false);
     expect(clientMeta).toMatchObject({ originalBytes: 60_000_000, compressedBytes: 61_000_000 });
   });
 
@@ -48,6 +54,8 @@ describe('chooseUpload', () => {
     expect(chooseUpload(original, null, 'web')).toEqual({
       video: original,
       clientMeta: { platform: 'web' },
+      temporary: false,
+      discard: null,
     });
   });
 });

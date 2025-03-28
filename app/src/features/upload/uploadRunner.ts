@@ -1,6 +1,7 @@
 import { completeUpload, createUpload, getMedia } from '@/api/generated/media/media';
 import type { CompleteRequest, CompleteResponse } from '@/api/generated/model';
 
+import { discardFile } from './compress';
 import { transport } from './transport';
 import type { UploadEntry } from './types';
 import { runUpload } from './uploadMachine';
@@ -54,6 +55,28 @@ export async function startUpload(localId: string): Promise<void> {
   } finally {
     running.delete(localId);
   }
+  discardWhenDone(localId);
+}
+
+/** States in which the server has the bytes: the local copy is no longer needed. */
+const WITH_SERVER = ['PROCESSING', 'READY', 'REJECTED'];
+
+/** Deletes the compressed temporary file of an upload whose bytes are safely with the server. */
+function discardWhenDone(localId: string): void {
+  const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  if (entry?.temporary && WITH_SERVER.includes(entry.state)) {
+    discardFile(entry.fileUri);
+    useUploadQueue.getState().patch(localId, { temporary: false });
+  }
+}
+
+/** Removes an upload from the list, and its temporary file with it. */
+export function removeUpload(localId: string): void {
+  const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  if (entry?.temporary) {
+    discardFile(entry.fileUri);
+  }
+  useUploadQueue.getState().remove(localId);
 }
 
 /** Uploads waiting on the worker pick their polling back up (after a restart, or a five-minute give-up). */

@@ -49,6 +49,8 @@ export type UploadEntry = {
   width: number | null;
   height: number | null;
   clientMeta: ClientMeta;
+  /** True when `fileUri` is a file the app made itself (the compressor's output) and must delete. */
+  temporary: boolean;
   state: UploadState;
   /** Share of the bytes that storage has acknowledged, 0 to 1. */
   progress: number;

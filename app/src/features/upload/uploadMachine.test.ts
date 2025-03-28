@@ -18,6 +18,7 @@ function entry(overrides: Partial<UploadEntry> = {}): UploadEntry {
     width: 720,
     height: 1280,
     clientMeta: { platform: 'android', originalBytes: 60 * MIB, compressedBytes: 20 * MIB },
+    temporary: false,
     state: 'QUEUED',
     progress: 0,
     mediaId: null,
@@ -263,6 +264,32 @@ describe('runUpload', () => {
     await runUpload(offline.deps);
     expect(offline.deps.api.createUpload).toHaveBeenCalledTimes(1);
     expect(offline.entry().state).toBe('READY');
+  });
+
+  it('forgets the old parts when the server answers with a different upload', async () => {
+    // A retry more than a day later: the idempotency key was purged, so the same request opens a new
+    // upload. The stored ETags are for the old one and must not be sent with the new one.
+    const h = harness({
+      start: entry({
+        state: 'FAILED',
+        mediaId: 'media-old',
+        strategy: 'MULTIPART',
+        parts: { 1: '"old-1"', 2: '"old-2"' },
+        progress: 0.8,
+      }),
+      ticket: multipartTicket, // mediaId 'media-1'
+      statuses: ['AWAITING_UPLOAD', 'READY'],
+    });
+
+    await runUpload(h.deps);
+
+    expect(h.deps.transport.putPart).toHaveBeenCalledTimes(3);
+    expect(h.deps.api.completeUpload).toHaveBeenCalledWith('media-1', [
+      { partNumber: 1, etag: '"etag-1"' },
+      { partNumber: 2, etag: '"etag-2"' },
+      { partNumber: 3, etag: '"etag-3"' },
+    ]);
+    expect(h.entry()).toMatchObject({ state: 'READY', mediaId: 'media-1' });
   });
 
   it('never has more than four parts in flight', async () => {

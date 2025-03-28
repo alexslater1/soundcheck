@@ -12,9 +12,16 @@ export function chooseUpload(
   original: PickedVideo,
   compressed: Compressed | null,
   platform: string,
-): { video: PickedVideo; clientMeta: ClientMeta } {
+): {
+  video: PickedVideo;
+  clientMeta: ClientMeta;
+  /** The upload is the compressor's output: delete it once the bytes are with the server. */
+  temporary: boolean;
+  /** A compressed file that will not be used: delete it now. */
+  discard: string | null;
+} {
   if (compressed === null) {
-    return { video: original, clientMeta: { platform } };
+    return { video: original, clientMeta: { platform }, temporary: false, discard: null };
   }
   const clientMeta: ClientMeta = {
     platform,
@@ -23,7 +30,7 @@ export function chooseUpload(
     compressMs: compressed.elapsedMs,
   };
   if (compressed.bytes >= original.bytes) {
-    return { video: original, clientMeta };
+    return { video: original, clientMeta, temporary: false, discard: compressed.uri };
   }
   return {
     // The compressor writes MP4 (H.264) whatever the source was; its frame size is no longer the original's.
@@ -36,5 +43,7 @@ export function chooseUpload(
       height: null,
     },
     clientMeta,
+    temporary: true,
+    discard: null,
   };
 }

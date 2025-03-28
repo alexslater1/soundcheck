@@ -8,12 +8,12 @@ import { useAuthStore } from '@/features/auth/store';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
-import { compressVideo } from './compress';
+import { compressVideo, discardFile } from './compress';
 import { chooseUpload } from './compressDecision';
 import { pickFromLibrary, recordWithCamera, type PickResult } from './pickVideo';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
-import { resumeProcessing, startUpload } from './uploadRunner';
+import { removeUpload, resumeProcessing, startUpload } from './uploadRunner';
 import { problemWith } from './validate';
 
 /**
@@ -24,7 +24,6 @@ export function CreateScreen() {
   const { colors } = useTheme();
   const ownerId = useAuthStore((state) => state.me?.id ?? null);
   const all = useUploadQueue((state) => state.entries);
-  const remove = useUploadQueue((state) => state.remove);
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
@@ -60,8 +59,15 @@ export function CreateScreen() {
       const compressed = await compressVideo(picked.video, (fraction) =>
         setBusy(`Compressing ${Math.round(fraction * 100)}%`),
       );
-      const { video, clientMeta } = chooseUpload(picked.video, compressed, Platform.OS);
-      const localId = useUploadQueue.getState().enqueue(ownerId, video, clientMeta);
+      const { video, clientMeta, temporary, discard } = chooseUpload(
+        picked.video,
+        compressed,
+        Platform.OS,
+      );
+      if (discard) {
+        discardFile(discard);
+      }
+      const localId = useUploadQueue.getState().enqueue(ownerId, video, clientMeta, temporary);
       void startUpload(localId);
     } catch {
       setProblem('That video could not be opened. Try another one.');
@@ -115,7 +121,7 @@ export function CreateScreen() {
               key={entry.localId}
               entry={entry}
               onRetry={() => void startUpload(entry.localId)}
-              onRemove={() => remove(entry.localId)}
+              onRemove={() => removeUpload(entry.localId)}
             />
           ))
         )}

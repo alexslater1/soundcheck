@@ -27,6 +27,22 @@ export function nextPollDelay(
   return delayAfter(pollsSoFar);
 }
 
+/**
+ * The interval for a screen that watches one clip (TanStack Query's `refetchInterval`). A failed
+ * request stops the polling: the screen shows the error with a "Try again" button, and a clip the
+ * viewer may not see (404) must not be asked for once a second for as long as the page is open.
+ */
+export function clipPollInterval(state: {
+  status: 'pending' | 'error' | 'success';
+  data: Pick<Playback, 'status'> | undefined;
+  dataUpdateCount: number;
+}): number | false {
+  if (state.status === 'error') {
+    return false;
+  }
+  return nextPollDelay(state.data?.status, state.dataUpdateCount);
+}
+
 function delayAfter(polls: number): number {
   return Math.min(1000 * 2 ** Math.max(0, polls - 1), MAX_DELAY_MS);
 }
