@@ -138,6 +138,41 @@
         "required" : [ "id", "lat", "lng", "name" ],
         "type" : "object"
       },
+      "CommentRequest" : {
+        "properties" : {
+          "body" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "body" ],
+        "type" : "object"
+      },
+      "CommentView" : {
+        "properties" : {
+          "author" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          },
+          "body" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "postId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "author", "body", "createdAt", "id", "postId" ],
+        "type" : "object"
+      },
       "CompleteRequest" : {
         "properties" : {
           "parts" : {
@@ -460,6 +495,19 @@
         "required" : [ "id", "lat", "lng", "name" ],
         "type" : "object"
       },
+      "LikeState" : {
+        "properties" : {
+          "likeCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "likedByMe" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "likeCount", "likedByMe" ],
+        "type" : "object"
+      },
       "LoginRequest" : {
         "properties" : {
           "email" : {
@@ -525,6 +573,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/ArtistSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageCommentView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/CommentView"
             },
             "type" : "array"
           },
@@ -736,6 +799,22 @@
           }
         },
         "required" : [ "displayName", "email", "handle", "password" ],
+        "type" : "object"
+      },
+      "ReportRequest" : {
+        "properties" : {
+          "details" : {
+            "maxLength" : 500,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "reason" : {
+            "enum" : [ "SPAM", "ABUSE", "NUDITY", "VIOLENCE", "COPYRIGHT", "OTHER" ],
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "reason" ],
         "type" : "object"
       },
       "SearchResults" : {
@@ -1328,6 +1407,27 @@
         },
         "summary" : "UK city autocomplete (max 10, most populous first)",
         "tags" : [ "reference" ]
+      }
+    },
+    "/api/v1/comments/{id}" : {
+      "delete" : {
+        "operationId" : "deleteComment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Delete a comment (its author, the post's author, or an admin)",
+        "tags" : [ "engagement" ]
       }
     },
     "/api/v1/genres" : {
@@ -2008,6 +2108,200 @@
         "tags" : [ "posts" ]
       }
     },
+    "/api/v1/posts/{id}/comments" : {
+      "get" : {
+        "operationId" : "listComments",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageCommentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A post's comments, oldest first",
+        "tags" : [ "engagement" ]
+      },
+      "post" : {
+        "operationId" : "addComment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CommentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/CommentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Comment on a post",
+        "tags" : [ "engagement" ]
+      }
+    },
+    "/api/v1/posts/{id}/hide" : {
+      "post" : {
+        "operationId" : "hidePost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Show me less: leave this post out of my feeds",
+        "tags" : [ "engagement" ]
+      }
+    },
+    "/api/v1/posts/{id}/like" : {
+      "delete" : {
+        "operationId" : "unlikePost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LikeState"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Remove a like (idempotent)",
+        "tags" : [ "engagement" ]
+      },
+      "put" : {
+        "operationId" : "likePost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/LikeState"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Like a post (idempotent)",
+        "tags" : [ "engagement" ]
+      }
+    },
+    "/api/v1/posts/{id}/report" : {
+      "post" : {
+        "operationId" : "reportPost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Report a post to the moderators",
+        "tags" : [ "engagement" ]
+      }
+    },
     "/api/v1/search" : {
       "get" : {
         "operationId" : "search",
@@ -2248,6 +2542,9 @@
   }, {
     "description" : "Genres and cities",
     "name" : "reference"
+  }, {
+    "description" : "Likes, comments, hide and report",
+    "name" : "engagement"
   }, {
     "description" : "Own account, onboarding, profiles",
     "name" : "me"
