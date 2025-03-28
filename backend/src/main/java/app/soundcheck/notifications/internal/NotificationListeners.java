@@ -1,0 +1,55 @@
+package app.soundcheck.notifications.internal;
+
+import app.soundcheck.content.CommentAdded;
+import app.soundcheck.content.PostFailed;
+import app.soundcheck.content.PostLiked;
+import app.soundcheck.content.PostPublished;
+import app.soundcheck.social.UserFollowed;
+import org.springframework.modulith.events.ApplicationModuleListener;
+import org.springframework.stereotype.Component;
+
+/**
+ * Turns domain events into inbox rows. Each listener runs after the publishing transaction
+ * has committed, in its own transaction, and is retried through the outbox if it fails; so a like is
+ * never slowed down or failed by its notification. Not restricted to a role: {@code PostPublished} after
+ * a transcode is published in the worker process, and a listener only runs where the event is published.
+ */
+@Component
+class NotificationListeners {
+
+    private final NotificationService notifications;
+
+    NotificationListeners(NotificationService notifications) {
+        this.notifications = notifications;
+    }
+
+    @ApplicationModuleListener
+    void on(UserFollowed event) {
+        notifications.record(event.followeeId(), "NEW_FOLLOWER", event.followerId(), null, null);
+    }
+
+    /** Collapsed: while an unread like notification for the post exists, further likes add nothing. */
+    @ApplicationModuleListener
+    void on(PostLiked event) {
+        notifications.record(event.postAuthorId(), "POST_LIKED", event.likerId(), event.postId(), null);
+    }
+
+    @ApplicationModuleListener
+    void on(CommentAdded event) {
+        notifications.record(
+                event.postAuthorId(), "POST_COMMENTED", event.commenterId(), event.postId(), event.commentId());
+    }
+
+    /** Only for a post that had been waiting for its clip; one published at once needs no "ready" news. */
+    @ApplicationModuleListener
+    void on(PostPublished event) {
+        if (event.afterProcessing()) {
+            notifications.record(event.authorId(), "POST_READY", null, event.postId(), null);
+        }
+    }
+
+    @ApplicationModuleListener
+    void on(PostFailed event) {
+        notifications.record(event.authorId(), "POST_FAILED", null, event.postId(), null);
+    }
+}

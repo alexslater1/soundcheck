@@ -495,6 +495,25 @@
         "required" : [ "id", "lat", "lng", "name" ],
         "type" : "object"
       },
+      "Inbox" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NotificationView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          },
+          "unreadCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "unreadCount" ],
+        "type" : "object"
+      },
       "LikeState" : {
         "properties" : {
           "likeCount" : {
@@ -566,6 +585,46 @@
           }
         },
         "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role" ],
+        "type" : "object"
+      },
+      "NotificationView" : {
+        "properties" : {
+          "actor" : {
+            "$ref" : "#/components/schemas/UserSummary",
+            "type" : "null"
+          },
+          "commentId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "likeCount" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "postId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "postThumbUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "read" : {
+            "type" : "boolean"
+          },
+          "type" : {
+            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "id", "read", "type" ],
         "type" : "object"
       },
       "PageArtistSummary" : {
@@ -787,6 +846,16 @@
         "required" : [ "counts", "displayName", "handle", "id", "isBlocked", "isFollowing" ],
         "type" : "object"
       },
+      "ReadRequest" : {
+        "properties" : {
+          "upTo" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "upTo" ],
+        "type" : "object"
+      },
       "RefreshRequest" : {
         "properties" : {
           "refreshToken" : {
@@ -866,6 +935,16 @@
           }
         },
         "required" : [ "source" ],
+        "type" : "object"
+      },
+      "UnreadResponse" : {
+        "properties" : {
+          "unreadCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "unreadCount" ],
         "type" : "object"
       },
       "UpdateMeRequest" : {
@@ -2045,6 +2124,72 @@
         "tags" : [ "media" ]
       }
     },
+    "/api/v1/notifications" : {
+      "get" : {
+        "operationId" : "listNotifications",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Inbox"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The inbox, newest first, with the unread count",
+        "tags" : [ "notifications" ]
+      }
+    },
+    "/api/v1/notifications/read" : {
+      "post" : {
+        "operationId" : "markNotificationsRead",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReadRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mark everything up to a notification as read",
+        "tags" : [ "notifications" ]
+      }
+    },
     "/api/v1/posts" : {
       "post" : {
         "operationId" : "createPost",
@@ -2721,6 +2866,9 @@
   "tags" : [ {
     "description" : "Gigs, artists, venues, attendance, search",
     "name" : "catalog"
+  }, {
+    "description" : "The notification inbox",
+    "name" : "notifications"
   }, {
     "description" : "Direct-to-storage uploads and playback",
     "name" : "media"
