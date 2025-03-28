@@ -40,3 +40,14 @@ write=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT --data x "$BASE/should-no
 delete=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE "$BASE/master.m3u8")
 [ "$delete" = 405 ] || { echo "FAIL: DELETE through the edge answered $delete, expected 405"; exit 1; }
 echo "ok   range request 206; PUT and DELETE refused with 405"
+
+# Only media/ is served. The originals live under uploads/ in the same bucket: a path that climbs out
+# of /media/ (plain or percent-encoded) must not be answered by the bucket, and neither must a listing.
+ROOT=${PUBLIC_BASE_URL:-http://localhost:8088}
+for path in "/media/../uploads/" "/media/%2e%2e/uploads/" "/media/..%2fuploads/" "/media/?list-type=2"; do
+  body=$(curl -sS --path-as-is "$ROOT$path" || true)
+  if echo "$body" | grep -q '<ListBucketResult\|<Contents>'; then
+    echo "FAIL $path: the bucket answered with a listing"; exit 1
+  fi
+done
+echo "ok   no listing, and no way out of /media/ to the originals"
