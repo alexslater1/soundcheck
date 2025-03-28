@@ -11,6 +11,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.JSONB;
 import org.jspecify.annotations.Nullable;
@@ -118,10 +119,7 @@ public class TranscodeJobs {
     public boolean renewLease(Claim claim, String workerId, Instant now) {
         return dsl.update(MEDIA_ASSET)
                         .set(MEDIA_ASSET.CLAIMED_AT, at(now))
-                        .where(MEDIA_ASSET.ID.eq(claim.mediaId()))
-                        .and(MEDIA_ASSET.STATUS.eq("PROCESSING"))
-                        .and(MEDIA_ASSET.CLAIMED_BY.eq(workerId))
-                        .and(MEDIA_ASSET.ATTEMPTS.eq(claim.attempt()))
+                        .where(held(claim, workerId))
                         .execute()
                 == 1;
     }
@@ -156,13 +154,10 @@ public class TranscodeJobs {
                 .setNull(MEDIA_ASSET.CLAIMED_BY)
                 .setNull(MEDIA_ASSET.CLAIMED_AT)
                 .setNull(MEDIA_ASSET.FAILURE_REASON)
-                .where(MEDIA_ASSET.ID.eq(claim.mediaId()))
-                .and(MEDIA_ASSET.STATUS.eq("PROCESSING"))
-                .and(MEDIA_ASSET.CLAIMED_BY.eq(workerId))
-                .and(MEDIA_ASSET.ATTEMPTS.eq(claim.attempt()))
+                .where(held(claim, workerId))
                 .execute();
         if (updated == 0) {
-            closeJob(claim.jobId(), "FAILED", "lease lost before finalize", timings, now);
+            // Whoever took the asset over has already closed this attempt's job row.
             return false;
         }
         closeJob(claim.jobId(), "SUCCEEDED", null, timings, now);
@@ -170,58 +165,92 @@ public class TranscodeJobs {
         return true;
     }
 
-    /** The file can never be transcoded: REJECTED, no retry, {@link MediaFailed}. */
-    public void reject(Claim claim, String reason, Timings timings, Instant now) {
-        dsl.update(MEDIA_ASSET)
+    /** What {@link #fail} did. */
+    public enum Failure {
+        /** Back to UPLOADED: it will be tried again. */
+        RETRY,
+        /** Out of attempts: FAILED, {@link MediaFailed} published. */
+        TERMINAL,
+        /** This worker no longer holds the attempt (another one took over, or it already finished): nothing written. */
+        NOT_OWNER
+    }
+
+    /**
+     * The file can never be transcoded: REJECTED, no retry, {@link MediaFailed}. Like every step after
+     * the claim, it only applies while this worker still holds this attempt.
+     *
+     * @return false when it does not (nothing was written)
+     */
+    public boolean reject(Claim claim, String workerId, String reason, Timings timings, Instant now) {
+        int updated = dsl.update(MEDIA_ASSET)
                 .set(MEDIA_ASSET.STATUS, "REJECTED")
                 .set(MEDIA_ASSET.FAILURE_REASON, reason)
                 .set(MEDIA_ASSET.UPDATED_AT, at(now))
                 .setNull(MEDIA_ASSET.CLAIMED_BY)
                 .setNull(MEDIA_ASSET.CLAIMED_AT)
-                .where(MEDIA_ASSET.ID.eq(claim.mediaId()))
+                .where(held(claim, workerId))
                 .execute();
+        if (updated == 0) {
+            return false;
+        }
         closeJob(claim.jobId(), "REJECTED", reason, timings, now);
         events.publishEvent(new MediaFailed(claim.mediaId(), claim.ownerId(), reason, true, now));
+        return true;
     }
 
     /**
      * An attempt failed. Below the attempt limit the asset goes back to UPLOADED (lease cleared) to be
      * tried again; at the limit it is FAILED and {@link MediaFailed} is published.
-     *
-     * @return true when the asset is now FAILED for good
      */
-    public boolean fail(Claim claim, String error, int maxAttempts, Timings timings, Instant now) {
+    public Failure fail(Claim claim, String workerId, String error, int maxAttempts, Timings timings, Instant now) {
         boolean terminal = claim.attempt() >= maxAttempts;
-        dsl.update(MEDIA_ASSET)
+        int updated = dsl.update(MEDIA_ASSET)
                 .set(MEDIA_ASSET.STATUS, terminal ? "FAILED" : "UPLOADED")
                 .set(MEDIA_ASSET.FAILURE_REASON, error)
                 .set(MEDIA_ASSET.UPDATED_AT, at(now))
                 .setNull(MEDIA_ASSET.CLAIMED_BY)
                 .setNull(MEDIA_ASSET.CLAIMED_AT)
-                .where(MEDIA_ASSET.ID.eq(claim.mediaId()))
-                .and(MEDIA_ASSET.STATUS.eq("PROCESSING"))
-                .and(MEDIA_ASSET.ATTEMPTS.eq(claim.attempt()))
+                .where(held(claim, workerId))
                 .execute();
+        if (updated == 0) {
+            return Failure.NOT_OWNER;
+        }
         closeJob(claim.jobId(), "FAILED", error, timings, now);
         if (terminal) {
             events.publishEvent(new MediaFailed(claim.mediaId(), claim.ownerId(), error, false, now));
         }
-        return terminal;
+        return terminal ? Failure.TERMINAL : Failure.RETRY;
     }
 
-    /** Shutdown mid-job: the attempt is handed back (it does not count) and the job row says RELEASED. */
-    public void release(Claim claim, Timings timings, Instant now) {
-        dsl.update(MEDIA_ASSET)
+    /**
+     * Shutdown mid-job: the attempt is handed back (it does not count) and the job row says RELEASED.
+     *
+     * @return false when this worker no longer held the attempt
+     */
+    public boolean release(Claim claim, String workerId, Timings timings, Instant now) {
+        int updated = dsl.update(MEDIA_ASSET)
                 .set(MEDIA_ASSET.STATUS, "UPLOADED")
                 .set(MEDIA_ASSET.ATTEMPTS, MEDIA_ASSET.ATTEMPTS.minus(1))
                 .set(MEDIA_ASSET.UPDATED_AT, at(now))
                 .setNull(MEDIA_ASSET.CLAIMED_BY)
                 .setNull(MEDIA_ASSET.CLAIMED_AT)
-                .where(MEDIA_ASSET.ID.eq(claim.mediaId()))
-                .and(MEDIA_ASSET.STATUS.eq("PROCESSING"))
-                .and(MEDIA_ASSET.ATTEMPTS.eq(claim.attempt()))
+                .where(held(claim, workerId))
                 .execute();
+        if (updated == 0) {
+            return false;
+        }
         closeJob(claim.jobId(), "RELEASED", "worker shutting down", timings, now);
+        return true;
+    }
+
+    /** "This worker still holds this attempt": the guard of every write after the claim. */
+    private static Condition held(Claim claim, String workerId) {
+        return MEDIA_ASSET
+                .ID
+                .eq(claim.mediaId())
+                .and(MEDIA_ASSET.STATUS.eq("PROCESSING"))
+                .and(MEDIA_ASSET.CLAIMED_BY.eq(workerId))
+                .and(MEDIA_ASSET.ATTEMPTS.eq(claim.attempt()));
     }
 
     private void closeJob(UUID jobId, String status, @Nullable String error, Timings timings, Instant now) {

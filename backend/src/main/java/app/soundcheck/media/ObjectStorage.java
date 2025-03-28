@@ -20,8 +20,11 @@ public interface ObjectStorage {
     /** Starts a multipart upload and returns its id. */
     String createMultipart(String key, String contentType);
 
-    /** Presigned PUT for one part (1-based) of a multipart upload. */
-    PresignedUrl presignUploadPart(String key, String uploadId, int partNumber, Duration ttl);
+    /**
+     * Presigned PUT for one part (1-based) of a multipart upload. The part's length is part of the
+     * signature: without it a part URL would accept anything up to S3's 5 GiB part limit.
+     */
+    PresignedUrl presignUploadPart(String key, String uploadId, int partNumber, long contentLength, Duration ttl);
 
     /**
      * Completes a multipart upload from the parts' ETags, in part order.
@@ -31,6 +34,7 @@ public interface ObjectStorage {
      */
     void completeMultipart(String key, String uploadId, List<CompletedPart> parts);
 
+    /** Abandons a multipart upload; an upload that no longer exists (already aborted or expired) is not an error. */
     void abortMultipart(String key, String uploadId);
 
     /** Object metadata, or empty if the key does not exist. */
@@ -43,7 +47,8 @@ public interface ObjectStorage {
     /** Uploads a file with a {@code Cache-Control} header (versioned media outputs are immutable). */
     void putFile(String key, Path source, String contentType, String cacheControl);
 
-    void copy(String sourceKey, String targetKey);
+    /** Copies an object within the bucket, giving the copy its own content type and {@code Cache-Control}. */
+    void copy(String sourceKey, String targetKey, String contentType, String cacheControl);
 
     void delete(String key);
 

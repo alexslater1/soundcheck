@@ -19,12 +19,27 @@ public final class FfmpegCommands {
     static final int POSTER_LONG_EDGE = 720;
     static final int THUMB_LONG_EDGE = 320;
 
+    /**
+     * Input options for the uploaded file, which is untrusted. FFmpeg guesses the container from the
+     * content, and some "containers" are scripts: a playlist or a concat file can name other files and
+     * URLs for FFmpeg to open. Only local files and the containers of the accepted video types
+     * (MP4/QuickTime, WebM/Matroska) are allowed, whatever FFmpeg's own defaults are.
+     */
+    /** Errors only, no progress lines: the log is kept small and its tail is what went wrong. */
+    static final List<String> QUIET_FFMPEG =
+            List.of("ffmpeg", "-hide_banner", "-nostdin", "-y", "-loglevel", "error", "-nostats");
+
+    static final List<String> UNTRUSTED_INPUT =
+            List.of("-protocol_whitelist", "file", "-format_whitelist", "mov,mp4,m4a,3gp,3g2,mj2,matroska,webm");
+
     private FfmpegCommands() {}
 
     /** {@code ffprobe} invocation whose JSON {@link ProbeParser} reads. */
     public static List<String> probe(Path input) {
-        return List.of(
-                "ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", input.toString());
+        List<String> args = new ArrayList<>(List.of("ffprobe", "-v", "error"));
+        args.addAll(UNTRUSTED_INPUT);
+        args.addAll(List.of("-print_format", "json", "-show_format", "-show_streams", input.toString()));
+        return args;
     }
 
     /**
@@ -34,8 +49,9 @@ public final class FfmpegCommands {
      * displayed ones.
      */
     public static List<String> transcode(Path input, Path outputDir, ProbeResult probe, List<Rung.Sized> ladder) {
-        List<String> args =
-                new ArrayList<>(List.of("ffmpeg", "-hide_banner", "-nostdin", "-y", "-i", input.toString()));
+        List<String> args = new ArrayList<>(QUIET_FFMPEG);
+        args.addAll(UNTRUSTED_INPUT);
+        args.addAll(List.of("-i", input.toString()));
         if (!probe.hasAudio()) {
             // Players expect an audio track in every variant: add silence, cut to the video's length.
             args.addAll(List.of("-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"));
@@ -65,6 +81,8 @@ public final class FfmpegCommands {
             args.addAll(List.of("-map", "[v" + i + "o]", "-map", audioInput));
         }
 
+        // The outputs are public: nothing of the source's metadata (title, device, GPS position) is copied.
+        args.addAll(List.of("-map_metadata", "-1", "-map_chapters", "-1"));
         args.addAll(List.of(
                 "-c:v", "libx264",
                 "-preset", "veryfast",
@@ -132,11 +150,9 @@ public final class FfmpegCommands {
         String scale = probe.displayWidth() >= probe.displayHeight()
                 ? "scale=w='min(" + longEdge + ",iw)':h=-2"
                 : "scale=w=-2:h='min(" + longEdge + ",ih)'";
-        List<String> args = new ArrayList<>(List.of(
-                "ffmpeg",
-                "-hide_banner",
-                "-nostdin",
-                "-y",
+        List<String> args = new ArrayList<>(QUIET_FFMPEG);
+        args.addAll(UNTRUSTED_INPUT);
+        args.addAll(List.of(
                 "-ss",
                 String.format(Locale.ROOT, "%.3f", seconds),
                 "-i",
@@ -144,7 +160,9 @@ public final class FfmpegCommands {
                 "-frames:v",
                 "1",
                 "-vf",
-                scale));
+                scale,
+                "-map_metadata",
+                "-1"));
         args.addAll(codec);
         args.add(output.toString());
         return args;

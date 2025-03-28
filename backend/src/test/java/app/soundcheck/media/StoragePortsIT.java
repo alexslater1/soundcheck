@@ -67,13 +67,14 @@ class StoragePortsIT extends IntegrationTest {
 
         String uploadId = storage.createMultipart(key, "video/mp4");
         String etag1 = uploadPart(
-                storage.presignUploadPart(key, uploadId, 1, Duration.ofMinutes(5))
+                storage.presignUploadPart(key, uploadId, 1, part1.length, Duration.ofMinutes(5))
                         .url(),
                 part1);
-        String etag2 = uploadPart(
-                storage.presignUploadPart(key, uploadId, 2, Duration.ofMinutes(5))
-                        .url(),
-                part2);
+        URI secondPart = storage.presignUploadPart(key, uploadId, 2, part2.length, Duration.ofMinutes(5))
+                .url();
+        // The part's length is one of the signed headers: real S3 refuses a body of another size.
+        assertThat(secondPart.getQuery()).containsPattern("X-Amz-SignedHeaders=[^&]*content-length");
+        String etag2 = uploadPart(secondPart, part2);
         storage.completeMultipart(
                 key,
                 uploadId,
@@ -85,6 +86,8 @@ class StoragePortsIT extends IntegrationTest {
         String abortedId = storage.createMultipart(abortedKey, "video/mp4");
         storage.abortMultipart(abortedKey, abortedId);
         assertThat(storage.head(abortedKey)).isEmpty();
+        // Aborting what is already gone (a second call, or after the lifecycle rule) is not an error.
+        storage.abortMultipart(abortedKey, abortedId);
     }
 
     @Test
@@ -94,7 +97,8 @@ class StoragePortsIT extends IntegrationTest {
         String key = "media/" + UUID.randomUUID() + "/v1/poster.jpg";
 
         storage.putFile(key, source, "image/jpeg");
-        storage.copy(key, key + ".copy");
+        storage.copy(key, key + ".copy", "image/jpeg", "public, max-age=60");
+        assertThat(storage.head(key + ".copy").orElseThrow().contentType()).isEqualTo("image/jpeg");
         Path target = dir.resolve("downloaded.jpg");
         storage.getToFile(key + ".copy", target);
 

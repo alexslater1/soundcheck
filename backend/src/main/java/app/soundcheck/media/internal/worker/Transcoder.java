@@ -13,6 +13,8 @@ public interface Transcoder {
 
     /**
      * @throws app.soundcheck.media.internal.transcode.MediaRejectedException when the file is not a usable video
+     * @throws TranscodeException when ffprobe itself could not run (missing, timed out, killed): not a
+     *     verdict on the file
      */
     ProbeResult probe(Path input);
 
@@ -26,9 +28,22 @@ public interface Transcoder {
     /** Kills whatever process is running for the current thread's job (graceful shutdown). */
     void abortRunning();
 
-    /** The process ran longer than allowed, or exited with an error. Retried like any other failure. */
+    /**
+     * The tool could not do its job: it could not be started, ran longer than allowed, was killed, or
+     * exited with an error. Retried like any other failure.
+     */
     class TranscodeException extends RuntimeException {
         public TranscodeException(String message) {
+            super(message);
+        }
+    }
+
+    /**
+     * The tool ran to the end by itself and said no (a non-zero exit code). For ffprobe that is a verdict
+     * on the file; a tool that never ran or was killed says nothing about the file.
+     */
+    class ToolRefusedException extends TranscodeException {
+        public ToolRefusedException(String message) {
             super(message);
         }
     }

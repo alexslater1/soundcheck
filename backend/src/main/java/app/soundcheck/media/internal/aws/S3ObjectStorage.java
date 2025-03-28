@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Component;
+import software.amazon.awssdk.awscore.AwsRequestOverrideConfiguration;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
@@ -17,7 +18,9 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.MetadataDirective;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.NoSuchUploadException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
@@ -28,6 +31,14 @@ import software.amazon.awssdk.services.s3.presigner.model.UploadPartPresignReque
 /** {@link ObjectStorage} on the AWS SDK v2 S3 client (real S3 or LocalStack, see {@link AwsClientsConfig}). */
 @Component
 class S3ObjectStorage implements ObjectStorage {
+
+    /**
+     * Reading or writing a whole file may take far longer than the 30 s the client allows an ordinary call
+     * (a 500 MB original on a slow link): transfers get their own limit.
+     */
+    private static final AwsRequestOverrideConfiguration TRANSFER = AwsRequestOverrideConfiguration.builder()
+            .apiCallTimeout(Duration.ofMinutes(15))
+            .build();
 
     private final S3Client s3;
     private final S3Presigner presigner;
@@ -64,7 +75,8 @@ class S3ObjectStorage implements ObjectStorage {
     }
 
     @Override
-    public PresignedUrl presignUploadPart(String key, String uploadId, int partNumber, Duration ttl) {
+    public PresignedUrl presignUploadPart(
+            String key, String uploadId, int partNumber, long contentLength, Duration ttl) {
         var presigned = presigner.presignUploadPart(UploadPartPresignRequest.builder()
                 .signatureDuration(ttl)
                 .uploadPartRequest(UploadPartRequest.builder()
@@ -72,6 +84,7 @@ class S3ObjectStorage implements ObjectStorage {
                         .key(key)
                         .uploadId(uploadId)
                         .partNumber(partNumber)
+                        .contentLength(contentLength)
                         .build())
                 .build());
         return new PresignedUrl(URI.create(presigned.url().toString()), presigned.expiration());
@@ -108,11 +121,15 @@ class S3ObjectStorage implements ObjectStorage {
 
     @Override
     public void abortMultipart(String key, String uploadId) {
-        s3.abortMultipartUpload(AbortMultipartUploadRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .uploadId(uploadId)
-                .build());
+        try {
+            s3.abortMultipartUpload(AbortMultipartUploadRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .uploadId(uploadId)
+                    .build());
+        } catch (NoSuchUploadException e) {
+            // Already aborted (by an earlier call, or by the bucket's lifecycle rule after a day): done.
+        }
     }
 
     @Override
@@ -129,7 +146,13 @@ class S3ObjectStorage implements ObjectStorage {
 
     @Override
     public void getToFile(String key, Path target) {
-        s3.getObject(GetObjectRequest.builder().bucket(bucket).key(key).build(), target);
+        s3.getObject(
+                GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .overrideConfiguration(TRANSFER)
+                        .build(),
+                target);
     }
 
     @Override
@@ -139,6 +162,7 @@ class S3ObjectStorage implements ObjectStorage {
                         .bucket(bucket)
                         .key(key)
                         .contentType(contentType)
+                        .overrideConfiguration(TRANSFER)
                         .build(),
                 source);
     }
@@ -151,17 +175,22 @@ class S3ObjectStorage implements ObjectStorage {
                         .key(key)
                         .contentType(contentType)
                         .cacheControl(cacheControl)
+                        .overrideConfiguration(TRANSFER)
                         .build(),
                 source);
     }
 
     @Override
-    public void copy(String sourceKey, String targetKey) {
+    public void copy(String sourceKey, String targetKey, String contentType, String cacheControl) {
         s3.copyObject(CopyObjectRequest.builder()
                 .sourceBucket(bucket)
                 .sourceKey(sourceKey)
                 .destinationBucket(bucket)
                 .destinationKey(targetKey)
+                // REPLACE: the copy gets the headers given here instead of inheriting the original's.
+                .metadataDirective(MetadataDirective.REPLACE)
+                .contentType(contentType)
+                .cacheControl(cacheControl)
                 .build());
     }
 

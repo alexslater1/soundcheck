@@ -273,7 +273,7 @@ class TranscodePipelineIT extends IntegrationTest {
         assertThat(events.stream(MediaReady.class).filter(e -> e.mediaId().equals(mediaId)))
                 .hasSize(1);
         assertThat(queueDepth()).isZero(); // the message was deleted
-        assertThat(Files.exists(Path.of(props.workDir(), mediaId.toString()))).isFalse(); // and the temp files
+        assertThat(Files.exists(Path.of(props.workDir(), mediaId + "-a1"))).isFalse(); // and the temp files
 
         // Metrics: a timer per stage, the queue wait, the outcome and the bytes in and out.
         for (String stage : List.of("download", "probe", "transcode", "upload")) {
@@ -336,6 +336,13 @@ class TranscodePipelineIT extends IntegrationTest {
                         .path("status")
                         .asText(""))
                 .isEqualTo("REJECTED");
+
+        // A playlist labelled video/mp4 (it could name other files or URLs for FFmpeg to open) is refused
+        // the same way: only MP4/QuickTime and WebM/Matroska containers are read.
+        UUID playlist = upload(
+                "#EXTM3U\n#EXT-X-TARGETDURATION:10\n#EXTINF:10,\nfile:///etc/hostname\n#EXT-X-ENDLIST\n".getBytes());
+        assertThat(pollUntilHandled(worker)).isEqualTo(Outcome.REJECTED);
+        assertThat(asset(playlist).get("status")).isEqualTo("REJECTED");
     }
 
     @Test
@@ -413,8 +420,21 @@ class TranscodePipelineIT extends IntegrationTest {
         assertThat(takeover.attempt()).isEqualTo(2);
         assertThat(jobRows(mediaId)).extracting(r -> r.get("status")).containsExactly("FAILED", "RUNNING");
         assertThat(jobRows(mediaId).getFirst().get("error").toString()).contains("lease expired");
-        // The first worker, finishing late, cannot overwrite the new owner's work.
+        // The first worker, finishing late, cannot overwrite the new owner's work: every write after the
+        // claim requires still holding that attempt, whatever the write is.
+        TranscodeJobs.Timings none = new TranscodeJobs.Timings(null, null, null, null, 0);
         assertThat(jobs.renewLease(held, holder, muchLater)).isFalse();
+        assertThat(jobs.reject(held, holder, "late verdict", none, muchLater)).isFalse();
+        assertThat(jobs.fail(held, holder, "late failure", props.maxAttempts(), none, muchLater))
+                .isEqualTo(TranscodeJobs.Failure.NOT_OWNER);
+        assertThat(jobs.release(held, holder, none, muchLater)).isFalse();
+        Record afterLateWrites = asset(mediaId);
+        assertThat(afterLateWrites.get("status")).isEqualTo("PROCESSING");
+        assertThat(afterLateWrites.get("claimed_by")).isEqualTo("worker-9");
+        assertThat(afterLateWrites.get("attempts")).isEqualTo(2);
+        assertThat(jobRows(mediaId)).extracting(r -> r.get("status")).containsExactly("FAILED", "RUNNING");
+        assertThat(events.stream(MediaFailed.class).filter(e -> e.mediaId().equals(mediaId)))
+                .isEmpty();
 
         queue.delete(message.receiptHandle()); // nobody will finish this asset; leave the queue clean
     }
@@ -458,6 +478,114 @@ class TranscodePipelineIT extends IntegrationTest {
         assertThat(pollUntilHandled(worker)).isEqualTo(Outcome.READY);
         assertThat(asset(mediaId).get("attempts")).isEqualTo(1);
         assertThat(jobRows(mediaId)).extracting(r -> r.get("status")).containsExactly("RELEASED", "SUCCEEDED");
+    }
+
+    @Test
+    void aQueueErrorAfterTheClipIsReadyDoesNotTurnSuccessIntoFailure() throws Exception {
+        // The database says READY; then deleting the message fails (SQS hiccup).
+        List<String> undeleted = new ArrayList<>();
+        JobQueue flaky = new DelegatingQueue(queue) {
+            @Override
+            public void delete(String receiptHandle) {
+                undeleted.add(receiptHandle);
+                throw new IllegalStateException("SQS is having a moment");
+            }
+        };
+        TranscodeWorker unlucky =
+                new TranscodeWorker(flaky, storage, jobs, realTranscoder, props, json, clock, meters, spans);
+        UUID mediaId = upload(clip);
+
+        assertThat(pollUntilHandled(unlucky)).isEqualTo(Outcome.READY);
+
+        assertThat(asset(mediaId).get("status")).isEqualTo("READY");
+        assertThat(jobRows(mediaId)).extracting(r -> r.get("status")).containsExactly("SUCCEEDED");
+        assertThat(events.stream(MediaReady.class).filter(e -> e.mediaId().equals(mediaId)))
+                .hasSize(1);
+        assertThat(events.stream(MediaFailed.class).filter(e -> e.mediaId().equals(mediaId)))
+                .isEmpty();
+        // The message is still on the queue; when it comes back it is a duplicate and is acknowledged.
+        queue.changeVisibility(undeleted.getFirst(), Duration.ZERO);
+        assertThat(pollUntilHandled(worker)).isEqualTo(Outcome.DUPLICATE);
+        assertThat(queueDepth()).isZero();
+    }
+
+    @Test
+    void aQueueErrorRightAfterTheClaimDoesNotLeaveTheAssetStuckInProcessing() throws Exception {
+        JobQueue flaky = new DelegatingQueue(queue) {
+            private boolean failed;
+
+            @Override
+            public void changeVisibility(String receiptHandle, Duration timeout) {
+                if (!failed && !timeout.isZero()) {
+                    failed = true; // the first extension, straight after the claim
+                    throw new IllegalStateException("receipt handle expired");
+                }
+                super.changeVisibility(receiptHandle, timeout);
+            }
+        };
+        TranscodeWorker unlucky =
+                new TranscodeWorker(flaky, storage, jobs, realTranscoder, props, json, clock, meters, spans);
+        UUID mediaId = upload(clip);
+
+        assertThat(pollUntilHandled(unlucky)).isEqualTo(Outcome.RETRY);
+
+        // Handed back as a failed attempt, not left PROCESSING until the lease runs out.
+        Record asset = asset(mediaId);
+        assertThat(asset.get("status")).isEqualTo("UPLOADED");
+        assertThat(asset.get("claimed_by")).isNull();
+        assertThat(jobRows(mediaId)).extracting(r -> r.get("status")).containsExactly("FAILED");
+        assertThat(pollUntilHandled(worker)).isEqualTo(Outcome.READY);
+        assertThat(asset(mediaId).get("attempts")).isEqualTo(2);
+    }
+
+    @Test
+    void theHeartbeatKeepsExtendingTheMessageAndTheLeaseWhileAJobRuns() throws Exception {
+        List<Duration> extensions = new java.util.concurrent.CopyOnWriteArrayList<>();
+        JobQueue counting = new DelegatingQueue(queue) {
+            @Override
+            public void changeVisibility(String receiptHandle, Duration timeout) {
+                extensions.add(timeout);
+                super.changeVisibility(receiptHandle, timeout);
+            }
+        };
+        WorkerProperties quickBeat = new WorkerProperties(
+                false,
+                1,
+                props.pollWait(),
+                props.visibility(),
+                Duration.ofMillis(100),
+                props.lease(),
+                props.maxAttempts(),
+                props.retryDelay(),
+                props.shutdownGrace(),
+                props.workDir());
+        List<Object> leaseSeen = new ArrayList<>();
+        UUID[] id = new UUID[1];
+        Transcoder slow = new DelegatingTranscoder(realTranscoder) {
+            @Override
+            public void transcode(Path input, Path outputDir, ProbeResult probe, List<Rung.Sized> ladder) {
+                leaseSeen.add(asset(id[0]).get("claimed_at"));
+                try {
+                    Thread.sleep(600); // a transcode that outlasts several heartbeats
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                leaseSeen.add(asset(id[0]).get("claimed_at"));
+                throw new MediaRejectedException("stopped by the test");
+            }
+        };
+        TranscodeWorker beating =
+                new TranscodeWorker(counting, storage, jobs, slow, quickBeat, json, clock, meters, spans);
+        id[0] = upload(clip);
+
+        assertThat(pollUntilHandled(beating)).isEqualTo(Outcome.REJECTED);
+
+        // One extension straight after the claim, then one per heartbeat.
+        assertThat(extensions.stream().filter(props.visibility()::equals).count())
+                .isGreaterThanOrEqualTo(4);
+        // The database lease moved forward while the job ran.
+        assertThat(leaseSeen).hasSize(2);
+        assertThat(leaseSeen.get(1).toString()).isGreaterThan(leaseSeen.get(0).toString());
     }
 
     @Test
@@ -611,6 +739,40 @@ class TranscodePipelineIT extends IntegrationTest {
         return Integer.parseInt(sqs.getQueueAttributes(b -> b.queueUrl(url).attributeNames(attribute))
                 .attributes()
                 .get(attribute));
+    }
+
+    /** Passes everything to the real queue; tests override the one call they want to break or watch. */
+    private static class DelegatingQueue implements JobQueue {
+        private final JobQueue delegate;
+
+        DelegatingQueue(JobQueue delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public String send(String body, Map<String, String> attributes) {
+            return delegate.send(body, attributes);
+        }
+
+        @Override
+        public List<QueueMessage> receive(int maxMessages, Duration wait) {
+            return delegate.receive(maxMessages, wait);
+        }
+
+        @Override
+        public void delete(String receiptHandle) {
+            delegate.delete(receiptHandle);
+        }
+
+        @Override
+        public void changeVisibility(String receiptHandle, Duration timeout) {
+            delegate.changeVisibility(receiptHandle, timeout);
+        }
+
+        @Override
+        public QueueAttributes attributes() {
+            return delegate.attributes();
+        }
     }
 
     /** Passes everything to the real transcoder; tests override the one method they want to break. */

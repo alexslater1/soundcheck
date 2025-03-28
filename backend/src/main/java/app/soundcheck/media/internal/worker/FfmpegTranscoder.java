@@ -10,7 +10,9 @@ import app.soundcheck.shared.config.Roles;
 import com.fasterxml.jackson.core.JacksonException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -23,7 +25,7 @@ import org.springframework.stereotype.Component;
 /**
  * Runs ffprobe and ffmpeg as child processes. Arguments are passed as a list (no shell). Every process
  * has a deadline; when it passes, the process and its children are killed.
- * tree"). Output goes to a log file next to the job's files, of which the tail is quoted in errors.
+ * Output goes to files next to the job's files; the tail of the error log is quoted in errors.
  */
 @Component
 @ConditionalOnRole(Roles.WORKER)
@@ -32,7 +34,10 @@ class FfmpegTranscoder implements Transcoder {
     private static final Duration SHORT = Duration.ofSeconds(60);
 
     private final JsonMapper json;
+    private static final int TAIL_BYTES = 800;
+
     private final Set<Process> running = ConcurrentHashMap.newKeySet();
+    private final Set<Process> aborted = ConcurrentHashMap.newKeySet();
 
     FfmpegTranscoder(JsonMapper json) {
         this.json = json;
@@ -43,8 +48,10 @@ class FfmpegTranscoder implements Transcoder {
         String output;
         try {
             output = run(FfmpegCommands.probe(input), input.resolveSibling("ffprobe.log"), SHORT);
-        } catch (TranscodeException e) {
-            // ffprobe exits non-zero for files it cannot read at all: not a video, truncated, garbage.
+        } catch (ToolRefusedException e) {
+            // ffprobe ran and exited non-zero: the file cannot be read as one of the accepted containers
+            // (not a video, truncated, garbage, or a playlist dressed up as one). That is final. Any other
+            // failure (ffprobe missing, timed out, killed on shutdown) propagates and is retried.
             throw new MediaRejectedException("not a readable media file");
         }
         try {
@@ -74,15 +81,25 @@ class FfmpegTranscoder implements Transcoder {
 
     @Override
     public void abortRunning() {
-        running.forEach(FfmpegTranscoder::kill);
+        for (Process process : running) {
+            // Remembered, so that the exit code of a killed process is not mistaken for the tool's verdict.
+            aborted.add(process);
+            kill(process);
+        }
     }
 
-    private String run(List<String> command, Path log, Duration timeout) {
+    /**
+     * Runs one process to the end. Standard output goes to one file and is returned; standard error goes
+     * to {@code log}, of which only the tail is read, and only when the process failed. Both are decoded
+     * leniently: media files carry tags in any encoding, and a stray byte must not fail a good video.
+     */
+    String run(List<String> command, Path log, Duration timeout) {
+        Path out = log.resolveSibling(log.getFileName() + ".out");
         Process process;
         try {
             process = new ProcessBuilder(command)
-                    .redirectErrorStream(true)
-                    .redirectOutput(log.toFile())
+                    .redirectOutput(out.toFile())
+                    .redirectError(log.toFile())
                     .start();
         } catch (IOException e) {
             throw new TranscodeException(command.getFirst() + " could not be started: " + e.getMessage());
@@ -93,12 +110,14 @@ class FfmpegTranscoder implements Transcoder {
                 kill(process);
                 throw new TranscodeException(command.getFirst() + " timed out after " + timeout.toSeconds() + " s");
             }
-            String output = Files.readString(log);
-            if (process.exitValue() != 0) {
-                throw new TranscodeException(
-                        command.getFirst() + " exited with " + process.exitValue() + ": " + tail(output));
+            if (aborted.remove(process)) {
+                throw new TranscodeException(command.getFirst() + " was stopped");
             }
-            return output;
+            if (process.exitValue() != 0) {
+                throw new ToolRefusedException(
+                        command.getFirst() + " exited with " + process.exitValue() + ": " + tail(log));
+            }
+            return new String(Files.readAllBytes(out), StandardCharsets.UTF_8);
         } catch (InterruptedException e) {
             kill(process);
             Thread.currentThread().interrupt();
@@ -107,6 +126,7 @@ class FfmpegTranscoder implements Transcoder {
             throw new UncheckedIOException(e);
         } finally {
             running.remove(process);
+            aborted.remove(process);
         }
     }
 
@@ -115,8 +135,17 @@ class FfmpegTranscoder implements Transcoder {
         process.destroyForcibly();
     }
 
-    private static String tail(String output) {
-        String trimmed = output.strip();
-        return trimmed.length() <= 500 ? trimmed : "…" + trimmed.substring(trimmed.length() - 500);
+    /** The last {@value #TAIL_BYTES} bytes of a log file, whatever its size and encoding. */
+    static String tail(Path log) {
+        try (RandomAccessFile file = new RandomAccessFile(log.toFile(), "r")) {
+            long start = Math.max(0, file.length() - TAIL_BYTES);
+            byte[] bytes = new byte[(int) (file.length() - start)];
+            file.seek(start);
+            file.readFully(bytes);
+            String text = new String(bytes, StandardCharsets.UTF_8).strip();
+            return start > 0 ? "…" + text : text;
+        } catch (IOException e) {
+            return "(log not readable)";
+        }
     }
 }

@@ -67,6 +67,7 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
     private static final Logger log = LoggerFactory.getLogger(TranscodeWorker.class);
     private static final String IMMUTABLE = "public, max-age=31536000, immutable";
     private static final String METRIC_DURATION = "soundcheck.media.transcode.duration";
+    private static final long MAX_PLAUSIBLE_ORIGINAL_BYTES = 20L * 1024 * 1024 * 1024;
 
     /** What happened to one received message. */
     public enum Outcome {
@@ -151,12 +152,13 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
         while (!stopping) {
             try {
                 pollOnce(props.pollWait());
-            } catch (RuntimeException e) {
+            } catch (Throwable e) {
                 if (stopping) {
                     break;
                 }
-                // The queue or the database is unreachable: don't spin, try again shortly.
-                log.warn("transcode poll failed, retrying in 5 s: {}", e.toString());
+                // The queue or the database is unreachable, or a job died of an Error (out of memory):
+                // don't spin, and don't let the loop die silently while the process looks healthy.
+                log.error("transcode poll failed, retrying in 5 s: {}", e.toString());
                 try {
                     Thread.sleep(5_000);
                 } catch (InterruptedException interrupted) {
@@ -184,34 +186,50 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
     }
 
     private Outcome process(Job job, QueueMessage message, Spans.Scope span) {
-        Instant claimedAt = clock.instant();
-        Integer queueWaitMs = job.enqueuedAt() == null
-                ? null
-                : (int) Math.max(
-                        0, Duration.between(job.enqueuedAt(), claimedAt).toMillis());
-        Claim claim = jobs.claim(job.mediaId(), workerId, claimedAt, props.lease(), queueWaitMs);
-        if (claim == null) {
-            return notClaimed(job.mediaId(), message);
-        }
-        if (queueWaitMs != null) {
-            Timer.builder("soundcheck.media.queue.wait").register(meters).record(Duration.ofMillis(queueWaitMs));
-        }
-        span.tag("attempt", String.valueOf(claim.attempt()));
-        log.info("transcode started: media {} attempt {}", claim.mediaId(), claim.attempt());
-
-        // The message stays invisible to other workers while this one works, renewed by the heartbeat,
-        // which also pushes the database lease forward.
-        queue.changeVisibility(message.receiptHandle(), props.visibility());
-        ScheduledFuture<?> heartbeat = heartbeats.scheduleAtFixedRate(
-                () -> beat(claim, message),
-                props.heartbeat().toMillis(),
-                props.heartbeat().toMillis(),
-                TimeUnit.MILLISECONDS);
-
-        Stopwatch watch = new Stopwatch();
-        Path workDir = Path.of(props.workDir(), claim.mediaId().toString());
+        // Counted as busy from before the claim, so a shutdown that starts now waits for this job.
         busy.add(Thread.currentThread());
         try {
+            Instant claimedAt = clock.instant();
+            Integer queueWaitMs = job.enqueuedAt() == null
+                    ? null
+                    : (int) Math.max(
+                            0, Duration.between(job.enqueuedAt(), claimedAt).toMillis());
+            Claim claim = jobs.claim(job.mediaId(), workerId, claimedAt, props.lease(), queueWaitMs);
+            if (claim == null) {
+                return notClaimed(job.mediaId(), message);
+            }
+            if (queueWaitMs != null) {
+                Timer.builder("soundcheck.media.queue.wait").register(meters).record(Duration.ofMillis(queueWaitMs));
+            }
+            span.tag("attempt", String.valueOf(claim.attempt()));
+            log.info("transcode started: media {} attempt {}", claim.mediaId(), claim.attempt());
+
+            Outcome outcome = run(claim, message, span);
+            // The database has the final word by now. What happens to the message follows from it, and a
+            // queue error here must not change the outcome (the message would simply be delivered again).
+            settle(message, claim, outcome);
+            return outcome;
+        } finally {
+            busy.remove(Thread.currentThread());
+        }
+    }
+
+    /** Everything between the claim and the final database write; always ends in exactly one of them. */
+    private Outcome run(Claim claim, QueueMessage message, Spans.Scope span) {
+        Stopwatch watch = new Stopwatch();
+        // One directory per attempt: a takeover on the same host must not delete the files of the
+        // attempt it is replacing while that one is still running.
+        Path workDir = Path.of(props.workDir(), claim.mediaId() + "-a" + claim.attempt());
+        ScheduledFuture<?> heartbeat = null;
+        try {
+            // The message stays invisible to other workers while this one works, renewed by the
+            // heartbeat, which also pushes the database lease forward.
+            queue.changeVisibility(message.receiptHandle(), props.visibility());
+            heartbeat = heartbeats.scheduleAtFixedRate(
+                    () -> beat(claim, message),
+                    props.heartbeat().toMillis(),
+                    props.heartbeat().toMillis(),
+                    TimeUnit.MILLISECONDS);
             Outputs outputs = produce(claim, workDir, watch);
             if (!jobs.finalizeReady(claim, workerId, outputs, watch.timings(), clock.instant())) {
                 log.warn(
@@ -220,7 +238,6 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
                         claim.attempt());
                 return Outcome.LEASE_LOST;
             }
-            queue.delete(message.receiptHandle());
             log.info(
                     "transcode ready: media {} attempt {} in {} ms",
                     claim.mediaId(),
@@ -228,33 +245,73 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
                     watch.timings().totalMs());
             return Outcome.READY;
         } catch (MediaRejectedException e) {
-            jobs.reject(claim, e.getMessage(), watch.timings(), clock.instant());
-            queue.delete(message.receiptHandle());
+            stop(heartbeat);
+            if (!jobs.reject(claim, workerId, e.getMessage(), watch.timings(), clock.instant())) {
+                return Outcome.LEASE_LOST;
+            }
             log.info("transcode rejected: media {}: {}", claim.mediaId(), e.getMessage());
             return Outcome.REJECTED;
         } catch (RuntimeException e) {
+            stop(heartbeat);
             if (releasing) {
-                jobs.release(claim, watch.timings(), clock.instant());
-                queue.changeVisibility(message.receiptHandle(), Duration.ZERO);
+                if (!jobs.release(claim, workerId, watch.timings(), clock.instant())) {
+                    return Outcome.LEASE_LOST;
+                }
                 log.info("transcode released on shutdown: media {}", claim.mediaId());
                 return Outcome.RELEASED;
             }
             span.error(e);
-            boolean terminal = jobs.fail(claim, describe(e), props.maxAttempts(), watch.timings(), clock.instant());
-            // Not deleted: the queue redelivers it. After the last attempt the next delivery exceeds the
-            // queue's receive limit, which moves the message to the dead-letter queue.
-            queue.changeVisibility(message.receiptHandle(), terminal ? Duration.ZERO : props.retryDelay());
+            TranscodeJobs.Failure failure =
+                    jobs.fail(claim, workerId, describe(e), props.maxAttempts(), watch.timings(), clock.instant());
             log.warn(
-                    "transcode failed: media {} attempt {} of {}: {}",
+                    "transcode failed: media {} attempt {} of {} ({}): {}",
                     claim.mediaId(),
                     claim.attempt(),
                     props.maxAttempts(),
+                    failure,
                     describe(e));
-            return terminal ? Outcome.FAILED : Outcome.RETRY;
+            return switch (failure) {
+                case RETRY -> Outcome.RETRY;
+                case TERMINAL -> Outcome.FAILED;
+                case NOT_OWNER -> Outcome.LEASE_LOST;
+            };
         } finally {
-            busy.remove(Thread.currentThread());
-            heartbeat.cancel(false);
+            stop(heartbeat);
             deleteRecursively(workDir);
+        }
+    }
+
+    /**
+     * Acknowledges, returns or leaves the message, according to how the job ended.
+     *
+     * <ul>
+     *   <li>READY, REJECTED: deleted.
+     *   <li>RETRY: visible again after the retry delay. RELEASED: visible at once.
+     *   <li>FAILED: visible at once and not deleted, so that the next delivery exceeds the queue's
+     *       receive limit and the message moves to the dead-letter queue.
+     *   <li>LEASE_LOST: left alone; it belongs to whoever holds the asset now.
+     * </ul>
+     */
+    private void settle(QueueMessage message, Claim claim, Outcome outcome) {
+        try {
+            switch (outcome) {
+                case READY, REJECTED -> queue.delete(message.receiptHandle());
+                case RETRY -> queue.changeVisibility(message.receiptHandle(), props.retryDelay());
+                case RELEASED, FAILED -> queue.changeVisibility(message.receiptHandle(), Duration.ZERO);
+                default -> {}
+            }
+        } catch (RuntimeException e) {
+            log.warn(
+                    "media {} is {} but its message could not be updated; it will be delivered again: {}",
+                    claim.mediaId(),
+                    outcome,
+                    e.toString());
+        }
+    }
+
+    private static void stop(@Nullable ScheduledFuture<?> heartbeat) {
+        if (heartbeat != null) {
+            heartbeat.cancel(false);
         }
     }
 
@@ -271,12 +328,17 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
         return Outcome.SKIPPED;
     }
 
+    /** Two renewals, each on its own: a queue error must not stop the lease from being renewed. */
     private void beat(Claim claim, QueueMessage message) {
         try {
             queue.changeVisibility(message.receiptHandle(), props.visibility());
+        } catch (RuntimeException e) {
+            log.warn("heartbeat could not extend the message for media {}: {}", claim.mediaId(), e.toString());
+        }
+        try {
             jobs.renewLease(claim, workerId, clock.instant());
         } catch (RuntimeException e) {
-            log.warn("heartbeat failed for media {}: {}", claim.mediaId(), e.toString());
+            log.warn("heartbeat could not renew the lease for media {}: {}", claim.mediaId(), e.toString());
         }
     }
 
@@ -460,6 +522,11 @@ public class TranscodeWorker implements SmartLifecycle, DisposableBean {
         try {
             JsonNode original = json.readTree(claim.clientMetaJson()).path("originalBytes");
             preCompression = original.isNumber() ? original.asLong() : 0;
+            // The client chooses this number: only a plausible one (not smaller than what arrived, not
+            // absurdly larger) is allowed into the metric.
+            if (preCompression < uploadedBytes || preCompression > MAX_PLAUSIBLE_ORIGINAL_BYTES) {
+                preCompression = 0;
+            }
         } catch (JacksonException e) {
             // Client metadata is free-form: unreadable means "not reported".
         }

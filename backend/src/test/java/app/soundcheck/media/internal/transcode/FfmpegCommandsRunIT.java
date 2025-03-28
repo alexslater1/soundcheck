@@ -41,9 +41,18 @@ class FfmpegCommandsRunIT {
                 "libx264",
                 "-pix_fmt",
                 "yuv420p",
+                // What a phone writes into its recordings: a title and where it was taken.
+                "-metadata",
+                "title=SecretTitle",
+                "-metadata",
+                "location=+53.4808-002.2426/",
+                "-movflags",
+                "use_metadata_tags",
                 "-f",
                 "mp4",
                 input.toString()));
+        assertThat(contains(input, "SecretTitle")).isTrue();
+        assertThat(contains(input, "+53.4808-002.2426")).isTrue();
 
         ProbeResult probe = ProbeParser.parse(JsonMappers.builder().build().readTree(run(FfmpegCommands.probe(input))));
         assertThat(probe.displayWidth()).isEqualTo(720);
@@ -72,14 +81,36 @@ class FfmpegCommandsRunIT {
         assertThat(out.resolve("poster.jpg")).isNotEmptyFile();
         assertThat(out.resolve("thumb.webp")).isNotEmptyFile();
 
-        // The 720p rung really is 720×1280 with H.264 video and AAC audio.
+        // The outputs are public: none of them carries the source's title or position.
+        try (var files = Files.walk(out)) {
+            for (Path file : files.filter(Files::isRegularFile).toList()) {
+                assertThat(contains(file, "SecretTitle")).as(file.toString()).isFalse();
+                assertThat(contains(file, "+53.4808")).as(file.toString()).isFalse();
+            }
+        }
+
+        // The 720p rung really is 720×1280 with H.264 video and AAC audio. (Probed with a plain ffprobe:
+        // the production probe command only accepts MP4 and WebM containers, not a playlist.)
         ProbeResult rendition = ProbeParser.parse(JsonMappers.builder()
                 .build()
-                .readTree(run(FfmpegCommands.probe(out.resolve("720p").resolve("index.m3u8")))));
+                .readTree(run(List.of(
+                        "ffprobe",
+                        "-v",
+                        "error",
+                        "-print_format",
+                        "json",
+                        "-show_format",
+                        "-show_streams",
+                        out.resolve("720p").resolve("index.m3u8").toString()))));
         assertThat(rendition.width()).isEqualTo(720);
         assertThat(rendition.height()).isEqualTo(1280);
         assertThat(rendition.videoCodec()).isEqualTo("h264");
         assertThat(rendition.audioCodec()).isEqualTo("aac");
+    }
+
+    /** Whether the file's bytes contain the text (as ASCII). */
+    private static boolean contains(Path file, String text) throws IOException {
+        return new String(Files.readAllBytes(file), java.nio.charset.StandardCharsets.ISO_8859_1).contains(text);
     }
 
     private static List<String> quiet(List<String> command) {

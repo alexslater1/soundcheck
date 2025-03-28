@@ -11,7 +11,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -38,6 +41,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class UploadService {
 
     static final Set<String> VIDEO_TYPES = Set.of("video/mp4", "video/quicktime", "video/webm");
+    static final int MAX_CLIENT_META_CHARS = 2_000;
+    /** Served paths are versioned and never rewritten, so they may be cached for good. */
+    static final String IMMUTABLE = "public, max-age=31536000, immutable";
+
     static final Map<String, String> IMAGE_TYPES =
             Map.of("image/jpeg", "jpg", "image/png", "png", "image/webp", "webp");
 
@@ -143,6 +150,11 @@ public class UploadService {
                 return ticket(existing);
             }
         }
+        // Free-form, client-supplied and stored: keep it small.
+        String clientMeta = toJson(request.clientMeta() == null ? Map.of() : request.clientMeta());
+        if (clientMeta.length() > MAX_CLIENT_META_CHARS) {
+            throw ApiException.badRequest("CLIENT_META_TOO_LARGE", "clientMeta is too large");
+        }
         rateLimiter.enforce("uploads:" + ownerId, properties.uploadsPerHour(), Duration.ofHours(1));
 
         UUID id = Ids.newId();
@@ -171,7 +183,7 @@ public class UploadService {
                 0,
                 null,
                 Instant.now(clock));
-        assets.insert(asset, toJson(request.clientMeta() == null ? Map.of() : request.clientMeta()));
+        assets.insert(asset, clientMeta);
         if (idempotencyKey != null) {
             idempotency.complete(ownerId, idempotencyKey, 201, toJson(Map.of("mediaId", id.toString())));
         }
@@ -208,7 +220,12 @@ public class UploadService {
             try {
                 storage.completeMultipart(asset.originalKey(), asset.multipartUploadId(), ordered);
             } catch (ObjectStorage.InvalidUploadException e) {
-                throw ApiException.badRequest("UPLOAD_INCOMPLETE", "The parts do not match what was uploaded");
+                // Wrong parts, or an earlier complete assembled the object and then failed to commit
+                // (storage no longer knows the upload id). Only a finished multipart upload can have put
+                // an object at this key, so if one is there the second case it is; carry on.
+                if (storage.head(asset.originalKey()).isEmpty()) {
+                    throw ApiException.badRequest("UPLOAD_INCOMPLETE", "The parts do not match what was uploaded");
+                }
             }
         }
         ObjectStorage.ObjectHead head = storage.head(asset.originalKey())
@@ -228,12 +245,41 @@ public class UploadService {
                     asset.id(), ownerId, now, traceparent.current().orElse(null)));
             return "UPLOADED";
         }
-        // Images (avatars) need no transcoding: copy to the served prefix and they are ready.
+        // Images (avatars) need no transcoding, but nothing is served unchecked: the bytes must be an
+        // image of the declared type.
+        String problem = imageProblem(asset);
+        if (problem != null) {
+            storage.delete(asset.originalKey());
+            assets.close(asset.id(), "UPLOADED", "REJECTED", problem, now);
+            throw ApiException.badRequest("IMAGE_INVALID", "The uploaded file is not a valid image");
+        }
+        // Copy to the served prefix and it is ready.
         String prefix = "media/" + asset.id() + "/v1/";
         String imageKey = prefix + "image." + IMAGE_TYPES.get(asset.contentType());
-        storage.copy(asset.originalKey(), imageKey);
+        storage.copy(asset.originalKey(), imageKey, asset.contentType(), IMMUTABLE);
         assets.markImageReady(asset.id(), prefix, imageKey, now);
         return "READY";
+    }
+
+    /** Downloads the (at most 10 MB) image to a temporary file and checks its header. */
+    private @Nullable String imageProblem(MediaAsset asset) {
+        Path temp = null;
+        try {
+            temp = Files.createTempFile("soundcheck-image-", ".bin");
+            Files.delete(temp); // the storage client writes the file itself and refuses an existing one
+            storage.getToFile(asset.originalKey(), temp);
+            return ImageCheck.problem(temp, asset.contentType());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } finally {
+            if (temp != null) {
+                try {
+                    Files.deleteIfExists(temp);
+                } catch (IOException e) {
+                    // A leftover temp file is not worth failing the request for.
+                }
+            }
+        }
     }
 
     /** Abandons an upload that has not been completed. */
@@ -296,8 +342,10 @@ public class UploadService {
         List<PartUrl> parts = new ArrayList<>(count);
         Instant expiresAt = Instant.now(clock).plus(ttl);
         for (int n = 1; n <= count; n++) {
+            // Every part is signed for exactly its length: full parts, then whatever is left.
+            long length = Math.min(partSize, asset.declaredBytes() - (long) (n - 1) * partSize);
             ObjectStorage.PresignedUrl part =
-                    storage.presignUploadPart(asset.originalKey(), asset.multipartUploadId(), n, ttl);
+                    storage.presignUploadPart(asset.originalKey(), asset.multipartUploadId(), n, length, ttl);
             parts.add(new PartUrl(n, part.url().toString()));
             expiresAt = part.expiresAt();
         }

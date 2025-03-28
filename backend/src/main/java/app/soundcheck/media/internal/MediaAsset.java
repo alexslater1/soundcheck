@@ -31,8 +31,15 @@ public record MediaAsset(
         return kind.equals("VIDEO");
     }
 
-    /** True once the bytes have been accepted: completing again must change nothing. */
+    /**
+     * True once the bytes have been accepted: completing again must change nothing and answers with the
+     * current status. FAILED is such a state: the upload
+     * itself succeeded, the processing did not.
+     */
     public boolean uploaded() {
-        return status.equals("UPLOADED") || status.equals("PROCESSING") || status.equals("READY");
+        return status.equals("UPLOADED")
+                || status.equals("PROCESSING")
+                || status.equals("READY")
+                || status.equals("FAILED");
     }
 }

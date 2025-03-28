@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import software.amazon.awssdk.services.s3.S3Client;
 
 /**
  * The upload API against LocalStack S3: single PUT and 3-part multipart happy paths, an oversized
@@ -40,6 +42,12 @@ class MediaUploadApiIT extends IntegrationTest {
 
     @Autowired
     ObjectStorage storage;
+
+    @Autowired
+    JobQueue queue;
+
+    @Autowired
+    S3Client s3;
 
     @Autowired
     DSLContext dsl;
@@ -102,6 +110,8 @@ class MediaUploadApiIT extends IntegrationTest {
         ResponseEntity<JsonNode> again = api.post("/api/v1/media/uploads/" + mediaId + "/complete", null, owner);
         assertThat(again.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         assertThat(again.getBody().path("status").asText("")).isEqualTo("UPLOADED");
+        // … without publishing again: exactly one transcode job reaches the queue.
+        assertThat(messagesFor(mediaId)).isEqualTo(1);
 
         var row = dsl.fetchSingle(
                 "select status, actual_bytes, original_key, upload_strategy, client_meta->>'platform' as platform,"
@@ -279,8 +289,26 @@ class MediaUploadApiIT extends IntegrationTest {
                         .value())
                 .isEqualTo(413);
 
+        // Free-form client metadata is stored, so it is bounded.
+        assertThat(api.post(
+                                "/api/v1/media/uploads",
+                                Map.of(
+                                        "kind",
+                                        "VIDEO",
+                                        "contentType",
+                                        "video/mp4",
+                                        "bytes",
+                                        1000,
+                                        "clientMeta",
+                                        Map.of("note", "x".repeat(3000))),
+                                owner)
+                        .getBody()
+                        .path("code")
+                        .asText(""))
+                .isEqualTo("CLIENT_META_TOO_LARGE");
+
         // An avatar-sized image: no transcoding, so complete makes it READY and viewable by anyone.
-        byte[] png = payload(5000);
+        byte[] png = image("png", 64, 48);
         JsonNode ticket = created(api.post(
                 "/api/v1/media/uploads",
                 Map.of("kind", "IMAGE", "contentType", "image/png", "bytes", png.length),
@@ -296,11 +324,152 @@ class MediaUploadApiIT extends IntegrationTest {
         assertThat(playback.path("status").asText("")).isEqualTo("READY");
         assertThat(playback.path("posterUrl").asText("")).endsWith("/media/" + mediaId + "/v1/image.png");
         assertThat(playback.path("hlsUrl").isNull()).isTrue();
-        assertThat(storage.head("media/" + mediaId + "/v1/image.png"))
-                .hasValueSatisfying(head -> assertThat(head.contentLength()).isEqualTo(png.length));
+        assertThat(storage.head("media/" + mediaId + "/v1/image.png")).hasValueSatisfying(head -> {
+            assertThat(head.contentLength()).isEqualTo(png.length);
+            assertThat(head.contentType()).isEqualTo("image/png");
+        });
+        // Served under a versioned path, so it may be cached for good, like the video outputs.
+        assertThat(s3.headObject(b -> b.bucket(IntegrationTest.BUCKET).key("media/" + mediaId + "/v1/image.png"))
+                        .cacheControl())
+                .isEqualTo("public, max-age=31536000, immutable");
+    }
+
+    @Test
+    void bytesThatAreNotTheDeclaredImageAreNeverServed() throws Exception {
+        // Random bytes labelled PNG, and a real JPEG labelled PNG: both refused, deleted, nothing published.
+        for (byte[] bytes : List.of(payload(5000), image("jpeg", 64, 48))) {
+            JsonNode ticket = created(api.post(
+                    "/api/v1/media/uploads",
+                    Map.of("kind", "IMAGE", "contentType", "image/png", "bytes", bytes.length),
+                    owner));
+            String mediaId = ticket.path("mediaId").asText("");
+            put(ticket.path("putUrl").asText(""), "image/png", bytes);
+
+            ResponseEntity<JsonNode> completed =
+                    api.post("/api/v1/media/uploads/" + mediaId + "/complete", null, owner);
+
+            assertThat(completed.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+            assertThat(completed.getBody().path("code").asText("")).isEqualTo("IMAGE_INVALID");
+            assertThat(ok(api.get("/api/v1/media/" + mediaId, owner))
+                            .path("status")
+                            .asText(""))
+                    .isEqualTo("REJECTED");
+            assertThat(storage.head("uploads/" + owner.id() + "/" + mediaId + "/original"))
+                    .isEmpty();
+            assertThat(storage.head("media/" + mediaId + "/v1/image.png")).isEmpty();
+        }
+
+        // A WebP is recognised by its container signature (the JDK cannot decode it).
+        byte[] webp = new byte[200];
+        System.arraycopy("RIFF".getBytes(), 0, webp, 0, 4);
+        System.arraycopy("WEBP".getBytes(), 0, webp, 8, 4);
+        JsonNode ticket = created(api.post(
+                "/api/v1/media/uploads",
+                Map.of("kind", "IMAGE", "contentType", "image/webp", "bytes", webp.length),
+                owner));
+        put(ticket.path("putUrl").asText(""), "image/webp", webp);
+        assertThat(api.post("/api/v1/media/uploads/" + ticket.path("mediaId").asText("") + "/complete", null, owner)
+                        .getBody()
+                        .path("status")
+                        .asText(""))
+                .isEqualTo("READY");
+    }
+
+    @Test
+    void completeSurvivesALostCommitAndAnUploadThatStorageAlreadyAborted() throws Exception {
+        // 1. Storage assembled the object, then the API died before committing. The client retries
+        //    complete; storage no longer knows the upload id, but the object is there.
+        JsonNode ticket = createVideo(17 * MIB);
+        String mediaId = ticket.path("mediaId").asText("");
+        List<Map<String, Object>> etags = uploadParts(ticket, new int[] {8 * MIB, 8 * MIB, MIB});
+        String key = "uploads/" + owner.id() + "/" + mediaId + "/original";
+        String uploadId = dsl.fetchSingle(
+                        "select multipart_upload_id from media.media_asset where id = ?", UUID.fromString(mediaId))
+                .get(0, String.class);
+        storage.completeMultipart(
+                key,
+                uploadId,
+                etags.stream()
+                        .map(e ->
+                                new ObjectStorage.CompletedPart((Integer) e.get("partNumber"), (String) e.get("etag")))
+                        .toList());
+
+        ResponseEntity<JsonNode> completed =
+                api.post("/api/v1/media/uploads/" + mediaId + "/complete", Map.of("parts", etags), owner);
+
+        assertThat(completed.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(completed.getBody().path("status").asText("")).isEqualTo("UPLOADED");
+
+        // Each part URL is signed for exactly that part's length.
+        assertThat(ticket.path("parts").get(0).path("url").asText(""))
+                .containsPattern("X-Amz-SignedHeaders=[^&]*content-length");
+
+        // 2. Wrong parts with nothing assembled is still refused.
+        JsonNode other = createVideo(17 * MIB);
+        assertThat(api.post(
+                                "/api/v1/media/uploads/" + other.path("mediaId").asText("") + "/complete",
+                                Map.of("parts", List.of(Map.of("partNumber", 1, "etag", "\"nope\""))),
+                                owner)
+                        .getBody()
+                        .path("code")
+                        .asText(""))
+                .isEqualTo("UPLOAD_INCOMPLETE");
+
+        // 3. The multipart upload is gone on the storage side (aborted by the lifecycle rule after a
+        //    day): the client's abort still succeeds instead of failing for ever.
+        String otherId = other.path("mediaId").asText("");
+        String otherUpload = dsl.fetchSingle(
+                        "select multipart_upload_id from media.media_asset where id = ?", UUID.fromString(otherId))
+                .get(0, String.class);
+        storage.abortMultipart("uploads/" + owner.id() + "/" + otherId + "/original", otherUpload);
+        assertThat(api.delete("/api/v1/media/uploads/" + otherId, owner).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+    }
+
+    @Test
+    void completingAgainAfterProcessingFailedIsStillIdempotent() throws Exception {
+        byte[] bytes = payload(100_000);
+        JsonNode ticket = createVideo(bytes.length);
+        String mediaId = ticket.path("mediaId").asText("");
+        put(ticket.path("putUrl").asText(""), "video/mp4", bytes);
+        api.post("/api/v1/media/uploads/" + mediaId + "/complete", null, owner);
+        dsl.execute("update media.media_asset set status = 'FAILED' where id = ?", UUID.fromString(mediaId));
+
+        ResponseEntity<JsonNode> again = api.post("/api/v1/media/uploads/" + mediaId + "/complete", null, owner);
+
+        // The upload itself was accepted; only the processing failed (idempotent once ≥ UPLOADED).
+        assertThat(again.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        assertThat(again.getBody().path("status").asText("")).isEqualTo("FAILED");
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
+
+    /** How many transcode messages for this media id arrive on the queue (they are deleted as they are counted). */
+    private int messagesFor(String mediaId) {
+        int count = 0;
+        long quietSince = System.nanoTime();
+        // The relay sends just after the commit; stop once nothing new has arrived for two seconds.
+        while (System.nanoTime() - quietSince < Duration.ofSeconds(2).toNanos()) {
+            for (JobQueue.QueueMessage message : queue.receive(10, Duration.ofMillis(500))) {
+                if (message.body().contains(mediaId)) {
+                    count++;
+                    quietSince = System.nanoTime();
+                    queue.delete(message.receiptHandle());
+                } else {
+                    queue.changeVisibility(message.receiptHandle(), Duration.ZERO);
+                }
+            }
+        }
+        return count;
+    }
+
+    /** A real image of the given format, encoded by the JDK. */
+    private static byte[] image(String format, int width, int height) throws Exception {
+        var image = new java.awt.image.BufferedImage(width, height, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        var out = new java.io.ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(image, format, out);
+        return out.toByteArray();
+    }
 
     private JsonNode createVideo(int bytes) {
         return created(api.post(
