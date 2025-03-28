@@ -6,6 +6,7 @@ import app.soundcheck.content.Post;
 import app.soundcheck.content.PostDeleted;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostPublished;
+import app.soundcheck.identity.Users;
 import app.soundcheck.media.MediaInfo;
 import app.soundcheck.media.MediaLibrary;
 import app.soundcheck.shared.Ids;
@@ -13,6 +14,7 @@ import app.soundcheck.shared.idempotency.IdempotencyKeys;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.shared.web.Page;
+import app.soundcheck.social.SocialGraph;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
@@ -51,6 +53,8 @@ public class PostService {
     private final MediaLibrary media;
     private final Catalog catalog;
     private final CatalogViews catalogViews;
+    private final Users users;
+    private final SocialGraph social;
     private final IdempotencyKeys idempotency;
     private final ApplicationEventPublisher events;
     private final JsonMapper json;
@@ -62,6 +66,8 @@ public class PostService {
             MediaLibrary media,
             Catalog catalog,
             CatalogViews catalogViews,
+            Users users,
+            SocialGraph social,
             IdempotencyKeys idempotency,
             ApplicationEventPublisher events,
             JsonMapper json,
@@ -71,6 +77,8 @@ public class PostService {
         this.media = media;
         this.catalog = catalog;
         this.catalogViews = catalogViews;
+        this.users = users;
+        this.social = social;
         this.idempotency = idempotency;
         this.events = events;
         this.json = json;
@@ -248,6 +256,10 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public Page<Post> byAuthor(UUID viewerId, UUID authorId, @Nullable String cursor, @Nullable Integer limit) {
+        // A deleted account, or one that has blocked the viewer, "does not exist" for the viewer.
+        if (!users.exists(authorId) || social.hasBlocked(authorId, viewerId)) {
+            throw ApiException.notFound("USER_NOT_FOUND", "No such user");
+        }
         return publishedPage(viewerId, PostRepository.Scope.author(authorId), cursor, limit);
     }
 

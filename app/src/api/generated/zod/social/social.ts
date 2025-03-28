@@ -23,3 +23,83 @@ export const followArtistParams = zod.object({
   "id": zod.string().uuid()
 })
 
+/**
+ * @summary Unblock a user (idempotent)
+ */
+export const unblockUserParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary Block a user (idempotent); removes follows both ways
+ */
+export const blockUserParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary Unfollow a user (idempotent)
+ */
+export const unfollowUserParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary Follow a user (idempotent)
+ */
+export const followUserParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary Who follows this user, newest first
+ */
+export const listFollowersParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const listFollowersQueryLimitMax = 50;
+
+
+export const listFollowersQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(listFollowersQueryLimitMax).optional()
+})
+
+export const listFollowersResponse = zod.object({
+  "items": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
+ * @summary Whom this user follows, newest first
+ */
+export const listFollowingParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const listFollowingQueryLimitMax = 50;
+
+
+export const listFollowingQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(listFollowingQueryLimitMax).optional()
+})
+
+export const listFollowingResponse = zod.object({
+  "items": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+})),
+  "nextCursor": zod.string().nullish()
+})
+

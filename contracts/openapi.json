@@ -628,6 +628,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "PageUserSummary" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/UserSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PartRequest" : {
         "properties" : {
           "etag" : {
@@ -761,9 +776,15 @@
           "id" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "isBlocked" : {
+            "type" : "boolean"
+          },
+          "isFollowing" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "counts", "displayName", "handle", "id" ],
+        "required" : [ "counts", "displayName", "handle", "id", "isBlocked", "isFollowing" ],
         "type" : "object"
       },
       "RefreshRequest" : {
@@ -2365,6 +2386,176 @@
         "tags" : [ "me" ]
       }
     },
+    "/api/v1/users/{id}/block" : {
+      "delete" : {
+        "operationId" : "unblockUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Unblock a user (idempotent)",
+        "tags" : [ "social" ]
+      },
+      "put" : {
+        "operationId" : "blockUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Block a user (idempotent); removes follows both ways",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/users/{id}/follow" : {
+      "delete" : {
+        "operationId" : "unfollowUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Unfollow a user (idempotent)",
+        "tags" : [ "social" ]
+      },
+      "put" : {
+        "operationId" : "followUser",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Follow a user (idempotent)",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/users/{id}/followers" : {
+      "get" : {
+        "operationId" : "listFollowers",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageUserSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Who follows this user, newest first",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/users/{id}/following" : {
+      "get" : {
+        "operationId" : "listFollowing",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageUserSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Whom this user follows, newest first",
+        "tags" : [ "social" ]
+      }
+    },
     "/api/v1/users/{id}/posts" : {
       "get" : {
         "operationId" : "listUserPosts",
@@ -2551,6 +2742,9 @@
   }, {
     "description" : "Posts and lists of posts",
     "name" : "posts"
+  }, {
+    "description" : "Follows and blocks",
+    "name" : "social"
   }, {
     "description" : "Service health",
     "name" : "health"

@@ -18,4 +18,6 @@ export interface ProfileResponse {
   handle: string;
   homeCityName?: ProfileResponseHomeCityName;
   id: string;
+  isBlocked: boolean;
+  isFollowing: boolean;
 }

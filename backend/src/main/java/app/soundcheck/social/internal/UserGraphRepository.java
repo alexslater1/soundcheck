@@ -1,0 +1,162 @@
+package app.soundcheck.social.internal;
+
+import static app.soundcheck.shared.jooq.social.Tables.USER_BLOCK;
+import static app.soundcheck.shared.jooq.social.Tables.USER_FOLLOW;
+
+import app.soundcheck.shared.web.Cursor;
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import org.jooq.Condition;
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
+import org.jspecify.annotations.Nullable;
+import org.springframework.stereotype.Repository;
+
+/** jOOQ access to {@code social.user_follow} and {@code social.user_block}. */
+@Repository
+class UserGraphRepository {
+
+    /** One edge of a followers/following list: the other user and when the follow was made. */
+    record Edge(UUID userId, Instant since) {}
+
+    private final DSLContext dsl;
+
+    UserGraphRepository(DSLContext dsl) {
+        this.dsl = dsl;
+    }
+
+    /** @return true when the follow did not exist before */
+    boolean follow(UUID followerId, UUID followeeId, Instant now) {
+        return dsl.insertInto(USER_FOLLOW)
+                        .set(USER_FOLLOW.FOLLOWER_ID, followerId)
+                        .set(USER_FOLLOW.FOLLOWEE_ID, followeeId)
+                        .set(USER_FOLLOW.CREATED_AT, at(now))
+                        .onConflictDoNothing()
+                        .execute()
+                == 1;
+    }
+
+    boolean unfollow(UUID followerId, UUID followeeId) {
+        return dsl.deleteFrom(USER_FOLLOW)
+                        .where(USER_FOLLOW.FOLLOWER_ID.eq(followerId))
+                        .and(USER_FOLLOW.FOLLOWEE_ID.eq(followeeId))
+                        .execute()
+                == 1;
+    }
+
+    boolean block(UUID blockerId, UUID blockedId, Instant now) {
+        return dsl.insertInto(USER_BLOCK)
+                        .set(USER_BLOCK.BLOCKER_ID, blockerId)
+                        .set(USER_BLOCK.BLOCKED_ID, blockedId)
+                        .set(USER_BLOCK.CREATED_AT, at(now))
+                        .onConflictDoNothing()
+                        .execute()
+                == 1;
+    }
+
+    boolean unblock(UUID blockerId, UUID blockedId) {
+        return dsl.deleteFrom(USER_BLOCK)
+                        .where(USER_BLOCK.BLOCKER_ID.eq(blockerId))
+                        .and(USER_BLOCK.BLOCKED_ID.eq(blockedId))
+                        .execute()
+                == 1;
+    }
+
+    /** Which of the users the viewer follows. Expected index: the user_follow primary key. */
+    Set<UUID> followedAmong(UUID viewerId, Collection<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(dsl.select(USER_FOLLOW.FOLLOWEE_ID)
+                .from(USER_FOLLOW)
+                .where(USER_FOLLOW.FOLLOWER_ID.eq(viewerId))
+                .and(USER_FOLLOW.FOLLOWEE_ID.in(userIds))
+                .fetch(USER_FOLLOW.FOLLOWEE_ID));
+    }
+
+    Set<UUID> followeeIds(UUID viewerId) {
+        return new HashSet<>(dsl.select(USER_FOLLOW.FOLLOWEE_ID)
+                .from(USER_FOLLOW)
+                .where(USER_FOLLOW.FOLLOWER_ID.eq(viewerId))
+                .fetch(USER_FOLLOW.FOLLOWEE_ID));
+    }
+
+    boolean hasBlocked(UUID blockerId, UUID blockedId) {
+        return dsl.fetchExists(
+                USER_BLOCK, USER_BLOCK.BLOCKER_ID.eq(blockerId).and(USER_BLOCK.BLOCKED_ID.eq(blockedId)));
+    }
+
+    /**
+     * The users among {@code userIds} with a block between them and the viewer, in either direction.
+     * Expected indexes: the user_block primary key (viewer as blocker) and user_block_blocked (viewer
+     * as blocked).
+     */
+    Set<UUID> blockedAmong(UUID viewerId, Collection<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Set.of();
+        }
+        Set<UUID> blocked = new HashSet<>(dsl.select(USER_BLOCK.BLOCKED_ID)
+                .from(USER_BLOCK)
+                .where(USER_BLOCK.BLOCKER_ID.eq(viewerId))
+                .and(USER_BLOCK.BLOCKED_ID.in(userIds))
+                .fetch(USER_BLOCK.BLOCKED_ID));
+        blocked.addAll(dsl.select(USER_BLOCK.BLOCKER_ID)
+                .from(USER_BLOCK)
+                .where(USER_BLOCK.BLOCKED_ID.eq(viewerId))
+                .and(USER_BLOCK.BLOCKER_ID.in(userIds))
+                .fetch(USER_BLOCK.BLOCKER_ID));
+        return blocked;
+    }
+
+    /** Expected index: user_follow_followee (followee_id, created_at desc). */
+    long followerCount(UUID userId) {
+        return dsl.fetchCount(USER_FOLLOW, USER_FOLLOW.FOLLOWEE_ID.eq(userId));
+    }
+
+    long followingCount(UUID userId) {
+        return dsl.fetchCount(USER_FOLLOW, USER_FOLLOW.FOLLOWER_ID.eq(userId));
+    }
+
+    /**
+     * Who follows the user, newest follow first, keyset on {@code (created_at, follower_id)};
+     * {@code limit + 1} rows. Expected index: user_follow_followee.
+     */
+    List<Edge> followers(UUID userId, @Nullable Cursor cursor, int limit) {
+        Condition where = USER_FOLLOW.FOLLOWEE_ID.eq(userId);
+        if (cursor != null) {
+            where = where.and(
+                    DSL.row(USER_FOLLOW.CREATED_AT, USER_FOLLOW.FOLLOWER_ID).lt(DSL.row(at(cursor.at()), cursor.id())));
+        }
+        return dsl.select(USER_FOLLOW.FOLLOWER_ID, USER_FOLLOW.CREATED_AT)
+                .from(USER_FOLLOW)
+                .where(where)
+                .orderBy(USER_FOLLOW.CREATED_AT.desc(), USER_FOLLOW.FOLLOWER_ID.desc())
+                .limit(limit + 1)
+                .fetch(r -> new Edge(r.value1(), r.value2().toInstant()));
+    }
+
+    /** Whom the user follows, newest first. Expected index: the primary key, then a sort (lists are short). */
+    List<Edge> following(UUID userId, @Nullable Cursor cursor, int limit) {
+        Condition where = USER_FOLLOW.FOLLOWER_ID.eq(userId);
+        if (cursor != null) {
+            where = where.and(
+                    DSL.row(USER_FOLLOW.CREATED_AT, USER_FOLLOW.FOLLOWEE_ID).lt(DSL.row(at(cursor.at()), cursor.id())));
+        }
+        return dsl.select(USER_FOLLOW.FOLLOWEE_ID, USER_FOLLOW.CREATED_AT)
+                .from(USER_FOLLOW)
+                .where(where)
+                .orderBy(USER_FOLLOW.CREATED_AT.desc(), USER_FOLLOW.FOLLOWEE_ID.desc())
+                .limit(limit + 1)
+                .fetch(r -> new Edge(r.value1(), r.value2().toInstant()));
+    }
+
+    private static OffsetDateTime at(Instant instant) {
+        return instant.atOffset(ZoneOffset.UTC);
+    }
+}

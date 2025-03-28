@@ -6,13 +6,27 @@
  * OpenAPI spec version: v1
  */
 import {
-  useMutation
+  useMutation,
+  useQuery
 } from '@tanstack/react-query'
 import type {
+  DataTag,
+  DefinedInitialDataOptions,
+  DefinedUseQueryResult,
   MutationFunction,
+  QueryFunction,
+  QueryKey,
+  UndefinedInitialDataOptions,
   UseMutationOptions,
-  UseMutationResult
+  UseMutationResult,
+  UseQueryOptions,
+  UseQueryResult
 } from '@tanstack/react-query'
+import type {
+  ListFollowersParams,
+  ListFollowingParams,
+  PageUserSummary
+} from '.././model'
 import { customFetch } from '../../http';
 
 
@@ -155,4 +169,491 @@ export const useFollowArtist = <TError = unknown,
 
       return useMutation(mutationOptions);
     }
+    /**
+ * @summary Unblock a user (idempotent)
+ */
+export const getUnblockUserUrl = (id: string,) => {
+
+
+  return `/api/v1/users/${id}/block`
+}
+
+export const unblockUser = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getUnblockUserUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
     
+    
+  }
+);}
+
+
+
+
+export const getUnblockUserMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unblockUser>>, TError,{id: string}, TContext> => {
+    
+const mutationKey = ['unblockUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unblockUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unblockUser(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnblockUserMutationResult = NonNullable<Awaited<ReturnType<typeof unblockUser>>>
+    
+    export type UnblockUserMutationError = unknown
+
+    /**
+ * @summary Unblock a user (idempotent)
+ */
+export const useUnblockUser = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unblockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof unblockUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUnblockUserMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary Block a user (idempotent); removes follows both ways
+ */
+export const getBlockUserUrl = (id: string,) => {
+
+
+  return `/api/v1/users/${id}/block`
+}
+
+export const blockUser = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getBlockUserUrl(id),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getBlockUserMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof blockUser>>, TError,{id: string}, TContext> => {
+    
+const mutationKey = ['blockUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof blockUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  blockUser(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type BlockUserMutationResult = NonNullable<Awaited<ReturnType<typeof blockUser>>>
+    
+    export type BlockUserMutationError = unknown
+
+    /**
+ * @summary Block a user (idempotent); removes follows both ways
+ */
+export const useBlockUser = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof blockUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof blockUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getBlockUserMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary Unfollow a user (idempotent)
+ */
+export const getUnfollowUserUrl = (id: string,) => {
+
+
+  return `/api/v1/users/${id}/follow`
+}
+
+export const unfollowUser = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getUnfollowUserUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getUnfollowUserMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unfollowUser>>, TError,{id: string}, TContext> => {
+    
+const mutationKey = ['unfollowUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unfollowUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unfollowUser(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnfollowUserMutationResult = NonNullable<Awaited<ReturnType<typeof unfollowUser>>>
+    
+    export type UnfollowUserMutationError = unknown
+
+    /**
+ * @summary Unfollow a user (idempotent)
+ */
+export const useUnfollowUser = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof unfollowUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUnfollowUserMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary Follow a user (idempotent)
+ */
+export const getFollowUserUrl = (id: string,) => {
+
+
+  return `/api/v1/users/${id}/follow`
+}
+
+export const followUser = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getFollowUserUrl(id),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getFollowUserMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof followUser>>, TError,{id: string}, TContext> => {
+    
+const mutationKey = ['followUser'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof followUser>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  followUser(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FollowUserMutationResult = NonNullable<Awaited<ReturnType<typeof followUser>>>
+    
+    export type FollowUserMutationError = unknown
+
+    /**
+ * @summary Follow a user (idempotent)
+ */
+export const useFollowUser = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationResult<
+        Awaited<ReturnType<typeof followUser>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getFollowUserMutationOptions(options);
+
+      return useMutation(mutationOptions);
+    }
+    /**
+ * @summary Who follows this user, newest first
+ */
+export const getListFollowersUrl = (id: string,
+    params?: ListFollowersParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  return normalizedParams.size ? `/api/v1/users/${id}/followers?${normalizedParams.toString()}` : `/api/v1/users/${id}/followers`
+}
+
+export const listFollowers = async (id: string,
+    params?: ListFollowersParams, options?: RequestInit): Promise<PageUserSummary> => {
+  
+  return customFetch<PageUserSummary>(getListFollowersUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListFollowersQueryKey = (id: string,
+    params?: ListFollowersParams,) => {
+    return [`/api/v1/users/${id}/followers`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListFollowersQueryOptions = <TData = Awaited<ReturnType<typeof listFollowers>>, TError = unknown>(id: string,
+    params?: ListFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowersQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowers>>> = ({ signal }) => listFollowers(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowers>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListFollowersQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowers>>>
+export type ListFollowersQueryError = unknown
+
+
+export function useListFollowers<TData = Awaited<ReturnType<typeof listFollowers>>, TError = unknown>(
+ id: string,
+    params: undefined |  ListFollowersParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowers>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowers>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowers<TData = Awaited<ReturnType<typeof listFollowers>>, TError = unknown>(
+ id: string,
+    params?: ListFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowers>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowers>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowers>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowers<TData = Awaited<ReturnType<typeof listFollowers>>, TError = unknown>(
+ id: string,
+    params?: ListFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Who follows this user, newest first
+ */
+
+export function useListFollowers<TData = Awaited<ReturnType<typeof listFollowers>>, TError = unknown>(
+ id: string,
+    params?: ListFollowersParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowers>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListFollowersQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Whom this user follows, newest first
+ */
+export const getListFollowingUrl = (id: string,
+    params?: ListFollowingParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  return normalizedParams.size ? `/api/v1/users/${id}/following?${normalizedParams.toString()}` : `/api/v1/users/${id}/following`
+}
+
+export const listFollowing = async (id: string,
+    params?: ListFollowingParams, options?: RequestInit): Promise<PageUserSummary> => {
+  
+  return customFetch<PageUserSummary>(getListFollowingUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListFollowingQueryKey = (id: string,
+    params?: ListFollowingParams,) => {
+    return [`/api/v1/users/${id}/following`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListFollowingQueryOptions = <TData = Awaited<ReturnType<typeof listFollowing>>, TError = unknown>(id: string,
+    params?: ListFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowingQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowing>>> = ({ signal }) => listFollowing(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowing>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListFollowingQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowing>>>
+export type ListFollowingQueryError = unknown
+
+
+export function useListFollowing<TData = Awaited<ReturnType<typeof listFollowing>>, TError = unknown>(
+ id: string,
+    params: undefined |  ListFollowingParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowing>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowing>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowing<TData = Awaited<ReturnType<typeof listFollowing>>, TError = unknown>(
+ id: string,
+    params?: ListFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowing>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowing>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowing>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowing<TData = Awaited<ReturnType<typeof listFollowing>>, TError = unknown>(
+ id: string,
+    params?: ListFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Whom this user follows, newest first
+ */
+
+export function useListFollowing<TData = Awaited<ReturnType<typeof listFollowing>>, TError = unknown>(
+ id: string,
+    params?: ListFollowingParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowing>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListFollowingQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

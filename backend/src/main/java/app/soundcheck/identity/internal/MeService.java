@@ -2,6 +2,7 @@ package app.soundcheck.identity.internal;
 
 import app.soundcheck.catalog.City;
 import app.soundcheck.catalog.ReferenceData;
+import app.soundcheck.identity.ProfileFacts;
 import app.soundcheck.identity.UserDeleted;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
@@ -36,7 +37,11 @@ public class MeService {
             UserRecord user,
             @Nullable City homeCity,
             List<UserRepository.GenrePreference> genres,
-            @Nullable String avatarUrl) {}
+            @Nullable String avatarUrl,
+            ProfileFacts.Counts counts) {}
+
+    /** Someone's public profile as a particular viewer sees it. */
+    public record Profile(Me user, ProfileFacts.Relation relation) {}
 
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
@@ -46,10 +51,12 @@ public class MeService {
     private final Clock clock;
     private final Users summaries;
     private final PublicImages images;
+    private final ProfileFacts facts;
 
     public MeService(
             Users summaries,
             PublicImages images,
+            ProfileFacts facts,
             UserRepository users,
             RefreshTokenRepository refreshTokens,
             ReferenceData referenceData,
@@ -58,6 +65,7 @@ public class MeService {
             Clock clock) {
         this.summaries = summaries;
         this.images = images;
+        this.facts = facts;
         this.users = users;
         this.refreshTokens = refreshTokens;
         this.referenceData = referenceData;
@@ -77,18 +85,25 @@ public class MeService {
     @Transactional(readOnly = true)
     public Me me(UUID userId) {
         UserRecord user = current(userId);
-        return new Me(user, city(user.homeCityId()), users.genres(userId), avatarUrl(userId));
+        return new Me(user, city(user.homeCityId()), users.genres(userId), avatarUrl(userId), facts.counts(userId));
     }
 
     private @Nullable String avatarUrl(UUID userId) {
         return summaries.summary(userId).map(UserSummary::avatarUrl).orElse(null);
     }
 
+    /**
+     * A profile by handle. Empty when there is no such live account, and also when its owner has blocked
+     * the viewer: a blocked person is not told they are blocked, the profile is simply not there.
+     */
     @Transactional(readOnly = true)
-    public Optional<Me> profile(String handle) {
+    public Optional<Profile> profile(UUID viewerId, String handle) {
         return users.findByHandle(handle.strip().toLowerCase(Locale.ROOT))
                 .filter(u -> !u.deleted())
-                .map(u -> new Me(u, city(u.homeCityId()), users.genres(u.id()), avatarUrl(u.id())));
+                .map(u -> new Profile(
+                        new Me(u, city(u.homeCityId()), users.genres(u.id()), avatarUrl(u.id()), facts.counts(u.id())),
+                        facts.relation(viewerId, u.id())))
+                .filter(p -> !p.relation().blockedBy());
     }
 
     public Me update(

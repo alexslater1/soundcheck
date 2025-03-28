@@ -187,6 +187,8 @@ export const getUserByHandleResponse = zod.object({
   "displayName": zod.string(),
   "handle": zod.string(),
   "homeCityName": zod.string().nullish(),
-  "id": zod.string().uuid()
+  "id": zod.string().uuid(),
+  "isBlocked": zod.boolean(),
+  "isFollowing": zod.boolean()
 })
 

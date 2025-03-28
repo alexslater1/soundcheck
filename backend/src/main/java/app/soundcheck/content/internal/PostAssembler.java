@@ -8,6 +8,7 @@ import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.media.MediaLibrary;
 import app.soundcheck.media.Playback;
+import app.soundcheck.social.SocialGraph;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -29,15 +30,20 @@ class PostAssembler {
     private final Users users;
     private final CatalogViews catalog;
     private final MediaLibrary media;
+    private final SocialGraph social;
 
-    PostAssembler(PostRepository posts, Users users, CatalogViews catalog, MediaLibrary media) {
+    PostAssembler(PostRepository posts, Users users, CatalogViews catalog, MediaLibrary media, SocialGraph social) {
         this.posts = posts;
         this.users = users;
         this.catalog = catalog;
         this.media = media;
+        this.social = social;
     }
 
-    /** Posts in the order of {@code rows}; a post whose author's account is gone is left out. */
+    /**
+     * Posts in the order of {@code rows}. Left out: a post whose author's account is gone, and a post by
+     * someone with a block between them and the viewer (blocks are enforced in reads).
+     */
     List<Post> assemble(UUID viewerId, List<PostRow> rows) {
         if (rows.isEmpty()) {
             return List.of();
@@ -59,17 +65,19 @@ class PostAssembler {
         Map<UUID, Playback> playbacks =
                 media.playbacks(rows.stream().map(PostRow::mediaId).toList());
         Set<UUID> liked = posts.likedBy(viewerId, postIds);
+        Set<UUID> followed = social.followedAmong(viewerId, authors.keySet());
+        Set<UUID> blocked = social.blockedAmong(viewerId, authors.keySet());
 
         List<Post> result = new ArrayList<>();
         for (PostRow row : rows) {
             UserSummary author = authors.get(row.authorId());
             Playback playback = playbacks.get(row.mediaId());
-            if (author == null || playback == null) {
+            if (author == null || playback == null || blocked.contains(author.id())) {
                 continue;
             }
             result.add(new Post(
                     row.id(),
-                    author,
+                    author.withFollowing(followed.contains(author.id())),
                     row.caption(),
                     row.gigId() == null ? null : gigs.get(row.gigId()),
                     artistIds.getOrDefault(row.id(), List.of()).stream()

@@ -1,6 +1,7 @@
 package app.soundcheck.identity.internal.web;
 
 import app.soundcheck.catalog.City;
+import app.soundcheck.identity.ProfileFacts;
 import app.soundcheck.identity.internal.MeService;
 import app.soundcheck.identity.internal.UserRecord;
 import app.soundcheck.identity.internal.UserRepository;
@@ -84,8 +85,8 @@ public class MeController {
      */
     @GetMapping("/users/{handle}")
     @Operation(operationId = "getUserByHandle", summary = "Public profile (any signed-in user)")
-    public ProfileResponse profile(@PathVariable String handle) {
-        return me.profile(handle)
+    public ProfileResponse profile(@AuthenticationPrincipal Jwt jwt, @PathVariable String handle) {
+        return me.profile(userId(jwt), handle)
                 .map(ProfileResponse::from)
                 .orElseThrow(() -> ApiException.notFound("USER_NOT_FOUND", "No user with handle " + handle));
     }
@@ -120,7 +121,11 @@ public class MeController {
 
     public record GenreWeight(int genreId, float weight) {}
 
-    public record Counts(long followers, long following, long posts) {}
+    public record Counts(long followers, long following, long posts) {
+        static Counts from(ProfileFacts.Counts counts) {
+            return new Counts(counts.followers(), counts.following(), counts.posts());
+        }
+    }
 
     public record MeResponse(
             UUID id,
@@ -150,11 +155,14 @@ public class MeController {
                             .toList(),
                     u.role(),
                     u.onboardedAt() != null,
-                    new Counts(0, 0, 0));
+                    Counts.from(m.counts()));
         }
     }
 
-    /** Public profile: no email, role or onboarding state. */
+    /**
+     * Public profile: no email, role or onboarding state. {@code isFollowing} and {@code isBlocked} are
+     * the viewer's own relation to this user (a profile whose owner blocked the viewer is a 404).
+     */
     public record ProfileResponse(
             UUID id,
             String handle,
@@ -162,9 +170,12 @@ public class MeController {
             @Schema(nullable = true) String avatarUrl,
             @Schema(nullable = true) String bio,
             @Schema(nullable = true) String homeCityName,
-            Counts counts) {
+            Counts counts,
+            boolean isFollowing,
+            boolean isBlocked) {
 
-        static ProfileResponse from(MeService.Me m) {
+        static ProfileResponse from(MeService.Profile profile) {
+            MeService.Me m = profile.user();
             UserRecord u = m.user();
             return new ProfileResponse(
                     u.id(),
@@ -173,7 +184,9 @@ public class MeController {
                     m.avatarUrl(),
                     u.bio(),
                     m.homeCity() == null ? null : m.homeCity().name(),
-                    new Counts(0, 0, 0));
+                    Counts.from(m.counts()),
+                    profile.relation().following(),
+                    profile.relation().blocked());
         }
     }
 }

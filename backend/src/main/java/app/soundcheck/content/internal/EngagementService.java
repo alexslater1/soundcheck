@@ -10,6 +10,7 @@ import app.soundcheck.shared.idempotency.IdempotencyKeys;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.shared.web.Page;
+import app.soundcheck.social.SocialGraph;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
@@ -49,6 +50,7 @@ public class EngagementService {
     private final EngagementRepository engagement;
     private final PostRepository posts;
     private final Users users;
+    private final SocialGraph social;
     private final IdempotencyKeys idempotency;
     private final ApplicationEventPublisher events;
     private final JsonMapper json;
@@ -58,6 +60,7 @@ public class EngagementService {
             EngagementRepository engagement,
             PostRepository posts,
             Users users,
+            SocialGraph social,
             IdempotencyKeys idempotency,
             ApplicationEventPublisher events,
             JsonMapper json,
@@ -65,6 +68,7 @@ public class EngagementService {
         this.engagement = engagement;
         this.posts = posts;
         this.users = users;
+        this.social = social;
         this.idempotency = idempotency;
         this.events = events;
         this.json = json;
@@ -74,7 +78,7 @@ public class EngagementService {
     // ── likes ────────────────────────────────────────────────────────────────────────────────────
 
     public LikeState like(UUID userId, UUID postId) {
-        PostRow post = published(postId);
+        PostRow post = visible(userId, postId);
         if (engagement.like(postId, userId, Instant.now(clock))) {
             events.publishEvent(new PostLiked(postId, post.authorId(), userId));
         }
@@ -82,7 +86,7 @@ public class EngagementService {
     }
 
     public LikeState unlike(UUID userId, UUID postId) {
-        published(postId);
+        visible(userId, postId);
         engagement.unlike(postId, userId);
         return new LikeState(engagement.likeCount(postId), false);
     }
@@ -112,7 +116,7 @@ public class EngagementService {
                 return view(engagement.comment(commentId).orElseThrow(EngagementService::commentNotFound));
             }
         }
-        PostRow post = published(postId);
+        PostRow post = visible(userId, postId);
         CommentRow row = new CommentRow(Ids.newId(), postId, userId, text, Instant.now(clock), null);
         engagement.addComment(row);
         events.publishEvent(new CommentAdded(postId, post.authorId(), row.id(), userId));
@@ -131,15 +135,17 @@ public class EngagementService {
 
     @Transactional(readOnly = true)
     public Page<CommentView> comments(UUID viewerId, UUID postId, @Nullable String cursor, @Nullable Integer limit) {
-        published(postId);
+        visible(viewerId, postId);
         int size = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(limit, MAX_LIMIT));
         List<CommentRow> rows = engagement.comments(postId, Cursor.decode(cursor), size);
         boolean more = rows.size() > size;
         List<CommentRow> shown = more ? rows.subList(0, size) : rows;
         Map<UUID, UserSummary> authors = users.summaries(
                 shown.stream().map(CommentRow::authorId).distinct().toList());
+        // Comments by people with a block between them and the viewer are not shown to the viewer.
+        Set<UUID> blocked = social.blockedAmong(viewerId, authors.keySet());
         List<CommentView> views = shown.stream()
-                .map(row -> authors.containsKey(row.authorId())
+                .map(row -> authors.containsKey(row.authorId()) && !blocked.contains(row.authorId())
                         ? new CommentView(
                                 row.id(), row.postId(), authors.get(row.authorId()), row.body(), row.createdAt())
                         : null)
@@ -171,12 +177,12 @@ public class EngagementService {
 
     /** "Show me less": the post is left out of this user's feeds from now on. */
     public void hide(UUID userId, UUID postId) {
-        published(postId);
+        visible(userId, postId);
         engagement.hide(postId, userId, Instant.now(clock));
     }
 
     public void report(UUID userId, UUID postId, String reason, @Nullable String details) {
-        published(postId);
+        visible(userId, postId);
         if (!REPORT_REASONS.contains(reason)) {
             throw ApiException.badRequest("REPORT_REASON_INVALID", "reason must be one of " + REPORT_REASONS);
         }
@@ -189,8 +195,15 @@ public class EngagementService {
                 Instant.now(clock));
     }
 
-    private PostRow published(UUID postId) {
-        return posts.find(postId).filter(PostRow::published).orElseThrow(PostService::notFound);
+    /**
+     * The post, if the actor may see it: published, and no block between the actor and its author
+     * (one cannot like or comment on a blocker's posts; to them the post does not exist).
+     */
+    private PostRow visible(UUID actorId, UUID postId) {
+        return posts.find(postId)
+                .filter(PostRow::published)
+                .filter(p -> p.authorId().equals(actorId) || !social.blockBetween(actorId, p.authorId()))
+                .orElseThrow(PostService::notFound);
     }
 
     private CommentView view(CommentRow row) {

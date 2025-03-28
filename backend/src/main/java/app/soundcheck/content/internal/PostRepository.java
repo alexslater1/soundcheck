@@ -194,6 +194,11 @@ public class PostRepository {
                 .fetch(PostRepository::toRow);
     }
 
+    /** How many published posts an author has. Expected index: post_author_pub. */
+    public long countPublished(UUID authorId) {
+        return dsl.fetchCount(POST, POST.AUTHOR_ID.eq(authorId).and(POST.STATUS.eq("PUBLISHED")));
+    }
+
     /** The artists tagged in each post. Expected index: the post_artist primary key. */
     public Map<UUID, List<UUID>> artistIds(Collection<UUID> postIds) {
         Map<UUID, List<UUID>> byPost = new LinkedHashMap<>();
