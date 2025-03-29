@@ -2,6 +2,7 @@ package app.soundcheck.content.internal;
 
 import static app.soundcheck.shared.jooq.content.Tables.POST;
 import static app.soundcheck.shared.jooq.content.Tables.POST_ARTIST;
+import static app.soundcheck.shared.jooq.content.Tables.POST_HIDE;
 import static app.soundcheck.shared.jooq.content.Tables.POST_LIKE;
 
 import app.soundcheck.shared.web.Cursor;
@@ -160,6 +161,32 @@ public class PostRepository {
         }
         if (cursor != null) {
             where.add(DSL.row(POST.PUBLISHED_AT, POST.ID).lt(DSL.row(at(cursor.at()), cursor.id())));
+        }
+        return dsl.selectFrom(POST)
+                .where(where)
+                .orderBy(POST.PUBLISHED_AT.desc(), POST.ID.desc())
+                .limit(limit + 1)
+                .fetch(PostRepository::toRow);
+    }
+
+    /**
+     * Published posts by any of the authors that the viewer has not hidden, newest first;
+     * {@code limit + 1} rows. Expected indexes: {@code post_author_pub} per author, the post_hide primary
+     * key for the anti-join.
+     */
+    public List<PostRow> byAuthors(Collection<UUID> authorIds, UUID viewerId, @Nullable Cursor cursor, int limit) {
+        if (authorIds.isEmpty()) {
+            return List.of();
+        }
+        Condition where = POST.STATUS
+                .eq("PUBLISHED")
+                .and(POST.AUTHOR_ID.in(authorIds))
+                .and(DSL.notExists(DSL.selectOne()
+                        .from(POST_HIDE)
+                        .where(POST_HIDE.POST_ID.eq(POST.ID))
+                        .and(POST_HIDE.USER_ID.eq(viewerId))));
+        if (cursor != null) {
+            where = where.and(DSL.row(POST.PUBLISHED_AT, POST.ID).lt(DSL.row(at(cursor.at()), cursor.id())));
         }
         return dsl.selectFrom(POST)
                 .where(where)

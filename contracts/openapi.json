@@ -1530,6 +1530,43 @@
         "tags" : [ "engagement" ]
       }
     },
+    "/api/v1/feed/following" : {
+      "get" : {
+        "operationId" : "getFollowingFeed",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PagePost"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Posts by the people you follow, newest first",
+        "tags" : [ "feed" ]
+      }
+    },
     "/api/v1/genres" : {
       "get" : {
         "operationId" : "listGenres",
@@ -2881,6 +2918,9 @@
   }, {
     "description" : "Genres and cities",
     "name" : "reference"
+  }, {
+    "description" : "Feeds",
+    "name" : "feed"
   }, {
     "description" : "Likes, comments, hide and report",
     "name" : "engagement"

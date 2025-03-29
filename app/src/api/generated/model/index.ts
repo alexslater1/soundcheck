@@ -44,6 +44,7 @@ export * from './genreResponseParentId';
 export * from './genreWeight';
 export * from './genresRequest';
 export * from './geoPoint';
+export * from './getFollowingFeedParams';
 export * from './gigDetail';
 export * from './gigSummary';
 export * from './gigSummaryCurrency';

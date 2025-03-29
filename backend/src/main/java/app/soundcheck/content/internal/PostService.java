@@ -5,6 +5,7 @@ import app.soundcheck.catalog.CatalogViews;
 import app.soundcheck.content.Post;
 import app.soundcheck.content.PostDeleted;
 import app.soundcheck.content.PostFailed;
+import app.soundcheck.content.PostFeed;
 import app.soundcheck.content.PostPublished;
 import app.soundcheck.identity.Users;
 import app.soundcheck.media.MediaInfo;
@@ -20,6 +21,7 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +40,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional
-public class PostService {
+public class PostService implements PostFeed {
 
     public static final int MAX_ARTISTS = 10;
     static final int DEFAULT_LIMIT = 20;
@@ -287,6 +289,19 @@ public class PostService {
         }
         return publishedPage(
                 viewerId, PostRepository.Scope.gigs(catalogViews.gigIdsAtVenue(venueId, 500)), cursor, limit);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<Post> byAuthors(
+            UUID viewerId, Collection<UUID> authorIds, @Nullable String cursor, @Nullable Integer limit) {
+        int size = limit(limit);
+        List<PostRow> rows = posts.byAuthors(authorIds, viewerId, Cursor.decode(cursor), size);
+        boolean more = rows.size() > size;
+        List<PostRow> shown = more ? rows.subList(0, size) : rows;
+        String next =
+                more ? new Cursor(shown.getLast().publishedAt(), shown.getLast().id()).encode() : null;
+        return new Page<>(assembler.assemble(viewerId, shown), next);
     }
 
     /** The author's own posts, including those still processing or failed (the profile grid's badges). */
