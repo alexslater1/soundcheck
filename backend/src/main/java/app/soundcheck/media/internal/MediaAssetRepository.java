@@ -58,6 +58,21 @@ public class MediaAssetRepository {
         return dsl.selectFrom(MEDIA_ASSET).where(MEDIA_ASSET.ID.in(ids)).fetch(MediaAssetRepository::toAsset);
     }
 
+    /** Every asset id of an owner, whatever its status. Expected index: media_asset_owner. */
+    public List<UUID> idsOwnedBy(UUID ownerId) {
+        return dsl.select(MEDIA_ASSET.ID)
+                .from(MEDIA_ASSET)
+                .where(MEDIA_ASSET.OWNER_ID.eq(ownerId))
+                .fetch(MEDIA_ASSET.ID);
+    }
+
+    /** Deletes the owner's asset rows (their transcode_job rows go with them). */
+    public int deleteOwnedBy(UUID ownerId) {
+        return dsl.deleteFrom(MEDIA_ASSET)
+                .where(MEDIA_ASSET.OWNER_ID.eq(ownerId))
+                .execute();
+    }
+
     /** Reads the row and locks it until the transaction ends ({@code SELECT … FOR UPDATE}). */
     public Optional<MediaAsset> findForUpdate(UUID id) {
         return dsl.selectFrom(MEDIA_ASSET)

@@ -103,7 +103,17 @@ class StoragePortsIT extends IntegrationTest {
         storage.getToFile(key + ".copy", target);
 
         assertThat(Files.readAllBytes(target)).containsExactly(1, 2, 3, 4);
+
         assertThat(storage.head(key).orElseThrow().contentType()).isEqualTo("image/jpeg");
+
+        // Deleting by prefix removes the "folder" and nothing beside it; a prefix must end with '/'.
+        String folder = key.substring(0, key.lastIndexOf('/') + 1);
+        assertThat(storage.deletePrefix(folder)).isEqualTo(2);
+        assertThat(storage.head(key)).isEmpty();
+        assertThat(storage.head(key + ".copy")).isEmpty();
+        assertThat(storage.deletePrefix(folder)).isZero();
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> storage.deletePrefix("media/abc"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

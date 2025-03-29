@@ -18,9 +18,11 @@ import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
 import software.amazon.awssdk.services.s3.model.MetadataDirective;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.NoSuchUploadException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
@@ -192,6 +194,26 @@ class S3ObjectStorage implements ObjectStorage {
                 .contentType(contentType)
                 .cacheControl(cacheControl)
                 .build());
+    }
+
+    @Override
+    public int deletePrefix(String prefix) {
+        if (prefix.isBlank() || !prefix.endsWith("/")) {
+            // "media/abc" would also match "media/abcd…": only whole "folders" may be removed.
+            throw new IllegalArgumentException("a prefix to delete must end with '/'");
+        }
+        int deleted = 0;
+        for (ListObjectsV2Response page :
+                s3.listObjectsV2Paginator(b -> b.bucket(bucket).prefix(prefix))) {
+            List<ObjectIdentifier> keys = page.contents().stream()
+                    .map(object -> ObjectIdentifier.builder().key(object.key()).build())
+                    .toList();
+            if (!keys.isEmpty()) {
+                s3.deleteObjects(b -> b.bucket(bucket).delete(d -> d.objects(keys)));
+                deleted += keys.size();
+            }
+        }
+        return deleted;
     }
 
     @Override

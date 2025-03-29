@@ -186,6 +186,21 @@ public class UserRepository {
                 .execute();
     }
 
+    /** Accounts deleted before the instant, oldest deletion first (the purge's work list). */
+    public List<UUID> deletedBefore(Instant instant, int limit) {
+        return dsl.select(APP_USER.ID)
+                .from(APP_USER)
+                .where(APP_USER.DELETED_AT.lt(at(instant)))
+                .orderBy(APP_USER.DELETED_AT)
+                .limit(limit)
+                .fetch(APP_USER.ID);
+    }
+
+    /** Removes the row for good; everything referencing it with {@code on delete cascade} goes with it. */
+    public void delete(UUID id) {
+        dsl.deleteFrom(APP_USER).where(APP_USER.ID.eq(id)).execute();
+    }
+
     public List<GenrePreference> genres(UUID userId) {
         return dsl.select(USER_GENRE_PREFERENCE.GENRE_ID, USER_GENRE_PREFERENCE.WEIGHT)
                 .from(USER_GENRE_PREFERENCE)

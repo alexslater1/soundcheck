@@ -2,6 +2,7 @@ package app.soundcheck.media.internal;
 
 import app.soundcheck.media.MediaInfo;
 import app.soundcheck.media.MediaLibrary;
+import app.soundcheck.media.ObjectStorage;
 import app.soundcheck.media.Playback;
 import app.soundcheck.shared.media.PublicImages;
 import java.util.Collection;
@@ -20,8 +21,11 @@ class MediaLibraryService implements MediaLibrary, PublicImages {
     private final MediaAssetRepository assets;
     private final UploadService uploads;
     private final MediaProperties properties;
+    private final ObjectStorage storage;
 
-    MediaLibraryService(MediaAssetRepository assets, UploadService uploads, MediaProperties properties) {
+    MediaLibraryService(
+            MediaAssetRepository assets, UploadService uploads, MediaProperties properties, ObjectStorage storage) {
+        this.storage = storage;
         this.assets = assets;
         this.uploads = uploads;
         this.properties = properties;
@@ -62,6 +66,20 @@ class MediaLibraryService implements MediaLibrary, PublicImages {
         return assets.find(mediaId)
                 .filter(asset -> asset.ownerId().equals(ownerId) && readyImage(asset))
                 .isPresent();
+    }
+
+    /**
+     * Objects first, rows second: if storage fails, the rows are still there and the purge is tried again
+     * the next day; the other way round would leave objects nobody knows about.
+     */
+    @Override
+    @Transactional
+    public int purgeOwnedBy(UUID ownerId) {
+        for (UUID mediaId : assets.idsOwnedBy(ownerId)) {
+            storage.deletePrefix("media/" + mediaId + "/");
+        }
+        storage.deletePrefix("uploads/" + ownerId + "/");
+        return assets.deleteOwnedBy(ownerId);
     }
 
     private static boolean readyImage(MediaAsset asset) {

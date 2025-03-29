@@ -18,4 +18,13 @@ public interface MediaLibrary {
 
     /** Playback info for the ids that exist, whatever their status. */
     Map<UUID, Playback> playbacks(Collection<UUID> mediaIds);
+
+    /**
+     * Removes everything a user ever uploaded, for good: the originals, everything served for them, and
+     * the rows (account purge). The caller must have removed whatever refers to these assets first.
+     * Safe to repeat.
+     *
+     * @return how many assets were removed
+     */
+    int purgeOwnedBy(UUID ownerId);
 }

@@ -52,6 +52,13 @@ public interface ObjectStorage {
 
     void delete(String key);
 
+    /**
+     * Deletes every object whose key starts with the prefix (account purge). Safe to repeat.
+     *
+     * @return how many objects were deleted
+     */
+    int deletePrefix(String prefix);
+
     /** The client's description of what it uploaded does not match what storage holds. */
     class InvalidUploadException extends RuntimeException {
         public InvalidUploadException(String message) {
