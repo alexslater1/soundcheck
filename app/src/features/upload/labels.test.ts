@@ -1,4 +1,11 @@
-import { compressionNote, megabytes, stateLabel } from './labels';
+import {
+  canPostAgain,
+  compressionNote,
+  megabytes,
+  postNote,
+  postOnItsWay,
+  stateLabel,
+} from './labels';
 
 describe('upload labels', () => {
   it('formats sizes', () => {
@@ -26,5 +33,52 @@ describe('upload labels', () => {
       }),
     ).toBe('Compression did not help (10.0 MB); the original was uploaded');
     expect(compressionNote({ clientMeta: { platform: 'web' } })).toBeNull();
+  });
+
+  describe('the post that goes with an upload', () => {
+    const draft = { caption: 'x', gigId: null, artistIds: [] };
+    const base = { draft, postId: null, postError: null };
+
+    it('says nothing until something was written', () => {
+      expect(postNote({ ...base, draft: null, state: 'UPLOADING' })).toBeNull();
+      expect(postOnItsWay({ ...base, draft: null, state: 'UPLOADING' })).toBe(false);
+    });
+
+    it('is on its way while the upload or the post request is still running', () => {
+      expect(postNote({ ...base, state: 'UPLOADING' })?.text).toBe(
+        'Will be posted when the upload finishes',
+      );
+      expect(postNote({ ...base, state: 'READY' })?.text).toBe('Posting…');
+      expect(postOnItsWay({ ...base, state: 'UPLOADING' })).toBe(true);
+      expect(postOnItsWay({ ...base, state: 'PROCESSING' })).toBe(true);
+    });
+
+    it('does not promise a post for a clip that was rejected or an upload that failed', () => {
+      expect(postNote({ ...base, state: 'REJECTED' })).toEqual({
+        text: 'Not posted: this clip could not be used.',
+        problem: true,
+      });
+      expect(postOnItsWay({ ...base, state: 'REJECTED' })).toBe(false);
+      expect(postOnItsWay({ ...base, state: 'FAILED' })).toBe(false);
+      expect(canPostAgain({ ...base, state: 'REJECTED', postError: 'x' })).toBe(false);
+    });
+
+    it('offers to post again when the request failed and the server has the clip', () => {
+      const failed = { ...base, postError: 'Network request failed' };
+      expect(postNote({ ...failed, state: 'READY' })).toEqual({
+        text: 'Not posted: Network request failed',
+        problem: true,
+      });
+      expect(canPostAgain({ ...failed, state: 'READY' })).toBe(true);
+      expect(canPostAgain({ ...failed, state: 'PROCESSING' })).toBe(true);
+      expect(canPostAgain({ ...failed, state: 'UPLOADING' })).toBe(false);
+      expect(canPostAgain({ ...base, state: 'READY' })).toBe(false);
+      expect(postOnItsWay({ ...failed, state: 'READY' })).toBe(false);
+    });
+
+    it('is done once the post exists', () => {
+      expect(postNote({ ...base, postId: 'p1', state: 'READY' })?.text).toBe('Posted');
+      expect(canPostAgain({ ...base, postId: 'p1', postError: 'old', state: 'READY' })).toBe(false);
+    });
   });
 });

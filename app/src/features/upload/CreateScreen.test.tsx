@@ -155,6 +155,41 @@ describe('CreateScreen', () => {
     expect(screen.queryByText('compose-stub')).toBeNull();
   });
 
+  it('offers Post again when the post request failed, and Write post when nothing was written', async () => {
+    const draft = { caption: 'Encore', gigId: null, artistIds: [] };
+    const unposted = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const unwritten = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const rejected = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    useUploadQueue.getState().patch(unposted, {
+      state: 'READY',
+      mediaId: 'media-1',
+      draft,
+      postError: 'Network request failed',
+    });
+    useUploadQueue.getState().patch(unwritten, { state: 'READY', mediaId: 'media-2' });
+    useUploadQueue.getState().patch(rejected, { state: 'REJECTED', mediaId: 'media-3', draft });
+    await renderScreen();
+
+    expect(screen.getByTestId(`upload-${unposted}-post`).props.children).toBe(
+      'Not posted: Network request failed',
+    );
+    expect(screen.getByTestId(`upload-${rejected}-post`).props.children).toBe(
+      'Not posted: this clip could not be used.',
+    );
+    // One of each: the rejected clip can neither be posted again nor written for.
+    await fireEvent.press(screen.getByText('Post again'));
+    expect(mockSubmit).toHaveBeenCalledWith(unposted, draft);
+
+    expect(screen.queryByText('compose-stub')).toBeNull();
+    await fireEvent.press(screen.getByText('Write post'));
+    await fireEvent.press(await screen.findByText('compose-stub'));
+    expect(mockSubmit).toHaveBeenLastCalledWith(unwritten, {
+      caption: 'Encore',
+      gigId: 'gig-1',
+      artistIds: ['artist-1'],
+    });
+  });
+
   it('refuses a clip that is too long without uploading anything', async () => {
     mockPick.mockResolvedValue({ kind: 'picked', video: { ...video, durationMs: 75_000 } });
     await renderScreen();

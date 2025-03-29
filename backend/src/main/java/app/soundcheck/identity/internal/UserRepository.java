@@ -186,12 +186,16 @@ public class UserRepository {
                 .execute();
     }
 
-    /** Accounts deleted before the instant, oldest deletion first (the purge's work list). */
-    public List<UUID> deletedBefore(Instant instant, int limit) {
+    /**
+     * Accounts deleted before the instant, oldest deletion first (the purge's work list), after
+     * skipping the first {@code skip}.
+     */
+    public List<UUID> deletedBefore(Instant instant, int skip, int limit) {
         return dsl.select(APP_USER.ID)
                 .from(APP_USER)
                 .where(APP_USER.DELETED_AT.lt(at(instant)))
-                .orderBy(APP_USER.DELETED_AT)
+                .orderBy(APP_USER.DELETED_AT, APP_USER.ID)
+                .offset(skip)
                 .limit(limit)
                 .fetch(APP_USER.ID);
     }

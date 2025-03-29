@@ -83,6 +83,9 @@ export function CreateScreen() {
     }
   };
 
+  // The upload the compose form is open for, as long as nothing has been written for it.
+  const composingEntry = entries.find((entry) => entry.localId === composing && !entry.draft);
+
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
@@ -115,7 +118,12 @@ export function CreateScreen() {
           </Text>
         ) : null}
 
-        {composing && entries.some((entry) => entry.localId === composing && !entry.draft) ? (
+        {composingEntry ? (
+          <Text variant="caption" muted testID="compose-for">
+            The post for {composingEntry.fileName ?? 'your recorded clip'}
+          </Text>
+        ) : null}
+        {composing && composingEntry ? (
           <ComposeForm
             onPost={(draft) => {
               void submitPost(composing, draft);
@@ -140,6 +148,14 @@ export function CreateScreen() {
               entry={entry}
               onRetry={() => void startUpload(entry.localId)}
               onRemove={() => removeUpload(entry.localId)}
+              onPostAgain={() => {
+                if (entry.draft) {
+                  void submitPost(entry.localId, entry.draft);
+                }
+              }}
+              onWritePost={
+                entry.localId === composing ? undefined : () => setComposing(entry.localId)
+              }
             />
           ))
         )}

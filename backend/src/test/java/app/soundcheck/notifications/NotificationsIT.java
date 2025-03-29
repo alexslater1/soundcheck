@@ -133,6 +133,60 @@ class NotificationsIT extends IntegrationTest {
         assertThat(inbox(author)).isEmpty();
     }
 
+    /** The outbox delivers at least once: a second delivery of the same event must add nothing (V013). */
+    @Test
+    void anEventDeliveredTwiceLeavesOneEntry() {
+        UUID post = UUID.randomUUID();
+        UUID failedPost = UUID.randomUUID();
+        UUID comment = UUID.randomUUID();
+        Instant publishedAt = Instant.now();
+        for (int delivery = 0; delivery < 2; delivery++) {
+            tx.executeWithoutResult(status -> {
+                events.publishEvent(new UserFollowed(fan.id(), author.id()));
+                events.publishEvent(new CommentAdded(post, author.id(), comment, fan.id()));
+                events.publishEvent(new PostPublished(post, author.id(), publishedAt, true));
+                events.publishEvent(new PostFailed(failedPost, author.id()));
+            });
+        }
+        // A different comment is a different event.
+        tx.executeWithoutResult(
+                status -> events.publishEvent(new CommentAdded(post, author.id(), UUID.randomUUID(), fan.id())));
+
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(inbox(author)).hasSize(5));
+        await().during(Duration.ofSeconds(1)).atMost(Duration.ofSeconds(3)).untilAsserted(() -> assertThat(
+                        types(author))
+                .containsExactlyInAnyOrder(
+                        "NEW_FOLLOWER", "POST_COMMENTED", "POST_COMMENTED", "POST_READY", "POST_FAILED"));
+        assertThat(unread(author)).isEqualTo(5);
+    }
+
+    /** A block makes the two invisible to each other in the inbox as well. */
+    @Test
+    void aBlockRemovesWhatTheTwoInboxesSayAboutEachOther() {
+        TestApi.User bystander = api.register("bystander");
+        tx.executeWithoutResult(status -> {
+            events.publishEvent(new UserFollowed(fan.id(), author.id()));
+            events.publishEvent(new UserFollowed(author.id(), fan.id()));
+            events.publishEvent(new UserFollowed(bystander.id(), author.id()));
+        });
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertThat(inbox(author)).hasSize(2);
+            assertThat(inbox(fan)).hasSize(1);
+        });
+
+        assertThat(api.put("/api/v1/users/" + fan.id() + "/block", null, author).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            assertThat(inbox(fan)).isEmpty();
+            assertThat(inbox(author)).hasSize(1);
+        });
+        assertThat(inbox(author).getFirst().path("actor").path("handle").asText(""))
+                .isEqualTo(bystander.handle());
+        assertThat(unread(author)).isEqualTo(1);
+    }
+
     @Test
     void likesOfOnePostAreCollapsedWhileUnread(Scenario scenario) {
         TestApi.User second = api.register("second");

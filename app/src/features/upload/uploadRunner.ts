@@ -110,11 +110,21 @@ export function removeUpload(localId: string): void {
   useUploadQueue.getState().remove(localId);
 }
 
-/** Uploads waiting on the worker pick their polling back up (after a restart, or a five-minute give-up). */
+/**
+ * Uploads waiting on the worker pick their polling back up (after a restart, or a five-minute give-up),
+ * and a post that was written but never created (the request failed, or the app was closed first) is
+ * sent again; its idempotency key makes that safe.
+ */
 export function resumeProcessing(ownerId: string): void {
   for (const entry of useUploadQueue.getState().entries) {
-    if (entry.ownerId === ownerId && entry.state === 'PROCESSING') {
+    if (entry.ownerId !== ownerId) {
+      continue;
+    }
+    if (entry.state === 'PROCESSING') {
       void startUpload(entry.localId);
+    }
+    if (entry.draft && !entry.postId && (entry.state === 'PROCESSING' || entry.state === 'READY')) {
+      void ensurePostFor(entry.localId);
     }
   }
 }

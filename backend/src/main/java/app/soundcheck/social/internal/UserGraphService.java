@@ -6,6 +6,7 @@ import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.shared.web.Page;
 import app.soundcheck.social.SocialGraph;
+import app.soundcheck.social.UserBlocked;
 import app.soundcheck.social.UserFollowed;
 import app.soundcheck.social.internal.UserGraphRepository.Edge;
 import java.time.Clock;
@@ -52,6 +53,9 @@ public class UserGraphService implements SocialGraph {
         if (followerId.equals(followeeId)) {
             throw ApiException.badRequest("CANNOT_FOLLOW_SELF", "You cannot follow yourself");
         }
+        // A follow and a block of the same two people must not interleave: each would pass its own check
+        // and leave a follow across a block.
+        graph.lockPair(followerId, followeeId);
         visibleTo(followerId, followeeId);
         if (graph.hasBlocked(followerId, followeeId)) {
             throw ApiException.conflict("USER_BLOCKED", "Unblock this user before following them");
@@ -75,9 +79,13 @@ public class UserGraphService implements SocialGraph {
         if (!users.exists(blockedId)) {
             throw notFound();
         }
-        graph.block(blockerId, blockedId, Instant.now(clock));
+        graph.lockPair(blockerId, blockedId);
+        boolean added = graph.block(blockerId, blockedId, Instant.now(clock));
         graph.unfollow(blockerId, blockedId);
         graph.unfollow(blockedId, blockerId);
+        if (added) {
+            events.publishEvent(new UserBlocked(blockerId, blockedId));
+        }
     }
 
     public void unblock(UUID blockerId, UUID blockedId) {

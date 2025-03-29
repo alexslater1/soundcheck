@@ -18,7 +18,8 @@ const LARGE = resolve(CLIPS, 'clip-07-portrait-480p-14s.mp4'); // 21.6 MB → th
 test('upload a clip on web, watch it when it is ready, then upload a large one in parts', async ({
   page,
 }) => {
-  test.skip(!existsSync(SMALL), 'synthetic clips missing: run `make clips` first');
+  // Not test.skip: a journey that did not run must not look like one that passed.
+  expect(existsSync(SMALL), 'synthetic clips missing: run `make clips` first').toBe(true);
   test.setTimeout(240_000);
   // PUTs to storage, by kind: a whole file, or one part of a multipart upload.
   const puts: string[] = [];
@@ -35,7 +36,7 @@ test('upload a clip on web, watch it when it is ready, then upload a large one i
 
   // A small clip: one PUT, then the worker makes it Ready.
   await choose(page, SMALL);
-  await expect(page.getByText('clip-02-portrait-720p-12s.mp4')).toBeVisible();
+  await expect(page.getByText('clip-02-portrait-720p-12s.mp4', { exact: true })).toBeVisible();
   await expect(page.getByText('Ready', { exact: true })).toBeVisible({ timeout: 90_000 });
   expect(puts).toEqual(['whole']);
 

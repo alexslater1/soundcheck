@@ -15,7 +15,8 @@ const CLIP = resolve(__dirname, '../../fixtures/clips/clip-02-portrait-720p-12s.
 test('A posts a clip; B follows A, sees it in Following, likes and comments; A is notified', async ({
   browser,
 }) => {
-  test.skip(!existsSync(CLIP), 'synthetic clips missing: run `make clips` first');
+  // Not test.skip: a journey that did not run must not look like one that passed.
+  expect(existsSync(CLIP), 'synthetic clips missing: run `make clips` first').toBe(true);
   test.setTimeout(240_000);
   const contextA = await browser.newContext();
   const contextB = await browser.newContext();

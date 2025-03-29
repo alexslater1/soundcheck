@@ -70,6 +70,11 @@ public class NotificationService {
         notifications.insert(new Row(Ids.newId(), userId, type, actorId, postId, commentId, Instant.now(clock), null));
     }
 
+    /** A block makes two people invisible to each other, in the inbox too. */
+    void forgetBetween(UUID a, UUID b) {
+        notifications.deleteBetween(a, b);
+    }
+
     @Transactional(readOnly = true)
     public Inbox inbox(UUID userId, @Nullable String cursor, @Nullable Integer limit) {
         int size = limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(limit, MAX_LIMIT));

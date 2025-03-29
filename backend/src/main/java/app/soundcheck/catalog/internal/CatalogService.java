@@ -3,6 +3,7 @@ package app.soundcheck.catalog.internal;
 import app.soundcheck.catalog.ArtistFollows;
 import app.soundcheck.catalog.ArtistSummary;
 import app.soundcheck.catalog.GeoPoint;
+import app.soundcheck.catalog.GigClips;
 import app.soundcheck.catalog.GigSummary;
 import app.soundcheck.catalog.VenueSummary;
 import app.soundcheck.catalog.ViewerHome;
@@ -96,12 +97,19 @@ public class CatalogService {
     private final CatalogReadRepository repository;
     private final ViewerHome viewerHome;
     private final ArtistFollows follows;
+    private final GigClips clips;
     private final Clock clock;
 
-    public CatalogService(CatalogReadRepository repository, ViewerHome viewerHome, ArtistFollows follows, Clock clock) {
+    public CatalogService(
+            CatalogReadRepository repository,
+            ViewerHome viewerHome,
+            ArtistFollows follows,
+            GigClips clips,
+            Clock clock) {
         this.repository = repository;
         this.viewerHome = viewerHome;
         this.follows = follows;
+        this.clips = clips;
         this.clock = clock;
     }
 
@@ -165,8 +173,8 @@ public class CatalogService {
         List<SourceLink> sources = repository.sources(gigId).stream()
                 .map(s -> new SourceLink(s.source(), s.url()))
                 .toList();
-        // postsCount comes from the content module later (catalog cannot depend on content).
-        return new GigDetail(summary, lineup, counts(gigId), 0, sources);
+        // postsCount is answered by the content module through GigClips (catalog cannot depend on content).
+        return new GigDetail(summary, lineup, counts(gigId), clips.countAt(gigId), sources);
     }
 
     /** Idempotent: marking the same status again changes nothing. */

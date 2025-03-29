@@ -48,7 +48,11 @@ export function PostScreen({ id }: { id: string }) {
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
-        <PostCard post={post.data} active onGone={() => router.back()} />
+        <PostCard
+          post={post.data}
+          active
+          onGone={() => (router.canGoBack() ? router.back() : router.replace('/'))}
+        />
         {post.data.status === 'PUBLISHED' ? (
           <Comments postId={post.data.id} postAuthorId={post.data.author.id} />
         ) : null}

@@ -222,6 +222,11 @@ public class PostRepository {
     }
 
     /** How many published posts an author has. Expected index: post_author_pub. */
+    /** Expected index: post_gig_pub (gig_id, published_at desc) where status = 'PUBLISHED'. */
+    public long countPublishedAt(UUID gigId) {
+        return dsl.fetchCount(POST, POST.GIG_ID.eq(gigId).and(POST.STATUS.eq("PUBLISHED")));
+    }
+
     public long countPublished(UUID authorId) {
         return dsl.fetchCount(POST, POST.AUTHOR_ID.eq(authorId).and(POST.STATUS.eq("PUBLISHED")));
     }

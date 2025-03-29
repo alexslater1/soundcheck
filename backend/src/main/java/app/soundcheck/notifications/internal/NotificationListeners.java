@@ -4,6 +4,7 @@ import app.soundcheck.content.CommentAdded;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostLiked;
 import app.soundcheck.content.PostPublished;
+import app.soundcheck.social.UserBlocked;
 import app.soundcheck.social.UserFollowed;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
@@ -51,5 +52,10 @@ class NotificationListeners {
     @ApplicationModuleListener
     void on(PostFailed event) {
         notifications.record(event.authorId(), "POST_FAILED", null, event.postId(), null);
+    }
+
+    @ApplicationModuleListener
+    void on(UserBlocked event) {
+        notifications.forgetBetween(event.blockerId(), event.blockedId());
     }
 }

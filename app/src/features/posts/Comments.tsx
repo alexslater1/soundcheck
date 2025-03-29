@@ -88,7 +88,14 @@ export function Comments({ postId, postAuthorId }: { postId: string; postAuthorI
       <View style={styles.form}>
         <TextInput
           value={body}
-          onChangeText={setBody}
+          onChangeText={(text) => {
+            // The key belongs to the text: sending the same words again is a retry (answered with the
+            // first comment), different words are a new comment and need a new key.
+            if (text.trim() !== body.trim()) {
+              setKey(newUuid());
+            }
+            setBody(text);
+          }}
           placeholder="Add a comment"
           placeholderTextColor={colors.textMuted}
           accessibilityLabel="Add a comment"

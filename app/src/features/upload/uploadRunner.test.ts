@@ -1,6 +1,6 @@
 import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
-import { removeUpload, startUpload, submitPost } from './uploadRunner';
+import { removeUpload, resumeProcessing, startUpload, submitPost } from './uploadRunner';
 
 const mockCreateUpload = jest.fn();
 const mockCompleteUpload = jest.fn();
@@ -31,6 +31,13 @@ const video: PickedVideo = {
   width: null,
   height: null,
 };
+
+/** Lets the runner's un-awaited post request finish. */
+async function waitForPost(): Promise<void> {
+  for (let i = 0; i < 20 && !useUploadQueue.getState().entries[0]?.postId; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 5));
+  }
+}
 
 describe('upload runner', () => {
   beforeEach(() => {
@@ -82,6 +89,33 @@ describe('upload runner', () => {
 
     expect(mockCreatePost).toHaveBeenCalledTimes(1);
     expect(useUploadQueue.getState().entries[0]!.postId).toBe('post-1');
+  });
+
+  it('a post whose request failed is sent again with the same key, by Post again and when the queue resumes', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    await startUpload(id);
+    const draft = { caption: 'Encore', gigId: null, artistIds: [] };
+    mockCreatePost.mockRejectedValueOnce(new Error('Network request failed'));
+
+    await submitPost(id, draft);
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      postId: null,
+      postError: 'Network request failed',
+    });
+
+    // The app is opened again later: the queue is resumed and the post goes through.
+    resumeProcessing('user-1');
+    await waitForPost();
+
+    expect(mockCreatePost).toHaveBeenCalledTimes(2);
+    const keys = mockCreatePost.mock.calls.map(
+      (call) => (call[1] as { headers: Record<string, string> }).headers['Idempotency-Key'],
+    );
+    expect(keys[0]).toBe(keys[1]);
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      postId: 'post-1',
+      postError: null,
+    });
   });
 
   it('sends the idempotency key as a header and writes every change to the queue', async () => {

@@ -85,8 +85,12 @@ public class EngagementService {
         return new LikeState(engagement.likeCount(postId), true);
     }
 
+    /**
+     * Taking one's own like back needs no block check: someone who liked a post and was then blocked
+     * by its author must still be able to remove the like (and the count that goes with it).
+     */
     public LikeState unlike(UUID userId, UUID postId) {
-        visible(userId, postId);
+        posts.find(postId).filter(PostRow::published).orElseThrow(PostService::notFound);
         engagement.unlike(postId, userId);
         return new LikeState(engagement.likeCount(postId), false);
     }
@@ -113,7 +117,11 @@ public class EngagementService {
                     throw new UncheckedIOException(e);
                 }
                 UUID commentId = UUID.fromString(rememberedCommentId);
-                return view(engagement.comment(commentId).orElseThrow(EngagementService::commentNotFound));
+                // A retry after the comment was deleted finds nothing, like any other read of it.
+                return view(engagement
+                        .comment(commentId)
+                        .filter(c -> c.deletedAt() == null)
+                        .orElseThrow(EngagementService::commentNotFound));
             }
         }
         PostRow post = visible(userId, postId);
@@ -196,13 +204,15 @@ public class EngagementService {
     }
 
     /**
-     * The post, if the actor may see it: published, and no block between the actor and its author
+     * The post, if the actor may see it: published, its author's account still live (a deleted
+     * account's posts are gone at once), and no block between the actor and the author
      * (one cannot like or comment on a blocker's posts; to them the post does not exist).
      */
     private PostRow visible(UUID actorId, UUID postId) {
         return posts.find(postId)
                 .filter(PostRow::published)
-                .filter(p -> p.authorId().equals(actorId) || !social.blockBetween(actorId, p.authorId()))
+                .filter(p -> p.authorId().equals(actorId)
+                        || (users.exists(p.authorId()) && !social.blockBetween(actorId, p.authorId())))
                 .orElseThrow(PostService::notFound);
     }
 

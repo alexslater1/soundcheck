@@ -1,5 +1,5 @@
 import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 
 import { useListMyPosts } from '@/api/generated/posts/posts';
@@ -8,8 +8,9 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
-import { nextPollDelay } from '@/features/player/mediaPolling';
+import { pollDelayForAge } from '@/features/player/mediaPolling';
 import { PostGrid } from '@/features/posts/PostGrid';
+import { postOnItsWay } from '@/features/upload/labels';
 import { useUploadQueue } from '@/features/upload/uploadQueue';
 import { spacing } from '@/theme/tokens';
 
@@ -22,16 +23,25 @@ import { ProfileHeader } from './ProfileHeader';
 export function MeScreen() {
   const me = useAuthStore((state) => state.me);
   const reloadMe = useAuthStore((state) => state.reloadMe);
+  // When the grid first showed something still processing; cleared when nothing is. The polling
+  // schedule runs from this moment, not from when the tab was first opened.
+  const waitingSince = useRef<number | null>(null);
   const posts = useListMyPosts(
     { limit: 30 },
     {
       query: {
         // While something is still processing, keep looking so its badge clears by itself.
-        refetchInterval: (query) =>
-          query.state.status !== 'error' &&
-          query.state.data?.items.some((post) => post.status === 'PENDING_MEDIA')
-            ? nextPollDelay('PROCESSING', query.state.dataUpdateCount)
-            : false,
+        refetchInterval: (query) => {
+          const waiting =
+            query.state.status !== 'error' &&
+            query.state.data?.items.some((post) => post.status === 'PENDING_MEDIA');
+          if (!waiting) {
+            waitingSince.current = null;
+            return false;
+          }
+          waitingSince.current ??= Date.now();
+          return pollDelayForAge(Date.now() - waitingSince.current);
+        },
       },
     },
   );
@@ -55,9 +65,7 @@ export function MeScreen() {
   );
   const onTheirWay = useUploadQueue(
     (state) =>
-      state.entries.filter(
-        (entry) => entry.ownerId === myId && entry.draft && !entry.postId && !entry.postError,
-      ).length,
+      state.entries.filter((entry) => entry.ownerId === myId && postOnItsWay(entry)).length,
   );
   useEffect(() => {
     if (posted !== '') {

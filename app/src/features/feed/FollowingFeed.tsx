@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 
 import { getFollowingFeed, getGetFollowingFeedQueryKey } from '@/api/generated/feed/feed';
@@ -28,6 +28,19 @@ export function FollowingFeed() {
     }, [refetch]),
   );
 
+  // The server tops a page up past posts the viewer may not see, a bounded number of times; a page can
+  // still come back empty with more behind it. Then the next one is fetched, instead of showing
+  // "nothing here".
+  const hasNextPage = feed.hasNextPage;
+  const fetchingNext = feed.isFetchingNextPage;
+  const fetchNextPage = feed.fetchNextPage;
+  const lastPageEmpty = feed.data ? feed.data.pages.at(-1)?.items.length === 0 : false;
+  useEffect(() => {
+    if (lastPageEmpty && hasNextPage && !fetchingNext) {
+      void fetchNextPage();
+    }
+  }, [lastPageEmpty, hasNextPage, fetchingNext, fetchNextPage]);
+
   if (feed.isPending) {
     return (
       <View testID="feed-loading">
@@ -45,6 +58,13 @@ export function FollowingFeed() {
     );
   }
   const posts = feed.data.pages.flatMap((page) => page.items);
+  if (posts.length === 0 && hasNextPage) {
+    return (
+      <View testID="feed-loading">
+        <Skeleton height={420} />
+      </View>
+    );
+  }
   if (posts.length === 0) {
     return (
       <StateMessage

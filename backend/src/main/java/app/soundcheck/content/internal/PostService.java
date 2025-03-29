@@ -21,12 +21,14 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -43,6 +45,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class PostService implements PostFeed {
 
     public static final int MAX_ARTISTS = 10;
+
+    /** How often a page is topped up after invisible posts were dropped from it. */
+    private static final int MAX_FILL_ROUNDS = 5;
+
     static final int DEFAULT_LIMIT = 20;
     static final int MAX_LIMIT = 50;
 
@@ -112,7 +118,12 @@ public class PostService implements PostFeed {
                     throw new UncheckedIOException(e);
                 }
                 UUID postId = UUID.fromString(rememberedPostId);
-                return view(authorId, posts.find(postId).orElseThrow(PostService::notFound));
+                // A retry after the post was deleted finds nothing, like any other read of it.
+                return view(
+                        authorId,
+                        posts.find(postId)
+                                .filter(p -> !p.status().equals("DELETED"))
+                                .orElseThrow(PostService::notFound));
             }
         }
         // One answer for "no such clip", "not yours" and "not a video": ids cannot be probed.
@@ -173,17 +184,19 @@ public class PostService implements PostFeed {
         return view(authorId, row);
     }
 
-    /** The given artists (each must exist), or the gig's bill when none are given. */
+    /**
+     * The given artists (each must exist). When the field is left out, the gig's bill; an explicit
+     * empty list means "tag nobody" (the user unticked every act).
+     */
     private List<UUID> artistsFor(UUID viewerId, CreatePost request) {
-        List<UUID> requested =
-                request.artistIds() == null ? List.of() : List.copyOf(new LinkedHashSet<>(request.artistIds()));
-        if (requested.isEmpty()) {
+        if (request.artistIds() == null) {
             if (request.gigId() == null) {
                 return List.of();
             }
             List<UUID> lineup = catalogViews.lineup(request.gigId());
             return lineup.subList(0, Math.min(lineup.size(), MAX_ARTISTS));
         }
+        List<UUID> requested = List.copyOf(new LinkedHashSet<>(request.artistIds()));
         if (requested.size() > MAX_ARTISTS) {
             throw ApiException.badRequest("TOO_MANY_ARTISTS", "A post can tag at most " + MAX_ARTISTS + " artists");
         }
@@ -198,23 +211,33 @@ public class PostService implements PostFeed {
 
     // ── media events ─────────────────────────────────────────────────────────────────────────────
 
-    /** The clip is READY: publish the post that was waiting for it, if there is one. Safe to repeat. */
-    public void mediaReady(UUID mediaId) {
-        posts.findByMedia(mediaId).ifPresent(post -> {
-            Instant now = Instant.now(clock);
-            if (posts.publish(post.id(), now)) {
-                events.publishEvent(new PostPublished(post.id(), post.authorId(), now, true));
-            }
-        });
+    /**
+     * The clip is READY: publish the post that was waiting for it, if there is one. Safe to repeat.
+     *
+     * @return true when a post was published by this call
+     */
+    public boolean mediaReady(UUID mediaId) {
+        Optional<PostRow> post = posts.findByMedia(mediaId);
+        Instant now = Instant.now(clock);
+        if (post.isEmpty() || !posts.publish(post.get().id(), now)) {
+            return false;
+        }
+        events.publishEvent(new PostPublished(post.get().id(), post.get().authorId(), now, true));
+        return true;
     }
 
-    /** The clip can never be played: the post waiting for it is FAILED. Safe to repeat. */
-    public void mediaFailed(UUID mediaId) {
-        posts.findByMedia(mediaId).ifPresent(post -> {
-            if (posts.fail(post.id(), Instant.now(clock))) {
-                events.publishEvent(new PostFailed(post.id(), post.authorId()));
-            }
-        });
+    /**
+     * The clip can never be played: the post waiting for it is FAILED. Safe to repeat.
+     *
+     * @return true when a post was failed by this call
+     */
+    public boolean mediaFailed(UUID mediaId) {
+        Optional<PostRow> post = posts.findByMedia(mediaId);
+        if (post.isEmpty() || !posts.fail(post.get().id(), Instant.now(clock))) {
+            return false;
+        }
+        events.publishEvent(new PostFailed(post.get().id(), post.get().authorId()));
+        return true;
     }
 
     /**
@@ -231,11 +254,9 @@ public class PostService implements PostFeed {
         for (PostRow post : pending) {
             MediaInfo clip = clips.get(post.mediaId());
             if (clip == null || clip.unusable()) {
-                mediaFailed(post.mediaId());
-                changed++;
+                changed += mediaFailed(post.mediaId()) ? 1 : 0;
             } else if (clip.ready()) {
-                mediaReady(post.mediaId());
-                changed++;
+                changed += mediaReady(post.mediaId()) ? 1 : 0;
             }
         }
         return changed;
@@ -295,13 +316,7 @@ public class PostService implements PostFeed {
     @Transactional(readOnly = true)
     public Page<Post> byAuthors(
             UUID viewerId, Collection<UUID> authorIds, @Nullable String cursor, @Nullable Integer limit) {
-        int size = limit(limit);
-        List<PostRow> rows = posts.byAuthors(authorIds, viewerId, Cursor.decode(cursor), size);
-        boolean more = rows.size() > size;
-        List<PostRow> shown = more ? rows.subList(0, size) : rows;
-        String next =
-                more ? new Cursor(shown.getLast().publishedAt(), shown.getLast().id()).encode() : null;
-        return new Page<>(assembler.assemble(viewerId, shown), next);
+        return visiblePage(viewerId, cursor, limit, (from, size) -> posts.byAuthors(authorIds, viewerId, from, size));
     }
 
     /** The author's own posts, including those still processing or failed (the profile grid's badges). */
@@ -318,13 +333,42 @@ public class PostService implements PostFeed {
 
     private Page<Post> publishedPage(
             UUID viewerId, PostRepository.Scope scope, @Nullable String cursor, @Nullable Integer limit) {
+        return visiblePage(viewerId, cursor, limit, (from, size) -> posts.published(scope, from, size));
+    }
+
+    /**
+     * A page of published posts the viewer may see. The assembler drops posts whose author is blocked
+     * or deleted, which happens after the rows were read; so that a page is not short (or empty with
+     * more to come) the missing places are read again from where the last read ended, a bounded number
+     * of times. Each read asks for exactly the places still free, so the cursor is always the last row
+     * read.
+     *
+     * @param read (position, n) → up to n + 1 rows after the position, newest first
+     */
+    private Page<Post> visiblePage(
+            UUID viewerId,
+            @Nullable String cursor,
+            @Nullable Integer limit,
+            BiFunction<@Nullable Cursor, Integer, List<PostRow>> read) {
         int size = limit(limit);
-        List<PostRow> rows = posts.published(scope, Cursor.decode(cursor), size);
-        boolean more = rows.size() > size;
-        List<PostRow> shown = more ? rows.subList(0, size) : rows;
-        String next =
-                more ? new Cursor(shown.getLast().publishedAt(), shown.getLast().id()).encode() : null;
-        return new Page<>(assembler.assemble(viewerId, shown), next);
+        List<Post> items = new ArrayList<>(size);
+        Cursor position = Cursor.decode(cursor);
+        for (int round = 0; round < MAX_FILL_ROUNDS; round++) {
+            int wanted = size - items.size();
+            List<PostRow> rows = read.apply(position, wanted);
+            boolean more = rows.size() > wanted;
+            List<PostRow> shown = more ? rows.subList(0, wanted) : rows;
+            items.addAll(assembler.assemble(viewerId, shown));
+            if (!more) {
+                return new Page<>(items, null);
+            }
+            position = new Cursor(shown.getLast().publishedAt(), shown.getLast().id());
+            if (items.size() == size) {
+                break;
+            }
+        }
+        // Either the page is full, or the rounds ran out: the client continues from the cursor.
+        return new Page<>(items, position == null ? null : position.encode());
     }
 
     // ── delete ───────────────────────────────────────────────────────────────────────────────────

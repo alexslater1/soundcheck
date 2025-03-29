@@ -36,8 +36,10 @@ class NotificationRepository {
     }
 
     /**
-     * Adds a notification. For POST_LIKED the partial unique index {@code notification_unread_like}
-     * allows one unread row per (user, post): a second like while the first is unread inserts nothing.
+     * Adds a notification, unless a unique index says this event is already in the inbox (V012, V013):
+     * one unread POST_LIKED per (user, post) and one unread NEW_FOLLOWER per (user, follower), so repeats
+     * collapse; one POST_COMMENTED per comment and one POST_READY / POST_FAILED per post, ever. That
+     * makes the listeners safe to run twice for one event.
      *
      * @return true when a row was inserted
      */
@@ -67,6 +69,14 @@ class NotificationRepository {
                 .orderBy(NOTIFICATION.CREATED_AT.desc(), NOTIFICATION.ID.desc())
                 .limit(limit + 1)
                 .fetch(NotificationRepository::toRow);
+    }
+
+    /** Removes what the two users' inboxes say about each other (one has blocked the other). */
+    int deleteBetween(UUID a, UUID b) {
+        return dsl.deleteFrom(NOTIFICATION)
+                .where(NOTIFICATION.USER_ID.eq(a).and(NOTIFICATION.ACTOR_ID.eq(b)))
+                .or(NOTIFICATION.USER_ID.eq(b).and(NOTIFICATION.ACTOR_ID.eq(a)))
+                .execute();
     }
 
     Optional<Row> find(UUID id) {

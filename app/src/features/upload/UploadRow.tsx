@@ -6,17 +6,21 @@ import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
-import { compressionNote, megabytes, stateLabel } from './labels';
+import { canPostAgain, compressionNote, megabytes, postNote, stateLabel } from './labels';
 import type { UploadEntry } from './types';
 
 type Props = {
   entry: UploadEntry;
   onRetry: () => void;
   onRemove: () => void;
+  /** Sends the post request again (it failed although the server has the clip). */
+  onPostAgain: () => void;
+  /** Opens the compose form for this upload; absent while the form is already open for it. */
+  onWritePost?: () => void;
 };
 
 /** One upload in the list: what it is, where it is, and what can be done about it. */
-export function UploadRow({ entry, onRetry, onRemove }: Props) {
+export function UploadRow({ entry, onRetry, onRemove, onPostAgain, onWritePost }: Props) {
   const { colors } = useTheme();
   const inFlight =
     entry.state === 'QUEUED' ||
@@ -24,6 +28,9 @@ export function UploadRow({ entry, onRetry, onRemove }: Props) {
     entry.state === 'UPLOADING' ||
     entry.state === 'COMPLETING';
   const note = compressionNote(entry);
+  const post = postNote(entry);
+  // Nothing was written for this clip yet (the form was closed, or the page reloaded): offer it again.
+  const canWrite = !entry.draft && !entry.postId && entry.state !== 'REJECTED';
   const tone =
     entry.state === 'READY'
       ? colors.success
@@ -64,18 +71,14 @@ export function UploadRow({ entry, onRetry, onRemove }: Props) {
           />
         </View>
       ) : null}
-      {entry.postId ? (
-        <Text variant="caption" muted>
-          Posted
-        </Text>
-      ) : entry.draft && !entry.postError ? (
-        <Text variant="caption" muted>
-          Will be posted when the upload finishes
-        </Text>
-      ) : null}
-      {entry.postError ? (
-        <Text variant="caption" style={{ color: colors.danger }}>
-          Not posted: {entry.postError}
+      {post ? (
+        <Text
+          variant="caption"
+          muted={!post.problem}
+          style={post.problem ? { color: colors.danger } : undefined}
+          testID={`upload-${entry.localId}-post`}
+        >
+          {post.text}
         </Text>
       ) : null}
       {entry.error ? (
@@ -99,6 +102,10 @@ export function UploadRow({ entry, onRetry, onRemove }: Props) {
         ) : null}
         {entry.state === 'FAILED' ? (
           <Button title="Retry" variant="secondary" onPress={onRetry} />
+        ) : null}
+        {canPostAgain(entry) ? <Button title="Post again" onPress={onPostAgain} /> : null}
+        {canWrite && onWritePost ? (
+          <Button title="Write post" variant="secondary" onPress={onWritePost} />
         ) : null}
         {!inFlight ? <Button title="Remove" variant="secondary" onPress={onRemove} /> : null}
       </View>

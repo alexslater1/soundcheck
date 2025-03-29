@@ -15,6 +15,7 @@ import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
 import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.CreateMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
 import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
@@ -209,7 +210,14 @@ class S3ObjectStorage implements ObjectStorage {
                     .map(object -> ObjectIdentifier.builder().key(object.key()).build())
                     .toList();
             if (!keys.isEmpty()) {
-                s3.deleteObjects(b -> b.bucket(bucket).delete(d -> d.objects(keys)));
+                // DeleteObjects answers 200 even when single keys could not be deleted; they are listed
+                // in the response. A caller that removes rows afterwards must hear about them.
+                DeleteObjectsResponse response =
+                        s3.deleteObjects(b -> b.bucket(bucket).delete(d -> d.objects(keys)));
+                if (!response.errors().isEmpty()) {
+                    throw new IllegalStateException(
+                            response.errors().size() + " objects under " + prefix + " could not be deleted");
+                }
                 deleted += keys.size();
             }
         }

@@ -39,3 +39,49 @@ export function compressionNote(entry: Pick<UploadEntry, 'clientMeta'>): string 
   const saved = Math.round((1 - compressedBytes / originalBytes) * 100);
   return `Compressed ${megabytes(originalBytes)} → ${megabytes(compressedBytes)} (${saved}% smaller)`;
 }
+
+type PostFields = Pick<UploadEntry, 'state' | 'draft' | 'postId' | 'postError'>;
+
+/** True while the post written for an upload can still come into being without the user doing anything. */
+export function postOnItsWay(entry: PostFields): boolean {
+  return (
+    entry.draft !== null &&
+    !entry.postId &&
+    !entry.postError &&
+    entry.state !== 'REJECTED' &&
+    entry.state !== 'FAILED'
+  );
+}
+
+/** True when creating the post failed although the server has the clip: "Post again" can fix it. */
+export function canPostAgain(entry: PostFields): boolean {
+  return (
+    entry.draft !== null &&
+    !entry.postId &&
+    entry.postError !== null &&
+    (entry.state === 'PROCESSING' || entry.state === 'READY')
+  );
+}
+
+/** What the row says about the post that goes with an upload; null when nothing was written for it. */
+export function postNote(entry: PostFields): { text: string; problem: boolean } | null {
+  if (entry.postId) {
+    return { text: 'Posted', problem: false };
+  }
+  if (!entry.draft) {
+    return null;
+  }
+  if (entry.state === 'REJECTED') {
+    return { text: 'Not posted: this clip could not be used.', problem: true };
+  }
+  if (entry.postError) {
+    return { text: `Not posted: ${entry.postError}`, problem: true };
+  }
+  if (entry.state === 'FAILED') {
+    return { text: 'Will be posted once the upload succeeds. Retry it.', problem: false };
+  }
+  if (entry.state === 'PROCESSING' || entry.state === 'READY') {
+    return { text: 'Posting…', problem: false };
+  }
+  return { text: 'Will be posted when the upload finishes', problem: false };
+}

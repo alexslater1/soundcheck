@@ -27,8 +27,21 @@ class UserGraphRepository {
 
     private final DSLContext dsl;
 
+    /** The Following feed looks at this many followees at most. */
+    static final int MAX_FOLLOWEES = 5_000;
+
     UserGraphRepository(DSLContext dsl) {
         this.dsl = dsl;
+    }
+
+    /**
+     * Serialises changes to the relationship between two users until the transaction ends: a
+     * transaction-scoped advisory lock keyed on the pair, whichever way round it is given.
+     */
+    void lockPair(UUID a, UUID b) {
+        String low = a.compareTo(b) <= 0 ? a.toString() : b.toString();
+        String high = a.compareTo(b) <= 0 ? b.toString() : a.toString();
+        dsl.fetch("select pg_advisory_xact_lock(hashtextextended(?, 0))", "user-pair:" + low + ":" + high);
     }
 
     /** @return true when the follow did not exist before */
@@ -80,10 +93,16 @@ class UserGraphRepository {
                 .fetch(USER_FOLLOW.FOLLOWEE_ID));
     }
 
+    /**
+     * Whom the viewer follows, the most recent {@link #MAX_FOLLOWEES} follows at most (the Following
+     * feed passes these ids to content as one list). Expected index: the user_follow primary key.
+     */
     Set<UUID> followeeIds(UUID viewerId) {
         return new HashSet<>(dsl.select(USER_FOLLOW.FOLLOWEE_ID)
                 .from(USER_FOLLOW)
                 .where(USER_FOLLOW.FOLLOWER_ID.eq(viewerId))
+                .orderBy(USER_FOLLOW.CREATED_AT.desc())
+                .limit(MAX_FOLLOWEES)
                 .fetch(USER_FOLLOW.FOLLOWEE_ID));
     }
 

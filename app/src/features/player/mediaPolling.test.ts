@@ -1,4 +1,10 @@
-import { clipPollInterval, isSettled, nextPollDelay, POLL_GIVE_UP_MS } from './mediaPolling';
+import {
+  clipPollInterval,
+  isSettled,
+  nextPollDelay,
+  POLL_GIVE_UP_MS,
+  pollDelayForAge,
+} from './mediaPolling';
 
 describe('clipPollInterval', () => {
   it('follows the backoff while requests succeed', () => {
@@ -56,5 +62,15 @@ describe('nextPollDelay', () => {
     expect(waited).toBeGreaterThanOrEqual(POLL_GIVE_UP_MS);
     expect(waited).toBeLessThan(POLL_GIVE_UP_MS + 10_000);
     expect(polls).toBe(34); // 1 + 2 + 4 + 8 s, then 29 × 10 s
+  });
+});
+
+describe('pollDelayForAge', () => {
+  it('looks often at first, then every ten seconds, and stops after five minutes', () => {
+    expect(pollDelayForAge(0)).toBe(2_000);
+    expect(pollDelayForAge(19_999)).toBe(2_000);
+    expect(pollDelayForAge(20_000)).toBe(10_000);
+    expect(pollDelayForAge(POLL_GIVE_UP_MS - 1)).toBe(10_000);
+    expect(pollDelayForAge(POLL_GIVE_UP_MS)).toBe(false);
   });
 });

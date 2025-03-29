@@ -155,6 +155,16 @@ export function PostCard({ post, active, live = true, onGone }: Props) {
           </Pressable>
         </View>
       ) : null}
+      {post.status !== 'PUBLISHED' && mine ? (
+        // A post that failed (or is stuck processing) has no actions row; its author can still remove it.
+        <View style={styles.actions}>
+          <Button
+            title="Delete post"
+            variant="danger"
+            onPress={() => void act(() => deletePost(post.id), 'Post deleted', true)}
+          />
+        </View>
+      ) : null}
       {menuOpen ? (
         <View style={styles.menu}>
           {mine ? (

@@ -2,6 +2,7 @@ package app.soundcheck.shared.web;
 
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -97,9 +98,31 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     ResponseEntity<ProblemDetail> handleUnexpected(Exception ex) {
+        if (textTheDatabaseCannotStore(ex)) {
+            ProblemDetail problem = problem(
+                    HttpStatus.BAD_REQUEST, "INVALID_TEXT", "The text contains a character that cannot be stored");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(problem);
+        }
         log.error("Unhandled exception", ex);
         ProblemDetail problem = problem(HttpStatus.INTERNAL_SERVER_ERROR, "INTERNAL_ERROR", "Something went wrong");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problem);
+    }
+
+    /**
+     * PostgreSQL text cannot hold the NUL character (U+0000), which JSON can carry: the driver or the
+     * server refuses the statement. That is the client's mistake, wherever the text was headed.
+     */
+    private static boolean textTheDatabaseCannotStore(Throwable ex) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof SQLException sql) {
+                String message = String.valueOf(sql.getMessage());
+                return "22021".equals(sql.getSQLState()) || message.contains("Zero bytes may not occur");
+            }
+            if (cause.getCause() == cause) {
+                break;
+            }
+        }
+        return false;
     }
 
     @Override

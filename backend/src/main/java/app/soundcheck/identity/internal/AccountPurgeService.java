@@ -27,6 +27,9 @@ public class AccountPurgeService {
 
     private static final Logger log = LoggerFactory.getLogger(AccountPurgeService.class);
 
+    static final int BATCH = 200;
+    private static final int MAX_BATCHES = 50;
+
     private final UserRepository users;
     private final List<AccountPurgeStep> steps;
     private final TransactionTemplate tx;
@@ -49,16 +52,26 @@ public class AccountPurgeService {
     public int purgeDue() {
         Instant deletedBefore = Instant.now(clock).minus(GRACE);
         int purged = 0;
-        for (UUID userId : users.deletedBefore(deletedBefore, 200)) {
-            try {
-                tx.executeWithoutResult(status -> {
-                    steps.forEach(step -> step.purge(userId));
-                    users.delete(userId);
-                });
-                purged++;
-            } catch (RuntimeException e) {
-                // Left soft-deleted; the next run tries again. Never log more than the id.
-                log.error("account purge failed for user {}: {}", userId, e.toString());
+        int failed = 0;
+        // Purged accounts leave the work list; failed ones stay at its head, so each batch is read
+        // after them. An account that cannot be purged therefore never holds up the ones behind it.
+        for (int batch = 0; batch < MAX_BATCHES; batch++) {
+            List<UUID> due = users.deletedBefore(deletedBefore, failed, BATCH);
+            for (UUID userId : due) {
+                try {
+                    tx.executeWithoutResult(status -> {
+                        steps.forEach(step -> step.purge(userId));
+                        users.delete(userId);
+                    });
+                    purged++;
+                } catch (RuntimeException e) {
+                    // Left soft-deleted; the next run tries again. Never log more than the id.
+                    failed++;
+                    log.error("account purge failed for user {}: {}", userId, e.toString());
+                }
+            }
+            if (due.size() < BATCH) {
+                break;
             }
         }
         if (purged > 0) {

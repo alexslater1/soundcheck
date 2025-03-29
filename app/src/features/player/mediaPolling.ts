@@ -28,6 +28,18 @@ export function nextPollDelay(
 }
 
 /**
+ * For a list that shows clips still being processed: how soon to look again, given how long something
+ * has been waiting. Every 2 s for the first 20 s (most clips are ready by then), then every 10 s, and
+ * not at all after five minutes (the next visit to the screen refetches).
+ */
+export function pollDelayForAge(waitedMs: number): number | false {
+  if (waitedMs >= POLL_GIVE_UP_MS) {
+    return false;
+  }
+  return waitedMs < 20_000 ? 2_000 : MAX_DELAY_MS;
+}
+
+/**
  * The interval for a screen that watches one clip (TanStack Query's `refetchInterval`). A failed
  * request stops the polling: the screen shows the error with a "Try again" button, and a clip the
  * viewer may not see (404) must not be asked for once a second for as long as the page is open.
