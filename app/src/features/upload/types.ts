@@ -59,7 +59,17 @@ export type UploadEntry = {
   /** Uploaded parts: part number → ETag. Completing a multipart upload needs every one of them. */
   parts: Record<number, string>;
   error: string | null;
+  /** What the user wrote on the compose form; null until they press Post. */
+  draft: PostDraft | null;
+  /** Sent with `POST /posts`, so pressing Post twice (or a retry) cannot create two posts. */
+  postIdempotencyKey: string;
+  /** Set once the post exists on the server. */
+  postId: string | null;
+  postError: string | null;
 };
+
+/** The post to create for a clip: caption, the gig it was filmed at, the artists in it. */
+export type PostDraft = { caption: string; gigId: string | null; artistIds: string[] };
 
 /** The file to send: where it is and how long it is. */
 export type UploadSource = { uri: string; bytes: number };

@@ -28,6 +28,11 @@ export type UploadDeps = {
   update: (patch: Partial<UploadEntry>) => void;
   sleep: (ms: number) => Promise<void>;
   random: () => number;
+  /**
+   * Called once the server has accepted the upload, before the wait for processing: the moment a
+   * post can be created for the clip (the user does not wait for the transcode).
+   */
+  onAccepted?: () => Promise<void>;
 };
 
 /**
@@ -48,6 +53,7 @@ export async function runUpload(deps: UploadDeps): Promise<void> {
         ? entry.mediaId
         : await upload(deps);
     deps.update({ state: 'PROCESSING', progress: 1, error: null });
+    await deps.onAccepted?.();
     await pollUntilSettled(mediaId, deps);
   } catch (error) {
     deps.update({ state: 'FAILED', error: describe(error) });

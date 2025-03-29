@@ -1,0 +1,54 @@
+import type { NotificationView } from '@/api/generated/model';
+
+import { notificationTarget, notificationText } from './notificationText';
+
+const base: NotificationView = {
+  id: 'n1',
+  type: 'NEW_FOLLOWER',
+  createdAt: '2026-10-02T10:00:00Z',
+  read: false,
+  actor: { id: 'u2', handle: 'fan_one', displayName: 'Fan One' },
+};
+
+describe('notificationText', () => {
+  it('names the actor for follows, likes and comments', () => {
+    expect(notificationText(base)).toBe('@fan_one started following you');
+    expect(notificationText({ ...base, type: 'POST_COMMENTED', postId: 'p1' })).toBe(
+      '@fan_one commented on your clip',
+    );
+    expect(notificationText({ ...base, type: 'POST_LIKED', postId: 'p1', likeCount: 1 })).toBe(
+      '@fan_one liked your clip',
+    );
+  });
+
+  it('counts the other likers of a collapsed like', () => {
+    expect(notificationText({ ...base, type: 'POST_LIKED', postId: 'p1', likeCount: 2 })).toBe(
+      '@fan_one and 1 other liked your clip',
+    );
+    expect(notificationText({ ...base, type: 'POST_LIKED', postId: 'p1', likeCount: 12 })).toBe(
+      '@fan_one and 11 others liked your clip',
+    );
+  });
+
+  it('needs no actor for the clip being ready or failed, and copes with a deleted actor', () => {
+    expect(notificationText({ ...base, type: 'POST_READY', actor: undefined, postId: 'p1' })).toBe(
+      'Your clip is ready',
+    );
+    expect(notificationText({ ...base, type: 'POST_FAILED', actor: undefined, postId: 'p1' })).toBe(
+      'Your clip could not be processed',
+    );
+    expect(notificationText({ ...base, actor: undefined })).toBe('Someone started following you');
+  });
+
+  it('opens the post when there is one, else the actor’s profile', () => {
+    expect(notificationTarget({ ...base, type: 'POST_LIKED', postId: 'p1' })).toEqual({
+      pathname: '/post/[id]',
+      params: { id: 'p1' },
+    });
+    expect(notificationTarget(base)).toEqual({
+      pathname: '/u/[handle]',
+      params: { handle: 'fan_one' },
+    });
+    expect(notificationTarget({ ...base, actor: undefined })).toBeNull();
+  });
+});

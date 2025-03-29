@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
@@ -8,24 +9,29 @@ import { useAuthStore } from '@/features/auth/store';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
+import { ComposeForm } from './ComposeForm';
 import { compressVideo, discardFile } from './compress';
 import { chooseUpload } from './compressDecision';
 import { pickFromLibrary, recordWithCamera, type PickResult } from './pickVideo';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
-import { removeUpload, resumeProcessing, startUpload } from './uploadRunner';
+import { removeUpload, resumeProcessing, startUpload, submitPost } from './uploadRunner';
 import { problemWith } from './validate';
 
 /**
- * Create tab: pick or record a clip, compress it on Android, upload it, and watch it go through
- * the pipeline in the list below.
+ * Create tab: pick or record a clip, compress it on Android and start uploading it; then write the
+ * caption and choose the gig and artists while it uploads, and Post. The list below shows every upload
+ * from this device going through the pipeline.
  */
 export function CreateScreen() {
   const { colors } = useTheme();
   const ownerId = useAuthStore((state) => state.me?.id ?? null);
   const all = useUploadQueue((state) => state.entries);
+  const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  // The upload whose caption and tags are being written (it uploads meanwhile).
+  const [composing, setComposing] = useState<string | null>(null);
 
   // Uploads the worker had not finished when the app was last open: ask about them again.
   useEffect(() => {
@@ -69,6 +75,7 @@ export function CreateScreen() {
       }
       const localId = useUploadQueue.getState().enqueue(ownerId, video, clientMeta, temporary);
       void startUpload(localId);
+      setComposing(localId);
     } catch {
       setProblem('That video could not be opened. Try another one.');
     } finally {
@@ -106,6 +113,17 @@ export function CreateScreen() {
           <Text style={{ color: colors.danger }} accessibilityRole="alert" testID="create-problem">
             {problem}
           </Text>
+        ) : null}
+
+        {composing && entries.some((entry) => entry.localId === composing && !entry.draft) ? (
+          <ComposeForm
+            onPost={(draft) => {
+              void submitPost(composing, draft);
+              setComposing(null);
+              // Back to the profile, where the new post shows with a "Processing…" badge.
+              router.push('/me');
+            }}
+          />
         ) : null}
 
         <Text variant="label" muted style={styles.heading}>

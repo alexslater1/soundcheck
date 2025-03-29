@@ -71,6 +71,10 @@ function RootStack() {
         <Stack.Screen name="artist/[id]" options={{ title: 'Artist' }} />
         <Stack.Screen name="venue/[id]" options={{ title: 'Venue' }} />
         <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
+        <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
+        <Stack.Screen name="u/[handle]/index" options={{ title: 'Profile' }} />
+        <Stack.Screen name="u/[handle]/followers" options={{ title: 'Followers' }} />
+        <Stack.Screen name="u/[handle]/following" options={{ title: 'Following' }} />
         <Stack.Screen name="console" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ title: 'Not found' }} />
       </Stack>

@@ -25,6 +25,10 @@ function entry(overrides: Partial<UploadEntry> = {}): UploadEntry {
     strategy: null,
     parts: {},
     error: null,
+    draft: null,
+    postIdempotencyKey: 'post-key-1',
+    postId: null,
+    postError: null,
     ...overrides,
   };
 }

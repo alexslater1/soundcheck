@@ -1,12 +1,13 @@
 import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
-import { removeUpload, startUpload } from './uploadRunner';
+import { removeUpload, startUpload, submitPost } from './uploadRunner';
 
 const mockCreateUpload = jest.fn();
 const mockCompleteUpload = jest.fn();
 const mockGetMedia = jest.fn();
 const mockPutWhole = jest.fn();
 const mockDiscard = jest.fn();
+const mockCreatePost = jest.fn();
 
 jest.mock('@/api/generated/media/media', () => ({
   createUpload: (...args: unknown[]) => mockCreateUpload(...args),
@@ -17,6 +18,9 @@ jest.mock('./transport', () => ({
   transport: { putWhole: (...args: unknown[]) => mockPutWhole(...args), putPart: jest.fn() },
 }));
 jest.mock('./compress', () => ({ discardFile: (uri: string) => mockDiscard(uri) }));
+jest.mock('@/api/generated/posts/posts', () => ({
+  createPost: (...args: unknown[]) => mockCreatePost(...args),
+}));
 
 const video: PickedVideo = {
   uri: 'file:///cache/compressed.mp4',
@@ -42,6 +46,42 @@ describe('upload runner', () => {
     mockCompleteUpload.mockResolvedValue({ status: 'UPLOADED' });
     mockGetMedia.mockResolvedValue({ status: 'READY' });
     mockPutWhole.mockResolvedValue(undefined);
+    mockCreatePost.mockResolvedValue({ id: 'post-1' });
+  });
+
+  it('posts as soon as the upload completes when Post was pressed first, without waiting for READY', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    await submitPost(id, { caption: 'Encore', gigId: 'gig-1', artistIds: [] });
+    expect(mockCreatePost).not.toHaveBeenCalled(); // nothing uploaded yet
+    // The worker is still busy when the post is created.
+    mockGetMedia.mockImplementation(async () => {
+      expect(mockCreatePost).toHaveBeenCalledTimes(1);
+      return { status: 'READY' };
+    });
+
+    await startUpload(id);
+
+    const key = useUploadQueue.getState().entries[0]!.postIdempotencyKey;
+    expect(mockCreatePost).toHaveBeenCalledWith(
+      { mediaId: 'media-1', caption: 'Encore', gigId: 'gig-1', artistIds: [] },
+      { headers: { 'Idempotency-Key': key } },
+    );
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      postId: 'post-1',
+      state: 'READY',
+    });
+  });
+
+  it('posts at once when Post is pressed after the upload completed, and only once', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    await startUpload(id);
+    expect(mockCreatePost).not.toHaveBeenCalled(); // no draft yet
+
+    await submitPost(id, { caption: '', gigId: null, artistIds: [] });
+    await submitPost(id, { caption: '', gigId: null, artistIds: [] });
+
+    expect(mockCreatePost).toHaveBeenCalledTimes(1);
+    expect(useUploadQueue.getState().entries[0]!.postId).toBe('post-1');
   });
 
   it('sends the idempotency key as a header and writes every change to the queue', async () => {

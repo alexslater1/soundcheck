@@ -1,7 +1,9 @@
 import { Link } from 'expo-router';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
+import { PostGrid } from '@/features/posts/PostGrid';
 import { useGetGig } from '@/api/generated/catalog/catalog';
+import { useListGigPosts } from '@/api/generated/posts/posts';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -96,6 +98,10 @@ export function GigDetailScreen({ id }: { id: string }) {
         {data.lineup.map((artist) => (
           <ArtistRow key={artist.id} artist={artist} genreNames={genreNames} />
         ))}
+        <Text variant="label" muted style={styles.heading}>
+          CLIPS FROM THIS GIG
+        </Text>
+        <GigClips gigId={id} />
       </ScrollView>
     </Screen>
   );
@@ -106,3 +112,22 @@ const styles = StyleSheet.create({
   image: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.md },
   heading: { marginTop: spacing.md },
 });
+
+/** Clips people posted from this gig (the way to find someone to follow). */
+function GigClips({ gigId }: { gigId: string }) {
+  const posts = useListGigPosts(gigId, { limit: 12 });
+  if (posts.isPending) {
+    return <Skeleton height={120} />;
+  }
+  if (!posts.data) {
+    return <StateMessage title="Could not load clips" onRetry={() => void posts.refetch()} />;
+  }
+  if (posts.data.items.length === 0) {
+    return (
+      <Text muted testID="gig-no-clips">
+        No clips yet. Were you there? Share one from the Create tab.
+      </Text>
+    );
+  }
+  return <PostGrid posts={posts.data.items} />;
+}

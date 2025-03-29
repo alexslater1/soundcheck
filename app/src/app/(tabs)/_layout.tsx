@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Tabs } from 'expo-router';
 import type { ComponentProps } from 'react';
 
+import { useListNotifications } from '@/api/generated/notifications/notifications';
 import { useTheme } from '@/theme/ThemeProvider';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -22,6 +23,9 @@ const tabs: { name: string; title: string; icon: IconName; iconActive: IconName 
 /** The five tabs. */
 export default function TabsLayout() {
   const { colors } = useTheme();
+  // The unread count on the Activity tab; refreshed every minute.
+  const inbox = useListNotifications({ limit: 1 }, { query: { refetchInterval: 60_000 } });
+  const unread = inbox.data?.unreadCount ?? 0;
   return (
     <Tabs
       screenOptions={{
@@ -37,6 +41,7 @@ export default function TabsLayout() {
           name={tab.name}
           options={{
             title: tab.title,
+            tabBarBadge: tab.name === 'activity' && unread > 0 ? unread : undefined,
             tabBarIcon: ({ color, focused, size }) => (
               <Ionicons name={focused ? tab.iconActive : tab.icon} color={color} size={size} />
             ),

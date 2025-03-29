@@ -3,3 +3,12 @@ logging:
   level:
     app.soundcheck: debug
     org.jooq.tools.LoggerListener: debug
+
+soundcheck:
+  rate-limit:
+    auth:
+      # Locally every client has the same address (browser tabs, the phone through `adb reverse`, the
+      # Playwright journeys with several accounts), and every page load makes one /auth/refresh call.
+      # The specified 10 per minute per IP (application.yaml, used on AWS) is exhausted by a few reloads,
+      # which shows as being signed out. The limit itself is tested in AuthRateLimitIT.
+      per-ip-per-minute: ${AUTH_RATE_LIMIT_PER_IP:120}

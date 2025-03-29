@@ -1,0 +1,69 @@
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect } from 'expo-router';
+import { useCallback } from 'react';
+import { View } from 'react-native';
+
+import { getFollowingFeed, getGetFollowingFeedQueryKey } from '@/api/generated/feed/feed';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { StateMessage } from '@/components/ui/StateMessage';
+import { Text } from '@/components/ui/Text';
+import { PostPager } from '@/features/posts/PostPager';
+
+/** Posts by the people you follow, newest first; pages follow the server's cursor. */
+export function FollowingFeed() {
+  const client = useQueryClient();
+  const feed = useInfiniteQuery({
+    queryKey: [...getGetFollowingFeedQueryKey(), 'infinite'],
+    queryFn: ({ pageParam }) => getFollowingFeed({ limit: 10, cursor: pageParam }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+  });
+
+  // Home stays mounted under the screens opened from it: coming back after following someone (or
+  // after a while) must show their clips without a reload.
+  const refetch = feed.refetch;
+  useFocusEffect(
+    useCallback(() => {
+      void refetch();
+    }, [refetch]),
+  );
+
+  if (feed.isPending) {
+    return (
+      <View testID="feed-loading">
+        <Skeleton height={420} />
+      </View>
+    );
+  }
+  if (!feed.data) {
+    return (
+      <StateMessage
+        testID="feed-error"
+        title="Could not load your feed"
+        onRetry={() => void feed.refetch()}
+      />
+    );
+  }
+  const posts = feed.data.pages.flatMap((page) => page.items);
+  if (posts.length === 0) {
+    return (
+      <StateMessage
+        testID="feed-empty"
+        title="Nothing here yet"
+        detail="Follow people to see their clips here. Open a gig to find clips, then follow who posted them."
+      />
+    );
+  }
+  return (
+    <PostPager
+      posts={posts}
+      onEndReached={() => {
+        if (feed.hasNextPage && !feed.isFetchingNextPage) {
+          void feed.fetchNextPage();
+        }
+      }}
+      onGone={() => void client.invalidateQueries({ queryKey: getGetFollowingFeedQueryKey() })}
+      footer={feed.isFetchingNextPage ? <Text muted>Loading more…</Text> : null}
+    />
+  );
+}

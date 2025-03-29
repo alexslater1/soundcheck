@@ -1,9 +1,11 @@
 import { completeUpload, createUpload, getMedia } from '@/api/generated/media/media';
 import type { CompleteRequest, CompleteResponse } from '@/api/generated/model';
+import { createPost } from '@/api/generated/posts/posts';
 
 import { discardFile } from './compress';
 import { transport } from './transport';
-import type { UploadEntry } from './types';
+import { ensurePost } from './postDraft';
+import type { PostDraft, UploadEntry } from './types';
 import { runUpload } from './uploadMachine';
 import { useUploadQueue } from './uploadQueue';
 
@@ -51,11 +53,40 @@ export async function startUpload(localId: string): Promise<void> {
       update: (patch) => useUploadQueue.getState().patch(localId, patch),
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       random: Math.random,
+      onAccepted: () => ensurePostFor(localId),
     });
   } finally {
     running.delete(localId);
   }
   discardWhenDone(localId);
+}
+
+async function ensurePostFor(localId: string): Promise<void> {
+  const find = () => useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  if (!find()) {
+    return;
+  }
+  await ensurePost({
+    current: () => {
+      const entry = find();
+      if (!entry) {
+        throw new Error('The upload was removed.');
+      }
+      return entry;
+    },
+    update: (patch) => useUploadQueue.getState().patch(localId, patch),
+    createPost: (body, idempotencyKey) =>
+      createPost(body, { headers: { 'Idempotency-Key': idempotencyKey } }),
+  });
+}
+
+/**
+ * The user pressed Post: remember what they wrote, and create the post now if the upload is already
+ * complete (otherwise the upload does it the moment it completes).
+ */
+export async function submitPost(localId: string, draft: PostDraft): Promise<void> {
+  useUploadQueue.getState().patch(localId, { draft, postError: null });
+  await ensurePostFor(localId);
 }
 
 /** States in which the server has the bytes: the local copy is no longer needed. */

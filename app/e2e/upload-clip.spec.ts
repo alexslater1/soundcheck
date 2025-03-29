@@ -1,7 +1,9 @@
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
+
+import { chooseVideo as choose, deleteAccount, signUpAndOnboard } from './helpers';
 
 /**
  * The web upload flow, through the edge against the real stack (API with the worker role,
@@ -12,41 +14,6 @@ import { expect, test, type Page } from '@playwright/test';
 const CLIPS = resolve(__dirname, '../../fixtures/clips');
 const SMALL = resolve(CLIPS, 'clip-02-portrait-720p-12s.mp4'); // 4.3 MB → one PUT
 const LARGE = resolve(CLIPS, 'clip-07-portrait-480p-14s.mp4'); // 21.6 MB → three parts of 8 MiB
-
-async function signUpAndOnboard(page: Page): Promise<{ handle: string; password: string }> {
-  const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
-  const handle = `e2e_${suffix}`.slice(0, 30);
-  const password = 'correct horse battery';
-  await page.goto('/');
-  await page.getByText('New here? Create an account').click();
-  await page.getByLabel('Email').last().fill(`e2e-${suffix}@example.com`);
-  await page.getByLabel('Handle').last().fill(handle);
-  await page.getByLabel('Display name').last().fill('E2E Uploader');
-  await page.getByLabel('Password').last().fill(password);
-  await page.getByRole('button', { name: 'Create account' }).last().click();
-  await page.getByLabel('City').last().fill('Manch');
-  await page.getByText('Manchester', { exact: true }).last().click();
-  await page
-    .getByRole('button', { name: /Continue as Manchester/ })
-    .last()
-    .click();
-  await page.getByRole('button', { name: 'Indie', exact: true }).last().click();
-  await page.getByRole('button', { name: 'Techno', exact: true }).last().click();
-  await page
-    .getByRole('button', { name: /Continue \(2\/8\)/ })
-    .last()
-    .click();
-  await expect(page.getByText('Follow some artists')).toBeVisible();
-  await page.getByRole('button', { name: 'Finish' }).last().click();
-  await expect(page.getByTestId('health-status')).toHaveText(/API: UP/);
-  return { handle, password };
-}
-
-async function choose(page: Page, file: string) {
-  const chooser = page.waitForEvent('filechooser');
-  await page.getByTestId('choose-video').click();
-  await (await chooser).setFiles(file);
-}
 
 test('upload a clip on web, watch it when it is ready, then upload a large one in parts', async ({
   page,
@@ -62,7 +29,7 @@ test('upload a clip on web, watch it when it is ready, then upload a large one i
     }
   });
 
-  const { handle, password } = await signUpAndOnboard(page);
+  const user = await signUpAndOnboard(page);
   await page.getByRole('tab', { name: /Create$/ }).click();
   await expect(page.getByTestId('uploads-empty')).toBeVisible();
 
@@ -99,11 +66,5 @@ test('upload a clip on web, watch it when it is ready, then upload a large one i
   expect(puts).toEqual(['whole', 'part', 'part', 'part']);
 
   // Clean up: delete the account.
-  await page.getByRole('tab', { name: /Me$/ }).click();
-  await expect(page.getByText(`@${handle}`)).toBeVisible();
-  await page.getByText('Settings →').last().click();
-  await page.getByText('Account and deletion →').last().click();
-  await page.getByLabel('Password').last().fill(password);
-  await page.getByRole('button', { name: 'Delete account' }).last().click();
-  await expect(page.getByText('Welcome back')).toBeVisible();
+  await deleteAccount(page, user);
 });

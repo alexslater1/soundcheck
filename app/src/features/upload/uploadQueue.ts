@@ -72,6 +72,10 @@ export const useUploadQueue = create<UploadQueueState>()(
           strategy: null,
           parts: {},
           error: null,
+          draft: null,
+          postIdempotencyKey: newUuid(),
+          postId: null,
+          postError: null,
         };
         set((state) => ({ entries: [entry, ...state.entries] }));
         return localId;

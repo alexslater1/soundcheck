@@ -64,13 +64,31 @@ export function UploadRow({ entry, onRetry, onRemove }: Props) {
           />
         </View>
       ) : null}
+      {entry.postId ? (
+        <Text variant="caption" muted>
+          Posted
+        </Text>
+      ) : entry.draft && !entry.postError ? (
+        <Text variant="caption" muted>
+          Will be posted when the upload finishes
+        </Text>
+      ) : null}
+      {entry.postError ? (
+        <Text variant="caption" style={{ color: colors.danger }}>
+          Not posted: {entry.postError}
+        </Text>
+      ) : null}
       {entry.error ? (
         <Text variant="caption" style={{ color: colors.danger }}>
           {entry.error}
         </Text>
       ) : null}
       <View style={styles.actions}>
-        {entry.mediaId && (entry.state === 'READY' || entry.state === 'PROCESSING') ? (
+        {entry.postId ? (
+          <Link href={{ pathname: '/post/[id]', params: { id: entry.postId } }} asChild>
+            <Button title="View post" accessibilityRole="link" />
+          </Link>
+        ) : entry.mediaId && (entry.state === 'READY' || entry.state === 'PROCESSING') ? (
           <Link href={{ pathname: '/clip/[id]', params: { id: entry.mediaId } }} asChild>
             <Button
               title={entry.state === 'READY' ? 'Watch' : 'View status'}

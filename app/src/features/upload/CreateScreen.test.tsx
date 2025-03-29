@@ -13,6 +13,8 @@ const mockStartUpload = jest.fn(async (_localId: string) => undefined);
 const mockResume = jest.fn();
 const mockCompress = jest.fn();
 const mockDiscard = jest.fn();
+const mockSubmit = jest.fn(async (_localId: string, _draft: unknown) => undefined);
+const mockPush = jest.fn();
 const mockRemove = jest.fn((localId: string) => useUploadQueue.getState().remove(localId));
 
 jest.mock('./pickVideo', () => ({
@@ -23,7 +25,21 @@ jest.mock('./uploadRunner', () => ({
   startUpload: (localId: string) => mockStartUpload(localId),
   resumeProcessing: (ownerId: string) => mockResume(ownerId),
   removeUpload: (localId: string) => mockRemove(localId),
+  submitPost: (localId: string, draft: unknown) => mockSubmit(localId, draft),
 }));
+// The compose form has its own test; here it is a button that posts a fixed draft.
+jest.mock('./ComposeForm', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    ComposeForm: ({ onPost }: { onPost: (draft: unknown) => void }) =>
+      React.createElement(
+        Text,
+        { onPress: () => onPost({ caption: 'Encore', gigId: 'gig-1', artistIds: ['artist-1'] }) },
+        'compose-stub',
+      ),
+  };
+});
 jest.mock('./compress', () => ({
   compressVideo: (...args: unknown[]) => mockCompress(...args),
   discardFile: (uri: string) => mockDiscard(uri),
@@ -33,6 +49,7 @@ jest.mock('expo-router', () => {
   return {
     Link: ({ children }: { children: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
+    useRouter: () => ({ push: mockPush }),
   };
 });
 
@@ -116,6 +133,26 @@ describe('CreateScreen', () => {
       temporary: false, // the user's own file is never deleted
     });
     expect(mockDiscard).toHaveBeenCalledWith('file:///cache/compressed.mp4');
+  });
+
+  it('shows the compose form while the clip uploads; Post hands the draft over and returns to the profile', async () => {
+    mockPick.mockResolvedValue({ kind: 'picked', video });
+    await renderScreen();
+    expect(screen.queryByText('compose-stub')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Choose a video'));
+    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
+    const localId = useUploadQueue.getState().entries[0]!.localId;
+
+    await fireEvent.press(await screen.findByText('compose-stub'));
+
+    expect(mockSubmit).toHaveBeenCalledWith(localId, {
+      caption: 'Encore',
+      gigId: 'gig-1',
+      artistIds: ['artist-1'],
+    });
+    expect(mockPush).toHaveBeenCalledWith('/me');
+    expect(screen.queryByText('compose-stub')).toBeNull();
   });
 
   it('refuses a clip that is too long without uploading anything', async () => {
