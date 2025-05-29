@@ -36,6 +36,7 @@ jobs:
             backend:
               - 'backend/**'
               - 'contracts/openapi.json'
+              - 'contracts/ranking/**'
               - '.github/workflows/ci.yml'
             app:
               - 'app/**'

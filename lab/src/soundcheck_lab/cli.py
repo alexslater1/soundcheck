@@ -1,10 +1,11 @@
-"""`soundcheck-lab` command line. Commands are stubs until their phase."""
+"""`soundcheck-lab` command line. Most commands are stubs for now."""
 
 from __future__ import annotations
 
 import typer
 
 from soundcheck_lab import __version__
+from soundcheck_lab import parity as parity_cases
 from soundcheck_lab.schema import load_schema
 
 app = typer.Typer(
@@ -75,9 +76,26 @@ def publish(report: str = typer.Argument(...)) -> None:
 
 
 @app.command()
-def parity() -> None:
+def parity(
+    write: bool = typer.Option(False, "--write", help="Regenerate the cases file instead."),
+) -> None:
     """Run contracts/ranking/parity-cases.json through the Python scorer."""
-    _not_yet("parity")
+    if write:
+        parity_cases.DEFAULT_CASES_PATH.write_text(
+            parity_cases.render(load_schema()), encoding="utf-8"
+        )
+        typer.echo(f"wrote {parity_cases.DEFAULT_CASES_PATH}")
+        return
+    mismatches = parity_cases.check()
+    _, cases = parity_cases.load_cases()
+    for mismatch in mismatches:
+        typer.echo(
+            f"MISMATCH {mismatch.name}: expected {mismatch.expected!r}, got {mismatch.actual!r}",
+            err=True,
+        )
+    if mismatches:
+        raise typer.Exit(code=1)
+    typer.echo(f"parity: {len(cases)} cases agree within {parity_cases.TOLERANCE}")
 
 
 if __name__ == "__main__":
