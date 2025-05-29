@@ -23,9 +23,11 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
@@ -317,6 +319,16 @@ public class PostService implements PostFeed {
     public Page<Post> byAuthors(
             UUID viewerId, Collection<UUID> authorIds, @Nullable String cursor, @Nullable Integer limit) {
         return visiblePage(viewerId, cursor, limit, (from, size) -> posts.byAuthors(authorIds, viewerId, from, size));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<Post> byIds(UUID viewerId, List<UUID> postIds) {
+        Map<UUID, PostRow> rows = new HashMap<>();
+        posts.findAll(postIds).stream().filter(PostRow::published).forEach(row -> rows.put(row.id(), row));
+        return assembler.assemble(
+                viewerId,
+                postIds.stream().map(rows::get).filter(Objects::nonNull).toList());
     }
 
     /** The author's own posts, including those still processing or failed (the profile grid's badges). */

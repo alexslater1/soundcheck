@@ -195,6 +195,27 @@
         "required" : [ "status" ],
         "type" : "object"
       },
+      "Contribution" : {
+        "properties" : {
+          "contribution" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "feature" : {
+            "type" : "string"
+          },
+          "value" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "weight" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "contribution", "feature", "value", "weight" ],
+        "type" : "object"
+      },
       "Counts" : {
         "properties" : {
           "followers" : {
@@ -281,6 +302,22 @@
         "required" : [ "bytes", "contentType", "kind" ],
         "type" : "object"
       },
+      "Debug" : {
+        "properties" : {
+          "contributions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Contribution"
+            },
+            "type" : "array"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "contributions", "score" ],
+        "type" : "object"
+      },
       "DeleteMeRequest" : {
         "properties" : {
           "password" : {
@@ -346,6 +383,29 @@
           }
         },
         "required" : [ "events" ],
+        "type" : "object"
+      },
+      "FeedItem" : {
+        "properties" : {
+          "debug" : {
+            "$ref" : "#/components/schemas/Debug",
+            "type" : "null"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/Post"
+          },
+          "reasons" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Reason"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "position", "post", "reasons" ],
         "type" : "object"
       },
       "GenreChoice" : {
@@ -550,6 +610,25 @@
           }
         },
         "required" : [ "id", "lat", "lng", "name" ],
+        "type" : "object"
+      },
+      "HomeFeed" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedItem"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          },
+          "sessionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "items", "sessionId" ],
         "type" : "object"
       },
       "Inbox" : {
@@ -911,6 +990,19 @@
           }
         },
         "required" : [ "upTo" ],
+        "type" : "object"
+      },
+      "Reason" : {
+        "properties" : {
+          "kind" : {
+            "enum" : [ "FOLLOWS_AUTHOR", "FOLLOWS_ARTIST", "WENT_TO_GIG", "GOING_TO_GIG", "GENRE_MATCH", "NEARBY", "TRENDING", "FRIENDS_ENGAGED", "NEW_FOR_YOU" ],
+            "type" : "string"
+          },
+          "text" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "kind", "text" ],
         "type" : "object"
       },
       "RefreshRequest" : {
@@ -1651,6 +1743,52 @@
           }
         },
         "summary" : "Posts by the people you follow, newest first",
+        "tags" : [ "feed" ]
+      }
+    },
+    "/api/v1/feed/home" : {
+      "get" : {
+        "operationId" : "getHomeFeed",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "description" : "Admins only: include each item's score and contributions",
+          "in" : "query",
+          "name" : "debug",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/HomeFeed"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The ranked For You feed: without a cursor a new session is built; with one, its next page. 410 FEED_SESSION_EXPIRED when the session is gone",
         "tags" : [ "feed" ]
       }
     },

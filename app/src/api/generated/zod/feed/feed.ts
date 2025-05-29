@@ -94,3 +94,105 @@ export const getFollowingFeedResponse = zod.object({
   "nextCursor": zod.string().nullish()
 })
 
+/**
+ * @summary The ranked For You feed: without a cursor a new session is built; with one, its next page. 410 FEED_SESSION_EXPIRED when the session is gone
+ */
+export const getHomeFeedQueryLimitMax = 50;
+export const getHomeFeedQueryDebugDefault = false;
+
+export const getHomeFeedQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(getHomeFeedQueryLimitMax).optional(),
+  "debug": zod.boolean().optional().describe('Admins only: include each item\'s score and contributions')
+})
+
+export const getHomeFeedResponse = zod.object({
+  "items": zod.array(zod.object({
+  "debug": zod.object({
+  "contributions": zod.array(zod.object({
+  "contribution": zod.number(),
+  "feature": zod.string(),
+  "value": zod.number(),
+  "weight": zod.number()
+})),
+  "score": zod.number()
+}).optional(),
+  "position": zod.number(),
+  "post": zod.object({
+  "artists": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "caption": zod.string().nullish(),
+  "commentCount": zod.number(),
+  "gig": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+}).optional(),
+  "id": zod.string().uuid(),
+  "likeCount": zod.number(),
+  "likedByMe": zod.boolean(),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "publishedAt": zod.string().datetime({}).nullish(),
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+}),
+  "reasons": zod.array(zod.object({
+  "kind": zod.enum(['FOLLOWS_AUTHOR', 'FOLLOWS_ARTIST', 'WENT_TO_GIG', 'GOING_TO_GIG', 'GENRE_MATCH', 'NEARBY', 'TRENDING', 'FRIENDS_ENGAGED', 'NEW_FOR_YOU']),
+  "text": zod.string()
+}))
+})),
+  "nextCursor": zod.string().nullish(),
+  "sessionId": zod.string().uuid()
+})
+

@@ -47,7 +47,9 @@ dependencies {
     implementation(libs.spring.boot.starter.jooq)
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
-    runtimeOnly(libs.postgresql)
+    // Compile scope, not runtime only: the ranking-config listener uses the driver's LISTEN/NOTIFY API
+    // (PGConnection.getNotifications), which JDBC itself does not have.
+    implementation(libs.postgresql)
 
     implementation(libs.modulith.starter.core)
     implementation(libs.modulith.starter.jdbc)

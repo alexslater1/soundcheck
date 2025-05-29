@@ -1,9 +1,12 @@
 package app.soundcheck.feed.internal.web;
 
 import app.soundcheck.content.Post;
+import app.soundcheck.feed.HomeFeed;
 import app.soundcheck.feed.internal.FollowingFeedService;
+import app.soundcheck.feed.internal.HomeFeedService;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -16,7 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Feeds. */
+/** Feeds: the ranked home feed and the chronological Following feed. */
 @RestController
 @RequestMapping("/api/v1/feed")
 @Validated
@@ -24,9 +27,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class FeedController {
 
     private final FollowingFeedService following;
+    private final HomeFeedService home;
 
-    public FeedController(FollowingFeedService following) {
+    public FeedController(FollowingFeedService following, HomeFeedService home) {
         this.following = following;
+        this.home = home;
+    }
+
+    @GetMapping("/home")
+    @Operation(
+            operationId = "getHomeFeed",
+            summary = "The ranked For You feed: without a cursor a new session is built; with one, its next page."
+                    + " 410 FEED_SESSION_EXPIRED when the session is gone")
+    public HomeFeed home(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) @Min(1) @Max(50) Integer limit,
+            @Parameter(description = "Admins only: include each item's score and contributions")
+                    @RequestParam(defaultValue = "false")
+                    boolean debug) {
+        boolean admin = "ADMIN".equals(jwt.getClaimAsString("role"));
+        return home.home(UUID.fromString(jwt.getSubject()), cursor, limit, debug && admin);
     }
 
     @GetMapping("/following")

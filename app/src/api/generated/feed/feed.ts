@@ -22,6 +22,8 @@ import type {
 
 import type {
   GetFollowingFeedParams,
+  GetHomeFeedParams,
+  HomeFeed,
   PagePost
 } from '.././model';
 
@@ -124,6 +126,108 @@ export function useGetFollowingFeed<TData = Awaited<ReturnType<typeof getFollowi
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getGetFollowingFeedQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary The ranked For You feed: without a cursor a new session is built; with one, its next page. 410 FEED_SESSION_EXPIRED when the session is gone
+ */
+export const getGetHomeFeedUrl = (params?: GetHomeFeedParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/feed/home?${stringifiedParams}` : `/api/v1/feed/home`
+}
+
+export const getHomeFeed = async (params?: GetHomeFeedParams, options?: RequestInit): Promise<HomeFeed> => {
+  
+  return customFetch<HomeFeed>(getGetHomeFeedUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getGetHomeFeedQueryKey = (params?: GetHomeFeedParams,) => {
+    return [`/api/v1/feed/home`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getGetHomeFeedQueryOptions = <TData = Awaited<ReturnType<typeof getHomeFeed>>, TError = unknown>(params?: GetHomeFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHomeFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetHomeFeedQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getHomeFeed>>> = ({ signal }) => getHomeFeed(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getHomeFeed>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetHomeFeedQueryResult = NonNullable<Awaited<ReturnType<typeof getHomeFeed>>>
+export type GetHomeFeedQueryError = unknown
+
+
+export function useGetHomeFeed<TData = Awaited<ReturnType<typeof getHomeFeed>>, TError = unknown>(
+ params: undefined |  GetHomeFeedParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHomeFeed>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getHomeFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getHomeFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetHomeFeed<TData = Awaited<ReturnType<typeof getHomeFeed>>, TError = unknown>(
+ params?: GetHomeFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHomeFeed>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getHomeFeed>>,
+          TError,
+          Awaited<ReturnType<typeof getHomeFeed>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetHomeFeed<TData = Awaited<ReturnType<typeof getHomeFeed>>, TError = unknown>(
+ params?: GetHomeFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHomeFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The ranked For You feed: without a cursor a new session is built; with one, its next page. 410 FEED_SESSION_EXPIRED when the session is gone
+ */
+
+export function useGetHomeFeed<TData = Awaited<ReturnType<typeof getHomeFeed>>, TError = unknown>(
+ params?: GetHomeFeedParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getHomeFeed>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetHomeFeedQueryOptions(params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

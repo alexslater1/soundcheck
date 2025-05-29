@@ -2,6 +2,7 @@ package app.soundcheck.content;
 
 import app.soundcheck.shared.web.Page;
 import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
@@ -13,4 +14,10 @@ public interface PostFeed {
      * the posts the viewer has hidden ("show me less") and without authors blocked either way.
      */
     Page<Post> byAuthors(UUID viewerId, Collection<UUID> authorIds, @Nullable String cursor, @Nullable Integer limit);
+
+    /**
+     * The given posts as the viewer sees them, in the order of the ids. A post that is no longer
+     * published, or whose author is gone or blocked, is left out.
+     */
+    List<Post> byIds(UUID viewerId, List<UUID> postIds);
 }
