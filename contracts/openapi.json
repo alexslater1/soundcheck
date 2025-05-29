@@ -291,6 +291,63 @@
         "required" : [ "password" ],
         "type" : "object"
       },
+      "EventIn" : {
+        "properties" : {
+          "clientTs" : {
+            "description" : "When it happened on the device",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "position" : {
+            "format" : "int32",
+            "maximum" : 100000,
+            "minimum" : 0,
+            "type" : [ "integer", "null" ]
+          },
+          "postId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "sessionId" : {
+            "description" : "The feed session the post was served in, when it came from a feed",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "surface" : {
+            "enum" : [ "FOR_YOU", "FOLLOWING", "PROFILE", "GIG", "ARTIST", "POST", "SEARCH" ],
+            "pattern" : "FOR_YOU|FOLLOWING|PROFILE|GIG|ARTIST|POST|SEARCH",
+            "type" : "string"
+          },
+          "type" : {
+            "enum" : [ "IMPRESSION", "VIEW_START", "WATCH_PROGRESS", "COMPLETE", "LIKE", "UNLIKE", "COMMENT", "SHARE", "PROFILE_TAP", "GIG_TAP", "HIDE", "REPORT" ],
+            "pattern" : "IMPRESSION|VIEW_START|WATCH_PROGRESS|COMPLETE|LIKE|UNLIKE|COMMENT|SHARE|PROFILE_TAP|GIG_TAP|HIDE|REPORT",
+            "type" : "string"
+          },
+          "value" : {
+            "description" : "Watch fraction for WATCH_PROGRESS (0.25, 0.5, 0.75)",
+            "format" : "float",
+            "maximum" : 1.0,
+            "minimum" : 0.0,
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "postId", "surface", "type" ],
+        "type" : "object"
+      },
+      "EventsRequest" : {
+        "properties" : {
+          "events" : {
+            "items" : {
+              "$ref" : "#/components/schemas/EventIn"
+            },
+            "maxItems" : 100,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        },
+        "required" : [ "events" ],
+        "type" : "object"
+      },
       "GenreChoice" : {
         "properties" : {
           "genreId" : {
@@ -1528,6 +1585,36 @@
         },
         "summary" : "Delete a comment (its author, the post's author, or an admin)",
         "tags" : [ "engagement" ]
+      }
+    },
+    "/api/v1/events" : {
+      "post" : {
+        "operationId" : "recordEvents",
+        "parameters" : [ {
+          "in" : "header",
+          "name" : "X-Client",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EventsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Record a batch of interaction events (1 to 100); one invalid event rejects the batch",
+        "tags" : [ "signals" ]
       }
     },
     "/api/v1/feed/following" : {
@@ -2907,11 +2994,23 @@
     "description" : "The notification inbox",
     "name" : "notifications"
   }, {
+    "description" : "Interaction events from the clients",
+    "name" : "signals"
+  }, {
     "description" : "Direct-to-storage uploads and playback",
     "name" : "media"
   }, {
     "description" : "Register, login, refresh, logout",
     "name" : "auth"
+  }, {
+    "description" : "Own account, onboarding, profiles",
+    "name" : "me"
+  }, {
+    "description" : "Posts and lists of posts",
+    "name" : "posts"
+  }, {
+    "description" : "Service health",
+    "name" : "health"
   }, {
     "description" : "Follows",
     "name" : "social"
@@ -2925,16 +3024,7 @@
     "description" : "Likes, comments, hide and report",
     "name" : "engagement"
   }, {
-    "description" : "Own account, onboarding, profiles",
-    "name" : "me"
-  }, {
-    "description" : "Posts and lists of posts",
-    "name" : "posts"
-  }, {
     "description" : "Follows and blocks",
     "name" : "social"
-  }, {
-    "description" : "Service health",
-    "name" : "health"
   } ]
 }

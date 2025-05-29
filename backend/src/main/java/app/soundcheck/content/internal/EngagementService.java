@@ -1,6 +1,7 @@
 package app.soundcheck.content.internal;
 
 import app.soundcheck.content.CommentAdded;
+import app.soundcheck.content.PostHides;
 import app.soundcheck.content.PostLiked;
 import app.soundcheck.content.internal.EngagementRepository.CommentRow;
 import app.soundcheck.identity.UserSummary;
@@ -34,7 +35,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @Transactional
-public class EngagementService {
+public class EngagementService implements PostHides {
 
     public static final Set<String> REPORT_REASONS =
             Set.of("SPAM", "ABUSE", "NUDITY", "VIOLENCE", "COPYRIGHT", "OTHER");
@@ -189,6 +190,16 @@ public class EngagementService {
         engagement.hide(postId, userId, Instant.now(clock));
     }
 
+    /** {@link PostHides}: the same, without an error for a post the user cannot see. */
+    @Override
+    public boolean hideIfVisible(UUID userId, UUID postId) {
+        if (findVisible(userId, postId).isEmpty()) {
+            return false;
+        }
+        engagement.hide(postId, userId, Instant.now(clock));
+        return true;
+    }
+
     public void report(UUID userId, UUID postId, String reason, @Nullable String details) {
         visible(userId, postId);
         if (!REPORT_REASONS.contains(reason)) {
@@ -209,11 +220,14 @@ public class EngagementService {
      * (one cannot like or comment on a blocker's posts; to them the post does not exist).
      */
     private PostRow visible(UUID actorId, UUID postId) {
+        return findVisible(actorId, postId).orElseThrow(PostService::notFound);
+    }
+
+    private Optional<PostRow> findVisible(UUID actorId, UUID postId) {
         return posts.find(postId)
                 .filter(PostRow::published)
                 .filter(p -> p.authorId().equals(actorId)
-                        || (users.exists(p.authorId()) && !social.blockBetween(actorId, p.authorId())))
-                .orElseThrow(PostService::notFound);
+                        || (users.exists(p.authorId()) && !social.blockBetween(actorId, p.authorId())));
     }
 
     private CommentView view(CommentRow row) {

@@ -79,6 +79,8 @@ soundcheck:
     auth:
       per-ip-per-minute: ${AUTH_RATE_LIMIT_PER_IP:10}
       per-email-per-minute: ${AUTH_RATE_LIMIT_PER_EMAIL:5}
+    # POST /events: requests per user per minute.
+    events-per-minute: ${EVENTS_RATE_LIMIT_PER_MINUTE:120}
   ingestion:
     # fixtures (recorded JSON under fixtures/, no network) or live (real APIs, needs the keys below).
     mode: ${INGESTION_MODE:fixtures}
