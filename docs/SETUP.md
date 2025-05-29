@@ -73,7 +73,7 @@ Check everything: `make setup` (prints versions and missing tools).
 ## Part C — Android phone
 1. Settings → About phone → tap **Build number** 7× → Settings → System → Developer options (Pixel path) → enable **USB debugging**.
 2. Connect with a USB-C data cable, unlock the phone, accept the RSA prompt ("Always allow from this computer"); `adb devices` shows the phone as `device`.
-3. `make android` builds and installs the dev build and runs `adb reverse tcp:8088 tcp:8088` so the phone reaches the local edge at `http://localhost:8088`.
+3. `make android` runs `make phone` (`adb reverse` for 8088, 8081 and 4566, so the phone's `localhost:8088` reaches the local edge), then builds and installs the dev build and stays running as the bundler. Rebuild only after a native change (a new native module, `app.config.ts` plugins); otherwise the installed app just needs `make app` running and, after replugging the cable, `make phone` again (the forwards are cleared when the phone disconnects).
 4. Optional: wireless debugging (`adb pair` / `adb connect`) for using the phone without a cable.
 
 ## Part D — First run
@@ -85,7 +85,11 @@ make up                         # db, localstack, lgtm, edge
 make api                        # terminal 1
 make worker                     # terminal 2
 make app                        # terminal 3 (Expo dev server; press w for web)
-make android                    # phone
+make android                    # phone (first time, or after native changes; else make phone)
 make seed-demo                  # demo data (personas, gigs, clips)
+make status                     # what is running
+
+# stopping: Ctrl+C in each terminal, then
+make down                       # containers + Gradle/Kotlin build daemons; ends with "Nothing left running."
 ```
 Grafana: http://localhost:3000 · Edge: http://localhost:8088 · API direct: http://localhost:8080 · Expo web: http://localhost:8081

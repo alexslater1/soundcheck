@@ -26,7 +26,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up openapi-check-client down reset api worker app android web test verify lab-check e2e \
+.PHONY: help setup install keys up openapi-check-client down reset stop-daemons status api worker app phone android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures purge-fixtures seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -64,11 +64,33 @@ up: ## Start db, localstack, lgtm, edge in the background and wait until healthy
 	@$(COMPOSE) up -d --wait --wait-timeout 180 db localstack lgtm edge
 	$(COMPOSE) ps
 
-down: ## Stop the local stack (keeps volumes)
-	$(COMPOSE) --profile full down --remove-orphans
+# Shutting down: Ctrl+C in the api, worker and app terminals, then `make down`. Gradle leaves a daemon behind after
+# every build (and the Android build a Kotlin compile daemon); they idle for ~3 h holding up to 2 GB each, which this
+# 15 GB laptop feels, so down and reset stop them too and then list anything still running.
+# A macro rather than `$(MAKE) stop-daemons`: with .ONESHELL a recipe containing $(MAKE) runs even under `make -n`.
+define stop_daemons
+	# `--stop` only reaches daemons of the wrapper's own Gradle version, hence one call per wrapper.
+	$(GRADLE) --stop -q || true
+	if [ -x $(CURDIR)/app/android/gradlew ]; then $(CURDIR)/app/android/gradlew -p $(CURDIR)/app/android --stop -q || true; fi
+	# The brackets keep pkill from matching this recipe's own shell, whose command line contains the pattern.
+	pkill -f '[K]otlinCompileDaemon' || true
+endef
 
-reset: ## Stop the local stack and drop volumes
+down: ## Stop the local stack (keeps volumes) and the build daemons, then list anything still running
+	$(COMPOSE) --profile full down --remove-orphans
+	$(stop_daemons)
+	$(CURDIR)/ops/scripts/local-status.sh --leftovers
+
+reset: ## Like down, and also drop the volumes (database, LocalStack)
 	$(COMPOSE) --profile full down --remove-orphans --volumes
+	$(stop_daemons)
+	$(CURDIR)/ops/scripts/local-status.sh --leftovers
+
+stop-daemons: ## Stop the Gradle (backend + Android) and Kotlin build daemons; also ends a make api/worker still running
+	$(stop_daemons)
+
+status: ## Show what is running: containers, api/worker/expo, build daemons, phone port forwards
+	$(CURDIR)/ops/scripts/local-status.sh
 
 # ── Run services ─────────────────────────────────────────────────────────────
 api: ## Run the API (roles api,scheduler) from Gradle against the local stack
@@ -80,11 +102,17 @@ worker: ## Run the transcode worker (role worker) from Gradle; needs local FFmpe
 app: ## Start the Expo dev server (press w for web)
 	cd $(CURDIR)/app && npx expo start
 
-android: ## Build and install the Android dev build on the connected phone, then adb reverse 8088
+phone: ## Forward the phone's ports to the laptop (adb reverse 8088, 8081, 4566); rerun after replugging the USB cable
+	adb get-state >/dev/null 2>&1 || { echo "no phone found: plug in USB, unlock it, accept the debugging prompt (check: adb devices)"; exit 1; }
+	# 8088 the edge (API, web, media), 8081 the Expo bundler, 4566 LocalStack S3 (presigned upload URLs).
+	for port in 8088 8081 4566; do adb reverse tcp:$$port tcp:$$port >/dev/null; done
+	adb reverse --list
+
+# `phone` is a prerequisite so the forwards exist first: `expo run:android` stays in the foreground as the bundler,
+# so nothing after it in the recipe would run.
+android: phone ## Build and install the Android dev build on the connected phone (runs make phone first); stays as the bundler
 	# The Android Gradle build needs JDK 17 (JDK 24+ breaks AGP's CMake step); use SDKMAN's 17 when present.
 	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
-	# Before expo: `expo run:android` stays in the foreground as the bundler, so nothing after it runs.
-	adb reverse tcp:8088 tcp:8088 && adb reverse tcp:8081 tcp:8081 && adb reverse tcp:4566 tcp:4566
 	cd $(CURDIR)/app && npx expo run:android --device
 
 web: ## Export the web build (expo export -p web)

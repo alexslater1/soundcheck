@@ -6,7 +6,7 @@ Expo SDK 53 universal app (Android + web + admin console), TypeScript strict, Ex
 npm install
 npm run lint && npm run typecheck && npm test   # what CI runs
 npm start                                       # dev server; press w for web (http://localhost:8081, or via the edge on :8088)
-npm run android                                 # dev build on the connected phone (expo run:android), then `adb reverse tcp:8088 tcp:8088`
+npm run android                                 # dev build on the connected phone (expo run:android); prefer `make android`, which sets up adb reverse first
 npm run export                                  # static web build → dist/
 ```
 

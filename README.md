@@ -37,9 +37,17 @@ make up             # db, localstack, lgtm, edge (Docker Compose); waits until h
 make api            # terminal 1 — API on :8080 (first run downloads Gradle deps and generates jOOQ code, ~1–2 min)
 make worker         # terminal 2 — transcode worker (role worker)
 make app            # terminal 3 — Expo dev server; press w for web, or open http://localhost:8088
-make android        # dev build on the connected phone (needs JDK 17 for the Android Gradle build, see below) + adb reverse
+make android        # build + install the dev build on the connected phone (needs JDK 17, see below); only after native changes
+make phone          # just the phone's port forwards (adb reverse): rerun after replugging USB when the app is already installed
+make status         # what is running: containers, api/worker/expo, build daemons, phone forwards
 make help           # every target with a one-line description
 ```
+
+## Stopping
+1. **Ctrl+C** in each terminal: `make api`, `make worker`, `make app` (or `make android`, which stays running as the bundler).
+2. **`make down`** stops the containers (data is kept), stops the Gradle and Kotlin build daemons, and finally lists anything still running, with how to stop it. It should end with `Nothing left running.`
+
+That is all. The build daemons are why step 2 does more than `docker compose down`: Gradle keeps a background process after every build (backend and Android), and the Android build adds a Kotlin compile daemon. They hold up to ~2 GB each and only exit after ~3 hours idle. `make stop-daemons` stops just those, at any time. `make reset` is `make down` plus deleting the volumes (empty database and LocalStack). The adb server is left running: it is tiny and shared with Android Studio (`adb kill-server` stops it).
 
 Then: http://localhost:8088 shows the app with "API: UP"; http://localhost:8088/api/v1/health answers directly;
 Grafana at http://localhost:3000 (Explore → Tempo → `{ resource.service.name = "soundcheck" }`) shows the trace.
