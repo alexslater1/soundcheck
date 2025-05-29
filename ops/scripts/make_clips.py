@@ -20,6 +20,7 @@ frames on every run even with a fixed seed, which the check caught.)
 Usage (from the repository root):
     python3 ops/scripts/make_clips.py            # generate fixtures/clips/ and SHA256SUMS
     python3 ops/scripts/make_clips.py --check    # prove the files in place can be reproduced
+    python3 ops/scripts/make_clips.py --demo     # the 150 short clips `make seed-demo` uploads
 """
 
 from __future__ import annotations
@@ -30,6 +31,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -49,12 +51,15 @@ class Clip:
     rotate: int = 0  # display rotation flag written into the container
     effect: str = ""  # an extra filter applied before the label (colour cycling, negative)
     label: str = ""
+    demo: bool = False  # one of the demo set (fixtures/clips/demo/), not of the 20 test clips
 
     @property
     def name(self) -> str:
         shape = "square" if self.width == self.height else "landscape" if self.width > self.height else "portrait"
         if self.rotate:
             shape = "rotated"
+        if self.demo:
+            return f"demo-{self.number:03d}-{shape}-{min(self.width, self.height)}p-{self.seconds}s.mp4"
         return f"clip-{self.number:02d}-{shape}-{min(self.width, self.height)}p-{self.seconds}s.mp4"
 
 
@@ -89,6 +94,42 @@ CLIPS = [
 # fmt: on
 
 
+DEMO_COUNT = 150
+DEMO_OUT = OUT / "demo"
+
+
+def demo_clips() -> list[Clip]:
+    """The demo set: 150 short, small clips for `make seed-demo`. Mostly portrait,
+    8 to 12 seconds, 540p, so that the whole set uploads and transcodes in minutes. Every clip differs
+    in pattern, colour and tone, and every one says on screen that it is synthetic."""
+    shapes = [(540, 960), (540, 960), (540, 960), (960, 540), (720, 720)]
+    clips = []
+    for i in range(1, DEMO_COUNT + 1):
+        width, height = shapes[i % len(shapes)]
+        kind = i % 8
+        if kind == 0:
+            source = "testsrc2"
+        elif kind == 1:
+            source = f"mandelbrot=maxiter={80 + (i % 5) * 40}:start_scale={2 + i % 3}"
+        elif kind == 2:
+            source = f"life=seed={i}:mold={5 + i % 20}:ratio=0.{30 + i % 20}:life_color=#FF4D6D:death_color=#3DDC97"
+        elif kind == 3:
+            source = "smptehdbars"
+        elif kind == 4:
+            source = "rgbtestsrc"
+        elif kind == 5:
+            source = "yuvtestsrc"
+        elif kind == 6:
+            source = "pal100bars"
+        else:
+            source = f"life=seed={i}:mold={10 + i % 15}:ratio=0.{25 + i % 30}:life_color=#FFC857"
+        # A fixed hue turn per clip (so thumbnails differ), animated on the bar patterns.
+        effect = f"hue=H=2*PI*t/{6 + i % 7}" if kind in (3, 6) else f"hue=h={(i * 37) % 360}"
+        audio = NOISE.format(s=i) if i % 10 == 0 else TONE.format(f=220 + (i * 29) % 660)
+        clips.append(Clip(i, source, width, height, 30, 8 + i % 5, audio, effect=effect, demo=True))
+    return clips
+
+
 def font() -> str:
     """A font file for the label; drawtext needs one and its path is part of the input."""
     try:
@@ -107,7 +148,11 @@ def command(clip: Clip, target: Path, fontfile: str) -> list[str]:
     video = clip.source + (":" if "=" in clip.source else "=") + f"size={size}:rate={clip.fps}"
     # The length is an input option (-t): not every generator has a duration parameter of its own.
     length = ["-t", str(clip.seconds)]
-    text = f"Soundcheck synthetic clip {clip.number:02d}  {size}  {clip.fps} fps"
+    text = (
+        f"Soundcheck synthetic clip D{clip.number:03d}"
+        if clip.demo
+        else f"Soundcheck synthetic clip {clip.number:02d}  {size}  {clip.fps} fps"
+    )
     label = (
         f"drawtext=fontfile={fontfile}:text='{text}':fontcolor=white:fontsize={max(18, clip.width // 32)}"
         ":box=1:boxcolor=black@0.6:boxborderw=8:x=(w-text_w)/2:y=h-text_h-40,"
@@ -118,6 +163,10 @@ def command(clip: Clip, target: Path, fontfile: str) -> list[str]:
     if clip.audio:
         args += ["-f", "lavfi", *length, "-i", clip.audio]
     args += ["-vf", f"{clip.effect},{label}" if clip.effect else label, "-c:v", "libx264", "-preset", "veryfast", "-crf", "23", "-g", str(clip.fps * 2)]
+    if clip.demo:
+        # Test patterns and cellular automata are close to noise for an encoder; without a ceiling the
+        # demo set is nearly a gigabyte. About 1.2 Mbit/s keeps a ten-second clip near 1.5 MB.
+        args += ["-maxrate", "1200k", "-bufsize", "2400k"]
     # x264 makes different decisions with a different number of threads: fix it.
     args += ["-threads", "2"]
     if clip.audio:
@@ -157,6 +206,24 @@ def generate(directory: Path) -> dict[str, str]:
     return sums
 
 
+def generate_demo(directory: Path, force: bool) -> None:
+    """Generates the demo set, four clips at a time; files already there are kept unless forced."""
+    directory.mkdir(parents=True, exist_ok=True)
+    fontfile = font()
+    todo = [clip for clip in demo_clips() if force or not (directory / clip.name).exists()]
+
+    def make(clip: Clip) -> None:
+        partial = directory / f".partial-{clip.name}"
+        subprocess.run(command(clip, partial, fontfile), check=True)
+        partial.replace(directory / clip.name)
+
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        list(pool.map(make, todo))
+    total = sum(f.stat().st_size for f in directory.glob("demo-*.mp4")) / 1_048_576
+    count = len(list(directory.glob("demo-*.mp4")))
+    print(f"make clips (demo): {count} clips, {total:.1f} MB in {directory.relative_to(ROOT)}/ ({len(todo)} generated now)")
+
+
 def write_sums(directory: Path, sums: dict[str, str]) -> None:
     lines = [f"{digest}  {name}" for name, digest in sorted(sums.items())]
     (directory / "SHA256SUMS").write_text("\n".join(lines) + "\n")
@@ -172,9 +239,15 @@ def read_sums(directory: Path) -> dict[str, str]:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--check", action="store_true", help="regenerate into a temp dir and compare checksums")
+    parser.add_argument("--demo", action="store_true", help="generate the 150 demo clips into fixtures/clips/demo/")
+    parser.add_argument("--force", action="store_true", help="with --demo: regenerate clips that already exist")
     options = parser.parse_args()
     if shutil.which("ffmpeg") is None:
         sys.exit("make clips: ffmpeg is not on the PATH (see docs/SETUP.md)")
+
+    if options.demo:
+        generate_demo(DEMO_OUT, options.force)
+        return
 
     if options.check:
         expected = read_sums(OUT)
