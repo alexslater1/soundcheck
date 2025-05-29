@@ -36,6 +36,7 @@ public final class JsonMappers {
                 .enable(MapperFeature.SORT_CREATOR_PROPERTIES_BY_DECLARATION_ORDER)
                 .disable(MapperFeature.USE_GETTERS_AS_SETTERS)
                 .disable(SerializationFeature.FAIL_ON_EMPTY_BEANS)
+                .disable(SerializationFeature.FAIL_ON_ORDER_MAP_BY_INCOMPARABLE_KEY)
                 .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
                 .disable(SerializationFeature.WRITE_DURATIONS_AS_TIMESTAMPS)
                 .enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING)

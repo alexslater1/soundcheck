@@ -30,7 +30,7 @@ services:
       retries: 20
 
   localstack:
-    image: localstack/localstack:4.1.1
+    image: localstack/localstack:4.4.0
     environment:
       SERVICES: s3,sqs
       DEBUG: ${LOCALSTACK_DEBUG:-0}
@@ -51,7 +51,7 @@ services:
       start_period: 20s
 
   lgtm:
-    image: grafana/otel-lgtm:0.8.4
+    image: grafana/otel-lgtm:0.11.3
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
@@ -72,7 +72,7 @@ services:
       start_period: 20s
 
   edge:
-    image: caddy:2.9-alpine
+    image: caddy:2.10-alpine
     ports:
       - "8088:8088"
     volumes:

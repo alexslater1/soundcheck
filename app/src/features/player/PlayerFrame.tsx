@@ -47,19 +47,15 @@ export function PlayerFrame({
     <View style={[styles.frame, { aspectRatio, backgroundColor: colors.surface }]} testID={testID}>
       {children}
       {showPoster ? (
-        <>
-          {/* The native player view is black until its first frame: keep the frame's colour under the poster. */}
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]} />
-          <Image
-            testID={testID ? `${testID}-poster` : undefined}
-            source={posterUrl ? { uri: posterUrl } : null}
-            placeholder={blurhash ? { blurhash } : null}
-            contentFit="cover"
-            transition={150}
-            style={StyleSheet.absoluteFill}
-            accessibilityIgnoresInvertColors
-          />
-        </>
+        <Image
+          testID={testID ? `${testID}-poster` : undefined}
+          source={posterUrl ? { uri: posterUrl } : null}
+          placeholder={blurhash ? { blurhash } : null}
+          contentFit="cover"
+          transition={150}
+          style={StyleSheet.absoluteFill}
+          accessibilityIgnoresInvertColors
+        />
       ) : null}
       {failed ? (
         <View

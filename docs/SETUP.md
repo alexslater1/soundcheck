@@ -16,10 +16,10 @@ Do Part A (accounts) on day 1: some keys take time to arrive, and AWS setup is e
 | 8 | **Grafana Cloud** (optional) | AWS telemetry | Free stack → OTLP endpoint + token, if you want AWS telemetry in Grafana. | `OTEL_EXPORTER_OTLP_*` |
 
 ### AWS account (do this early; takes ~30 min)
-1. Create the account at aws.amazon.com. New accounts get the 12-month **Free Tier** on some services; everything beyond it is billed, so set up the budget below straight away.
+1. Create the account at aws.amazon.com. When asked, choose the **Paid plan** — new accounts get sign-up credits on either plan, but the Free plan restricts some services and closes the account after 6 months. Credits still apply to the Paid plan.
 2. Sign in as root → enable **MFA** on root → never use root again.
 3. **IAM Identity Center** (region eu-west-2): enable → create user `alex` → permission set `AdministratorAccess` → assign to the account. Enable MFA for this user.
-4. **Billing → Budgets**: create a monthly cost budget of $50 with alerts at 20 % ($10), 50 % ($25), 100 % actual and 100 % forecast to your email. Enable **Cost Anomaly Detection**. In Billing preferences, enable free-tier usage alerts.
+4. **Billing → Budgets**: create a monthly cost budget of $50 with alerts at 20 % ($10), 50 % ($25), 100 % actual and 100 % forecast to your email. Enable **Cost Anomaly Detection**. In Billing preferences, enable free-tier/credit usage alerts.
 5. Install AWS CLI v2 (Part B), then `aws configure sso` (start URL from Identity Center, region `eu-west-2`, profile name `soundcheck`). Test: `aws sts get-caller-identity --profile soundcheck`.
    Sign in with `aws sso login --profile soundcheck` (it opens the browser); run it again when the credentials have run out.
 6. Later: run `npx cdk bootstrap aws://<ACCOUNT_ID>/eu-west-2 --profile soundcheck` and create the GitHub OIDC deploy role.
@@ -39,7 +39,7 @@ docker run --rm hello-world
 
 # Java 21 via SDKMAN
 curl -s "https://get.sdkman.io" | bash && source "$HOME/.sdkman/bin/sdkman-init.sh"
-sdk install java 21.0.6-tem      # or the latest 21.x Temurin listed by `sdk list java`
+sdk install java 21.0.7-tem      # or the latest 21.x Temurin listed by `sdk list java`
 
 # Node 22 LTS via fnm
 curl -fsSL https://fnm.vercel.app/install | bash && source ~/.bashrc
@@ -59,7 +59,7 @@ curl -fsSL https://awscli.amazonaws.com/v2/install.sh | bash
 # https://github.com/cli/cli/blob/trunk/docs/install_linux.md
 ```
 
-**Android Studio** (for the SDK, platform-tools and an emulator): download from developer.android.com/studio, run `studio.sh`, install SDK Platform (latest), Build-Tools, Platform-Tools, an emulator image (x86_64) — the emulator is used for throttled-network measurements. Prefer an API 35 image with 2 GB RAM. Add to `~/.bashrc`:
+**Android Studio** (for the SDK, platform-tools and an emulator): download from developer.android.com/studio, run `studio.sh`, install SDK Platform (latest), Build-Tools, Platform-Tools, an emulator image (x86_64) — the emulator is used for throttled-network measurements. Prefer an API 35 or 36 image with 2 GB RAM. Add to `~/.bashrc`:
 ```bash
 export ANDROID_HOME=$HOME/Android/Sdk
 export PATH=$PATH:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator

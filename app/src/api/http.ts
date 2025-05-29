@@ -2,8 +2,6 @@ import { Platform } from 'react-native';
 
 import { env } from '@/lib/env';
 
-import './searchParamsSize';
-
 /**
  * The orval mutator: every generated API call goes through `customFetch`. It prefixes the
  * base URL, attaches the access token and the `X-Client` hint, maps RFC 9457 Problem Details to a typed

@@ -21,7 +21,7 @@ import org.testcontainers.utility.DockerImageName;
 public abstract class IntegrationTest {
 
     public static final String POSTGIS_IMAGE = "postgis/postgis:17-3.5";
-    public static final String LOCALSTACK_IMAGE = "localstack/localstack:4.1.1";
+    public static final String LOCALSTACK_IMAGE = "localstack/localstack:4.4.0";
     public static final String BUCKET = "soundcheck-media-test";
     public static final String QUEUE = "soundcheck-transcode-test";
     public static final String DLQ = "soundcheck-transcode-test-dlq";

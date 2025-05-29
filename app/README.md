@@ -1,6 +1,6 @@
 # app
 
-Expo SDK 52 universal app (Android + web + admin console), TypeScript strict, Expo Router in `src/app`.
+Expo SDK 53 universal app (Android + web + admin console), TypeScript strict, Expo Router in `src/app`.
 
 ```bash
 npm install

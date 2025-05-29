@@ -4,9 +4,7 @@ import { Platform } from 'react-native';
 import type { PickedVideo } from './types';
 
 export type PickResult =
-  | { kind: 'picked'; video: PickedVideo }
-  | { kind: 'cancelled' }
-  | { kind: 'denied' };
+  { kind: 'picked'; video: PickedVideo } | { kind: 'cancelled' } | { kind: 'denied' };
 
 /** The picker's asset in the app's own shape. Pure, so the unit differences are tested. */
 export function toPicked(asset: ImagePicker.ImagePickerAsset, platform: string): PickedVideo {

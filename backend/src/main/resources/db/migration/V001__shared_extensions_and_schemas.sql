@@ -49,7 +49,7 @@ create table shared.shedlock (
 );
 
 -- Spring Modulith Event Publication Registry = the transactional outbox.
--- DDL copied from spring-modulith-events-jdbc 1.3.2 (schema-postgresql.sql) so Flyway owns it;
+-- DDL copied from spring-modulith-events-jdbc 1.4.0 (schema-postgresql.sql) so Flyway owns it;
 -- schema initialisation is disabled in application.yaml.
 create table shared.event_publication (
   id                     uuid        not null,

@@ -54,8 +54,7 @@ function LivePlayer({
   const [firstFrame, setFirstFrame] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  // ExoPlayer reads the `.m3u8` path of the master playlist as HLS.
-  const player = useVideoPlayer({ uri: hlsUrl }, (created) => {
+  const player = useVideoPlayer({ uri: hlsUrl, contentType: 'hls' }, (created) => {
     created.loop = loop;
     created.muted = muted;
     created.timeUpdateEventInterval = 0.5;
@@ -82,12 +81,6 @@ function LivePlayer({
   useEventListener(player, 'statusChange', ({ status }) => {
     setFailed(status === 'error');
   });
-  // expo-video 2.0 reports no first frame; a playing clip has one on screen, so the poster goes then.
-  useEventListener(player, 'playingChange', ({ isPlaying }) => {
-    if (isPlaying) {
-      setFirstFrame(true);
-    }
-  });
 
   return (
     <PlayerFrame
@@ -99,10 +92,11 @@ function LivePlayer({
       failed={failed}
       onRetry={() => {
         setFailed(false);
-        player.replace({ uri: hlsUrl });
-        if (active) {
-          player.play();
-        }
+        void player.replaceAsync({ uri: hlsUrl, contentType: 'hls' }).then(() => {
+          if (active) {
+            player.play();
+          }
+        });
       }}
       testID={testID}
     >
@@ -111,6 +105,7 @@ function LivePlayer({
         style={StyleSheet.absoluteFill}
         contentFit="cover"
         nativeControls={false}
+        onFirstFrameRender={() => setFirstFrame(true)}
       />
     </PlayerFrame>
   );

@@ -39,7 +39,7 @@ export function AuthForm<T extends FieldValues>({
 }: Props<T>) {
   const { colors } = useTheme();
   const [serverError, setServerError] = useState<string | null>(null);
-  const { control, handleSubmit, setError, formState } = useForm<T>({
+  const { control, handleSubmit, setError, formState } = useForm<T, unknown, T>({
     resolver: zodResolver(schema),
     defaultValues: defaults,
   });

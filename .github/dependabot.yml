@@ -29,7 +29,20 @@ updates:
       npm-minor-patch:
         update-types: [minor, patch]
 
+  - package-ecosystem: uv
+    directory: /lab
+    schedule:
+      interval: weekly
+    groups:
+      uv-minor-patch:
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  - package-ecosystem: docker-compose
     directory: /
     schedule:
       interval: weekly

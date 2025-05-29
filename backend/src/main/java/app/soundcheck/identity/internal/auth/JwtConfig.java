@@ -116,15 +116,11 @@ class JwtConfig {
             return role == null ? List.of() : List.of(new SimpleGrantedAuthority("ROLE_" + role));
         });
         DeletedUserGuard guard = new DeletedUserGuard(users, clock);
-        // A class, not a lambda: Boot 3.4 adds every Converter bean to the MVC conversion service and needs its types.
-        return new Converter<Jwt, AbstractAuthenticationToken>() {
-            @Override
-            public AbstractAuthenticationToken convert(Jwt jwt) {
-                if (guard.isDeleted(UUID.fromString(jwt.getSubject()))) {
-                    throw new org.springframework.security.oauth2.jwt.BadJwtException("Account deleted");
-                }
-                return roles.convert(jwt);
+        return jwt -> {
+            if (guard.isDeleted(UUID.fromString(jwt.getSubject()))) {
+                throw new org.springframework.security.oauth2.jwt.BadJwtException("Account deleted");
             }
+            return roles.convert(jwt);
         };
     }
 

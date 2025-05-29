@@ -14,7 +14,7 @@ type FakePlayer = {
   timeUpdateEventInterval: number;
   play: jest.Mock;
   pause: jest.Mock;
-  replace: jest.Mock;
+  replaceAsync: jest.Mock;
   listeners: Record<string, Listener>;
   source: unknown;
 };
@@ -36,7 +36,7 @@ jest.mock('expo-video', () => {
           timeUpdateEventInterval: 0,
           play: jest.fn(),
           pause: jest.fn(),
-          replace: jest.fn(),
+          replaceAsync: jest.fn(() => Promise.resolve()),
           listeners: {},
           source,
         };
@@ -46,7 +46,8 @@ jest.mock('expo-video', () => {
       }
       return ref.current;
     },
-    VideoView: (props: object) => React.createElement(View, { testID: 'video-view', ...props }),
+    VideoView: (props: { onFirstFrameRender?: () => void }) =>
+      React.createElement(View, { testID: 'video-view', ...props }),
   };
 });
 
@@ -86,7 +87,10 @@ describe('VideoPlayer (native)', () => {
 
     expect(mockPlayers).toHaveLength(1);
     const player = mockPlayers[0]!;
-    expect(player.source).toEqual({ uri: 'http://localhost:8088/media/abc/v1/master.m3u8' });
+    expect(player.source).toEqual({
+      uri: 'http://localhost:8088/media/abc/v1/master.m3u8',
+      contentType: 'hls',
+    });
     expect(player.loop).toBe(true);
     expect(player.muted).toBe(true);
     expect(player.play).toHaveBeenCalledTimes(1);
@@ -124,7 +128,11 @@ describe('VideoPlayer (native)', () => {
     await renderPlayer();
     expect(screen.getByTestId('player-poster')).toBeTruthy();
 
-    await act(async () => mockPlayers[0]!.listeners.playingChange?.({ isPlaying: true }));
+    await act(async () => {
+      (
+        screen.getByTestId('video-view').props as { onFirstFrameRender: () => void }
+      ).onFirstFrameRender();
+    });
 
     expect(screen.queryByTestId('player-poster')).toBeNull();
   });
@@ -159,8 +167,9 @@ describe('VideoPlayer (native)', () => {
 
     await fireEvent.press(screen.getByText('Try again'));
 
-    expect(player.replace).toHaveBeenCalledWith({
+    expect(player.replaceAsync).toHaveBeenCalledWith({
       uri: 'http://localhost:8088/media/abc/v1/master.m3u8',
+      contentType: 'hls',
     });
     expect(screen.queryByTestId('player-error')).toBeNull();
   });

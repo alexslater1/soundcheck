@@ -18,8 +18,8 @@ Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Nativ
 | Path | Contents |
 |---|---|
 | `docs/SETUP.md` | Accounts, keys and Ubuntu toolchain |
-| `backend/` | Spring Boot 3.4 / Java 21 modular monolith (Spring Modulith, jOOQ, Flyway); roles `api`, `scheduler`, `worker` |
-| `app/` | Expo SDK 52 universal app (Android + web + admin console), TypeScript, Expo Router, TanStack Query, orval client |
+| `backend/` | Spring Boot 3.5 / Java 21 modular monolith (Spring Modulith, jOOQ, Flyway); roles `api`, `scheduler`, `worker` |
+| `app/` | Expo SDK 53 universal app (Android + web + admin console), TypeScript, Expo Router, TanStack Query, orval client |
 | `lab/` | Python 3.13 ranking lab (uv, typer CLI `soundcheck-lab`) |
 | `infra/` | AWS CDK v2 (TypeScript) stacks with cdk-nag |
 | `contracts/` | `openapi.json` snapshot and `ranking/feature-schema.json`, shared by backend, app and lab |

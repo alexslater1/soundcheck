@@ -33,7 +33,7 @@ async function put(
   url: string,
   headers: Record<string, string>,
   body: Uint8Array,
-): Promise<Awaited<ReturnType<typeof fetch>>> {
+): Promise<Response> {
   const response = await fetch(url, { method: 'PUT', headers, body });
   if (!response.ok) {
     throw new Error(`Storage answered ${response.status}`);

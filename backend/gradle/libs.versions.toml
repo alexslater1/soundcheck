@@ -1,18 +1,18 @@
 # Versions checked against Maven Central on 2025-02-12.
 # Boot-managed libraries (Flyway, jOOQ, Testcontainers, Micrometer, Jackson, JUnit…) take their version from the Boot BOM.
 [versions]
-spring-boot = "3.4.2"
-spring-modulith = "1.3.2"
-jooq = "3.19.18"               # must match Boot's managed jOOQ version (codegen classpath)
-aws-sdk = "2.30.18"
-shedlock = "6.2.0"
+spring-boot = "3.5.0"
+spring-modulith = "1.4.0"
+jooq = "3.19.23"               # must match Boot's managed jOOQ version (codegen classpath)
+aws-sdk = "2.31.52"
+shedlock = "6.7.0"
 uuid-generator = "5.1.0"
-springdoc = "2.8.4"
-archunit = "1.4.0"
+springdoc = "2.8.8"
+archunit = "1.4.1"
 jqwik = "1.9.2"
-wiremock = "3.11.0"
-spotless = "7.0.2"
-palantir-java-format = "2.50.0"
+wiremock = "3.13.0"
+spotless = "7.0.4"
+palantir-java-format = "2.67.0"
 bucket4j = "8.10.1"
 bouncycastle = "1.80"          # Argon2id implementation used by Spring Security's Argon2PasswordEncoder
 

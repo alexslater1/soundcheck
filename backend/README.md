@@ -1,6 +1,6 @@
 # backend
 
-Spring Boot 3.4 / Java 21 modular monolith (Spring Modulith) run as process roles `api`, `scheduler`, `worker`.
+Spring Boot 3.5 / Java 21 modular monolith (Spring Modulith) run as process roles `api`, `scheduler`, `worker`.
 
 ```bash
 ./gradlew build            # jOOQ codegen (Testcontainers + Flyway) → compile → tests (needs Docker)

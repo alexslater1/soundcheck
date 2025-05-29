@@ -1,3 +1,6 @@
+// hls.js documents its default export and the statics on it (`Hls.isSupported()`, `Hls.Events`); the
+// bundle also exports them by name, which these two rules would rather see, but the typings do not.
+/* eslint-disable import/no-named-as-default, import/no-named-as-default-member */
 import Hls from 'hls.js';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 

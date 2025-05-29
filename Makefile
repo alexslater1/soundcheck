@@ -81,7 +81,7 @@ app: ## Start the Expo dev server (press w for web)
 	cd $(CURDIR)/app && npx expo start
 
 android: ## Build and install the Android dev build on the connected phone, then adb reverse 8088
-	# The Android Gradle build needs JDK 17 (newer JDKs break AGP's CMake step); use SDKMAN's 17 when present.
+	# The Android Gradle build needs JDK 17 (JDK 24+ breaks AGP's CMake step); use SDKMAN's 17 when present.
 	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
 	# Before expo: `expo run:android` stays in the foreground as the bundler, so nothing after it runs.
 	adb reverse tcp:8088 tcp:8088 && adb reverse tcp:8081 tcp:8081 && adb reverse tcp:4566 tcp:4566
