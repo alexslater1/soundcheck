@@ -3,45 +3,47 @@ import { StyleSheet, View } from 'react-native';
 
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
-import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { HealthBadge } from '@/features/health/HealthBadge';
 import { spacing } from '@/theme/tokens';
 
 import { FollowingFeed } from './FollowingFeed';
+import { ForYouFeed } from './ForYouFeed';
 
 type Tab = 'following' | 'forYou';
 
 /**
- * Home: "For You | Following". The ranked For You feed is not built yet; until it exists the screen
- * opens on Following, which is real.
+ * Home: "For You | Following". For You is the ranked feed; pressing it again while it is
+ * showing asks for a fresh one (the web has no pull-to-refresh).
  */
 export function HomeScreen() {
-  const [tab, setTab] = useState<Tab>('following');
+  const [tab, setTab] = useState<Tab>('forYou');
+  const [refreshToken, setRefreshToken] = useState(0);
   return (
-    <Screen>
+    <Screen wide>
       <View style={styles.header}>
         <Text variant="title">Soundcheck</Text>
         <HealthBadge />
       </View>
       <View style={styles.tabs} accessibilityRole="radiogroup">
         <Chip
+          label="For You"
+          selected={tab === 'forYou'}
+          onPress={() => {
+            if (tab === 'forYou') {
+              setRefreshToken((token) => token + 1);
+            }
+            setTab('forYou');
+          }}
+        />
+        <Chip
           label="Following"
           selected={tab === 'following'}
           onPress={() => setTab('following')}
         />
-        <Chip label="For You" selected={tab === 'forYou'} onPress={() => setTab('forYou')} />
       </View>
       <View style={styles.feed}>
-        {tab === 'following' ? (
-          <FollowingFeed />
-        ) : (
-          <StateMessage
-            testID="for-you-placeholder"
-            title="For You is coming"
-            detail="The ranked feed is built in the next phase. Following shows the people you follow."
-          />
-        )}
+        {tab === 'following' ? <FollowingFeed /> : <ForYouFeed refreshToken={refreshToken} />}
       </View>
     </Screen>
   );

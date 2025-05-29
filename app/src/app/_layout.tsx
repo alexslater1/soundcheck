@@ -6,6 +6,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { queryClient } from '@/api/queryClient';
 import { nextRoute } from '@/features/auth/nextRoute';
+import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 
@@ -31,6 +32,7 @@ function RootStack() {
   useEffect(() => {
     void bootstrap();
   }, [bootstrap]);
+  useTelemetryLifecycle();
 
   // Signed out → auth screens; signed in but not onboarded → onboarding; otherwise the tabs.
   // The rules live in nextRoute() (pure, table-tested); this effect only applies its answer.

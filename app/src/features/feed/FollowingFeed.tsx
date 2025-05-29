@@ -6,7 +6,6 @@ import { View } from 'react-native';
 import { getFollowingFeed, getGetFollowingFeedQueryKey } from '@/api/generated/feed/feed';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
-import { Text } from '@/components/ui/Text';
 import { PostPager } from '@/features/posts/PostPager';
 
 /** Posts by the people you follow, newest first; pages follow the server's cursor. */
@@ -76,14 +75,14 @@ export function FollowingFeed() {
   }
   return (
     <PostPager
-      posts={posts}
+      items={posts.map((post, position) => ({ post, position }))}
+      surface="FOLLOWING"
       onEndReached={() => {
         if (feed.hasNextPage && !feed.isFetchingNextPage) {
           void feed.fetchNextPage();
         }
       }}
       onGone={() => void client.invalidateQueries({ queryKey: getGetFollowingFeedQueryKey() })}
-      footer={feed.isFetchingNextPage ? <Text muted>Loading more…</Text> : null}
     />
   );
 }

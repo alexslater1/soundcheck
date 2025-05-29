@@ -10,6 +10,7 @@ import {
   setRefreshHandler,
 } from '@/api/http';
 import { queryClient } from '@/api/queryClient';
+import { telemetry } from '@/features/telemetry/telemetry';
 import { refreshTokenStore } from '@/lib/secureStore';
 
 /**
@@ -68,6 +69,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     // Everything cached was fetched as this user (their attendance, follows, distances): drop it so the
     // next person to sign in on this device starts from nothing.
     queryClient.clear();
+    // Events that were waiting belong to the account that has just left.
+    telemetry.clear();
   },
 
   async bootstrap() {

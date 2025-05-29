@@ -18,6 +18,8 @@ type Props = PropsWithChildren<{
   showPoster: boolean;
   /** Hides the sound button (a poster-only clip has no sound to toggle). */
   showSound: boolean;
+  /** The sound button in the top corner instead of the bottom one. */
+  soundAtTop?: boolean;
   failed?: boolean;
   onRetry?: () => void;
   testID?: string;
@@ -35,6 +37,7 @@ export function PlayerFrame({
   aspectRatio,
   showPoster,
   showSound,
+  soundAtTop = false,
   failed = false,
   onRetry,
   testID,
@@ -73,7 +76,7 @@ export function PlayerFrame({
           accessibilityLabel={muted ? 'Turn sound on' : 'Turn sound off'}
           testID={testID ? `${testID}-sound` : undefined}
         >
-          <View style={styles.soundBadge}>
+          <View style={[styles.soundBadge, soundAtTop ? styles.soundAtTop : null]}>
             <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" />
           </View>
         </Pressable>
@@ -103,4 +106,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.55)',
   },
+  soundAtTop: { bottom: undefined, top: spacing.sm },
 });

@@ -37,6 +37,7 @@ test('A posts a clip; B follows A, sees it in Following, likes and comments; A i
 
   // B: nothing in Following yet; open A's profile and follow.
   const userB = await signUpAndOnboard(b, 'Ben Fan');
+  await b.getByRole('radio', { name: 'Following' }).click();
   await expect(b.getByTestId('feed-empty')).toBeVisible();
   await b.goto(`/u/${userA.handle}`);
   await expect(b.getByTestId('post-tile')).toHaveCount(1);
@@ -46,6 +47,8 @@ test('A posts a clip; B follows A, sees it in Following, likes and comments; A i
 
   // B: back on Home, the clip is now in the Following feed, playing; like it.
   await b.goBack();
+  // Home opens on For You (where A's clip also shows up, among everyone else's).
+  await b.getByRole('radio', { name: 'Following' }).click();
   await expect(b.getByTestId('post-caption')).toHaveText('Encore of the night');
   const video = b.getByTestId('post-player-video');
   await expect

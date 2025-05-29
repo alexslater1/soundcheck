@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { newUuid } from '@/features/upload/uuid';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
@@ -23,6 +24,7 @@ export function Comments({ postId, postAuthorId }: { postId: string; postAuthorI
   const { colors } = useTheme();
   const client = useQueryClient();
   const myId = useAuthStore((state) => state.me?.id);
+  const track = useTrack();
   const comments = useListComments(postId, { limit: 50 });
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
@@ -44,6 +46,7 @@ export function Comments({ postId, postAuthorId }: { postId: string; postAuthorI
     setProblem(null);
     try {
       await addComment(postId, { body: text }, { headers: { 'Idempotency-Key': key } });
+      track('COMMENT', postId);
       setBody('');
       setKey(newUuid());
       await refresh();

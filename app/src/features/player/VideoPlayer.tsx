@@ -47,6 +47,7 @@ function LivePlayer({
   aspectRatio = DEFAULT_ASPECT,
   active,
   loop = true,
+  soundAtTop,
   onProgress,
   testID,
 }: VideoPlayerProps) {
@@ -89,6 +90,7 @@ function LivePlayer({
       aspectRatio={aspectRatio}
       showPoster={!firstFrame}
       showSound
+      soundAtTop={soundAtTop}
       failed={failed}
       onRetry={() => {
         setFailed(false);
