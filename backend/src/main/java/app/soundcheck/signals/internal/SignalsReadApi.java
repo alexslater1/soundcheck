@@ -2,12 +2,14 @@ package app.soundcheck.signals.internal;
 
 import app.soundcheck.signals.Affinities;
 import app.soundcheck.signals.EngagementPriors;
+import app.soundcheck.signals.Impressions;
 import app.soundcheck.signals.internal.AffinityRepository.Stored;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,16 +21,23 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Component
 @Transactional(readOnly = true)
-class SignalsReadApi implements Affinities, EngagementPriors {
+class SignalsReadApi implements Affinities, EngagementPriors, Impressions {
 
     private final AffinityRepository affinities;
     private final PostStatsRepository stats;
+    private final EventRepository events;
     private final Clock clock;
 
-    SignalsReadApi(AffinityRepository affinities, PostStatsRepository stats, Clock clock) {
+    SignalsReadApi(AffinityRepository affinities, PostStatsRepository stats, EventRepository events, Clock clock) {
         this.affinities = affinities;
         this.stats = stats;
+        this.events = events;
         this.clock = clock;
+    }
+
+    @Override
+    public Set<UUID> seenBy(UUID userId, Instant since, int limit) {
+        return events.impressedPostIds(userId, since, limit);
     }
 
     @Override

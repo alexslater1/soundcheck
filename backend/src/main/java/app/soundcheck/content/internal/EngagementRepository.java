@@ -10,8 +10,10 @@ import app.soundcheck.shared.web.Cursor;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -161,6 +163,16 @@ public class EngagementRepository {
                 .set(POST_HIDE.CREATED_AT, at(now))
                 .onConflictDoNothing()
                 .execute();
+    }
+
+    /** The posts the user has hidden, most recent first. Expected index: the post_hide primary key. */
+    public Set<UUID> hiddenBy(UUID userId, int limit) {
+        return new HashSet<>(dsl.select(POST_HIDE.POST_ID)
+                .from(POST_HIDE)
+                .where(POST_HIDE.USER_ID.eq(userId))
+                .orderBy(POST_HIDE.CREATED_AT.desc())
+                .limit(limit)
+                .fetch(POST_HIDE.POST_ID));
     }
 
     /** One report per user and post: a repeat changes nothing. */

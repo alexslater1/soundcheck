@@ -303,6 +303,18 @@ class CatalogReadRepository {
         return byGig;
     }
 
+    /** Every gig the user has marked, newest mark first. Expected index: the gig_attendance primary key. */
+    Map<UUID, String> attendanceOf(UUID userId, int limit) {
+        Map<UUID, String> byGig = new HashMap<>();
+        dsl.select(GIG_ATTENDANCE.GIG_ID, GIG_ATTENDANCE.STATUS)
+                .from(GIG_ATTENDANCE)
+                .where(GIG_ATTENDANCE.USER_ID.eq(userId))
+                .orderBy(GIG_ATTENDANCE.UPDATED_AT.desc())
+                .limit(limit)
+                .forEach(r -> byGig.put(r.value1(), r.value2()));
+        return byGig;
+    }
+
     /** Status → number of users. Expected index: gig_attendance_gig (gig_id, status). */
     Map<String, Long> attendanceCounts(UUID gigId) {
         Map<String, Long> counts = new HashMap<>();

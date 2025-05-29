@@ -28,6 +28,9 @@ public interface CatalogViews {
      */
     Map<UUID, Map<Short, Double>> genreWeights(Collection<UUID> artistIds);
 
+    /** The gigs the user has marked: gig id → INTERESTED, GOING or WENT (the most recent 2,000 at most). */
+    Map<UUID, String> attendanceOf(UUID userId);
+
     boolean venueExists(UUID venueId);
 
     /** Every gig at a venue (ids only), newest first, at most {@code limit}. */

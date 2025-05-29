@@ -26,6 +26,12 @@ public interface SocialGraph {
     /** Everyone the viewer follows (ids), for the Following feed. */
     Set<UUID> followeeIds(UUID viewerId);
 
+    /** The artists the user follows (the most recent 5,000 follows at most). */
+    Set<UUID> followedArtistIds(UUID userId);
+
+    /** Everyone with a block between them and the user, in either direction. */
+    Set<UUID> blockedEitherWay(UUID userId);
+
     long followerCount(UUID userId);
 
     long followingCount(UUID userId);

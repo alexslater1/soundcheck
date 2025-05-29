@@ -40,6 +40,11 @@ class CatalogViewsApi implements CatalogViews {
     }
 
     @Override
+    public Map<UUID, String> attendanceOf(UUID userId) {
+        return catalog.attendanceOf(userId);
+    }
+
+    @Override
     public boolean venueExists(UUID venueId) {
         return catalog.venueExists(venueId);
     }

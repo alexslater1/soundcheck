@@ -4,6 +4,7 @@ import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.shared.media.PublicImages;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -25,6 +26,13 @@ public class UsersApi implements Users {
     UsersApi(UserRepository users, PublicImages images) {
         this.users = users;
         this.images = images;
+    }
+
+    @Override
+    public Map<Short, Double> genrePreferences(UUID userId) {
+        Map<Short, Double> preferences = new HashMap<>();
+        users.genres(userId).forEach(p -> preferences.put(p.genreId(), (double) p.weight()));
+        return preferences;
     }
 
     @Override

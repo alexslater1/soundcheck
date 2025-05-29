@@ -190,6 +190,12 @@ public class EngagementService implements PostHides {
         engagement.hide(postId, userId, Instant.now(clock));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> hiddenBy(UUID userId, int limit) {
+        return engagement.hiddenBy(userId, limit);
+    }
+
     /** {@link PostHides}: the same, without an error for a post the user cannot see. */
     @Override
     public boolean hideIfVisible(UUID userId, UUID postId) {

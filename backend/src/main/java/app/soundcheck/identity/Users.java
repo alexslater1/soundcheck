@@ -16,6 +16,9 @@ public interface Users {
     /** A live user's id by handle (case-insensitive). */
     Optional<UUID> idByHandle(String handle);
 
+    /** The genres the user chose (onboarding, settings): genre id → weight in (0, 1]. */
+    Map<Short, Double> genrePreferences(UUID userId);
+
     /** True when the id belongs to a live (not deleted) account. */
     boolean exists(UUID userId);
 }

@@ -8,9 +8,12 @@ import static app.soundcheck.shared.jooq.signals.Tables.USER_GENRE_AFFINITY;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
 
@@ -71,6 +74,22 @@ public class EventRepository {
                     row.platform());
         }
         return insert.execute();
+    }
+
+    /**
+     * The posts shown to the user since {@code since}, most recently shown first. Expected index:
+     * interaction_event_user (user_id, occurred_at), with partition pruning on occurred_at.
+     */
+    Set<UUID> impressedPostIds(UUID userId, Instant since, int limit) {
+        return new LinkedHashSet<>(dsl.select(INTERACTION_EVENT.POST_ID)
+                .from(INTERACTION_EVENT)
+                .where(INTERACTION_EVENT.USER_ID.eq(userId))
+                .and(INTERACTION_EVENT.OCCURRED_AT.ge(at(since)))
+                .and(INTERACTION_EVENT.EVENT_TYPE.eq("IMPRESSION"))
+                .groupBy(INTERACTION_EVENT.POST_ID)
+                .orderBy(DSL.max(INTERACTION_EVENT.OCCURRED_AT).desc())
+                .limit(limit)
+                .fetch(INTERACTION_EVENT.POST_ID));
     }
 
     /**

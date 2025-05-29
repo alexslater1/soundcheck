@@ -379,6 +379,11 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
+    public Map<UUID, String> attendanceOf(UUID userId) {
+        return repository.attendanceOf(userId, 2_000);
+    }
+
+    @Transactional(readOnly = true)
     public boolean venueExists(UUID venueId) {
         return repository.venueExists(venueId);
     }

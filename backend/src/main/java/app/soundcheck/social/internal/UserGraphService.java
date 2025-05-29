@@ -166,6 +166,18 @@ public class UserGraphService implements SocialGraph {
 
     @Override
     @Transactional(readOnly = true)
+    public Set<UUID> followedArtistIds(UUID userId) {
+        return graph.followedArtistIds(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<UUID> blockedEitherWay(UUID userId) {
+        return graph.blockedEitherWay(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public long followerCount(UUID userId) {
         return graph.followerCount(userId);
     }

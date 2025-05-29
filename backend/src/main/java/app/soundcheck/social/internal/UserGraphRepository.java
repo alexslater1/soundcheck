@@ -1,5 +1,6 @@
 package app.soundcheck.social.internal;
 
+import static app.soundcheck.shared.jooq.social.Tables.ARTIST_FOLLOW;
 import static app.soundcheck.shared.jooq.social.Tables.USER_BLOCK;
 import static app.soundcheck.shared.jooq.social.Tables.USER_FOLLOW;
 
@@ -104,6 +105,29 @@ class UserGraphRepository {
                 .orderBy(USER_FOLLOW.CREATED_AT.desc())
                 .limit(MAX_FOLLOWEES)
                 .fetch(USER_FOLLOW.FOLLOWEE_ID));
+    }
+
+    /** Expected index: the artist_follow primary key (user_id, artist_id). */
+    Set<UUID> followedArtistIds(UUID userId) {
+        return new HashSet<>(dsl.select(ARTIST_FOLLOW.ARTIST_ID)
+                .from(ARTIST_FOLLOW)
+                .where(ARTIST_FOLLOW.USER_ID.eq(userId))
+                .orderBy(ARTIST_FOLLOW.CREATED_AT.desc())
+                .limit(MAX_FOLLOWEES)
+                .fetch(ARTIST_FOLLOW.ARTIST_ID));
+    }
+
+    /** Expected indexes: the user_block primary key (as blocker) and user_block_blocked (as blocked). */
+    Set<UUID> blockedEitherWay(UUID userId) {
+        Set<UUID> blocked = new HashSet<>(dsl.select(USER_BLOCK.BLOCKED_ID)
+                .from(USER_BLOCK)
+                .where(USER_BLOCK.BLOCKER_ID.eq(userId))
+                .fetch(USER_BLOCK.BLOCKED_ID));
+        blocked.addAll(dsl.select(USER_BLOCK.BLOCKER_ID)
+                .from(USER_BLOCK)
+                .where(USER_BLOCK.BLOCKED_ID.eq(userId))
+                .fetch(USER_BLOCK.BLOCKER_ID));
+        return blocked;
     }
 
     boolean hasBlocked(UUID blockerId, UUID blockedId) {

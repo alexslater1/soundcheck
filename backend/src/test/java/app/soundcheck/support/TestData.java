@@ -39,6 +39,12 @@ public final class TestData {
                 new VenueDraft(name, "1 Test Street", "Manchester", "M1 1AA", 53.4808, -2.2426, "Europe/London")));
     }
 
+    /** A venue at the given coordinates. */
+    public UUID venue(String name, double lat, double lng) {
+        return tx.execute(status -> catalog.createVenue(
+                new VenueDraft(name, "1 Test Street", "Testville", "T1 1AA", lat, lng, "Europe/London")));
+    }
+
     public UUID artist(String name) {
         return tx.execute(status -> catalog.createArtist(new ArtistDraft(name, null, null, Map.of())));
     }
