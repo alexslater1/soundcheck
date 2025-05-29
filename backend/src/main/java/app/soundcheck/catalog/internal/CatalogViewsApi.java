@@ -35,6 +35,11 @@ class CatalogViewsApi implements CatalogViews {
     }
 
     @Override
+    public Map<UUID, Map<Short, Double>> genreWeights(Collection<UUID> artistIds) {
+        return catalog.genreWeights(artistIds);
+    }
+
+    @Override
     public boolean venueExists(UUID venueId) {
         return catalog.venueExists(venueId);
     }

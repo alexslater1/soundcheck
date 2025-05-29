@@ -22,6 +22,12 @@ public interface CatalogViews {
     /** A gig's bill as artist ids, headliner first; empty when the gig does not exist. */
     List<UUID> lineup(UUID gigId);
 
+    /**
+     * Each artist's genres as genre id → weight (the weights of one artist sum to at most 1); artists
+     * without genres are absent. What a post "sounds like" is the mean over its tagged artists.
+     */
+    Map<UUID, Map<Short, Double>> genreWeights(Collection<UUID> artistIds);
+
     boolean venueExists(UUID venueId);
 
     /** Every gig at a venue (ids only), newest first, at most {@code limit}. */

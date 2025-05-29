@@ -370,6 +370,19 @@ class CatalogReadRepository {
         return byArtist;
     }
 
+    /** Genre id → weight per artist. Expected index: the artist_genre primary key. */
+    Map<UUID, Map<Short, Double>> genreWeights(Collection<UUID> artistIds) {
+        Map<UUID, Map<Short, Double>> byArtist = new HashMap<>();
+        if (!artistIds.isEmpty()) {
+            dsl.select(ARTIST_GENRE.ARTIST_ID, ARTIST_GENRE.GENRE_ID, ARTIST_GENRE.WEIGHT)
+                    .from(ARTIST_GENRE)
+                    .where(ARTIST_GENRE.ARTIST_ID.in(artistIds))
+                    .forEach(r -> byArtist.computeIfAbsent(r.value1(), id -> new HashMap<>())
+                            .put(r.value2(), r.value3().doubleValue()));
+        }
+        return byArtist;
+    }
+
     /**
      * Name search: names starting with the query first, then names containing a word similar to it
      * (pg_trgm word similarity, so "radiohed" still finds Radiohead), most popular first within each.

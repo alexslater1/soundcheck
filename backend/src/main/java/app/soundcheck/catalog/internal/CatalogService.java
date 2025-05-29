@@ -374,6 +374,11 @@ public class CatalogService {
     }
 
     @Transactional(readOnly = true)
+    public Map<UUID, Map<Short, Double>> genreWeights(Collection<UUID> artistIds) {
+        return repository.genreWeights(artistIds);
+    }
+
+    @Transactional(readOnly = true)
     public boolean venueExists(UUID venueId) {
         return repository.venueExists(venueId);
     }
