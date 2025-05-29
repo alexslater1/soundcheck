@@ -48,7 +48,7 @@ public final class ReasonMapper {
                 .sorted(Comparator.comparingDouble((Integer i) -> contributions[i])
                         .reversed())
                 .forEach(i -> {
-                    Reason reason = forFeature(schema.names().get(i), context);
+                    Reason reason = forFeature(schema.names().get(i), context, sources);
                     if (reason != null
                             && reasons.size() < MAX_REASONS
                             && reasons.stream().noneMatch(r -> r.kind().equals(reason.kind()))) {
@@ -62,7 +62,7 @@ public final class ReasonMapper {
     }
 
     /** The sentence for a feature that contributed; null for features that are not a reason to a person. */
-    private static @Nullable Reason forFeature(String feature, Context context) {
+    private static @Nullable Reason forFeature(String feature, Context context, Set<CandidateSource> sources) {
         return switch (feature) {
             case "follows_author" -> new Reason("FOLLOWS_AUTHOR", "You follow @" + context.authorHandle());
             case "follows_artist" ->
@@ -78,7 +78,10 @@ public final class ReasonMapper {
                     default -> null;
                 };
             case "proximity" -> new Reason("NEARBY", "Popular at gigs near you");
-            case "engagement_quality" -> new Reason("TRENDING", "Trending this week");
+            // Every post gets some engagement_quality from the global prior, even one never shown; it is
+            // only "trending" when it really had engagement lately (the TRENDING generator found it).
+            case "engagement_quality" ->
+                sources.contains(CandidateSource.TRENDING) ? new Reason("TRENDING", "Trending this week") : null;
             case "social_proof" ->
                 context.friendsEngaged() <= 0
                         ? null

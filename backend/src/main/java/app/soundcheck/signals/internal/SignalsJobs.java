@@ -72,7 +72,7 @@ class SignalsJobs {
         });
     }
 
-    @Scheduled(fixedDelayString = "PT10M", initialDelayString = "PT1M")
+    @Scheduled(fixedDelayString = "${soundcheck.signals.affinity-rollup-interval:PT10M}", initialDelayString = "PT1M")
     @SchedulerLock(name = "affinity-rollup", lockAtMostFor = "PT20M")
     void rollUpAffinities() {
         timed("affinity", () -> {

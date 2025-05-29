@@ -37,7 +37,22 @@ class ReasonMapperTest {
                 .isEqualTo(new Reason("GENRE_MATCH", "Matches the music you like"));
         assertThat(only("artist_affinity", CONTEXT).kind()).isEqualTo("GENRE_MATCH");
         assertThat(only("proximity", CONTEXT)).isEqualTo(new Reason("NEARBY", "Popular at gigs near you"));
-        assertThat(only("engagement_quality", CONTEXT)).isEqualTo(new Reason("TRENDING", "Trending this week"));
+        // engagement_quality is only "trending" for a post the TRENDING generator found; every post has
+        // some of it from the global prior.
+        assertThat(ReasonMapper.reasons(
+                        SCHEMA,
+                        contributions("engagement_quality", 1.0),
+                        Set.of(CandidateSource.TRENDING),
+                        false,
+                        CONTEXT))
+                .containsExactly(new Reason("TRENDING", "Trending this week"));
+        assertThat(ReasonMapper.reasons(
+                        SCHEMA,
+                        contributions("engagement_quality", 1.0, "follows_artist", 0.5),
+                        Set.of(CandidateSource.ARTIST),
+                        false,
+                        CONTEXT))
+                .containsExactly(new Reason("FOLLOWS_ARTIST", "Because you follow Fontaines D.C."));
         assertThat(only("social_proof", CONTEXT))
                 .isEqualTo(new Reason("FRIENDS_ENGAGED", "Liked by 3 people you follow"));
         assertThat(only("social_proof", new Context("maya", null, null, 1)).text())
