@@ -14,9 +14,11 @@ import org.springframework.transaction.annotation.Transactional;
 class SignalsPurge implements AccountPurgeStep {
 
     private final EventRepository events;
+    private final EventLog log;
 
-    SignalsPurge(EventRepository events) {
+    SignalsPurge(EventRepository events, EventLog log) {
         this.events = events;
+        this.log = log;
     }
 
     @Override
@@ -27,6 +29,9 @@ class SignalsPurge implements AccountPurgeStep {
     @Override
     @Transactional(propagation = Propagation.MANDATORY)
     public void purge(UUID userId) {
+        // Wait for a running affinity rollup, and keep the next one out until this commits: a rollup
+        // that had already read this user's engagement would otherwise write their affinities back.
+        log.watermarkForUpdate(AffinityRollup.NAME);
         events.anonymise(userId);
     }
 }

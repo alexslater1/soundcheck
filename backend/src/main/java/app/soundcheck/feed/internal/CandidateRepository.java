@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -223,7 +224,9 @@ public class CandidateRepository {
                                 POST_STAT_HOURLY.POST_ID,
                                 DSL.sum(POST_STAT_HOURLY.ENGAGEMENTS).cast(Long.class))
                         .from(POST_STAT_HOURLY)
-                        .where(POST_STAT_HOURLY.HOUR.ge(at(since)))
+                        // From the start of the hour the window begins in: the buckets are whole hours,
+                        // and leaving out the one that straddles the cutoff would shorten the window.
+                        .where(POST_STAT_HOURLY.HOUR.ge(at(since.truncatedTo(ChronoUnit.HOURS))))
                         .groupBy(POST_STAT_HOURLY.POST_ID));
     }
 

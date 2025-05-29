@@ -27,9 +27,9 @@ class PostFactsApi implements PostFacts {
     }
 
     @Override
-    public Set<UUID> existing(Collection<UUID> postIds) {
+    public Set<UUID> published(Collection<UUID> postIds) {
         return posts.findAll(postIds).stream()
-                .filter(row -> !row.status().equals("DELETED"))
+                .filter(PostRow::published)
                 .map(PostRow::id)
                 .collect(Collectors.toSet());
     }

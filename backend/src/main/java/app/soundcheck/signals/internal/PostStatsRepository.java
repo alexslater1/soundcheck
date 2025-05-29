@@ -3,6 +3,7 @@ package app.soundcheck.signals.internal;
 import static app.soundcheck.shared.jooq.signals.Tables.GLOBAL_PRIOR;
 import static app.soundcheck.shared.jooq.signals.Tables.POST_STATS;
 import static app.soundcheck.shared.jooq.signals.Tables.POST_STATS_HOURLY;
+import static app.soundcheck.shared.jooq.signals.Tables.POST_USER_EVENT;
 import static org.jooq.impl.DSL.excluded;
 
 import app.soundcheck.signals.EngagementPriors.Prior;
@@ -26,7 +27,10 @@ import org.springframework.stereotype.Repository;
 @Repository
 class PostStatsRepository {
 
-    /** What a batch of events adds to one post's all-time counters; {@code likes} is likes minus unlikes. */
+    /**
+     * What a batch adds to one post's all-time counters. Each counts users, not events; {@code likes}
+     * is new likes minus likes taken back.
+     */
     record Totals(
             UUID postId,
             long impressions,
@@ -37,6 +41,9 @@ class PostStatsRepository {
             long shares,
             long hides,
             double watchFraction) {}
+
+    /** A (post, user, kind) that may be counted, if it has not been before. */
+    record Claim(UUID postId, UUID userId, String kind, Instant firstAt) {}
 
     /** What a batch adds to one post's hour. */
     record HourTotals(UUID postId, Instant hour, int impressions, int engagements) {}
@@ -132,6 +139,65 @@ class PostStatsRepository {
                 .set(
                         POST_STATS_HOURLY.ENGAGEMENTS,
                         POST_STATS_HOURLY.ENGAGEMENTS.plus(excluded(POST_STATS_HOURLY.ENGAGEMENTS)))
+                .execute();
+    }
+
+    // ── counting each user once ──────────────────────────────────────────────────────────────────
+
+    /**
+     * Records that these users did these things to these posts, and returns the ones that were not
+     * recorded before: only those are counted. A second SHARE of the same post by the same user, in
+     * this batch or a later one, inserts nothing and counts nothing.
+     */
+    List<Claim> claimFirst(Collection<Claim> claims) {
+        List<Claim> first = new ArrayList<>();
+        List<Claim> all = List.copyOf(claims);
+        for (int from = 0; from < all.size(); from += 1_000) {
+            var insert = dsl.insertInto(
+                    POST_USER_EVENT,
+                    POST_USER_EVENT.POST_ID,
+                    POST_USER_EVENT.USER_ID,
+                    POST_USER_EVENT.KIND,
+                    POST_USER_EVENT.FIRST_AT);
+            for (Claim claim : all.subList(from, Math.min(all.size(), from + 1_000))) {
+                insert = insert.values(claim.postId(), claim.userId(), claim.kind(), at(claim.firstAt()));
+            }
+            insert.onConflictDoNothing()
+                    .returning(
+                            POST_USER_EVENT.POST_ID,
+                            POST_USER_EVENT.USER_ID,
+                            POST_USER_EVENT.KIND,
+                            POST_USER_EVENT.FIRST_AT)
+                    .fetch()
+                    .forEach(r -> first.add(new Claim(
+                            r.getPostId(),
+                            r.getUserId(),
+                            r.getKind(),
+                            r.getFirstAt().toInstant())));
+        }
+        return first;
+    }
+
+    /**
+     * Turns a user's like of a post off (an UNLIKE) or back on (a like after an unlike).
+     *
+     * @return true when the row existed in the other state and was changed
+     */
+    boolean setLikeActive(UUID postId, UUID userId, boolean active) {
+        return dsl.update(POST_USER_EVENT)
+                        .set(POST_USER_EVENT.ACTIVE, active)
+                        .where(POST_USER_EVENT.POST_ID.eq(postId))
+                        .and(POST_USER_EVENT.USER_ID.eq(userId))
+                        .and(POST_USER_EVENT.KIND.eq("LIKE"))
+                        .and(POST_USER_EVENT.ACTIVE.eq(!active))
+                        .execute()
+                == 1;
+    }
+
+    /** Hourly counters are only read for the last week; older ones are removed. */
+    int deleteHourlyBefore(Instant before) {
+        return dsl.deleteFrom(POST_STATS_HOURLY)
+                .where(POST_STATS_HOURLY.HOUR.lt(at(before)))
                 .execute();
     }
 

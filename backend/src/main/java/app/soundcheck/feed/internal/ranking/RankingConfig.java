@@ -28,7 +28,24 @@ public final class RankingConfig {
             int seenWindowDays) {
 
         public Params {
-            candidateCaps = Map.copyOf(candidateCaps);
+            candidateCaps = candidateCaps == null ? Map.of() : Map.copyOf(candidateCaps);
+        }
+
+        /** The parameter names every stored config must have. */
+        public static final List<String> NAMES = List.of(
+                "halfLifeHours",
+                "priorStrength",
+                "diversityLambda",
+                "explorationRate",
+                "sessionSize",
+                "pageSize",
+                "candidateCaps",
+                "localRadiusKm",
+                "seenWindowDays");
+
+        /** Which of {@link #NAMES} are absent from the given names. */
+        public static List<String> missingFrom(java.util.Collection<String> present) {
+            return NAMES.stream().filter(name -> !present.contains(name)).toList();
         }
 
         public int cap(CandidateSource source) {
@@ -41,7 +58,7 @@ public final class RankingConfig {
 
         private final transient List<String> problems;
 
-        InvalidRankingConfigException(List<String> problems) {
+        public InvalidRankingConfigException(List<String> problems) {
             super("invalid ranking config: " + String.join("; ", problems));
             this.problems = List.copyOf(problems);
         }

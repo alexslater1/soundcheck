@@ -1,7 +1,5 @@
 package app.soundcheck.signals.internal.web;
 
-import app.soundcheck.shared.web.RateLimitProperties;
-import app.soundcheck.shared.web.RateLimiter;
 import app.soundcheck.signals.internal.EventIntakeService;
 import app.soundcheck.signals.internal.EventIntakeService.IncomingEvent;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -18,7 +16,6 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -31,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-/** Client telemetry intake. */
+/** Client telemetry intake; rate limited by {@link EventRateLimit}. */
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "signals", description = "Interaction events from the clients")
@@ -42,13 +39,9 @@ public class EventController {
     static final String SURFACES = "FOR_YOU|FOLLOWING|PROFILE|GIG|ARTIST|POST|SEARCH";
 
     private final EventIntakeService intake;
-    private final RateLimiter rateLimiter;
-    private final RateLimitProperties limits;
 
-    public EventController(EventIntakeService intake, RateLimiter rateLimiter, RateLimitProperties limits) {
+    public EventController(EventIntakeService intake) {
         this.intake = intake;
-        this.rateLimiter = rateLimiter;
-        this.limits = limits;
     }
 
     @PostMapping("/events")
@@ -60,7 +53,6 @@ public class EventController {
             @RequestHeader(name = "X-Client", required = false) String client,
             @Valid @RequestBody EventsRequest body) {
         UUID userId = UUID.fromString(jwt.getSubject());
-        rateLimiter.enforce("events:" + userId, limits.eventsPerMinute(), Duration.ofMinutes(1));
         String platform = "android".equals(client) || "web".equals(client) ? client : null;
         intake.record(
                 userId,

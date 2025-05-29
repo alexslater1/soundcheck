@@ -239,6 +239,47 @@ class EventIntakeIT extends IntegrationTest {
         return HTTP.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
+    /** The limit is checked before the body is read: requests that fail validation use it up too. */
+    @Test
+    void invalidRequestsCountAgainstTheLimit() throws Exception {
+        String invalid = "{\"events\":[{\"type\":\"NOPE\"}]}";
+        int refused = 0;
+        HttpResponse<String> last = null;
+        for (int i = 0; i < 200 && (last == null || last.statusCode() != 429); i++) {
+            last = send(invalid, viewer);
+            if (last.statusCode() == 400) {
+                refused++;
+            }
+        }
+
+        assertThat(last.statusCode()).isEqualTo(429);
+        assertThat(refused).isBetween(120, 140);
+    }
+
+    @Test
+    void aTimestampNoDeviceCouldHaveIsDroppedAndTheEventKept() {
+        UUID post = UUID.randomUUID();
+        ResponseEntity<JsonNode> response = api.post(
+                "/api/v1/events",
+                Map.of(
+                        "events",
+                        List.of(
+                                event("IMPRESSION", post, Map.of("clientTs", "+300000-01-01T00:00:00Z")),
+                                event("IMPRESSION", post, Map.of("clientTs", "1999-12-31T23:59:59Z")),
+                                event(
+                                        "IMPRESSION",
+                                        post,
+                                        Map.of("clientTs", Instant.now(clock).toString())))),
+                viewer);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        Result<Record> stored = stored(viewer.id());
+        assertThat(stored).hasSize(3);
+        assertThat(stored.get(0).get("client_ts")).isNull();
+        assertThat(stored.get(1).get("client_ts")).isNull();
+        assertThat(stored.get(2).get("client_ts")).isNotNull();
+    }
+
     /** Informational: how long a typical batch takes here. Not an assertion about speed. */
     @Test
     void aTwentyEventBatchIsTimed() {

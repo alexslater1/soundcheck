@@ -6,6 +6,7 @@ import app.soundcheck.signals.internal.AffinityRepository.Key;
 import app.soundcheck.signals.internal.AffinityRepository.Stored;
 import app.soundcheck.signals.internal.EventLog.Position;
 import app.soundcheck.signals.internal.EventLog.UserPostCount;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -43,15 +44,15 @@ public class AffinityRollup {
     }
 
     /**
-     * Folds in one batch of the events that arrived up to {@code upTo}; decay is counted up to
+     * Folds in one batch of the events that are at least {@code settle} old; decay is counted up to
      * {@code now}.
      *
      * @return true when more events are waiting after this batch
      */
     @Transactional
-    public boolean rollUpBatch(Instant upTo, Instant now) {
+    public boolean rollUpBatch(Duration settle, Instant now) {
         Position from = log.watermarkForUpdate(NAME);
-        Optional<Position> end = log.endOfBatch(from, upTo, BATCH);
+        Optional<Position> end = log.endOfBatch(from, settle, BATCH);
         if (end.isEmpty()) {
             return false;
         }
@@ -98,7 +99,7 @@ public class AffinityRollup {
         affinities.saveAuthorScores(next(affinities.authorScores(users), authorDelta, now), now);
         affinities.saveGenreScores(next(affinities.genreScores(users), genreDelta, now), now);
         log.advance(NAME, end.get());
-        return log.endOfBatch(end.get(), upTo, 1).isPresent();
+        return log.endOfBatch(end.get(), settle, 1).isPresent();
     }
 
     /**

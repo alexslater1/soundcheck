@@ -1,6 +1,7 @@
 package app.soundcheck.signals.internal;
 
 import static app.soundcheck.shared.jooq.signals.Tables.INTERACTION_EVENT;
+import static app.soundcheck.shared.jooq.signals.Tables.POST_USER_EVENT;
 import static app.soundcheck.shared.jooq.signals.Tables.USER_ARTIST_AFFINITY;
 import static app.soundcheck.shared.jooq.signals.Tables.USER_AUTHOR_AFFINITY;
 import static app.soundcheck.shared.jooq.signals.Tables.USER_GENRE_AFFINITY;
@@ -21,9 +22,8 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class EventRepository {
 
-    /** One event as stored; {@code occurredAt} is the server's receive time. */
+    /** One event to store; the receive time is stamped by the database. */
     public record EventRow(
-            Instant occurredAt,
             UUID userId,
             UUID postId,
             @Nullable UUID feedSessionId,
@@ -43,7 +43,12 @@ public class EventRepository {
         this.dsl = dsl;
     }
 
-    /** One multi-row INSERT for the whole batch: one round trip, however many events. */
+    /**
+     * One multi-row INSERT for the whole batch: one round trip, however many events. {@code occurred_at}
+     * is the database's clock ({@code now()}, the same for every row of the statement), not this
+     * instance's: the rollups compare it with the same clock, so API instances whose clocks disagree
+     * cannot make an event look older than it is.
+     */
     int insertAll(List<EventRow> rows) {
         if (rows.isEmpty()) {
             return 0;
@@ -62,16 +67,16 @@ public class EventRepository {
                 INTERACTION_EVENT.PLATFORM);
         for (EventRow row : rows) {
             insert = insert.values(
-                    at(row.occurredAt()),
-                    row.userId(),
-                    row.postId(),
-                    row.feedSessionId(),
-                    row.surface(),
-                    row.position(),
-                    row.eventType(),
-                    row.value(),
-                    row.clientTs() == null ? null : at(row.clientTs()),
-                    row.platform());
+                    DSL.currentOffsetDateTime(),
+                    DSL.val(row.userId(), INTERACTION_EVENT.USER_ID),
+                    DSL.val(row.postId(), INTERACTION_EVENT.POST_ID),
+                    DSL.val(row.feedSessionId(), INTERACTION_EVENT.FEED_SESSION_ID),
+                    DSL.val(row.surface(), INTERACTION_EVENT.SURFACE),
+                    DSL.val(row.position(), INTERACTION_EVENT.POSITION),
+                    DSL.val(row.eventType(), INTERACTION_EVENT.EVENT_TYPE),
+                    DSL.val(row.value(), INTERACTION_EVENT.VALUE),
+                    DSL.val(row.clientTs() == null ? null : at(row.clientTs()), INTERACTION_EVENT.CLIENT_TS),
+                    DSL.val(row.platform(), INTERACTION_EVENT.PLATFORM));
         }
         return insert.execute();
     }
@@ -100,6 +105,10 @@ public class EventRepository {
         dsl.update(INTERACTION_EVENT)
                 .set(INTERACTION_EVENT.USER_ID, TOMBSTONE)
                 .where(INTERACTION_EVENT.USER_ID.eq(userId))
+                .execute();
+        // What the account was counted for stays counted; the proof rows are no longer needed.
+        dsl.deleteFrom(POST_USER_EVENT)
+                .where(POST_USER_EVENT.USER_ID.eq(userId))
                 .execute();
         dsl.deleteFrom(USER_ARTIST_AFFINITY)
                 .where(USER_ARTIST_AFFINITY.USER_ID.eq(userId))

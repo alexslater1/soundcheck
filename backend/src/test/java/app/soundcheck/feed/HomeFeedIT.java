@@ -82,6 +82,7 @@ class HomeFeedIT extends IntegrationTest {
     TestData data;
     TestApi.User viewer;
     TestApi.User followed;
+    List<TestApi.User> authors;
     List<UUID> myPosts;
 
     @BeforeEach
@@ -91,11 +92,16 @@ class HomeFeedIT extends IntegrationTest {
         viewer = api.register("feedviewer");
         followed = api.register("feedfollowed");
         api.put("/api/v1/users/" + followed.id() + "/follow", null, viewer);
-        // Thirty posts by six authors, spread over the last two days.
+        // Thirty posts by six authors, spread over the last two days. The viewer follows all six, so the
+        // posts are candidates by construction (FOLLOWING: 300 posts, 14 days), however many posts other
+        // tests have left in the fresh and trending pools of the shared database.
         List<TestApi.User> authors = new ArrayList<>(List.of(followed));
         for (int i = 0; i < 5; i++) {
-            authors.add(api.register("feedauthor"));
+            TestApi.User author = api.register("feedauthor");
+            api.put("/api/v1/users/" + author.id() + "/follow", null, viewer);
+            authors.add(author);
         }
+        this.authors = authors;
         myPosts = new ArrayList<>();
         Instant now = Instant.now(clock);
         for (int i = 0; i < 30; i++) {
@@ -295,6 +301,69 @@ class HomeFeedIT extends IntegrationTest {
 
         await().atMost(Duration.ofSeconds(10))
                 .untilAsserted(() -> assertThat(configs.active().id()).isEqualTo(draft));
+    }
+
+    /** A post deleted after the session was built is left out of its page; nothing else moves. */
+    @Test
+    void aPostThatGoesAfterTheSessionWasBuiltIsSkippedWhenItsPageIsServed() {
+        JsonNode first = home("?limit=5", viewer);
+        String sessionId = first.path("sessionId").asText("");
+        List<String> stored = sessionPostIds(sessionId);
+        String doomed = stored.get(6);
+        JsonNode doomedPost = api.get("/api/v1/posts/" + doomed, viewer).getBody();
+        TestApi.User itsAuthor = authors.stream()
+                .filter(a -> a.handle()
+                        .equals(doomedPost.path("author").path("handle").asText("")))
+                .findFirst()
+                .orElse(null);
+        org.junit.jupiter.api.Assumptions.assumeTrue(itsAuthor != null, "position 6 is one of this test's posts");
+        assertThat(api.delete("/api/v1/posts/" + doomed, itsAuthor).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+
+        JsonNode second = home("?limit=5&cursor=" + first.path("nextCursor").asText(""), viewer);
+
+        // Four of the five: positions keep their place in the session, and only what was sent is logged.
+        assertThat(postIds(second)).containsExactly(stored.get(5), stored.get(7), stored.get(8), stored.get(9));
+        assertThat(positions(second)).containsExactly(5, 7, 8, 9);
+        assertThat(second.path("nextCursor").asText("")).isEqualTo(sessionId + ":10");
+        assertThat(dsl.fetch(
+                                "select position from feed.served_item where session_id = ? and position >= 5 order by position",
+                                UUID.fromString(sessionId))
+                        .getValues(0, Integer.class))
+                .containsExactly(5, 7, 8, 9);
+    }
+
+    /** Building a session is expensive: thirty a minute per user, paging through one is not limited. */
+    @Test
+    void sessionBuildsAreRateLimitedAndPagingIsNot() throws Exception {
+        java.net.http.HttpClient http = java.net.http.HttpClient.newHttpClient();
+        java.util.function.Function<String, Integer> get = path -> {
+            try {
+                return http.send(
+                                java.net.http.HttpRequest.newBuilder(java.net.URI.create(rest.getRootUri() + path))
+                                        .header("Authorization", "Bearer " + viewer.accessToken())
+                                        .build(),
+                                java.net.http.HttpResponse.BodyHandlers.discarding())
+                        .statusCode();
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+        };
+        String cursor = home("?limit=2", viewer).path("nextCursor").asText("");
+
+        int built = 1;
+        int status = 200;
+        for (int i = 0; i < 60 && status == 200; i++) {
+            status = get.apply("/api/v1/feed/home?limit=1");
+            if (status == 200) {
+                built++;
+            }
+        }
+
+        assertThat(status).isEqualTo(429);
+        assertThat(built).isBetween(30, 40);
+        // The session in hand can still be paged.
+        assertThat(get.apply("/api/v1/feed/home?limit=2&cursor=" + cursor)).isEqualTo(200);
     }
 
     @Test

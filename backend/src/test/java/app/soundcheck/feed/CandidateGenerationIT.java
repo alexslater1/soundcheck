@@ -145,6 +145,11 @@ class CandidateGenerationIT extends IntegrationTest {
         stats(pFollow, 100, 10, 5, 0, 5);
         api.put("/api/v1/posts/" + pFollow + "/like", null, friend);
 
+        UUID pFollowNewest = post(followed, null, List.of(), now.minus(Duration.ofHours(4)));
+        stats(pFollowNewest, 60, 0, 0, 0, 0);
+        // Fifteen days old: outside the 14-day window of FOLLOWING.
+        UUID pFollowOld = post(followed, null, List.of(), now.minus(Duration.ofDays(15)));
+
         UUID pArtist = post(stranger, null, List.of(followedArtist), now.minus(Duration.ofDays(5)));
         UUID pGig = post(stranger, nearGig, List.of(), now.minus(Duration.ofDays(20)));
         UUID pLocal = post(stranger, nearGig, List.of(), now.minus(Duration.ofDays(2)));
@@ -216,6 +221,8 @@ class CandidateGenerationIT extends IntegrationTest {
                 candidates.stream().collect(Collectors.toMap(Candidate::postId, Candidate::sources));
 
         assertThat(sources.get(pFollow)).containsExactly(CandidateSource.FOLLOWING);
+        assertThat(sources.get(pFollowNewest)).containsExactly(CandidateSource.FOLLOWING);
+        assertThat(sources).doesNotContainKey(pFollowOld);
         assertThat(sources.get(pArtist)).containsExactlyInAnyOrder(CandidateSource.ARTIST, CandidateSource.TASTE);
         assertThat(sources.get(pGig)).containsExactly(CandidateSource.GIG); // any age, but too old for LOCAL
         // Near home and recent, from a gig the viewer went to; its five engagements in the last 48 hours
@@ -239,6 +246,24 @@ class CandidateGenerationIT extends IntegrationTest {
                 .extracting(Candidate::postId)
                 .contains(pFollow)
                 .doesNotContain(pFresh);
+
+        // A cap keeps the first of the generator's own order: the newest followed post, the most engaged
+        // trending one.
+        Map<String, Integer> one = new HashMap<>(PARAMS.candidateCaps());
+        one.put("FOLLOWING", 1);
+        one.put("TRENDING", 1);
+        one.put("FRESH", 0);
+        one.put("GIG", 0);
+        one.put("LOCAL", 0);
+        Map<UUID, Set<CandidateSource>> capped =
+                generator
+                        .candidates(context, new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, one, 50, 3), now)
+                        .stream()
+                        .collect(Collectors.toMap(Candidate::postId, Candidate::sources));
+        assertThat(capped.get(pFollowNewest)).containsExactly(CandidateSource.FOLLOWING);
+        assertThat(capped).doesNotContainKey(pFollow); // twelve hours old: behind the newest one
+        assertThat(capped.get(pTrending)).containsExactly(CandidateSource.TRENDING);
+        assertThat(capped).doesNotContainKey(pLocal); // 5 engagements against 500
 
         // ── the features of three posts, exactly ────────────────────────────────────────────────
         Map<UUID, Featured> featured = generator.features(context, candidates, PARAMS, PRIOR, now).stream()

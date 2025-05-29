@@ -172,6 +172,48 @@ describe('telemetry queue', () => {
     await expect(queue.flush()).resolves.toBeUndefined();
   });
 
+  it('never leaves an event waiting without a timer, whenever it arrives during a flush', async () => {
+    // An event tracked in the instant between the last request finishing and the flush tidying up
+    // sees "a flush is running" and sets no timer. Try every nearby instant.
+    for (let hops = 0; hops <= 8; hops++) {
+      const sent: EventIn[][] = [];
+      const timers: { fn: () => void; cancelled: boolean }[] = [];
+      let first = true;
+      const queue = createTelemetryQueue({
+        send: async (events) => {
+          sent.push(events);
+          if (first) {
+            first = false;
+            let chain = Promise.resolve();
+            for (let i = 0; i < hops; i++) {
+              chain = chain.then(() => undefined);
+            }
+            void chain.then(() => queue.track(event(2)));
+          }
+        },
+        schedule: (fn) => {
+          const timer = { fn, cancelled: false };
+          timers.push(timer);
+          return () => {
+            timer.cancelled = true;
+          };
+        },
+        sleep: async () => undefined,
+      });
+      queue.track(event(1));
+      await queue.flush();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+
+      const pending = timers.filter((timer) => !timer.cancelled);
+      if (queue.size() > 0) {
+        expect({ hops, timers: pending.length }).toEqual({ hops, timers: 1 });
+        pending.forEach((timer) => timer.fn());
+        await queue.flush();
+      }
+      expect(sent.flat()).toEqual([event(1), event(2)]);
+    }
+  });
+
   it('forgets what is waiting when cleared (sign-out)', async () => {
     const { queue, sent, timers } = harness();
     queue.track(event(1));

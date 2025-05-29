@@ -13,6 +13,7 @@ import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -148,6 +149,14 @@ public class RankingConfigs {
         RankingConfig.Params params;
         try {
             weights = new HashMap<>(json.readValue(row.weightsJson(), WEIGHTS));
+            // A parameter left out of the JSON would be read as 0, which is a valid value for some of them.
+            List<String> missing =
+                    RankingConfig.Params.missingFrom(json.readTree(row.paramsJson()).properties().stream()
+                            .map(Map.Entry::getKey)
+                            .toList());
+            if (!missing.isEmpty()) {
+                throw new RankingConfig.InvalidRankingConfigException(List.of("params must also name " + missing));
+            }
             params = json.readValue(row.paramsJson(), RankingConfig.Params.class);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);

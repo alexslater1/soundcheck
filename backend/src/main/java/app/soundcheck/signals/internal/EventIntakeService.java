@@ -4,6 +4,7 @@ import app.soundcheck.content.PostHides;
 import app.soundcheck.signals.internal.EventRepository.EventRow;
 import io.micrometer.core.instrument.MeterRegistry;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -15,8 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Takes a batch of interaction events from a client ({@code POST /events}) and appends it to
- * the event log. The server decides who did it (the token) and when it arrived (its own clock); the
- * client's timestamp is kept beside it. Nothing here checks that the post exists: the log has no
+ * the event log. The server decides who did it (the token) and when it arrived (the database's clock);
+ * the client's timestamp is kept beside it. Nothing here checks that the post exists: the log has no
  * foreign keys, and the rollups skip events about posts that are gone.
  */
 @Service
@@ -31,6 +32,8 @@ public class EventIntakeService {
             @Nullable Integer position,
             @Nullable Float value,
             @Nullable Instant clientTs) {}
+
+    static final int MAX_HIDES_PER_BATCH = 10;
 
     private final EventRepository events;
     private final PostHides postHides;
@@ -55,7 +58,6 @@ public class EventIntakeService {
         Instant now = Instant.now(clock);
         List<EventRow> rows = batch.stream()
                 .map(e -> new EventRow(
-                        now,
                         userId,
                         e.postId(),
                         e.sessionId(),
@@ -63,7 +65,7 @@ public class EventIntakeService {
                         e.position(),
                         e.type(),
                         e.value(),
-                        e.clientTs(),
+                        plausible(e.clientTs(), now),
                         platform))
                 .toList();
         int stored = events.insertAll(rows);
@@ -71,6 +73,8 @@ public class EventIntakeService {
                 .filter(e -> e.type().equals("HIDE"))
                 .map(IncomingEvent::postId)
                 .distinct()
+                // Each hide is a few queries; a batch of a hundred of them is not something a person does.
+                .limit(MAX_HIDES_PER_BATCH)
                 .forEach(postId -> postHides.hideIfVisible(userId, postId));
         Map<String, Long> byType =
                 batch.stream().collect(Collectors.groupingBy(IncomingEvent::type, Collectors.counting()));
@@ -78,4 +82,19 @@ public class EventIntakeService {
                 meters.counter("soundcheck.events.ingested", "type", type).increment(count));
         return stored;
     }
+
+    /**
+     * The device's own timestamp, kept only when it could be true. A clock set to the year 300000 must
+     * not fail the whole batch in the database; the event is stored without it.
+     */
+    private static @Nullable Instant plausible(@Nullable Instant clientTs, Instant now) {
+        if (clientTs == null
+                || clientTs.isBefore(EARLIEST_CLIENT_TS)
+                || clientTs.isAfter(now.plus(Duration.ofDays(1)))) {
+            return null;
+        }
+        return clientTs;
+    }
+
+    private static final Instant EARLIEST_CLIENT_TS = Instant.parse("2020-01-01T00:00:00Z");
 }

@@ -2,6 +2,8 @@ package app.soundcheck.feed.internal;
 
 import static app.soundcheck.shared.jooq.feed.Tables.FEED_SESSION;
 
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -25,17 +27,23 @@ public class FeedSessionCleanup {
     private static final Logger log = LoggerFactory.getLogger(FeedSessionCleanup.class);
 
     private final DSLContext dsl;
+    private final MeterRegistry meters;
     private final Clock clock;
 
-    FeedSessionCleanup(DSLContext dsl, Clock clock) {
+    FeedSessionCleanup(DSLContext dsl, MeterRegistry meters, Clock clock) {
         this.dsl = dsl;
+        this.meters = meters;
         this.clock = clock;
     }
 
     @Scheduled(fixedDelayString = "PT5M", initialDelayString = "PT2M")
     @SchedulerLock(name = "feed-session-cleanup", lockAtMostFor = "PT5M")
     void scheduled() {
+        Timer.Sample sample = Timer.start(meters);
         int deleted = deleteExpired();
+        sample.stop(Timer.builder("soundcheck.rollup.duration")
+                .tag("job", "feed_session_cleanup")
+                .register(meters));
         if (deleted > 0) {
             log.info("deleted {} expired feed sessions", deleted);
         }

@@ -4,6 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import type { HomeFeed, Post } from '@/api/generated/model';
 import { ApiError } from '@/api/http';
 import type { PagerItem } from '@/features/posts/PostPager';
+import { telemetry } from '@/features/telemetry/telemetry';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { ForYouFeed } from './ForYouFeed';
@@ -127,6 +128,8 @@ describe('ForYouFeed', () => {
     await screen.rerender(tree(1));
 
     expect(await screen.findByText(/s2-p0/)).toBeTruthy();
+    // What was seen so far was sent before the server ranked again.
+    expect(telemetry.flush).toHaveBeenCalled();
     expect(mockGetHomeFeed).toHaveBeenLastCalledWith({ limit: 10, cursor: undefined });
   });
 

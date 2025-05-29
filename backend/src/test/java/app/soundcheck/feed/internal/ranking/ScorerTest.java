@@ -40,12 +40,15 @@ class ScorerTest {
                 features[i] = parityCase.path("features").get(i).asDouble();
             }
 
-            double score = Scorer.score(RankingFixtures.config(weights), FeatureVector.of(features))
-                    .score();
+            Scorer.Scored scored = Scorer.score(RankingFixtures.config(weights), FeatureVector.of(features));
 
-            assertThat(score)
+            assertThat(scored.score())
                     .as(parityCase.path("name").asText(""))
                     .isCloseTo(parityCase.path("expectedScore").asDouble(), within(tolerance));
+            // A score near 0 or 1 hardly moves with the logit, so the logit is compared too.
+            assertThat(scored.logit())
+                    .as(parityCase.path("name").asText("") + " (logit)")
+                    .isCloseTo(parityCase.path("expectedLogit").asDouble(), within(tolerance));
         }
     }
 

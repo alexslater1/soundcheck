@@ -13,8 +13,8 @@ import java.util.UUID;
  */
 public interface PostFacts {
 
-    /** Which of the ids are posts that exist (not deleted). */
-    Set<UUID> existing(Collection<UUID> postIds);
+    /** Which of the ids are published posts (not pending, failed, hidden or deleted). */
+    Set<UUID> published(Collection<UUID> postIds);
 
     /** Facts about the posts that exist (not deleted) among the ids, in one pass. */
     Map<UUID, Facts> facts(Collection<UUID> postIds);

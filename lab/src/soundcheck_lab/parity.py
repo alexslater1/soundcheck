@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from soundcheck_lab.schema import DEFAULT_SCHEMA_PATH, FeatureSchema, load_schema
-from soundcheck_lab.scorer import BIAS, score
+from soundcheck_lab.scorer import BIAS, logit, score
 
 DEFAULT_CASES_PATH = DEFAULT_SCHEMA_PATH.with_name("parity-cases.json")
 TOLERANCE = 1e-6
@@ -44,6 +44,7 @@ class Case:
     name: str
     weights: dict[str, float]
     features: list[float]
+    expected_logit: float
     expected_score: float
 
 
@@ -76,7 +77,13 @@ def generate_cases(schema: FeatureSchema, seed: int = SEED) -> list[Case]:
         features = [round(rng.random(), 6) for _ in range(n)]
         cases.append((f"random {i + 1}", weights, features))
     return [
-        Case(name, dict(weights), features, score(weights, features, schema))
+        Case(
+            name,
+            dict(weights),
+            features,
+            logit(weights, features, schema),
+            score(weights, features, schema),
+        )
         for name, weights, features in cases
     ]
 
@@ -95,6 +102,7 @@ def to_document(schema: FeatureSchema, cases: list[Case]) -> dict[str, Any]:
                 "name": case.name,
                 "weights": case.weights,
                 "features": case.features,
+                "expectedLogit": case.expected_logit,
                 "expectedScore": case.expected_score,
             }
             for case in cases
@@ -114,6 +122,7 @@ def load_cases(path: Path = DEFAULT_CASES_PATH) -> tuple[int, list[Case]]:
             name=str(c["name"]),
             weights={str(k): float(v) for k, v in c["weights"].items()},
             features=[float(f) for f in c["features"]],
+            expected_logit=float(c["expectedLogit"]),
             expected_score=float(c["expectedScore"]),
         )
         for c in raw["cases"]
@@ -134,4 +143,9 @@ def check(path: Path = DEFAULT_CASES_PATH, schema: FeatureSchema | None = None) 
         actual = score(case.weights, case.features, schema)
         if abs(actual - case.expected_score) >= TOLERANCE:
             mismatches.append(Mismatch(case.name, case.expected_score, actual))
+            continue
+        # A score near 0 or 1 hardly moves with the logit; the logit itself is compared as well.
+        actual_logit = logit(case.weights, case.features, schema)
+        if abs(actual_logit - case.expected_logit) >= TOLERANCE:
+            mismatches.append(Mismatch(case.name + " (logit)", case.expected_logit, actual_logit))
     return mismatches

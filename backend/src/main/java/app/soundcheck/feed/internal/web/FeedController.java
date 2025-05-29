@@ -5,11 +5,14 @@ import app.soundcheck.feed.HomeFeed;
 import app.soundcheck.feed.internal.FollowingFeedService;
 import app.soundcheck.feed.internal.HomeFeedService;
 import app.soundcheck.shared.web.Page;
+import app.soundcheck.shared.web.RateLimitProperties;
+import app.soundcheck.shared.web.RateLimiter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import java.time.Duration;
 import java.util.UUID;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -28,10 +31,15 @@ public class FeedController {
 
     private final FollowingFeedService following;
     private final HomeFeedService home;
+    private final RateLimiter rateLimiter;
+    private final RateLimitProperties limits;
 
-    public FeedController(FollowingFeedService following, HomeFeedService home) {
+    public FeedController(
+            FollowingFeedService following, HomeFeedService home, RateLimiter rateLimiter, RateLimitProperties limits) {
         this.following = following;
         this.home = home;
+        this.rateLimiter = rateLimiter;
+        this.limits = limits;
     }
 
     @GetMapping("/home")
@@ -46,8 +54,13 @@ public class FeedController {
             @Parameter(description = "Admins only: include each item's score and contributions")
                     @RequestParam(defaultValue = "false")
                     boolean debug) {
+        UUID userId = UUID.fromString(jwt.getSubject());
+        if (cursor == null) {
+            // Building a session is the most expensive request the API has; paging through one is cheap.
+            rateLimiter.enforce("feed-build:" + userId, limits.feedBuildsPerMinute(), Duration.ofMinutes(1));
+        }
         boolean admin = "ADMIN".equals(jwt.getClaimAsString("role"));
-        return home.home(UUID.fromString(jwt.getSubject()), cursor, limit, debug && admin);
+        return home.home(userId, cursor, limit, debug && admin);
     }
 
     @GetMapping("/following")

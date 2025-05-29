@@ -128,6 +128,24 @@ class RankingConfigTest {
                                 "diversityLambda must be between 0 and 1"));
     }
 
+    /** A parameter left out of the stored JSON would be read as 0, a valid value for some: it must be named. */
+    @Test
+    void everyParameterMustBeNamedInTheStoredDocument() {
+        assertThat(Params.missingFrom(Params.NAMES)).isEmpty();
+        assertThat(Params.missingFrom(List.of(
+                        "halfLifeHours", "priorStrength", "sessionSize", "pageSize", "candidateCaps", "localRadiusKm")))
+                .containsExactly("diversityLambda", "explorationRate", "seenWindowDays");
+        // The record's components and the list of names are the same nine.
+        assertThat(java.util.Arrays.stream(Params.class.getRecordComponents())
+                        .map(java.lang.reflect.RecordComponent::getName))
+                .containsExactlyElementsOf(Params.NAMES);
+        // A document without candidateCaps is a validation problem, not a NullPointerException.
+        assertThat(problems(v1Weights(), new Params(24, 20, 0.8, 0.1, 200, 10, null, 50, 3)))
+                .singleElement()
+                .asString()
+                .contains("candidateCaps must name exactly");
+    }
+
     private static List<String> problems(Map<String, Double> weights, Params params) {
         return RankingConfig.problems(1, weights, params, SCHEMA);
     }

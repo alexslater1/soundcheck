@@ -71,20 +71,28 @@ export function createTelemetryQueue(deps: TelemetryDeps): TelemetryQueue {
     // Events tracked while a request is in flight are picked up by the same drain loop.
     sending ??= drain().finally(() => {
       sending = null;
+      // An event that arrived just as the loop ended must not be left without a timer.
+      if (waiting.length > 0) {
+        armTimer();
+      }
     });
     return sending;
   };
+
+  function armTimer(): void {
+    cancelTimer ??= deps.schedule(() => {
+      cancelTimer = null;
+      void flush();
+    }, FLUSH_AFTER_MS);
+  }
 
   return {
     track(event) {
       waiting.push(event);
       if (waiting.length >= FLUSH_AT) {
         void flush();
-      } else if (!cancelTimer && !sending) {
-        cancelTimer = deps.schedule(() => {
-          cancelTimer = null;
-          void flush();
-        }, FLUSH_AFTER_MS);
+      } else if (!sending) {
+        armTimer();
       }
     },
     flush,

@@ -89,22 +89,26 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
           <Button
             title="Show me less like this"
             variant="secondary"
-            onPress={() => {
-              track('HIDE', post.id);
-              void act(() => hidePost(post.id), 'You will see less like this', true);
-            }}
+            onPress={() =>
+              void act(
+                // Reported once the server has hidden it: the HIDE event also hides the post there, so
+                // an event for a request that failed would hide it behind the user's back.
+                () => hidePost(post.id).then(() => track('HIDE', post.id)),
+                'You will see less like this',
+                true,
+              )
+            }
           />
           <Button
             title="Report"
             variant="secondary"
-            onPress={() => {
-              track('REPORT', post.id);
+            onPress={() =>
               void act(
-                () => reportPost(post.id, { reason: 'OTHER' }),
+                () => reportPost(post.id, { reason: 'OTHER' }).then(() => track('REPORT', post.id)),
                 'Reported. Thank you.',
                 false,
-              );
-            }}
+              )
+            }
           />
         </>
       )}
@@ -149,18 +153,21 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
           style={column ? styles.stacked : styles.action}
           accessibilityRole="button"
           accessibilityLabel="Share"
-          onPress={() => {
-            track('SHARE', post.id);
-            void sharePost(post.id).then((result) =>
+          onPress={() =>
+            void sharePost(post.id).then((result) => {
+              // A share that failed is not a signal.
+              if (result !== 'failed') {
+                track('SHARE', post.id);
+              }
               setNotice(
                 result === 'copied'
                   ? 'Link copied'
                   : result === 'failed'
                     ? 'Could not share'
                     : null,
-              ),
-            );
-          }}
+              );
+            })
+          }
         >
           <Ionicons name="share-outline" size={22} color={ink} />
         </Pressable>

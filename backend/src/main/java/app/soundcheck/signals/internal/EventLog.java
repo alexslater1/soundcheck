@@ -3,6 +3,7 @@ package app.soundcheck.signals.internal;
 import static app.soundcheck.shared.jooq.signals.Tables.INTERACTION_EVENT;
 import static app.soundcheck.shared.jooq.signals.Tables.ROLLUP_WATERMARK;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -22,8 +23,9 @@ import org.springframework.stereotype.Repository;
  * each run reads the next bounded stretch after it.
  *
  * <p>Events become visible when their insert commits, which is not exactly in key order. A rollup
- * therefore only reads up to a moment a few seconds in the past ({@code upTo}), by which time every
- * insert stamped before it has long committed.
+ * therefore only reads events that are at least {@code settle} old, by which time every insert stamped
+ * before them has long committed. Both the stamp ({@code occurred_at}) and "now" are the database's
+ * clock, so application instances whose clocks disagree do not matter.
  */
 @Repository
 class EventLog {
@@ -33,8 +35,13 @@ class EventLog {
         static final Position START = new Position(Instant.EPOCH, 0);
     }
 
-    /** Events of one type on one post within one hour. */
-    record PostHourCount(UUID postId, Instant hour, String eventType, long count) {}
+    /**
+     * What one user did to one post in a batch, by kind (the event type; WATCH_PROGRESS split by mark).
+     *
+     * @param firstAt when the first such event of the batch arrived
+     * @param lastId  the id of the last one (to order a like against an unlike)
+     */
+    record UserPostKind(UUID userId, UUID postId, String kind, Instant firstAt, long lastId) {}
 
     /** What one user did to one post, by type. */
     record UserPostCount(UUID userId, UUID postId, String eventType, long count) {}
@@ -72,14 +79,16 @@ class EventLog {
 
     /**
      * The position of the last event of the next batch: at most {@code limit} events after
-     * {@code after}, none later than {@code upTo}. Empty when there is nothing to read. Expected index:
-     * the primary key (occurred_at, id), with partition pruning on occurred_at.
+     * {@code after}, none younger than {@code settle} by the database's clock. Empty when there is
+     * nothing to read. Expected index: the primary key (occurred_at, id), with partition pruning on
+     * occurred_at.
      */
-    Optional<Position> endOfBatch(Position after, Instant upTo, int limit) {
+    Optional<Position> endOfBatch(Position after, Duration settle, int limit) {
         Table<?> batch = dsl.select(INTERACTION_EVENT.OCCURRED_AT, INTERACTION_EVENT.ID)
                 .from(INTERACTION_EVENT)
                 .where(after(after))
-                .and(INTERACTION_EVENT.OCCURRED_AT.le(at(upTo)))
+                .and(INTERACTION_EVENT.OCCURRED_AT.le(DSL.field(
+                        "now() - {0} * interval '1 millisecond'", OffsetDateTime.class, DSL.val(settle.toMillis()))))
                 .orderBy(INTERACTION_EVENT.OCCURRED_AT, INTERACTION_EVENT.ID)
                 .limit(limit)
                 .asTable("batch");
@@ -92,15 +101,51 @@ class EventLog {
                 .fetchOptional(r -> new Position(r.value1().toInstant(), r.value2()));
     }
 
-    /** The events in {@code (after, to]}, counted per post, hour and type. */
-    List<PostHourCount> countsByPostAndHour(Position after, Position to) {
-        Field<OffsetDateTime> hour =
-                DSL.field("date_trunc('hour', {0})", OffsetDateTime.class, INTERACTION_EVENT.OCCURRED_AT);
-        return dsl.select(INTERACTION_EVENT.POST_ID, hour, INTERACTION_EVENT.EVENT_TYPE, DSL.count())
+    /**
+     * The events in {@code (after, to]} that the post counters use, grouped by user, post and kind.
+     * Anonymised events are left out (a purged account's events were counted while it existed).
+     */
+    List<UserPostKind> byUserPostAndKind(Position after, Position to) {
+        Field<String> kind = DSL.field(
+                """
+                case when {0} = 'WATCH_PROGRESS' then
+                       case when {1} >= 0.75 then 'WATCH_75' when {1} >= 0.5 then 'WATCH_50'
+                            when {1} >= 0.25 then 'WATCH_25' end
+                     else {0} end
+                """,
+                String.class, INTERACTION_EVENT.EVENT_TYPE, INTERACTION_EVENT.VALUE);
+        return dsl
+                .select(
+                        INTERACTION_EVENT.USER_ID,
+                        INTERACTION_EVENT.POST_ID,
+                        kind,
+                        DSL.min(INTERACTION_EVENT.OCCURRED_AT),
+                        DSL.max(INTERACTION_EVENT.ID))
                 .from(INTERACTION_EVENT)
                 .where(between(after, to))
-                .groupBy(INTERACTION_EVENT.POST_ID, hour, INTERACTION_EVENT.EVENT_TYPE)
-                .fetch(r -> new PostHourCount(r.value1(), r.value2().toInstant(), r.value3(), r.value4()));
+                .and(INTERACTION_EVENT.EVENT_TYPE.in(
+                        "IMPRESSION",
+                        "VIEW_START",
+                        "WATCH_PROGRESS",
+                        "COMPLETE",
+                        "LIKE",
+                        "UNLIKE",
+                        "COMMENT",
+                        "SHARE",
+                        "HIDE"))
+                .and(INTERACTION_EVENT.USER_ID.ne(EventRepository.TOMBSTONE))
+                .groupBy(INTERACTION_EVENT.USER_ID, INTERACTION_EVENT.POST_ID, kind)
+                .fetch()
+                .stream()
+                .filter(r -> r.value3() != null) // a progress report below the first mark
+                .map(r -> new UserPostKind(
+                        r.value1(), r.value2(), r.value3(), r.value4().toInstant(), r.value5()))
+                .toList();
+    }
+
+    /** How many events lie in {@code (after, to]} (for the job's counter). */
+    int count(Position after, Position to) {
+        return dsl.fetchCount(INTERACTION_EVENT, between(after, to));
     }
 
     /**
@@ -122,13 +167,21 @@ class EventLog {
                 .fetch(r -> new UserPostCount(r.value1(), r.value2(), r.value3(), r.value4()));
     }
 
+    /**
+     * Strictly after the position in key order. The plain bound on {@code occurred_at} says nothing the
+     * row comparison does not, but it is what lets PostgreSQL skip the partitions of earlier days.
+     */
     private static Condition after(Position position) {
-        return DSL.row(INTERACTION_EVENT.OCCURRED_AT, INTERACTION_EVENT.ID)
-                .gt(DSL.row(at(position.at()), position.id()));
+        return INTERACTION_EVENT
+                .OCCURRED_AT
+                .ge(at(position.at()))
+                .and(DSL.row(INTERACTION_EVENT.OCCURRED_AT, INTERACTION_EVENT.ID)
+                        .gt(DSL.row(at(position.at()), position.id())));
     }
 
     private static Condition between(Position after, Position to) {
         return after(after)
+                .and(INTERACTION_EVENT.OCCURRED_AT.le(at(to.at())))
                 .and(DSL.row(INTERACTION_EVENT.OCCURRED_AT, INTERACTION_EVENT.ID)
                         .le(DSL.row(at(to.at()), to.id())));
     }

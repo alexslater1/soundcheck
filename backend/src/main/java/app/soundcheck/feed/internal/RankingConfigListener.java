@@ -84,7 +84,7 @@ class RankingConfigListener implements SmartLifecycle {
                 }
             } catch (SQLException | RuntimeException e) {
                 if (running) {
-                    log.warn("ranking config listener lost its connection ({}); retrying", e.toString());
+                    log.warn("ranking config listener stopped ({}); reconnecting in a few seconds", e.toString());
                     reloadQuietly();
                     pause();
                 }
@@ -99,6 +99,9 @@ class RankingConfigListener implements SmartLifecycle {
                 database.determineUrl(), database.determineUsername(), database.determinePassword());
         try (Statement statement = listening.createStatement()) {
             statement.execute("LISTEN " + RankingConfigRepository.CHANNEL);
+        } catch (SQLException e) {
+            closeQuietly(listening);
+            throw e;
         }
         return listening;
     }

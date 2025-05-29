@@ -26,9 +26,10 @@ class SignalsJobs {
     private static final Logger log = LoggerFactory.getLogger(SignalsJobs.class);
 
     /**
-     * The rollups read events that arrived at least this long ago. Events become visible when their
-     * insert commits, not in key order; by now every insert stamped earlier has committed, so the
-     * watermark never passes an event that is still on its way in.
+     * The rollups read events that arrived at least this long ago (by the database's clock, which also
+     * stamped them). Events become visible when their insert commits, not in key order; by then every
+     * insert stamped earlier has committed, so the watermark does not pass an event that is still on
+     * its way in. An insert that takes longer than this to commit would be missed.
      */
     static final Duration SETTLE = Duration.ofSeconds(5);
 
@@ -60,7 +61,7 @@ class SignalsJobs {
         timed("post_stats", () -> {
             int total = 0;
             for (int batch = 0; batch < MAX_BATCHES; batch++) {
-                int events = postStats.rollUpBatch(Instant.now(clock).minus(SETTLE));
+                int events = postStats.rollUpBatch(SETTLE);
                 total += events;
                 if (events < PostStatsRollup.BATCH) {
                     break;
@@ -77,8 +78,7 @@ class SignalsJobs {
     void rollUpAffinities() {
         timed("affinity", () -> {
             for (int batch = 0; batch < MAX_BATCHES; batch++) {
-                Instant now = Instant.now(clock);
-                if (!affinity.rollUpBatch(now.minus(SETTLE), now)) {
+                if (!affinity.rollUpBatch(SETTLE, Instant.now(clock))) {
                     break;
                 }
             }
@@ -91,6 +91,10 @@ class SignalsJobs {
         timed("global_prior", () -> {
             Prior refreshed = prior.refresh();
             log.info("global engagement prior: mean {}, p99 {}", refreshed.meanRate(), refreshed.p99Rate());
+            int removed = prior.forgetOldHours();
+            if (removed > 0) {
+                log.info("removed {} hourly counters older than {}", removed, GlobalPriorRefresh.HOURLY_RETENTION);
+            }
         });
     }
 

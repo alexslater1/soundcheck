@@ -96,6 +96,28 @@ describe('PostActions', () => {
     );
   });
 
+  it('reports nothing when the request fails: a HIDE event would hide the post on the server anyway', async () => {
+    mockHide.mockRejectedValueOnce(new Error('offline'));
+    mockShare.mockResolvedValueOnce('failed');
+    const onGone = jest.fn();
+    await renderActions(onGone);
+
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(screen.getByText('Show me less like this'));
+    await waitFor(() =>
+      expect(screen.getByTestId('post-notice').props.children).toBe(
+        'That did not work. Try again.',
+      ),
+    );
+    await fireEvent.press(screen.getByLabelText('Share'));
+    await waitFor(() =>
+      expect(screen.getByTestId('post-notice').props.children).toBe('Could not share'),
+    );
+
+    expect(onGone).not.toHaveBeenCalled();
+    expect(telemetry.track).not.toHaveBeenCalled();
+  });
+
   it('reports a share and a report', async () => {
     await renderActions();
 

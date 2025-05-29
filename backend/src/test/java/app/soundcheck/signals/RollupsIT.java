@@ -12,7 +12,9 @@ import app.soundcheck.support.IntegrationTest;
 import app.soundcheck.support.MutableClock;
 import app.soundcheck.support.TestApi;
 import app.soundcheck.support.TestData;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,12 +87,11 @@ class RollupsIT extends IntegrationTest {
     void eventsBecomeThePostsCountersAndRunningTheRollupAgainCountsNothingTwice() {
         UUID post = post(author, null);
         UUID gone = UUID.randomUUID(); // no such post: its events are read and dropped
+        TestApi.User second = api.register("statssecond");
+        TestApi.User third = api.register("statsthird");
         send(
                 viewer,
                 event("IMPRESSION", post),
-                event("IMPRESSION", post),
-                event("IMPRESSION", post),
-                event("VIEW_START", post),
                 event("VIEW_START", post),
                 progress(post, 0.25),
                 progress(post, 0.5),
@@ -99,15 +100,16 @@ class RollupsIT extends IntegrationTest {
                 event("LIKE", post),
                 event("COMMENT", post),
                 event("SHARE", post),
-                event("HIDE", post),
                 event("PROFILE_TAP", post),
                 event("IMPRESSION", gone),
                 event("LIKE", gone));
+        send(second, event("IMPRESSION", post), event("VIEW_START", post), event("HIDE", post));
+        send(third, event("IMPRESSION", post));
 
         rollUpPostStats();
 
         Record stats = stats(post);
-        assertThat(stats.get("impressions", Long.class)).isEqualTo(3);
+        assertThat(stats.get("impressions", Long.class)).isEqualTo(3); // three people
         assertThat(stats.get("views", Long.class)).isEqualTo(2);
         assertThat(stats.get("completes", Long.class)).isEqualTo(1);
         assertThat(stats.get("likes", Long.class)).isEqualTo(1);
@@ -116,10 +118,7 @@ class RollupsIT extends IntegrationTest {
         assertThat(stats.get("hides", Long.class)).isEqualTo(1);
         // Three progress marks and the completion: one whole clip watched.
         assertThat(stats.get("watch_fraction_sum", Double.class)).isEqualTo(1.0);
-        Record hour = dsl.fetchSingle(
-                "select sum(impressions) as impressions, sum(engagements) as engagements"
-                        + " from signals.post_stats_hourly where post_id = ?",
-                post);
+        Record hour = hourly(post);
         assertThat(hour.get("impressions", Long.class)).isEqualTo(3);
         assertThat(hour.get("engagements", Long.class)).isEqualTo(4); // like + comment + share + complete
         assertThat(dsl.fetchCount(dsl.selectFrom("signals.post_stats").where("post_id = ?", gone)))
@@ -131,12 +130,105 @@ class RollupsIT extends IntegrationTest {
         assertThat(stats(post).get("impressions", Long.class)).isEqualTo(3);
         assertThat(stats(post).get("likes", Long.class)).isEqualTo(1);
 
-        // New events are added to what is there; more unlikes than likes never go below zero.
-        send(viewer, event("IMPRESSION", post), event("UNLIKE", post), event("UNLIKE", post));
+        // A new person adds to what is there.
+        send(api.register("statsfourth"), event("IMPRESSION", post));
         rollUpPostStats();
         assertThat(stats(post).get("impressions", Long.class)).isEqualTo(4);
-        assertThat(stats(post).get("likes", Long.class)).isZero();
         assertThat(stats(post).get("comments", Long.class)).isEqualTo(1);
+    }
+
+    /** The counters count people. One account cannot make a post trend, or bury one. */
+    @Test
+    void oneUserCountsOncePerPostAndKindHoweverManyEventsTheySend() {
+        UUID post = post(author, null);
+        List<Map<String, Object>> flood = new ArrayList<>();
+        for (int i = 0; i < 50; i++) {
+            flood.add(event("SHARE", post));
+            flood.add(event("IMPRESSION", post));
+        }
+        sendAll(viewer, flood);
+        rollUpPostStats();
+        // And again in a later batch: still the same person.
+        sendAll(viewer, flood);
+        send(viewer, progress(post, 0.75), progress(post, 0.75), progress(post, 0.1));
+        rollUpPostStats();
+
+        Record stats = stats(post);
+        assertThat(stats.get("shares", Long.class)).isEqualTo(1);
+        assertThat(stats.get("impressions", Long.class)).isEqualTo(1);
+        assertThat(stats.get("watch_fraction_sum", Double.class)).isEqualTo(0.25); // one mark, once
+        assertThat(hourly(post).get("engagements", Long.class)).isEqualTo(1);
+        assertThat(hourly(post).get("impressions", Long.class)).isEqualTo(1);
+    }
+
+    @Test
+    void aLikeCanBeTakenBackAndGivenAgainWithoutCountingAsNewEngagementTwice() {
+        UUID post = post(author, null);
+
+        send(viewer, event("LIKE", post));
+        rollUpPostStats();
+        assertThat(stats(post).get("likes", Long.class)).isEqualTo(1);
+
+        send(viewer, event("UNLIKE", post), event("UNLIKE", post));
+        rollUpPostStats();
+        assertThat(stats(post).get("likes", Long.class)).isZero();
+
+        send(viewer, event("LIKE", post));
+        rollUpPostStats();
+        assertThat(stats(post).get("likes", Long.class)).isEqualTo(1);
+
+        // Like, unlike, like within one batch: what counts is how it ended.
+        TestApi.User fickle = api.register("statsfickle");
+        send(fickle, event("LIKE", post), event("UNLIKE", post));
+        rollUpPostStats();
+        assertThat(stats(post).get("likes", Long.class)).isEqualTo(1);
+        send(fickle, event("LIKE", post), event("UNLIKE", post), event("LIKE", post));
+        rollUpPostStats();
+        assertThat(stats(post).get("likes", Long.class)).isEqualTo(2);
+
+        // Toggling never looked like fresh engagement: two people liked, two engagements this hour.
+        assertThat(hourly(post).get("engagements", Long.class)).isEqualTo(2);
+    }
+
+    /** Events of one request share a receive time; a batch boundary in the middle of them loses nothing. */
+    @Test
+    void smallBatchesAddUpToTheSameCounters() {
+        UUID post = post(author, null);
+        List<TestApi.User> people = new ArrayList<>();
+        for (int i = 0; i < 4; i++) {
+            people.add(api.register("statsbatch"));
+        }
+        rollUpPostStats(); // start from a clean watermark
+        for (TestApi.User person : people) {
+            send(person, event("IMPRESSION", post), event("VIEW_START", post), event("COMPLETE", post));
+        }
+
+        int batches = 0;
+        while (postStats.rollUpBatch(Duration.ZERO, 5) > 0) {
+            batches++;
+        }
+
+        assertThat(batches).isGreaterThanOrEqualTo(3); // twelve events, five at a time
+        Record stats = stats(post);
+        assertThat(stats.get("impressions", Long.class)).isEqualTo(4);
+        assertThat(stats.get("views", Long.class)).isEqualTo(4);
+        assertThat(stats.get("completes", Long.class)).isEqualTo(4);
+    }
+
+    @Test
+    void hourlyCountersOlderThanTwoWeeksAreRemoved() {
+        UUID post = post(author, null);
+        dsl.execute(
+                "insert into signals.post_stats_hourly (post_id, hour, impressions, engagements)"
+                        + " values (?, date_trunc('hour', now() - interval '15 days'), 1, 1),"
+                        + " (?, date_trunc('hour', now() - interval '13 days'), 1, 1)",
+                post,
+                post);
+
+        assertThat(priorRefresh.forgetOldHours()).isGreaterThanOrEqualTo(1);
+
+        assertThat(dsl.fetchCount(dsl.selectFrom("signals.post_stats_hourly").where("post_id = ?", post)))
+                .isEqualTo(1);
     }
 
     @Test
@@ -235,14 +327,13 @@ class RollupsIT extends IntegrationTest {
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
     private void rollUpPostStats() {
-        while (postStats.rollUpBatch(Instant.now(clock)) > 0) {
+        while (postStats.rollUpBatch(Duration.ZERO) > 0) {
             // until nothing is left
         }
     }
 
     private void rollUpAffinities() {
-        Instant now = Instant.now(clock);
-        while (affinityRollup.rollUpBatch(now, now)) {
+        while (affinityRollup.rollUpBatch(Duration.ZERO, Instant.now(clock))) {
             // until nothing is left
         }
     }
@@ -259,8 +350,11 @@ class RollupsIT extends IntegrationTest {
 
     @SafeVarargs
     private void send(TestApi.User user, Map<String, Object>... batch) {
-        assertThat(api.post("/api/v1/events", Map.of("events", List.of(batch)), user)
-                        .getStatusCode())
+        sendAll(user, List.of(batch));
+    }
+
+    private void sendAll(TestApi.User user, List<Map<String, Object>> batch) {
+        assertThat(api.post("/api/v1/events", Map.of("events", batch), user).getStatusCode())
                 .isEqualTo(HttpStatus.ACCEPTED);
     }
 
@@ -276,6 +370,13 @@ class RollupsIT extends IntegrationTest {
         Map<String, Object> event = event("WATCH_PROGRESS", post);
         event.put("value", fraction);
         return event;
+    }
+
+    private Record hourly(UUID post) {
+        return dsl.fetchSingle(
+                "select coalesce(sum(impressions), 0) as impressions, coalesce(sum(engagements), 0) as engagements"
+                        + " from signals.post_stats_hourly where post_id = ?",
+                post);
     }
 
     private Record stats(UUID post) {

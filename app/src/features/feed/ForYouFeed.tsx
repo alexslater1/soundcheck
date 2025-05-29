@@ -6,6 +6,7 @@ import { getGetHomeFeedQueryKey, getHomeFeed } from '@/api/generated/feed/feed';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { PostPager, type PagerItem } from '@/features/posts/PostPager';
+import { telemetry } from '@/features/telemetry/telemetry';
 
 import { isSessionExpired } from './sessionExpired';
 
@@ -33,7 +34,12 @@ export function ForYouFeed({ refreshToken = 0 }: { refreshToken?: number }) {
     retry: (failures, error) => !isSessionExpired(error) && failures < 1,
   });
 
-  const restart = useCallback(() => client.resetQueries({ queryKey: KEY }), [client]);
+  // What was just seen and liked must reach the server before it ranks again; otherwise the new
+  // session would not know and would lead with the same clips.
+  const restart = useCallback(async () => {
+    await telemetry.flush();
+    await client.resetQueries({ queryKey: KEY });
+  }, [client]);
 
   const expired = isSessionExpired(feed.error);
   useEffect(() => {
