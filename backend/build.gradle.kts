@@ -107,11 +107,16 @@ springBoot {
     buildInfo()
 }
 
-// Reference data shared with the repo's fixtures: the UK cities CSV is packaged as geo/uk-cities.csv.
+// Reference data shared with the rest of the repo: the UK cities CSV is packaged as geo/uk-cities.csv.
 tasks.named<ProcessResources>("processResources") {
     from(layout.projectDirectory.dir("../fixtures/geo")) {
         include("uk-cities.csv")
         into("geo")
+    }
+    // The ranking contract shared with the Python lab: packaged as ranking/feature-schema.json,
+    // ranking/parity-cases.json, so Java reads the same file Python does.
+    from(layout.projectDirectory.dir("../contracts/ranking")) {
+        into("ranking")
     }
 }
 
