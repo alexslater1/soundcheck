@@ -40,7 +40,7 @@ export default function CityStep() {
   }
 
   return (
-    <Screen>
+    <Screen keyboard>
       <Text variant="title">Where do you go to gigs?</Text>
       <Text muted>We only store the city, never your location.</Text>
       <TextInput

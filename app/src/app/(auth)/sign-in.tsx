@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import { ScrollView, StyleSheet } from 'react-native';
 import { z } from 'zod';
 
 import { Screen } from '@/components/ui/Screen';
@@ -6,6 +7,7 @@ import { Text } from '@/components/ui/Text';
 import { AuthForm } from '@/features/auth/AuthForm';
 import { currentPassword, signInEmail } from '@/features/auth/autofill';
 import { useAuthStore } from '@/features/auth/store';
+import { spacing } from '@/theme/tokens';
 
 const schema = z.object({
   email: z.string().email('Enter a valid email'),
@@ -18,30 +20,34 @@ type Values = z.infer<typeof schema>;
 export default function SignInScreen() {
   const signIn = useAuthStore((s) => s.signIn);
   return (
-    <Screen>
-      <Text variant="display">Welcome back</Text>
-      <Text muted>Sign in to see gigs near you and clips from the crowd.</Text>
-      <AuthForm<Values>
-        schema={schema}
-        defaults={{ email: '', password: '' }}
-        fields={[
-          {
-            name: 'email',
-            label: 'Email',
-            props: signInEmail,
-          },
-          {
-            name: 'password',
-            label: 'Password',
-            props: currentPassword,
-          },
-        ]}
-        submitLabel="Sign in"
-        onSubmit={(v) => signIn(v.email, v.password)}
-      />
-      <Link href="/sign-up">
-        <Text muted>New here? Create an account →</Text>
-      </Link>
+    <Screen keyboard>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text variant="display">Welcome back</Text>
+        <Text muted>Sign in to see gigs near you and clips from the crowd.</Text>
+        <AuthForm<Values>
+          schema={schema}
+          defaults={{ email: '', password: '' }}
+          fields={[
+            {
+              name: 'email',
+              label: 'Email',
+              props: signInEmail,
+            },
+            {
+              name: 'password',
+              label: 'Password',
+              props: currentPassword,
+            },
+          ]}
+          submitLabel="Sign in"
+          onSubmit={(v) => signIn(v.email, v.password)}
+        />
+        <Link href="/sign-up">
+          <Text muted>New here? Create an account →</Text>
+        </Link>
+      </ScrollView>
     </Screen>
   );
 }
+
+const styles = StyleSheet.create({ content: { gap: spacing.md, paddingBottom: spacing.xl } });

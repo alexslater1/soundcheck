@@ -25,13 +25,13 @@ export default function EditProfileScreen() {
   const { mutateAsync: updateMe } = useUpdateMe();
   if (!me) {
     return (
-      <Screen>
+      <Screen keyboard>
         <Text muted>Loading…</Text>
       </Screen>
     );
   }
   return (
-    <Screen>
+    <Screen keyboard>
       <AuthForm<Values>
         schema={schema}
         defaults={{ displayName: me.displayName, handle: me.handle, bio: me.bio ?? '' }}

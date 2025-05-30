@@ -16,7 +16,7 @@ export default function AccountScreen() {
   const clear = useAuthStore((s) => s.clear);
   const { mutateAsync: deleteMe } = useDeleteMe();
   return (
-    <Screen>
+    <Screen keyboard>
       <Text variant="title">Delete your account</Text>
       <Text muted>
         Your profile disappears immediately and everything is purged after 7 days. Enter your

@@ -45,7 +45,7 @@ export default function ArtistsStep() {
   }
 
   return (
-    <Screen>
+    <Screen keyboard>
       <Text variant="title">Follow some artists</Text>
       <Text muted>Their gigs and clips will show up first. You can skip this.</Text>
       <TextInput

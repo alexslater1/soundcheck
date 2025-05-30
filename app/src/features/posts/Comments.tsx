@@ -19,43 +19,20 @@ import { newUuid } from '@/features/upload/uuid';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
-/** A post's comments, oldest first, with a box to add one. */
-export function Comments({ postId, postAuthorId }: { postId: string; postAuthorId: string }) {
-  const { colors } = useTheme();
+/** Refreshes a post's comments and its counter after one was added or deleted. */
+function useRefreshComments(postId: string) {
   const client = useQueryClient();
-  const myId = useAuthStore((state) => state.me?.id);
-  const track = useTrack();
-  const comments = useListComments(postId, { limit: 50 });
-  const [body, setBody] = useState('');
-  const [sending, setSending] = useState(false);
-  const [problem, setProblem] = useState<string | null>(null);
-  // One key per thing typed: a retry of the same comment after a lost response is not posted twice.
-  const [key, setKey] = useState(newUuid);
-
-  const refresh = async () => {
+  return async () => {
     await client.invalidateQueries({ queryKey: getListCommentsQueryKey(postId) });
     await client.invalidateQueries({ queryKey: getGetPostQueryKey(postId) });
   };
+}
 
-  const send = async () => {
-    const text = body.trim();
-    if (text === '') {
-      return;
-    }
-    setSending(true);
-    setProblem(null);
-    try {
-      await addComment(postId, { body: text }, { headers: { 'Idempotency-Key': key } });
-      track('COMMENT', postId);
-      setBody('');
-      setKey(newUuid());
-      await refresh();
-    } catch {
-      setProblem('Your comment could not be posted. Try again.');
-    } finally {
-      setSending(false);
-    }
-  };
+/** A post's comments, oldest first. The box to add one is {@link CommentBox}, pinned under the screen. */
+export function CommentList({ postId, postAuthorId }: { postId: string; postAuthorId: string }) {
+  const myId = useAuthStore((state) => state.me?.id);
+  const comments = useListComments(postId, { limit: 50 });
+  const refresh = useRefreshComments(postId);
 
   return (
     <View style={styles.box}>
@@ -88,6 +65,52 @@ export function Comments({ postId, postAuthorId }: { postId: string; postAuthorI
           </View>
         ))
       )}
+    </View>
+  );
+}
+
+/**
+ * The box to add a comment. It sits at the foot of the post screen, outside the scrolling content, so
+ * the keyboard pushes it up instead of covering it; `onSent` lets the screen scroll to the new comment.
+ */
+export function CommentBox({ postId, onSent }: { postId: string; onSent?: () => void }) {
+  const { colors } = useTheme();
+  const track = useTrack();
+  const refresh = useRefreshComments(postId);
+  const [body, setBody] = useState('');
+  const [sending, setSending] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  // One key per thing typed: a retry of the same comment after a lost response is not posted twice.
+  const [key, setKey] = useState(newUuid);
+
+  const send = async () => {
+    const text = body.trim();
+    if (text === '') {
+      return;
+    }
+    setSending(true);
+    setProblem(null);
+    try {
+      await addComment(postId, { body: text }, { headers: { 'Idempotency-Key': key } });
+      track('COMMENT', postId);
+      setBody('');
+      setKey(newUuid());
+      await refresh();
+      onSent?.();
+    } catch {
+      setProblem('Your comment could not be posted. Try again.');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <View style={[styles.composer, { borderTopColor: colors.border }]}>
+      {problem ? (
+        <Text variant="caption" style={{ color: colors.danger }} accessibilityRole="alert">
+          {problem}
+        </Text>
+      ) : null}
       <View style={styles.form}>
         <TextInput
           value={body}
@@ -103,15 +126,14 @@ export function Comments({ postId, postAuthorId }: { postId: string; postAuthorI
           placeholderTextColor={colors.textMuted}
           accessibilityLabel="Add a comment"
           maxLength={500}
-          style={[styles.input, { color: colors.text, borderColor: colors.border }]}
+          multiline
+          style={[
+            styles.input,
+            { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface },
+          ]}
         />
         <Button title="Send" disabled={sending || body.trim() === ''} onPress={() => void send()} />
       </View>
-      {problem ? (
-        <Text variant="caption" style={{ color: colors.danger }} accessibilityRole="alert">
-          {problem}
-        </Text>
-      ) : null}
     </View>
   );
 }
@@ -121,12 +143,19 @@ const styles = StyleSheet.create({
   comment: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   commentText: { flex: 1 },
   bold: { fontWeight: '700' },
-  form: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
+  composer: {
+    gap: spacing.xs,
+    paddingTop: spacing.sm,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  form: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' },
   input: {
     flex: 1,
     minHeight: touchTarget,
+    maxHeight: 120,
     borderWidth: 1,
     borderRadius: radius.md,
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
 });

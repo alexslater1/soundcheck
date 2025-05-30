@@ -87,7 +87,7 @@ export function CreateScreen() {
   const composingEntry = entries.find((entry) => entry.localId === composing && !entry.draft);
 
   return (
-    <Screen>
+    <Screen keyboard>
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="title">Share a clip</Text>
         <Text muted>Up to 60 seconds from a gig. It uploads in the background.</Text>
