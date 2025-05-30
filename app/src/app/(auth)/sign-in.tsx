@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { AuthForm } from '@/features/auth/AuthForm';
+import { currentPassword, signInEmail } from '@/features/auth/autofill';
 import { useAuthStore } from '@/features/auth/store';
 
 const schema = z.object({
@@ -27,12 +28,12 @@ export default function SignInScreen() {
           {
             name: 'email',
             label: 'Email',
-            props: { autoCapitalize: 'none', keyboardType: 'email-address', autoComplete: 'email' },
+            props: signInEmail,
           },
           {
             name: 'password',
             label: 'Password',
-            props: { secureTextEntry: true, autoComplete: 'password' },
+            props: currentPassword,
           },
         ]}
         submitLabel="Sign in"

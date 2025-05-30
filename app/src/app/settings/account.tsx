@@ -4,6 +4,7 @@ import { useDeleteMe } from '@/api/generated/me/me';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { AuthForm } from '@/features/auth/AuthForm';
+import { currentPassword } from '@/features/auth/autofill';
 import { useAuthStore } from '@/features/auth/store';
 
 const schema = z.object({ password: z.string().min(1, 'Enter your password') });
@@ -24,7 +25,7 @@ export default function AccountScreen() {
       <AuthForm<Values>
         schema={schema}
         defaults={{ password: '' }}
-        fields={[{ name: 'password', label: 'Password', props: { secureTextEntry: true } }]}
+        fields={[{ name: 'password', label: 'Password', props: currentPassword }]}
         submitLabel="Delete account"
         onSubmit={async (v) => {
           await deleteMe({ data: { password: v.password } });

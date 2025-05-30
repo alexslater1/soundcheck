@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { AuthForm } from '@/features/auth/AuthForm';
+import { newPassword, notACredential, signUpEmail } from '@/features/auth/autofill';
 import { useAuthStore } from '@/features/auth/store';
 
 /** Mirrors the server rules so most mistakes are caught before a round trip. */
@@ -31,18 +32,18 @@ export default function SignUpScreen() {
           {
             name: 'email',
             label: 'Email',
-            props: { autoCapitalize: 'none', keyboardType: 'email-address', autoComplete: 'email' },
+            props: signUpEmail,
           },
           {
             name: 'handle',
             label: 'Handle',
-            props: { autoCapitalize: 'none', autoCorrect: false },
+            props: { autoCapitalize: 'none', autoCorrect: false, ...notACredential },
           },
-          { name: 'displayName', label: 'Display name' },
+          { name: 'displayName', label: 'Display name', props: notACredential },
           {
             name: 'password',
             label: 'Password',
-            props: { secureTextEntry: true, autoComplete: 'new-password' },
+            props: newPassword,
           },
         ]}
         submitLabel="Create account"

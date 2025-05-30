@@ -8,11 +8,16 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { PostPager } from '@/features/posts/PostPager';
 
-/** Posts by the people you follow, newest first; pages follow the server's cursor. */
-export function FollowingFeed() {
+const KEY = [...getGetFollowingFeedQueryKey(), 'infinite'] as const;
+
+/**
+ * Posts by the people you follow, newest first; pages follow the server's cursor. A new
+ * `refreshToken` (the Home tab pressed again) drops the loaded pages and starts from the top.
+ */
+export function FollowingFeed({ refreshToken = 0 }: { refreshToken?: number }) {
   const client = useQueryClient();
   const feed = useInfiniteQuery({
-    queryKey: [...getGetFollowingFeedQueryKey(), 'infinite'],
+    queryKey: KEY,
     queryFn: ({ pageParam }) => getFollowingFeed({ limit: 10, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
@@ -26,6 +31,12 @@ export function FollowingFeed() {
       void refetch();
     }, [refetch]),
   );
+
+  useEffect(() => {
+    if (refreshToken > 0) {
+      void client.resetQueries({ queryKey: KEY });
+    }
+  }, [refreshToken, client]);
 
   // The server tops a page up past posts the viewer may not see, a bounded number of times; a page can
   // still come back empty with more behind it. Then the next one is fetched, instead of showing

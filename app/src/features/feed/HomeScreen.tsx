@@ -5,6 +5,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { HealthBadge } from '@/features/health/HealthBadge';
+import { useTabReselect } from '@/lib/useTabReselect';
 import { spacing } from '@/theme/tokens';
 
 import { FollowingFeed } from './FollowingFeed';
@@ -14,11 +15,13 @@ type Tab = 'following' | 'forYou';
 
 /**
  * Home: "For You | Following". For You is the ranked feed; pressing it again while it is
- * showing asks for a fresh one (the web has no pull-to-refresh).
+ * showing asks for a fresh one (the web has no pull-to-refresh). Pressing the Home tab while Home is
+ * showing does the same for whichever feed is open: back to the top, fresh content.
  */
 export function HomeScreen() {
   const [tab, setTab] = useState<Tab>('forYou');
   const [refreshToken, setRefreshToken] = useState(0);
+  useTabReselect(() => setRefreshToken((token) => token + 1));
   return (
     <Screen wide>
       <View style={styles.header}>
@@ -43,7 +46,11 @@ export function HomeScreen() {
         />
       </View>
       <View style={styles.feed}>
-        {tab === 'following' ? <FollowingFeed /> : <ForYouFeed refreshToken={refreshToken} />}
+        {tab === 'following' ? (
+          <FollowingFeed refreshToken={refreshToken} />
+        ) : (
+          <ForYouFeed refreshToken={refreshToken} />
+        )}
       </View>
     </Screen>
   );
