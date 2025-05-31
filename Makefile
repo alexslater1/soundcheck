@@ -26,7 +26,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up openapi-check-client down reset stop-daemons status api worker app phone android web test verify lab-check e2e \
+.PHONY: help setup install keys up openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures purge-fixtures seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -76,7 +76,22 @@ define stop_daemons
 	pkill -f '[K]otlinCompileDaemon' || true
 endef
 
-down: ## Stop the local stack (keeps volumes) and the build daemons, then list anything still running
+# LocalStack's free edition forgets the bucket when it stops, while the database keeps the posts: copy the
+# bucket into the media-snapshot volume first (ops/localstack/init/ready.d/20-restore-media.sh puts it back).
+# Only when LocalStack is running; a failed copy is reported but does not stop the shutdown.
+define save_media
+	if [ -n "$$($(COMPOSE) ps -q --status running localstack 2>/dev/null)" ]; then \
+	  echo "Saving the clips (s3://soundcheck-media → media-snapshot volume)…"; \
+	  $(COMPOSE) exec -T localstack sh -c 'awslocal s3 sync s3://soundcheck-media /snapshot/soundcheck-media --delete --only-show-errors && echo "  $$(find /snapshot/soundcheck-media -type f | wc -l) objects saved"' \
+	    || echo "  could not save the clips; they will be missing after the next make up"; \
+	fi
+endef
+
+media-snapshot: ## Copy the clips out of LocalStack now (make down does this too)
+	$(save_media)
+
+down: ## Stop the local stack (keeps volumes and a copy of the clips) and the build daemons, then list anything still running
+	$(save_media)
 	$(COMPOSE) --profile full down --remove-orphans
 	$(stop_daemons)
 	$(CURDIR)/ops/scripts/local-status.sh --leftovers

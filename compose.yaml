@@ -42,6 +42,9 @@ services:
     volumes:
       - ./ops/localstack/init/ready.d:/etc/localstack/init/ready.d:ro
       - localstack-data:/var/lib/localstack
+      # LocalStack's free edition keeps nothing between runs, while the database keeps the posts:
+      # `make down` copies the bucket here and the ready hook copies it back (20-restore-media.sh).
+      - media-snapshot:/snapshot
     healthcheck:
       # The init hook creates the bucket and queues; "ready" means every stage has run.
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/init/ready | grep -q '\"completed\": true'"]
@@ -142,3 +145,4 @@ services:
 volumes:
   db-data:
   localstack-data:
+  media-snapshot:
