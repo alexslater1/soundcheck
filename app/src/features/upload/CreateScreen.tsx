@@ -1,5 +1,5 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
@@ -15,7 +15,13 @@ import { chooseUpload } from './compressDecision';
 import { pickFromLibrary, recordWithCamera, type PickResult } from './pickVideo';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
-import { removeUpload, resumeProcessing, startUpload, submitPost } from './uploadRunner';
+import {
+  pruneFinished,
+  removeUpload,
+  resumeProcessing,
+  startUpload,
+  submitPost,
+} from './uploadRunner';
 import { problemWith } from './validate';
 
 /**
@@ -39,6 +45,15 @@ export function CreateScreen() {
       resumeProcessing(ownerId);
     }
   }, [ownerId]);
+  // Each time the tab is opened, uploads that are now playable posts leave the list: the profile is
+  // where they live (and where they are deleted from).
+  useFocusEffect(
+    useCallback(() => {
+      if (ownerId) {
+        pruneFinished(ownerId);
+      }
+    }, [ownerId]),
+  );
 
   if (!ownerId) {
     return null;

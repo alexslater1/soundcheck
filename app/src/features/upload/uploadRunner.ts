@@ -1,6 +1,7 @@
 import { completeUpload, createUpload, getMedia } from '@/api/generated/media/media';
 import type { CompleteRequest, CompleteResponse } from '@/api/generated/model';
-import { createPost } from '@/api/generated/posts/posts';
+import { createPost, deletePost } from '@/api/generated/posts/posts';
+import { ApiError } from '@/api/http';
 
 import { discardFile } from './compress';
 import { transport } from './transport';
@@ -101,13 +102,59 @@ function discardWhenDone(localId: string): void {
   }
 }
 
-/** Removes an upload from the list, and its temporary file with it. */
-export function removeUpload(localId: string): void {
+/** Drops an entry from the queue, and its temporary file with it. */
+function forget(localId: string): void {
   const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
   if (entry?.temporary) {
     discardFile(entry.fileUri);
   }
   useUploadQueue.getState().remove(localId);
+}
+
+/**
+ * Removes an upload from the list. An upload that has become a post is the post's clip: removing it
+ * deletes the post as well (the screen asks first), so the Create list and the profile never disagree.
+ * A post that is already gone (404) counts as deleted. Rejects, leaving the entry, when the server
+ * could not be reached.
+ */
+export async function removeUpload(localId: string): Promise<void> {
+  const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  if (entry?.postId) {
+    try {
+      await deletePost(entry.postId);
+    } catch (error) {
+      if (!(error instanceof ApiError && error.status === 404)) {
+        throw error;
+      }
+    }
+  }
+  forget(localId);
+}
+
+/** A post was deleted elsewhere (its own screen, the profile): its upload leaves the Create list. */
+export function forgetPost(postId: string): void {
+  for (const entry of useUploadQueue.getState().entries) {
+    if (entry.postId === postId) {
+      forget(entry.localId);
+    }
+  }
+}
+
+/**
+ * Whether an upload is finished business: its post exists and the clip is playable, so the post on
+ * the profile is the place to see it. Such entries leave the Create list (`pruneFinished`).
+ */
+export function isFinished(entry: UploadEntry): boolean {
+  return entry.postId !== null && entry.state === 'READY';
+}
+
+/** Drops the finished uploads of one account; returns how many went. */
+export function pruneFinished(ownerId: string): number {
+  const done = useUploadQueue
+    .getState()
+    .entries.filter((entry) => entry.ownerId === ownerId && isFinished(entry));
+  done.forEach((entry) => forget(entry.localId));
+  return done.length;
 }
 
 /**

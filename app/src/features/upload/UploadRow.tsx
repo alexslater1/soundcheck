@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
@@ -12,7 +13,8 @@ import type { UploadEntry } from './types';
 type Props = {
   entry: UploadEntry;
   onRetry: () => void;
-  onRemove: () => void;
+  /** Removes the upload, and its post if it has one; rejects when that could not be done. */
+  onRemove: () => Promise<void>;
   /** Sends the post request again (it failed although the server has the clip). */
   onPostAgain: () => void;
   /** Opens the compose form for this upload; absent while the form is already open for it. */
@@ -22,6 +24,14 @@ type Props = {
 /** One upload in the list: what it is, where it is, and what can be done about it. */
 export function UploadRow({ entry, onRetry, onRemove, onPostAgain, onWritePost }: Props) {
   const { colors } = useTheme();
+  // Removing an upload that is already a post deletes the post too: ask first.
+  const [confirming, setConfirming] = useState(false);
+  const [removeProblem, setRemoveProblem] = useState<string | null>(null);
+  const remove = () => {
+    setConfirming(false);
+    setRemoveProblem(null);
+    onRemove().catch(() => setRemoveProblem('Could not delete the post. Try again.'));
+  };
   const inFlight =
     entry.state === 'QUEUED' ||
     entry.state === 'REQUESTING' ||
@@ -107,8 +117,28 @@ export function UploadRow({ entry, onRetry, onRemove, onPostAgain, onWritePost }
         {canWrite && onWritePost ? (
           <Button title="Write post" variant="secondary" onPress={onWritePost} />
         ) : null}
-        {!inFlight ? <Button title="Remove" variant="secondary" onPress={onRemove} /> : null}
+        {!inFlight && !confirming ? (
+          <Button
+            title="Remove"
+            variant="secondary"
+            onPress={() => (entry.postId ? setConfirming(true) : remove())}
+          />
+        ) : null}
       </View>
+      {confirming ? (
+        <View style={styles.confirm} testID={`upload-${entry.localId}-confirm`}>
+          <Text variant="caption">This clip is a post. Removing it deletes the post too.</Text>
+          <View style={styles.actions}>
+            <Button title="Delete post" variant="danger" onPress={remove} />
+            <Button title="Keep it" variant="secondary" onPress={() => setConfirming(false)} />
+          </View>
+        </View>
+      ) : null}
+      {removeProblem ? (
+        <Text variant="caption" style={{ color: colors.danger }} accessibilityRole="alert">
+          {removeProblem}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -118,4 +148,5 @@ const styles = StyleSheet.create({
   track: { height: 6, borderRadius: radius.pill, overflow: 'hidden' },
   bar: { height: 6 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.xs },
+  confirm: { gap: spacing.xs, marginTop: spacing.xs },
 });

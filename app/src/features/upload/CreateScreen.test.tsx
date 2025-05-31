@@ -15,7 +15,8 @@ const mockCompress = jest.fn();
 const mockDiscard = jest.fn();
 const mockSubmit = jest.fn(async (_localId: string, _draft: unknown) => undefined);
 const mockPush = jest.fn();
-const mockRemove = jest.fn((localId: string) => useUploadQueue.getState().remove(localId));
+const mockRemove = jest.fn(async (localId: string) => useUploadQueue.getState().remove(localId));
+const mockPrune = jest.fn();
 
 jest.mock('./pickVideo', () => ({
   pickFromLibrary: () => mockPick(),
@@ -25,6 +26,7 @@ jest.mock('./uploadRunner', () => ({
   startUpload: (localId: string) => mockStartUpload(localId),
   resumeProcessing: (ownerId: string) => mockResume(ownerId),
   removeUpload: (localId: string) => mockRemove(localId),
+  pruneFinished: (ownerId: string) => mockPrune(ownerId),
   submitPost: (localId: string, draft: unknown) => mockSubmit(localId, draft),
 }));
 // The compose form has its own test; here it is a button that posts a fixed draft.
@@ -50,6 +52,7 @@ jest.mock('expo-router', () => {
     Link: ({ children }: { children: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
     useRouter: () => ({ push: mockPush }),
+    useFocusEffect: (effect: () => void) => React.useEffect(effect, [effect]),
   };
 });
 

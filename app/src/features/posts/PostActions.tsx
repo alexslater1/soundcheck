@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
+import { forgetPost } from '@/features/upload/uploadRunner';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
@@ -46,6 +47,9 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
   const ink = onDark ? LIGHT : colors.text;
   const column = layout === 'column';
 
+  // Deleting a post also takes its upload off the Create list.
+  const remove = () => deletePost(post.id).then(() => forgetPost(post.id));
+
   const act = async (work: () => Promise<unknown>, done: string, gone: boolean) => {
     setMenuOpen(false);
     try {
@@ -72,7 +76,7 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
         <Button
           title="Delete post"
           variant="danger"
-          onPress={() => void act(() => deletePost(post.id), 'Post deleted', true)}
+          onPress={() => void act(remove, 'Post deleted', true)}
         />
       ) : (
         <>
@@ -186,7 +190,7 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
         <Button
           title="Delete post"
           variant="danger"
-          onPress={() => void act(() => deletePost(post.id), 'Post deleted', true)}
+          onPress={() => void act(remove, 'Post deleted', true)}
         />
       </View>
     ) : null;

@@ -1,6 +1,13 @@
 import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
-import { removeUpload, resumeProcessing, startUpload, submitPost } from './uploadRunner';
+import {
+  forgetPost,
+  pruneFinished,
+  removeUpload,
+  resumeProcessing,
+  startUpload,
+  submitPost,
+} from './uploadRunner';
 
 const mockCreateUpload = jest.fn();
 const mockCompleteUpload = jest.fn();
@@ -8,6 +15,7 @@ const mockGetMedia = jest.fn();
 const mockPutWhole = jest.fn();
 const mockDiscard = jest.fn();
 const mockCreatePost = jest.fn();
+const mockDeletePost = jest.fn();
 
 jest.mock('@/api/generated/media/media', () => ({
   createUpload: (...args: unknown[]) => mockCreateUpload(...args),
@@ -20,6 +28,7 @@ jest.mock('./transport', () => ({
 jest.mock('./compress', () => ({ discardFile: (uri: string) => mockDiscard(uri) }));
 jest.mock('@/api/generated/posts/posts', () => ({
   createPost: (...args: unknown[]) => mockCreatePost(...args),
+  deletePost: (...args: unknown[]) => mockDeletePost(...args),
 }));
 
 const video: PickedVideo = {
@@ -169,16 +178,16 @@ describe('upload runner', () => {
       .enqueue('user-1', { ...video, uri: 'file:///DCIM/original.mp4' }, { platform: 'android' });
 
     await startUpload(id);
-    removeUpload(id);
+    await removeUpload(id);
 
     expect(mockDiscard).not.toHaveBeenCalled();
     expect(useUploadQueue.getState().entries).toHaveLength(0);
   });
 
-  it('removing an unfinished upload deletes its temporary file too', () => {
+  it('removing an unfinished upload deletes its temporary file too', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' }, true);
 
-    removeUpload(id);
+    await removeUpload(id);
 
     expect(mockDiscard).toHaveBeenCalledWith('file:///cache/compressed.mp4');
     expect(useUploadQueue.getState().entries).toHaveLength(0);
@@ -190,5 +199,62 @@ describe('upload runner', () => {
     await Promise.all([startUpload(id), startUpload(id)]);
 
     expect(mockCreateUpload).toHaveBeenCalledTimes(1);
+  });
+
+  describe('keeping the Create list and the profile in step', () => {
+    const posted = (postId: string, state: 'PROCESSING' | 'READY') => {
+      const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+      useUploadQueue.getState().patch(id, { postId, state, mediaId: `m-${postId}` });
+      return id;
+    };
+
+    it('removing an upload that became a post deletes the post', async () => {
+      mockDeletePost.mockResolvedValue(undefined);
+      const id = posted('p1', 'PROCESSING');
+
+      await removeUpload(id);
+
+      expect(mockDeletePost).toHaveBeenCalledWith('p1');
+      expect(useUploadQueue.getState().entries).toHaveLength(0);
+    });
+
+    it('a post already gone is fine; an unreachable server keeps the entry', async () => {
+      const { ApiError } = jest.requireActual<typeof import('@/api/http')>('@/api/http');
+      const gone = posted('p2', 'READY');
+      mockDeletePost.mockRejectedValueOnce(new ApiError(404, 'POST_NOT_FOUND', 'gone'));
+      await removeUpload(gone);
+      expect(useUploadQueue.getState().entries).toHaveLength(0);
+
+      const kept = posted('p3', 'READY');
+      mockDeletePost.mockRejectedValueOnce(new TypeError('Network request failed'));
+      await expect(removeUpload(kept)).rejects.toThrow('Network request failed');
+      expect(useUploadQueue.getState().entries).toHaveLength(1);
+    });
+
+    it('deleting a post elsewhere removes its upload', () => {
+      posted('p4', 'READY');
+      const other = posted('p5', 'READY');
+
+      forgetPost('p4');
+
+      expect(useUploadQueue.getState().entries.map((e) => e.localId)).toEqual([other]);
+      expect(mockDeletePost).not.toHaveBeenCalled();
+    });
+
+    it('drops uploads whose post is up and playable, and keeps the rest', () => {
+      posted('p6', 'READY');
+      const processing = posted('p7', 'PROCESSING');
+      const unposted = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+      useUploadQueue.getState().patch(unposted, { state: 'READY' });
+
+      expect(pruneFinished('user-1')).toBe(1);
+
+      expect(
+        useUploadQueue
+          .getState()
+          .entries.map((e) => e.localId)
+          .sort(),
+      ).toEqual([processing, unposted].sort());
+    });
   });
 });
