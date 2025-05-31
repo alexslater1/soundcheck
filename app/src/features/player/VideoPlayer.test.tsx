@@ -158,19 +158,35 @@ describe('VideoPlayer (native)', () => {
     expect(onProgress).toHaveBeenCalledWith({ positionMs: 3250, durationMs: 12_500 });
   });
 
-  it('shows an error with a retry when the player fails, and reloads the source on retry', async () => {
-    await renderPlayer();
-    const player = mockPlayers[0]!;
+  it('retries a failed clip once by itself with a new player, then offers Try again', async () => {
+    jest.useFakeTimers();
+    try {
+      await renderPlayer();
+      const first = mockPlayers[0]!;
 
-    await act(async () => player.listeners.statusChange?.({ status: 'error' }));
-    expect(screen.getByTestId('player-error')).toBeTruthy();
+      // First failure: no error shown; a moment later a fresh player is built (the old one may have
+      // been released, and a released player cannot be handed to the native view again).
+      await act(async () => first.listeners.statusChange?.({ status: 'error' }));
+      expect(screen.queryByTestId('player-error')).toBeNull();
+      await act(async () => {
+        jest.advanceTimersByTime(1500);
+      });
+      expect(mockPlayers).toHaveLength(2);
+      expect(first.replaceAsync).not.toHaveBeenCalled();
 
-    await fireEvent.press(screen.getByText('Try again'));
+      // Second failure: the viewer is told, and Try again builds another new player.
+      await act(async () => mockPlayers[1]!.listeners.statusChange?.({ status: 'error' }));
+      expect(screen.getByTestId('player-error')).toBeTruthy();
+      await fireEvent.press(screen.getByText('Try again'));
 
-    expect(player.replaceAsync).toHaveBeenCalledWith({
-      uri: 'http://localhost:8088/media/abc/v1/master.m3u8',
-      contentType: 'hls',
-    });
-    expect(screen.queryByTestId('player-error')).toBeNull();
+      expect(mockPlayers).toHaveLength(3);
+      expect(mockPlayers[2]!.source).toEqual({
+        uri: 'http://localhost:8088/media/abc/v1/master.m3u8',
+        contentType: 'hls',
+      });
+      expect(screen.queryByTestId('player-error')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 });

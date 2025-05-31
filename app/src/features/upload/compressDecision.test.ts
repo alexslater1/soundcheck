@@ -1,4 +1,10 @@
-import { chooseUpload } from './compressDecision';
+import {
+  chooseUpload,
+  CLIENT_MAX_LONG_EDGE,
+  CLIENT_TARGET_BITRATE,
+  compressionPlan,
+  sourceBitrate,
+} from './compressDecision';
 import type { PickedVideo } from './types';
 
 const original: PickedVideo = {
@@ -57,5 +63,46 @@ describe('chooseUpload', () => {
       temporary: false,
       discard: null,
     });
+  });
+});
+
+describe('compressionPlan', () => {
+  const video = (
+    bytes: number,
+    durationMs: number | null,
+    width: number | null,
+    height: number | null,
+  ) => ({
+    ...original,
+    bytes,
+    durationMs,
+    width,
+    height,
+  });
+
+  it('compresses a typical phone recording to 1080p at 8 Mbit/s', () => {
+    // 20 s of 1080p30 from a Pixel: about 17 Mbit/s.
+    expect(compressionPlan(video(42_500_000, 20_000, 1920, 1080))).toEqual({
+      maxSize: CLIENT_MAX_LONG_EDGE,
+      bitrate: CLIENT_TARGET_BITRATE,
+    });
+  });
+
+  it('compresses 4K even at a modest bitrate (the frame is bigger than the server ever uses)', () => {
+    expect(compressionPlan(video(20_000_000, 20_000, 3840, 2160))).not.toBeNull();
+  });
+
+  it('leaves an already efficient 1080p clip alone', () => {
+    // 20 s at 6 Mbit/s: re-encoding would lose quality and save almost nothing.
+    expect(compressionPlan(video(15_000_000, 20_000, 1080, 1920))).toBeNull();
+  });
+
+  it('compresses when the duration is unknown (the safe side for the data plan)', () => {
+    expect(compressionPlan(video(15_000_000, null, 1080, 1920))).not.toBeNull();
+  });
+
+  it('works the bitrate out from size and duration', () => {
+    expect(sourceBitrate(video(10_000_000, 10_000, null, null))).toBe(8_000_000);
+    expect(sourceBitrate(video(10_000_000, 0, null, null))).toBeNull();
   });
 });

@@ -3,6 +3,47 @@ import type { ClientMeta, PickedVideo } from './types';
 export type Compressed = { uri: string; bytes: number; elapsedMs: number };
 
 /**
+ * Client compression settings (fixed, not an "auto bitrate"). The server makes its own renditions
+ * (top rung 720p at 3 Mbit/s), so the phone's job is only to stop a 4K or 50 Mbit/s original from
+ * crossing mobile data, without throwing away detail the server would have used. 1080p at 8 Mbit/s
+ * keeps that detail (the server still downscales from a sharp source); "auto" mode picked a
+ * WhatsApp-like ~1–2 Mbit/s at 720p, and the second encode on the server made it visibly blocky.
+ */
+export const CLIENT_MAX_LONG_EDGE = 1920;
+export const CLIENT_TARGET_BITRATE = 8_000_000;
+/** A source this close to the target is not worth a lossy re-encode. */
+const NOT_WORTH_IT = 1.25;
+
+export type CompressionPlan = { maxSize: number; bitrate: number };
+
+/** Bits per second of a picked video, or null when its duration is unknown. */
+export function sourceBitrate(video: PickedVideo): number | null {
+  if (!video.durationMs || video.durationMs <= 0) {
+    return null;
+  }
+  return (video.bytes * 8) / (video.durationMs / 1000);
+}
+
+/**
+ * Whether and how to compress before uploading. Null means upload the original: it is already no
+ * bigger than 1080p at about the target bitrate, so re-encoding would cost quality and battery and
+ * save little. Unknown sizes or durations are compressed (the safe side for the user's data plan).
+ */
+export function compressionPlan(video: PickedVideo): CompressionPlan | null {
+  const bitrate = sourceBitrate(video);
+  const longEdge =
+    video.width && video.height ? Math.max(video.width, video.height) : Number.POSITIVE_INFINITY;
+  if (
+    bitrate !== null &&
+    bitrate <= CLIENT_TARGET_BITRATE * NOT_WORTH_IT &&
+    longEdge <= CLIENT_MAX_LONG_EDGE
+  ) {
+    return null;
+  }
+  return { maxSize: CLIENT_MAX_LONG_EDGE, bitrate: CLIENT_TARGET_BITRATE };
+}
+
+/**
  * Which file to upload after compressing, and what to report about it: the compressed one, unless
  * compression made the file bigger (already-efficient sources do that), in which case the original
  * goes up. The sizes and the time are recorded either way: they are the data behind the "how much

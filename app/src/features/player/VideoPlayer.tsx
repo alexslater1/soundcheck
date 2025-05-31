@@ -28,7 +28,48 @@ export function VideoPlayer(props: VideoPlayerProps) {
       />
     );
   }
-  return <LivePlayer {...props} />;
+  return <RecoveringPlayer {...props} />;
+}
+
+/** How long to wait before the one automatic retry of a clip that failed to play. */
+const AUTO_RETRY_MS = 1500;
+
+/**
+ * A live player that recovers by starting over: a retry mounts a new `LivePlayer`, so expo-video builds
+ * a new native player. Reusing the old one is what can fail with "Cannot set prop 'player' on view
+ * SurfaceVideoView": once a player has been released (a dev reload, or a network error that tore it
+ * down), the native view cannot take it again. The first failure is retried by itself once; after
+ * that the viewer gets the "could not be played" note with a Retry button.
+ */
+function RecoveringPlayer(props: VideoPlayerProps) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [autoRetried, setAutoRetried] = useState(false);
+
+  useEffect(() => {
+    if (!failed || autoRetried) {
+      return;
+    }
+    const timer = setTimeout(() => {
+      setAutoRetried(true);
+      setFailed(false);
+      setAttempt((n) => n + 1);
+    }, AUTO_RETRY_MS);
+    return () => clearTimeout(timer);
+  }, [failed, autoRetried]);
+
+  return (
+    <LivePlayer
+      key={attempt}
+      {...props}
+      failed={failed && autoRetried}
+      onFailed={() => setFailed(true)}
+      onRetry={() => {
+        setFailed(false);
+        setAttempt((n) => n + 1);
+      }}
+    />
+  );
 }
 
 /**
@@ -50,10 +91,12 @@ function LivePlayer({
   soundAtTop,
   onProgress,
   testID,
-}: VideoPlayerProps) {
+  failed,
+  onFailed,
+  onRetry,
+}: VideoPlayerProps & { failed: boolean; onFailed: () => void; onRetry: () => void }) {
   const muted = usePlayerPrefs((state) => state.muted);
   const [firstFrame, setFirstFrame] = useState(false);
-  const [failed, setFailed] = useState(false);
 
   const player = useVideoPlayer({ uri: hlsUrl, contentType: 'hls' }, (created) => {
     created.loop = loop;
@@ -80,7 +123,9 @@ function LivePlayer({
     });
   });
   useEventListener(player, 'statusChange', ({ status }) => {
-    setFailed(status === 'error');
+    if (status === 'error') {
+      onFailed();
+    }
   });
 
   return (
@@ -92,14 +137,7 @@ function LivePlayer({
       showSound
       soundAtTop={soundAtTop}
       failed={failed}
-      onRetry={() => {
-        setFailed(false);
-        void player.replaceAsync({ uri: hlsUrl, contentType: 'hls' }).then(() => {
-          if (active) {
-            player.play();
-          }
-        });
-      }}
+      onRetry={onRetry}
       testID={testID}
     >
       <VideoView

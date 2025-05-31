@@ -64,7 +64,11 @@ function LivePlayer({
       return;
     }
     if (Hls.isSupported()) {
-      const hls = new Hls({ capLevelToPlayerSize: true });
+      // hls.js assumes 500 kbit/s until it has measured a segment, so a clip opened with the default
+      // starts on the 360p rung, and a 10-second clip is mostly over before it climbs. Assume a
+      // normal broadband/4G speed instead: it starts on the best rung that fits the player and still
+      // steps down after the first segment if the connection is slower.
+      const hls = new Hls({ capLevelToPlayerSize: true, abrEwmaDefaultEstimate: 4_000_000 });
       let recovered = false;
       hls.on(Hls.Events.ERROR, (_event, data) => {
         if (!data.fatal) {
