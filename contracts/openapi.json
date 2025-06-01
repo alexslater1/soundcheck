@@ -37,6 +37,10 @@
             "format" : "date",
             "type" : "string"
           },
+          "foundOn" : {
+            "$ref" : "#/components/schemas/FoundOnRequest",
+            "type" : "null"
+          },
           "newVenue" : {
             "$ref" : "#/components/schemas/NewVenueRequest",
             "type" : "null"
@@ -493,6 +497,31 @@
         "required" : [ "position", "post", "reasons" ],
         "type" : "object"
       },
+      "FoundOnRequest" : {
+        "properties" : {
+          "artistMbid" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "externalId" : {
+            "maxLength" : 64,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "source" : {
+            "enum" : [ "SETLISTFM" ],
+            "minLength" : 1,
+            "type" : "string"
+          },
+          "url" : {
+            "maxLength" : 300,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "externalId", "source" ],
+        "type" : "object"
+      },
       "GenreChoice" : {
         "properties" : {
           "genreId" : {
@@ -830,7 +859,20 @@
         "properties" : {
           "cityId" : {
             "format" : "int32",
-            "type" : "integer"
+            "type" : [ "integer", "null" ]
+          },
+          "cityName" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "lat" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "lng" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
           },
           "name" : {
             "maxLength" : 120,
@@ -838,7 +880,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "cityId", "name" ],
+        "required" : [ "name" ],
         "type" : "object"
       },
       "NotificationView" : {
@@ -982,6 +1024,72 @@
           }
         },
         "required" : [ "partNumber", "url" ],
+        "type" : "object"
+      },
+      "PastGig" : {
+        "properties" : {
+          "artistMbid" : {
+            "type" : [ "string", "null" ]
+          },
+          "artistName" : {
+            "type" : "string"
+          },
+          "cityName" : {
+            "type" : [ "string", "null" ]
+          },
+          "countryCode" : {
+            "type" : [ "string", "null" ]
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "lat" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "lng" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "setlistId" : {
+            "type" : "string"
+          },
+          "tour" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          },
+          "venueName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "artistName", "date", "setlistId", "venueName" ],
+        "type" : "object"
+      },
+      "PastGigPage" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PastGig"
+            },
+            "type" : "array"
+          },
+          "itemsPerPage" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "page" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "total" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "items", "itemsPerPage", "page", "total" ],
         "type" : "object"
       },
       "Playback" : {
@@ -2804,6 +2912,56 @@
         "tags" : [ "notifications" ]
       }
     },
+    "/api/v1/past-gigs" : {
+      "get" : {
+        "operationId" : "searchPastGigs",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "artist",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "year",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 2100,
+            "minimum" : 1950,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "page",
+          "required" : false,
+          "schema" : {
+            "default" : 1,
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PastGigPage"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "An artist's past UK concerts on setlist.fm, newest first (20 a page). 503 PAST_GIGS_UNAVAILABLE when no setlist.fm key is configured",
+        "tags" : [ "past-gigs" ]
+      }
+    },
     "/api/v1/posts" : {
       "post" : {
         "operationId" : "createPost",
@@ -3533,6 +3691,9 @@
   }, {
     "description" : "Service health",
     "name" : "health"
+  }, {
+    "description" : "Past concerts from setlist.fm, looked up live and not stored",
+    "name" : "past-gigs"
   }, {
     "description" : "Follows",
     "name" : "social"

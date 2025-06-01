@@ -14,6 +14,7 @@ import app.soundcheck.catalog.internal.CatalogService.VenueHit;
 import app.soundcheck.catalog.internal.UserSubmissionService;
 import app.soundcheck.catalog.internal.UserSubmissionService.AddGig;
 import app.soundcheck.catalog.internal.UserSubmissionService.Added;
+import app.soundcheck.catalog.internal.UserSubmissionService.FoundOn;
 import app.soundcheck.catalog.internal.UserSubmissionService.NewVenue;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
@@ -151,10 +152,21 @@ public class CatalogController {
                         body.newVenue() == null
                                 ? null
                                 : new NewVenue(
-                                        body.newVenue().name(), body.newVenue().cityId()),
+                                        body.newVenue().name(),
+                                        body.newVenue().cityId(),
+                                        body.newVenue().cityName(),
+                                        body.newVenue().lat(),
+                                        body.newVenue().lng()),
                         body.date(),
                         body.time(),
-                        body.title()));
+                        body.title(),
+                        body.foundOn() == null
+                                ? null
+                                : new FoundOn(
+                                        body.foundOn().source(),
+                                        body.foundOn().externalId(),
+                                        body.foundOn().url(),
+                                        body.foundOn().artistMbid())));
         return ResponseEntity.status(added.created() ? HttpStatus.CREATED : HttpStatus.OK)
                 .body(added);
     }
@@ -284,9 +296,23 @@ public class CatalogController {
             @Valid @Schema(nullable = true) NewVenueRequest newVenue,
             @NotNull LocalDate date,
             @Schema(type = "string", format = "time", example = "19:30", nullable = true) LocalTime time,
-            @Size(max = 200) @Schema(nullable = true, description = "Defaults to the headliner's name") String title) {}
+            @Size(max = 200) @Schema(nullable = true, description = "Defaults to the headliner's name") String title,
+            @Valid @Schema(nullable = true) FoundOnRequest foundOn) {}
 
-    public record NewVenueRequest(@NotBlank @Size(max = 120) String name, int cityId) {}
+    /** A new venue: a reference city ({@code cityId}), or a city name with coordinates (from setlist.fm). */
+    public record NewVenueRequest(
+            @NotBlank @Size(max = 120) String name,
+            @Schema(nullable = true) Integer cityId,
+            @Size(max = 120) @Schema(nullable = true) String cityName,
+            @Schema(nullable = true) Double lat,
+            @Schema(nullable = true) Double lng) {}
+
+    /** Where the fan found the gig: today only {@code SETLISTFM}. */
+    public record FoundOnRequest(
+            @NotBlank @Schema(allowableValues = {"SETLISTFM"}) String source,
+            @NotBlank @Size(max = 64) String externalId,
+            @Size(max = 300) @Schema(nullable = true) String url,
+            @Schema(nullable = true) UUID artistMbid) {}
 
     public record AddArtistRequest(@NotBlank @Size(max = 120) String name) {}
 

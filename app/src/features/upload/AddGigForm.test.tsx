@@ -23,6 +23,8 @@ jest.mock('@/api/generated/reference/reference', () => ({
   }),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+// The setlist.fm search has its own test.
+jest.mock('./PastGigSearch', () => ({ PastGigSearch: () => null }));
 
 async function renderForm() {
   const onAdded = jest.fn();

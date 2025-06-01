@@ -54,6 +54,7 @@ export function GigDetailScreen({ id }: { id: string }) {
   const price = formatPrice(gig.priceMin, gig.priceMax, gig.currency);
   const distance = formatDistance(gig.distanceKm);
   const ticketUrl = isWebUrl(gig.ticketUrl) ? gig.ticketUrl : null;
+  const setlist = data.sources.find((source) => source.source === 'SETLISTFM');
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.gap}>
@@ -95,6 +96,18 @@ export function GigDetailScreen({ id }: { id: string }) {
             accessibilityRole="link"
             onPress={() => void openWebLink(ticketUrl)}
           />
+        ) : null}
+
+        {setlist?.url && isWebUrl(setlist.url) ? (
+          // setlist.fm's terms: link back wherever its data is used.
+          <Text
+            accessibilityRole="link"
+            style={{ color: colors.accent }}
+            onPress={() => void openWebLink(setlist.url as string)}
+            testID="gig-setlist-link"
+          >
+            Setlist on setlist.fm →
+          </Text>
         ) : null}
 
         <Text variant="label" muted style={styles.heading}>

@@ -5,9 +5,20 @@
  * Gig discovery and concert clips.
  * OpenAPI spec version: v1
  */
+import type { NewVenueRequestCityId } from './newVenueRequestCityId';
+import type { NewVenueRequestCityName } from './newVenueRequestCityName';
+import type { NewVenueRequestLat } from './newVenueRequestLat';
+import type { NewVenueRequestLng } from './newVenueRequestLng';
 
 export interface NewVenueRequest {
-  cityId: number;
+  cityId?: NewVenueRequestCityId;
+  /**
+   * @minLength 0
+   * @maxLength 120
+   */
+  cityName?: NewVenueRequestCityName;
+  lat?: NewVenueRequestLat;
+  lng?: NewVenueRequestLng;
   /**
    * @minLength 0
    * @maxLength 120

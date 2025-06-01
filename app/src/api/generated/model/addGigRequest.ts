@@ -7,6 +7,7 @@
  */
 import type { AddGigRequestArtistIds } from './addGigRequestArtistIds';
 import type { AddGigRequestArtistNames } from './addGigRequestArtistNames';
+import type { FoundOnRequest } from './foundOnRequest';
 import type { NewVenueRequest } from './newVenueRequest';
 import type { AddGigRequestTime } from './addGigRequestTime';
 import type { AddGigRequestTitle } from './addGigRequestTitle';
@@ -24,6 +25,7 @@ export interface AddGigRequest {
    */
   artistNames?: AddGigRequestArtistNames;
   date: string;
+  foundOn?: FoundOnRequest;
   newVenue?: NewVenueRequest;
   time?: AddGigRequestTime;
   /**

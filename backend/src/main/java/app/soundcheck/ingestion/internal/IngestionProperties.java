@@ -25,7 +25,8 @@ public record IngestionProperties(
         @DefaultValue Ticketmaster ticketmaster,
         @DefaultValue Lastfm lastfm,
         @DefaultValue MusicBrainz musicbrainz,
-        @DefaultValue Enrichment enrichment) {
+        @DefaultValue Enrichment enrichment,
+        @DefaultValue Setlistfm setlistfm) {
 
     public boolean live() {
         return "live".equalsIgnoreCase(mode);
@@ -35,6 +36,24 @@ public record IngestionProperties(
             @DefaultValue("https://ws.audioscrobbler.com") String baseUrl,
             @DefaultValue("") String apiKey,
             @DefaultValue("4") int requestsPerSecond) {}
+
+    /**
+     * setlist.fm: looked up live when a fan adds a past gig, never ingested. The free key
+     * allows 2 requests a second and 1,440 a day; results may only be cached for short periods.
+     */
+    public record Setlistfm(
+            @DefaultValue("https://api.setlist.fm") String baseUrl,
+            @DefaultValue("") String apiKey,
+            @DefaultValue("2") int requestsPerSecond,
+            @DefaultValue("1400") int dailyBudget,
+            @DefaultValue("1h") Duration cacheFor,
+            /** Lookups per user per hour. */
+            @DefaultValue("30") int perUserPerHour) {
+
+        public boolean configured() {
+            return !apiKey.isBlank();
+        }
+    }
 
     public record MusicBrainz(
             @DefaultValue("https://musicbrainz.org") String baseUrl,

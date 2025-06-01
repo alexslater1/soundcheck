@@ -62,8 +62,23 @@ public class UserSubmissionService {
 
     static final double TITLE_SIMILARITY = 0.5;
 
-    /** A venue that is not in the catalog yet: its name and the city it is in. */
-    public record NewVenue(String name, int cityId) {}
+    /**
+     * A venue that is not in the catalog yet: its name and where it is, either a city from the
+     * reference list ({@code cityId}) or a place given by name and coordinates (from setlist.fm).
+     */
+    public record NewVenue(
+            String name,
+            @Nullable Integer cityId,
+            @Nullable String cityName,
+            @Nullable Double lat,
+            @Nullable Double lng) {}
+
+    /**
+     * Where the fan found the gig, when not typed in by hand: setlist.fm's id and page for it,
+     * kept as the gig's listing so the page can link back (setlist.fm's terms), and the act's
+     * MusicBrainz id.
+     */
+    public record FoundOn(String source, String externalId, @Nullable String url, @Nullable UUID artistMbid) {}
 
     /**
      * {@code POST /gigs}. Acts are existing ids and/or names (a name the catalog does not know adds the
@@ -76,7 +91,23 @@ public class UserSubmissionService {
             @Nullable NewVenue newVenue,
             LocalDate date,
             @Nullable LocalTime time,
-            @Nullable String title) {}
+            @Nullable String title,
+            @Nullable FoundOn foundOn) {
+
+        public AddGig(
+                @Nullable List<UUID> artistIds,
+                @Nullable List<String> artistNames,
+                @Nullable UUID venueId,
+                @Nullable NewVenue newVenue,
+                LocalDate date,
+                @Nullable LocalTime time,
+                @Nullable String title) {
+            this(artistIds, artistNames, venueId, newVenue, date, time, title, null);
+        }
+    }
+
+    /** Listing sources a fan may cite; anything else is refused. */
+    static final java.util.Set<String> FOUND_ON = java.util.Set.of("SETLISTFM");
 
     /** What an add returned: the item, and whether it was created now or already existed. */
     public record Added<T>(T item, @Schema(description = "False when an existing one matched") boolean created) {}
@@ -125,6 +156,22 @@ public class UserSubmissionService {
         if (title != null && (title.isEmpty() || title.length() > MAX_TITLE)) {
             throw ApiException.badRequest("GIG_TITLE_INVALID", "A title has 1 to " + MAX_TITLE + " characters");
         }
+        FoundOn found = request.foundOn();
+        if (found != null) {
+            if (!FOUND_ON.contains(found.source())
+                    || found.externalId().isBlank()
+                    || found.externalId().length() > 64) {
+                throw ApiException.badRequest("FOUND_ON_INVALID", "Unknown listing source " + found.source());
+            }
+            if (found.url() != null && !found.url().startsWith("https://www.setlist.fm/")) {
+                throw ApiException.badRequest("FOUND_ON_INVALID", "A setlist.fm link must point at www.setlist.fm");
+            }
+            // The same setlist added before (by anyone): that gig.
+            var known = catalog.gigBySource(found.source(), found.externalId());
+            if (known.isPresent()) {
+                return attendAndReturn(userId, known.get().id(), request.date(), today, false);
+            }
+        }
         List<UUID> acts = actsOf(userId, request);
         UUID venueId = venueOf(userId, request);
         Instant startsAt = request.date()
@@ -160,8 +207,17 @@ public class UserSubmissionService {
         } else {
             gigId = sameNight.getFirst().id();
         }
-        // Whoever adds a gig was (or will be) there: it goes on their calendar.
-        String status = request.date().isAfter(today) ? "GOING" : "WENT";
+        if (found != null) {
+            // Not primary: the fan's listing owns the fields; this one is the link back to setlist.fm.
+            catalog.linkGig(found.source(), found.externalId(), gigId, found.url(), Instant.now(clock), false);
+        }
+        return attendAndReturn(userId, gigId, request.date(), today, created);
+    }
+
+    /** Whoever adds a gig was (or will be) there: it goes on their calendar. */
+    private Added<GigSummary> attendAndReturn(
+            UUID userId, UUID gigId, LocalDate date, LocalDate today, boolean created) {
+        String status = date.isAfter(today) ? "GOING" : "WENT";
         if (!reads.attendance(userId, List.of(gigId)).containsKey(gigId)) {
             reads.setAttendance(userId, gigId, status, Instant.now(clock));
         }
@@ -181,8 +237,14 @@ public class UserSubmissionService {
                 acts.add(id);
             }
         }
-        for (String name : request.artistNames() == null ? List.<String>of() : request.artistNames()) {
-            acts.add(artistNamed(userId, name).item());
+        List<String> names = request.artistNames() == null ? List.of() : request.artistNames();
+        UUID mbid = request.foundOn() == null ? null : request.foundOn().artistMbid();
+        for (String name : names) {
+            // A MusicBrainz id from setlist.fm identifies the act exactly (only meaningful for one name).
+            acts.add(
+                    names.size() == 1 && mbid != null
+                            ? artistWithMbid(userId, name, mbid)
+                            : artistNamed(userId, name).item());
         }
         if (acts.isEmpty()) {
             throw ApiException.badRequest("GIG_NEEDS_AN_ACT", "Name at least one act");
@@ -205,19 +267,53 @@ public class UserSubmissionService {
         }
         NewVenue venue = request.newVenue();
         String name = cleanName(venue.name(), "VENUE_NAME_INVALID");
-        City city = reference
-                .city(venue.cityId())
-                .orElseThrow(() -> ApiException.badRequest("CITY_UNKNOWN", "Unknown city " + venue.cityId()));
+        String cityName;
+        double lat;
+        double lng;
+        if (venue.cityId() != null) {
+            City city = reference
+                    .city(venue.cityId())
+                    .orElseThrow(() -> ApiException.badRequest("CITY_UNKNOWN", "Unknown city " + venue.cityId()));
+            cityName = city.name();
+            lat = city.lat();
+            lng = city.lng();
+        } else if (venue.lat() != null && venue.lng() != null && venue.cityName() != null) {
+            if (Math.abs(venue.lat()) > 90 || Math.abs(venue.lng()) > 180) {
+                throw ApiException.badRequest("VENUE_LOCATION_INVALID", "Coordinates out of range");
+            }
+            cityName = cleanName(venue.cityName(), "VENUE_CITY_INVALID");
+            lat = venue.lat();
+            lng = venue.lng();
+        } else {
+            throw ApiException.badRequest(
+                    "VENUE_PLACE_REQUIRED", "A new venue needs a cityId, or a cityName with lat and lng");
+        }
         // Another fan (or Ticketmaster) may have it already: a similar name near the city is the same venue.
-        return catalog.venueNear(city.lat(), city.lng(), VENUE_RADIUS_M, name, VENUE_SIMILARITY, SOURCE)
+        return catalog.venueNear(lat, lng, VENUE_RADIUS_M, name, VENUE_SIMILARITY, SOURCE)
                 .orElseGet(() -> {
                     // Located at the city's centre: close enough for "near me" lists until a source supplies
                     // the real coordinates (completeVenue never overwrites, so that is a known limit).
-                    UUID id = catalog.createVenue(
-                            new VenueDraft(name, null, city.name(), null, city.lat(), city.lng(), UK.getId()));
+                    UUID id = catalog.createVenue(new VenueDraft(name, null, cityName, null, lat, lng, UK.getId()));
                     submissions.markVenueAddedBy(id, userId);
                     return id;
                 });
+    }
+
+    private UUID artistWithMbid(UUID userId, String rawName, UUID mbid) {
+        var byMbid = catalog.artistByMbid(mbid);
+        if (byMbid.isPresent()) {
+            return byMbid.get();
+        }
+        String name = cleanName(rawName, "ARTIST_NAME_INVALID");
+        var byName = catalog.artistByName(name, mbid);
+        if (byName.isPresent()) {
+            catalog.completeArtist(byName.get(), mbid, null);
+            return byName.get();
+        }
+        rateLimiter.enforce("user-artists:" + userId, ARTISTS_PER_DAY, Duration.ofDays(1));
+        UUID id = catalog.createArtist(new ArtistDraft(name, mbid, null, Map.of()));
+        submissions.markArtistAddedBy(id, userId);
+        return id;
     }
 
     private Added<UUID> artistNamed(UUID userId, String rawName) {

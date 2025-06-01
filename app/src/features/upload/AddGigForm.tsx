@@ -18,6 +18,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
 import { addAct, parseTime, type ActChoice } from './gigPicker';
+import { PastGigSearch } from './PastGigSearch';
 
 type VenueChoice =
   | { kind: 'known'; id: string; name: string; city: string | null }
@@ -105,6 +106,10 @@ export function AddGigForm({
       <Text style={styles.heading}>Add the gig</Text>
       <Text variant="caption" muted>
         For gigs no ticket site lists: pub shows, small rooms, last month&apos;s gig.
+      </Text>
+      <PastGigSearch initialArtist={initialAct} onAdded={onAdded} />
+      <Text variant="label" muted>
+        OR ADD IT BY HAND
       </Text>
 
       <Text variant="label" muted>

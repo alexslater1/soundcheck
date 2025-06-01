@@ -254,6 +254,15 @@ export const addGigBodyArtistNamesItemMax = 120;
 export const addGigBodyArtistNamesMin = 0;
 
 export const addGigBodyArtistNamesMax = 10;
+export const addGigBodyFoundOnExternalIdMin = 0;
+
+export const addGigBodyFoundOnExternalIdMax = 64;
+export const addGigBodyFoundOnUrlMin = 0;
+
+export const addGigBodyFoundOnUrlMax = 300;
+export const addGigBodyNewVenueCityNameMin = 0;
+
+export const addGigBodyNewVenueCityNameMax = 120;
 export const addGigBodyNewVenueNameMin = 0;
 
 export const addGigBodyNewVenueNameMax = 120;
@@ -266,8 +275,17 @@ export const addGigBody = zod.object({
   "artistIds": zod.array(zod.string().uuid()).min(addGigBodyArtistIdsMin).max(addGigBodyArtistIdsMax).nullish(),
   "artistNames": zod.array(zod.string().min(addGigBodyArtistNamesItemMin).max(addGigBodyArtistNamesItemMax)).min(addGigBodyArtistNamesMin).max(addGigBodyArtistNamesMax).nullish(),
   "date": zod.string().date(),
+  "foundOn": zod.object({
+  "artistMbid": zod.string().uuid().nullish(),
+  "externalId": zod.string().min(addGigBodyFoundOnExternalIdMin).max(addGigBodyFoundOnExternalIdMax),
+  "source": zod.enum(['SETLISTFM']),
+  "url": zod.string().min(addGigBodyFoundOnUrlMin).max(addGigBodyFoundOnUrlMax).nullish()
+}).optional(),
   "newVenue": zod.object({
-  "cityId": zod.number(),
+  "cityId": zod.number().nullish(),
+  "cityName": zod.string().min(addGigBodyNewVenueCityNameMin).max(addGigBodyNewVenueCityNameMax).nullish(),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish(),
   "name": zod.string().min(addGigBodyNewVenueNameMin).max(addGigBodyNewVenueNameMax)
 }).optional(),
   "time": zod.string().nullish(),

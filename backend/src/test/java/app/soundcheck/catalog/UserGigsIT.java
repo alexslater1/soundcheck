@@ -99,6 +99,64 @@ class UserGigsIT extends IntegrationTest {
     }
 
     @Test
+    void aGigPickedFromSetlistFmKeepsOnlyTheSetlistsIdAndLinkAndIsFoundAgainByIt() {
+        LocalDate day = LocalDate.now(UK).minusMonths(14);
+        String setlistId = "sl" + tag;
+        String url = "https://www.setlist.fm/setlist/x/2025/y-" + setlistId + ".html";
+        Map<String, Object> body = new HashMap<>();
+        body.put("artistNames", List.of("Setlist Act " + tag));
+        body.put("newVenue", Map.of("name", "Old Hall " + tag, "cityName", "Leeds", "lat", 53.7997, "lng", -1.5492));
+        body.put("date", day.toString());
+        body.put(
+                "foundOn",
+                Map.of(
+                        "source",
+                        "SETLISTFM",
+                        "externalId",
+                        setlistId,
+                        "url",
+                        url,
+                        "artistMbid",
+                        "5b11f4ce-a62d-471e-81fc-a69a8278c7da"));
+
+        ResponseEntity<JsonNode> first = api.post("/api/v1/gigs", body, fan);
+        assertThat(first.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        JsonNode gig = first.getBody().path("item");
+        assertThat(gig.path("venue").path("city").asText("")).isEqualTo("Leeds");
+        assertThat(gig.path("venue").path("location").path("lat").asDouble()).isEqualTo(53.7997);
+
+        // The gig page links back to setlist.fm (its terms), next to the fan's own listing.
+        JsonNode detail = ok(api.get("/api/v1/gigs/" + gig.path("id").asText(""), fan));
+        List<String> sources = new ArrayList<>();
+        detail.path("sources")
+                .forEach(src -> sources.add(
+                        src.path("source").asText("") + " " + src.path("url").asText("")));
+        assertThat(sources).contains("SETLISTFM " + url);
+
+        // Another fan picks the same setlist (even with another spelling of the venue): the same gig.
+        TestApi.User other = api.register("other");
+        body.put(
+                "newVenue",
+                Map.of("name", "The Old Hall Leeds " + tag, "cityName", "Leeds", "lat", 53.8, "lng", -1.55));
+        ResponseEntity<JsonNode> second = api.post("/api/v1/gigs", body, other);
+        assertThat(second.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(second.getBody().path("item").path("id").asText(""))
+                .isEqualTo(gig.path("id").asText(""));
+        assertThat(second.getBody().path("item").path("myAttendance").asText(""))
+                .isEqualTo("WENT");
+
+        // Only setlist.fm, only links into www.setlist.fm.
+        Map<String, Object> bad = new HashMap<>(body);
+        bad.put("foundOn", Map.of("source", "DICE", "externalId", "x"));
+        assertThat(code(api.post("/api/v1/gigs", bad, fan))).isEqualTo("FOUND_ON_INVALID");
+        bad.put("foundOn", Map.of("source", "SETLISTFM", "externalId", "y" + tag, "url", "https://evil.example/x"));
+        assertThat(code(api.post("/api/v1/gigs", bad, fan))).isEqualTo("FOUND_ON_INVALID");
+        bad.put("foundOn", null);
+        bad.put("newVenue", Map.of("name", "Nowhere " + tag));
+        assertThat(code(api.post("/api/v1/gigs", bad, fan))).isEqualTo("VENUE_PLACE_REQUIRED");
+    }
+
+    @Test
     void addingAnActReturnsTheKnownOneOrCreatesIt() {
         ResponseEntity<JsonNode> created = api.post("/api/v1/artists", Map.of("name", "  Lantern   Club " + tag), fan);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
