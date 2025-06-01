@@ -19,6 +19,7 @@ const gig = (id: string, title: string, support: string[] = []): GigSummary =>
       genres: [],
       isFollowing: false,
     })),
+    userAdded: false,
   }) as GigSummary;
 
 const mockAttended = jest.fn();

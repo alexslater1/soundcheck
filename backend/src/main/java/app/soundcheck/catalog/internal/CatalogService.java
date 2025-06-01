@@ -17,7 +17,9 @@ import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
@@ -45,7 +47,15 @@ public class CatalogService {
     static final int SEARCH_PER_TYPE = 5;
     static final int ARTIST_UPCOMING_GIGS = 5;
 
-    /** {@code GET /gigs} parameters after validation. */
+    /** The longest window {@code GET /gigs/days} counts over (a little more than three months). */
+    static final long MAX_CALENDAR_DAYS = 100;
+
+    static final int VENUE_SEARCH_LIMIT = 10;
+
+    /**
+     * {@code GET /gigs} parameters after validation. {@code nationwide} drops the radius (a search for a
+     * gig the user filmed in another city); distances are still measured from the origin.
+     */
     public record GigQuery(
             @Nullable Double lat,
             @Nullable Double lng,
@@ -54,8 +64,18 @@ public class CatalogService {
             @Nullable Instant to,
             @Nullable String genre,
             @Nullable String q,
+            @Nullable UUID artistId,
+            @Nullable UUID venueId,
+            boolean nationwide,
             @Nullable String cursor,
             @Nullable Integer limit) {}
+
+    /** {@code GET /gigs/days}: one UK calendar day with at least one matching gig. */
+    public record GigDay(LocalDate date, int count) {}
+
+    /** {@code GET /venues}: a venue found by name. */
+    public record VenueHit(
+            UUID id, String name, @Schema(nullable = true) String city, @Schema(nullable = true) GeoPoint location) {}
 
     public record AttendanceCounts(long interested, long going, long went) {}
 
@@ -120,12 +140,42 @@ public class CatalogService {
      * the viewer's home city when they are omitted; with neither, the list is UK-wide and has no distances.
      */
     public Page<GigSummary> gigs(UUID viewer, GigQuery query) {
+        GeoPoint origin = originOf(viewer, query);
+        return page(viewer, filterFor(query, origin, Instant.now(clock), null), origin);
+    }
+
+    /**
+     * {@code GET /gigs/days}: for the calendar, how many gigs match the same filters as {@code GET /gigs}
+     * on each UK day of a window of at most {@value #MAX_CALENDAR_DAYS} days. Unlike the list, the window
+     * may start in the past (the calendar shows earlier days of the month too).
+     */
+    public List<GigDay> gigDays(UUID viewer, GigQuery query) {
+        if (query.from() == null || query.to() == null) {
+            throw ApiException.badRequest("WINDOW_REQUIRED", "from and to are required");
+        }
+        if (!query.to().isAfter(query.from())
+                || Duration.between(query.from(), query.to()).toDays() > MAX_CALENDAR_DAYS) {
+            throw ApiException.badRequest(
+                    "WINDOW_INVALID", "to must be after from, at most " + MAX_CALENDAR_DAYS + " days later");
+        }
+        GeoPoint origin = originOf(viewer, query);
+        return repository.dayCounts(filterFor(query, origin, query.from(), 0)).stream()
+                .map(day -> new GigDay(day.date(), day.count()))
+                .toList();
+    }
+
+    private GeoPoint originOf(UUID viewer, GigQuery query) {
         if ((query.lat() == null) != (query.lng() == null)) {
             throw ApiException.badRequest("LOCATION_INCOMPLETE", "Send both lat and lng, or neither");
         }
-        GeoPoint origin = query.lat() != null
+        return query.lat() != null
                 ? new GeoPoint(query.lat(), query.lng())
                 : viewerHome.homeOf(viewer).orElse(null);
+    }
+
+    /** The repository filter for a {@code GET /gigs}-style query; {@code limit} null means the request's. */
+    private GigFilter filterFor(
+            GigQuery query, @Nullable GeoPoint origin, Instant defaultFrom, @Nullable Integer limit) {
         int radius = query.radiusKm() == null ? DEFAULT_RADIUS_KM : query.radiusKm();
         Set<Short> genreIds = null;
         if (query.genre() != null && !query.genre().isBlank()) {
@@ -137,28 +187,25 @@ public class CatalogService {
         Instant from;
         Instant to;
         try {
-            from = query.from() == null ? Instant.now(clock) : Cursor.storable(query.from());
+            from = query.from() == null ? defaultFrom : Cursor.storable(query.from());
             to = query.to() == null ? null : Cursor.storable(query.to());
         } catch (IllegalArgumentException e) {
             throw ApiException.badRequest("DATE_OUT_OF_RANGE", "from and to must be between 1900 and 2200");
         }
-        return page(
-                viewer,
-                new GigFilter(
-                        origin,
-                        origin == null ? null : radius,
-                        from,
-                        to,
-                        genreIds,
-                        query.q(),
-                        null,
-                        null,
-                        null,
-                        null,
-                        false,
-                        Cursor.decode(query.cursor()),
-                        Cursor.limit(query.limit())),
-                origin);
+        return new GigFilter(
+                origin,
+                origin == null || query.nationwide() ? null : radius,
+                from,
+                to,
+                genreIds,
+                query.q(),
+                query.artistId(),
+                query.venueId(),
+                null,
+                null,
+                false,
+                limit == null ? Cursor.decode(query.cursor()) : null,
+                limit == null ? Cursor.limit(query.limit()) : limit);
     }
 
     public GigDetail gig(UUID viewer, UUID gigId) {
@@ -195,11 +242,16 @@ public class CatalogService {
         repository.clearAttendance(viewer, gigId);
     }
 
-    /** The viewer's gigs: upcoming soonest-first, or past most-recent-first. */
+    /**
+     * The viewer's gigs: upcoming soonest-first, or past most-recent-first. With {@code from} / {@code to}
+     * (the Me tab's calendar) the window replaces {@code when} and the order is by start time.
+     */
     public Page<GigSummary> myGigs(
             UUID viewer,
             @Nullable String status,
             @Nullable String when,
+            @Nullable Instant windowFrom,
+            @Nullable Instant windowTo,
             @Nullable String cursor,
             @Nullable Integer limit) {
         if (status != null && !ATTENDANCE.contains(status)) {
@@ -211,13 +263,17 @@ public class CatalogService {
         }
         Instant now = Instant.now(clock);
         GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+        boolean window = windowFrom != null || windowTo != null;
+        if (window) {
+            past = false;
+        }
         return page(
                 viewer,
                 new GigFilter(
                         origin,
                         null,
-                        past ? null : now,
-                        past ? now : null,
+                        window ? windowFrom : past ? null : now,
+                        window ? windowTo : past ? now : null,
                         null,
                         null,
                         null,
@@ -290,6 +346,18 @@ public class CatalogService {
                 v.postcode(),
                 v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng()),
                 v.timezone());
+    }
+
+    /** {@code GET /venues?q=}: venues by name, the ones near the viewer's home first. */
+    public List<VenueHit> searchVenues(UUID viewer, String q) {
+        GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+        return repository.searchVenues(q, origin, VENUE_SEARCH_LIMIT).stream()
+                .map(v -> new VenueHit(
+                        v.id(),
+                        v.name(),
+                        v.city(),
+                        v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng())))
+                .toList();
     }
 
     public Page<GigSummary> venueGigs(UUID viewer, UUID venueId, @Nullable String cursor, @Nullable Integer limit) {
@@ -443,7 +511,8 @@ public class CatalogService {
                     row.priceMax(),
                     row.currency(),
                     attendance.get(row.id()),
-                    row.distanceKm()));
+                    row.distanceKm(),
+                    row.userAdded()));
         }
         return summaries;
     }

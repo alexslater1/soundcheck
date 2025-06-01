@@ -9,6 +9,7 @@ import java.util.UUID;
 /**
  * A gig in a list. {@code distanceKm} is present when the request had an origin (explicit
  * coordinates or the viewer's home city); {@code myAttendance} when the viewer has marked the gig.
+ * {@code userAdded} marks a gig a user added because no source listed it.
  */
 public record GigSummary(
         UUID id,
@@ -27,4 +28,5 @@ public record GigSummary(
                         nullable = true,
                         allowableValues = {"INTERESTED", "GOING", "WENT"})
                 String myAttendance,
-        @Schema(nullable = true) Double distanceKm) {}
+        @Schema(nullable = true) Double distanceKm,
+        @Schema(description = "Added by a fan, not from a ticketing source") boolean userAdded) {}

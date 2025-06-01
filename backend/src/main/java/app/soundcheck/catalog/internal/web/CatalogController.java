@@ -5,10 +5,16 @@ import app.soundcheck.catalog.GigSummary;
 import app.soundcheck.catalog.internal.CatalogService;
 import app.soundcheck.catalog.internal.CatalogService.ArtistDetail;
 import app.soundcheck.catalog.internal.CatalogService.Attendance;
+import app.soundcheck.catalog.internal.CatalogService.GigDay;
 import app.soundcheck.catalog.internal.CatalogService.GigDetail;
 import app.soundcheck.catalog.internal.CatalogService.GigQuery;
 import app.soundcheck.catalog.internal.CatalogService.SearchResults;
 import app.soundcheck.catalog.internal.CatalogService.VenueDetail;
+import app.soundcheck.catalog.internal.CatalogService.VenueHit;
+import app.soundcheck.catalog.internal.UserSubmissionService;
+import app.soundcheck.catalog.internal.UserSubmissionService.AddGig;
+import app.soundcheck.catalog.internal.UserSubmissionService.Added;
+import app.soundcheck.catalog.internal.UserSubmissionService.NewVenue;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -20,13 +26,18 @@ import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -34,6 +45,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -50,9 +62,11 @@ public class CatalogController {
     static final Set<String> SEARCH_TYPES = Set.of("artists", "gigs");
 
     private final CatalogService catalog;
+    private final UserSubmissionService submissions;
 
-    public CatalogController(CatalogService catalog) {
+    public CatalogController(CatalogService catalog, UserSubmissionService submissions) {
         this.catalog = catalog;
+        this.submissions = submissions;
     }
 
     // ── gigs ────────────────────────────────────────────────────────────────
@@ -70,9 +84,60 @@ public class CatalogController {
             @RequestParam(required = false) Instant to,
             @RequestParam(required = false) @Size(max = 40) String genre,
             @RequestParam(required = false) @Size(max = 80) String q,
+            @RequestParam(required = false) UUID artistId,
+            @RequestParam(required = false) UUID venueId,
+            @RequestParam(required = false, defaultValue = "false") boolean nationwide,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        return catalog.gigs(userId(jwt), new GigQuery(lat, lng, radiusKm, from, to, genre, q, cursor, limit));
+        return catalog.gigs(
+                userId(jwt),
+                new GigQuery(lat, lng, radiusKm, from, to, genre, q, artistId, venueId, nationwide, cursor, limit));
+    }
+
+    @GetMapping("/gigs/days")
+    @Operation(
+            operationId = "listGigDays",
+            summary = "For a calendar: how many gigs match the GET /gigs filters on each UK day of a window "
+                    + "(from and to required, at most 100 days)")
+    public List<GigDay> gigDays(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") Double lat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") Double lng,
+            @RequestParam(required = false) @Min(1) @Max(CatalogService.MAX_RADIUS_KM) Integer radiusKm,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(required = false) @Size(max = 40) String genre,
+            @RequestParam(required = false) @Size(max = 80) String q,
+            @RequestParam(required = false) UUID artistId,
+            @RequestParam(required = false) UUID venueId,
+            @RequestParam(required = false, defaultValue = "false") boolean nationwide) {
+        return catalog.gigDays(
+                userId(jwt),
+                new GigQuery(lat, lng, radiusKm, from, to, genre, q, artistId, venueId, nationwide, null, null));
+    }
+
+    @PostMapping("/gigs")
+    @Operation(
+            operationId = "addGig",
+            summary = "Add a gig no source lists: 201 when created, 200 when one at that venue that "
+                    + "night already matches. The caller is marked GOING (future) or WENT (past).")
+    public ResponseEntity<Added<GigSummary>> addGig(
+            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AddGigRequest body) {
+        Added<GigSummary> added = submissions.addGig(
+                userId(jwt),
+                new AddGig(
+                        body.artistIds(),
+                        body.artistNames(),
+                        body.venueId(),
+                        body.newVenue() == null
+                                ? null
+                                : new NewVenue(
+                                        body.newVenue().name(), body.newVenue().cityId()),
+                        body.date(),
+                        body.time(),
+                        body.title()));
+        return ResponseEntity.status(added.created() ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(added);
     }
 
     @GetMapping("/gigs/{id}")
@@ -101,9 +166,11 @@ public class CatalogController {
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String when,
+            @RequestParam(required = false) Instant from,
+            @RequestParam(required = false) Instant to,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
-        return catalog.myGigs(userId(jwt), status, when, cursor, limit);
+        return catalog.myGigs(userId(jwt), status, when, from, to, cursor, limit);
     }
 
     // ── artists ─────────────────────────────────────────────────────────────
@@ -116,6 +183,17 @@ public class CatalogController {
             @RequestParam(required = false) Boolean popular,
             @RequestParam(required = false) Integer limit) {
         return catalog.artists(userId(jwt), q, limit);
+    }
+
+    @PostMapping("/artists")
+    @Operation(
+            operationId = "addArtist",
+            summary = "The act with this name: 200 when the catalog knows it, 201 when it was added")
+    public ResponseEntity<Added<ArtistSummary>> addArtist(
+            @AuthenticationPrincipal Jwt jwt, @Valid @RequestBody AddArtistRequest body) {
+        Added<ArtistSummary> added = submissions.addArtist(userId(jwt), body.name());
+        return ResponseEntity.status(added.created() ? HttpStatus.CREATED : HttpStatus.OK)
+                .body(added);
     }
 
     @GetMapping("/artists/{id}")
@@ -135,6 +213,12 @@ public class CatalogController {
     }
 
     // ── venues ──────────────────────────────────────────────────────────────
+
+    @GetMapping("/venues")
+    @Operation(operationId = "searchVenues", summary = "Venues by name (at most 10), the ones near home first")
+    public List<VenueHit> venues(@AuthenticationPrincipal Jwt jwt, @RequestParam @NotBlank @Size(max = 80) String q) {
+        return catalog.searchVenues(userId(jwt), q);
+    }
 
     @GetMapping("/venues/{id}")
     @Operation(operationId = "getVenue", summary = "Venue detail")
@@ -172,6 +256,19 @@ public class CatalogController {
         }
         return catalog.search(userId(jwt), q, wanted);
     }
+
+    public record AddGigRequest(
+            @Size(max = 10) List<UUID> artistIds,
+            @Size(max = 10) List<@NotBlank @Size(max = 120) String> artistNames,
+            UUID venueId,
+            @Valid NewVenueRequest newVenue,
+            @NotNull LocalDate date,
+            @Schema(type = "string", format = "time", example = "19:30", nullable = true) LocalTime time,
+            @Size(max = 200) String title) {}
+
+    public record NewVenueRequest(@NotBlank @Size(max = 120) String name, int cityId) {}
+
+    public record AddArtistRequest(@NotBlank @Size(max = 120) String name) {}
 
     public record AttendanceRequest(
             @NotBlank @Schema(allowableValues = {"INTERESTED", "GOING", "WENT"}) String status) {}

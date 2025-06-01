@@ -9,6 +9,8 @@
 export type ListMyGigsParams = {
 status?: string;
 when?: string;
+from?: string;
+to?: string;
 cursor?: string;
 limit?: number;
 };

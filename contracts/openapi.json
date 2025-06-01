@@ -1,6 +1,89 @@
 {
   "components" : {
     "schemas" : {
+      "AddArtistRequest" : {
+        "properties" : {
+          "name" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "name" ],
+        "type" : "object"
+      },
+      "AddGigRequest" : {
+        "properties" : {
+          "artistIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "artistNames" : {
+            "items" : {
+              "maxLength" : 120,
+              "minLength" : 0,
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "newVenue" : {
+            "$ref" : "#/components/schemas/NewVenueRequest"
+          },
+          "time" : {
+            "example" : "19:30",
+            "format" : "time",
+            "type" : [ "string", "null" ]
+          },
+          "title" : {
+            "maxLength" : 200,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "venueId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "artistIds", "artistNames", "date", "newVenue", "title", "venueId" ],
+        "type" : "object"
+      },
+      "AddedArtistSummary" : {
+        "properties" : {
+          "created" : {
+            "description" : "False when an existing one matched",
+            "type" : "boolean"
+          },
+          "item" : {
+            "$ref" : "#/components/schemas/ArtistSummary"
+          }
+        },
+        "required" : [ "created", "item" ],
+        "type" : "object"
+      },
+      "AddedGigSummary" : {
+        "properties" : {
+          "created" : {
+            "description" : "False when an existing one matched",
+            "type" : "boolean"
+          },
+          "item" : {
+            "$ref" : "#/components/schemas/GigSummary"
+          }
+        },
+        "required" : [ "created", "item" ],
+        "type" : "object"
+      },
       "ArtistDetail" : {
         "properties" : {
           "artist" : {
@@ -488,6 +571,20 @@
         "required" : [ "lat", "lng" ],
         "type" : "object"
       },
+      "GigDay" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "date" ],
+        "type" : "object"
+      },
       "GigDetail" : {
         "properties" : {
           "attendanceCounts" : {
@@ -565,11 +662,15 @@
           "title" : {
             "type" : "string"
           },
+          "userAdded" : {
+            "description" : "Added by a fan, not from a ticketing source",
+            "type" : "boolean"
+          },
           "venue" : {
             "$ref" : "#/components/schemas/VenueSummary"
           }
         },
-        "required" : [ "headliner", "id", "startsAt", "status", "support", "title", "venue" ],
+        "required" : [ "headliner", "id", "startsAt", "status", "support", "title", "userAdded", "venue" ],
         "type" : "object"
       },
       "HealthResponse" : {
@@ -721,6 +822,21 @@
           }
         },
         "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role" ],
+        "type" : "object"
+      },
+      "NewVenueRequest" : {
+        "properties" : {
+          "cityId" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "cityId", "name" ],
         "type" : "object"
       },
       "NotificationView" : {
@@ -1212,6 +1328,26 @@
         "required" : [ "id", "name", "timezone" ],
         "type" : "object"
       },
+      "VenueHit" : {
+        "properties" : {
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint",
+            "type" : "null"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ],
+        "type" : "object"
+      },
       "VenueSummary" : {
         "properties" : {
           "city" : {
@@ -1282,6 +1418,33 @@
           }
         },
         "summary" : "Search artists by name (?q=) or list popular ones",
+        "tags" : [ "catalog" ]
+      },
+      "post" : {
+        "operationId" : "addArtist",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddArtistRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AddedArtistSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The act with this name: 200 when the catalog knows it, 201 when it was added",
         "tags" : [ "catalog" ]
       }
     },
@@ -1883,6 +2046,30 @@
           }
         }, {
           "in" : "query",
+          "name" : "artistId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "venueId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "nationwide",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
           "name" : "cursor",
           "required" : false,
           "schema" : {
@@ -1910,6 +2097,144 @@
           }
         },
         "summary" : "Upcoming gigs near a point (default: the viewer's home city), ordered by start time",
+        "tags" : [ "catalog" ]
+      },
+      "post" : {
+        "operationId" : "addGig",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddGigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/AddedGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Add a gig no source lists: 201 when created, 200 when one at that venue that night already matches. The caller is marked GOING (future) or WENT (past).",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/gigs/days" : {
+      "get" : {
+        "operationId" : "listGigDays",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "lat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "in" : "query",
+          "name" : "lng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
+          }
+        }, {
+          "in" : "query",
+          "name" : "radiusKm",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 200,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : true,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "genre",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "artistId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "venueId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "nationwide",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GigDay"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "For a calendar: how many gigs match the GET /gigs filters on each UK day of a window (from and to required, at most 100 days)",
         "tags" : [ "catalog" ]
       }
     },
@@ -2173,6 +2498,22 @@
           "name" : "when",
           "required" : false,
           "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
             "type" : "string"
           }
         }, {
@@ -3006,6 +3347,38 @@
         },
         "summary" : "A user's published posts, newest first",
         "tags" : [ "posts" ]
+      }
+    },
+    "/api/v1/venues" : {
+      "get" : {
+        "operationId" : "searchVenues",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/VenueHit"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Venues by name (at most 10), the ones near home first",
+        "tags" : [ "catalog" ]
       }
     },
     "/api/v1/venues/{id}" : {

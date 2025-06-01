@@ -65,6 +65,7 @@ export const getFollowingFeedResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -161,6 +162,7 @@ export const getHomeFeedResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),

@@ -25,12 +25,18 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddArtistRequest,
+  AddGigRequest,
+  AddedArtistSummary,
+  AddedGigSummary,
   ArtistDetail,
   Attendance,
   AttendanceRequest,
+  GigDay,
   GigDetail,
   ListArtistGigsParams,
   ListArtistsParams,
+  ListGigDaysParams,
   ListGigsParams,
   ListMyGigsParams,
   ListVenueGigsParams,
@@ -38,7 +44,9 @@ import type {
   PageGigSummary,
   SearchParams,
   SearchResults,
-  VenueDetail
+  SearchVenuesParams,
+  VenueDetail,
+  VenueHit
 } from '.././model';
 
 import { customFetch } from '../../http';
@@ -151,6 +159,77 @@ export function useListArtists<TData = Awaited<ReturnType<typeof listArtists>>, 
 
 
 /**
+ * @summary The act with this name: 200 when the catalog knows it, 201 when it was added
+ */
+export const getAddArtistUrl = () => {
+
+
+  
+
+  return `/api/v1/artists`
+}
+
+export const addArtist = async (addArtistRequest: AddArtistRequest, options?: RequestInit): Promise<AddedArtistSummary> => {
+  
+  return customFetch<AddedArtistSummary>(getAddArtistUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addArtistRequest,)
+  }
+);}
+
+
+
+
+export const getAddArtistMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addArtist>>, TError,{data: AddArtistRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addArtist>>, TError,{data: AddArtistRequest}, TContext> => {
+
+const mutationKey = ['addArtist'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addArtist>>, {data: AddArtistRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addArtist(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddArtistMutationResult = NonNullable<Awaited<ReturnType<typeof addArtist>>>
+    export type AddArtistMutationBody = AddArtistRequest
+    export type AddArtistMutationError = unknown
+
+    /**
+ * @summary The act with this name: 200 when the catalog knows it, 201 when it was added
+ */
+export const useAddArtist = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addArtist>>, TError,{data: AddArtistRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addArtist>>,
+        TError,
+        {data: AddArtistRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getAddArtistMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Artist detail with the next five gigs
  */
 export const getGetArtistUrl = (id: string,) => {
@@ -447,6 +526,179 @@ export function useListGigs<TData = Awaited<ReturnType<typeof listGigs>>, TError
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListGigsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Add a gig no source lists: 201 when created, 200 when one at that venue that night already matches. The caller is marked GOING (future) or WENT (past).
+ */
+export const getAddGigUrl = () => {
+
+
+  
+
+  return `/api/v1/gigs`
+}
+
+export const addGig = async (addGigRequest: AddGigRequest, options?: RequestInit): Promise<AddedGigSummary> => {
+  
+  return customFetch<AddedGigSummary>(getAddGigUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addGigRequest,)
+  }
+);}
+
+
+
+
+export const getAddGigMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addGig>>, TError,{data: AddGigRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addGig>>, TError,{data: AddGigRequest}, TContext> => {
+
+const mutationKey = ['addGig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addGig>>, {data: AddGigRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  addGig(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddGigMutationResult = NonNullable<Awaited<ReturnType<typeof addGig>>>
+    export type AddGigMutationBody = AddGigRequest
+    export type AddGigMutationError = unknown
+
+    /**
+ * @summary Add a gig no source lists: 201 when created, 200 when one at that venue that night already matches. The caller is marked GOING (future) or WENT (past).
+ */
+export const useAddGig = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addGig>>, TError,{data: AddGigRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addGig>>,
+        TError,
+        {data: AddGigRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getAddGigMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary For a calendar: how many gigs match the GET /gigs filters on each UK day of a window (from and to required, at most 100 days)
+ */
+export const getListGigDaysUrl = (params: ListGigDaysParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/gigs/days?${stringifiedParams}` : `/api/v1/gigs/days`
+}
+
+export const listGigDays = async (params: ListGigDaysParams, options?: RequestInit): Promise<GigDay[]> => {
+  
+  return customFetch<GigDay[]>(getListGigDaysUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListGigDaysQueryKey = (params: ListGigDaysParams,) => {
+    return [`/api/v1/gigs/days`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListGigDaysQueryOptions = <TData = Awaited<ReturnType<typeof listGigDays>>, TError = unknown>(params: ListGigDaysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigDays>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGigDaysQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGigDays>>> = ({ signal }) => listGigDays(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGigDays>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListGigDaysQueryResult = NonNullable<Awaited<ReturnType<typeof listGigDays>>>
+export type ListGigDaysQueryError = unknown
+
+
+export function useListGigDays<TData = Awaited<ReturnType<typeof listGigDays>>, TError = unknown>(
+ params: ListGigDaysParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigDays>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGigDays>>,
+          TError,
+          Awaited<ReturnType<typeof listGigDays>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGigDays<TData = Awaited<ReturnType<typeof listGigDays>>, TError = unknown>(
+ params: ListGigDaysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigDays>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGigDays>>,
+          TError,
+          Awaited<ReturnType<typeof listGigDays>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGigDays<TData = Awaited<ReturnType<typeof listGigDays>>, TError = unknown>(
+ params: ListGigDaysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigDays>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary For a calendar: how many gigs match the GET /gigs filters on each UK day of a window (from and to required, at most 100 days)
+ */
+
+export function useListGigDays<TData = Awaited<ReturnType<typeof listGigDays>>, TError = unknown>(
+ params: ListGigDaysParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigDays>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListGigDaysQueryOptions(params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -888,6 +1140,108 @@ export function useSearch<TData = Awaited<ReturnType<typeof search>>, TError = u
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getSearchQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Venues by name (at most 10), the ones near home first
+ */
+export const getSearchVenuesUrl = (params: SearchVenuesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/venues?${stringifiedParams}` : `/api/v1/venues`
+}
+
+export const searchVenues = async (params: SearchVenuesParams, options?: RequestInit): Promise<VenueHit[]> => {
+  
+  return customFetch<VenueHit[]>(getSearchVenuesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getSearchVenuesQueryKey = (params: SearchVenuesParams,) => {
+    return [`/api/v1/venues`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getSearchVenuesQueryOptions = <TData = Awaited<ReturnType<typeof searchVenues>>, TError = unknown>(params: SearchVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchVenuesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchVenues>>> = ({ signal }) => searchVenues(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchVenues>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SearchVenuesQueryResult = NonNullable<Awaited<ReturnType<typeof searchVenues>>>
+export type SearchVenuesQueryError = unknown
+
+
+export function useSearchVenues<TData = Awaited<ReturnType<typeof searchVenues>>, TError = unknown>(
+ params: SearchVenuesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchVenues>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchVenues>>,
+          TError,
+          Awaited<ReturnType<typeof searchVenues>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchVenues<TData = Awaited<ReturnType<typeof searchVenues>>, TError = unknown>(
+ params: SearchVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchVenues>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchVenues>>,
+          TError,
+          Awaited<ReturnType<typeof searchVenues>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchVenues<TData = Awaited<ReturnType<typeof searchVenues>>, TError = unknown>(
+ params: SearchVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Venues by name (at most 10), the ones near home first
+ */
+
+export function useSearchVenues<TData = Awaited<ReturnType<typeof searchVenues>>, TError = unknown>(
+ params: SearchVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSearchVenuesQueryOptions(params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

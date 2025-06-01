@@ -14,6 +14,7 @@ import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.shared.web.Cursor;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -71,7 +72,8 @@ class CatalogReadRepository {
             @Nullable String venueCity,
             @Nullable Double venueLat,
             @Nullable Double venueLng,
-            @Nullable Double distanceKm) {}
+            @Nullable Double distanceKm,
+            boolean userAdded) {}
 
     record ArtistRow(UUID id, String name, @Nullable String imageUrl, @Nullable UUID mbid) {}
 
@@ -104,11 +106,48 @@ class CatalogReadRepository {
      * the {@code gig_attendance} primary key when filtering by venue, artist or attendee.
      */
     List<GigRow> gigs(GigFilter filter) {
-        Field<Double> distanceKm = filter.origin() == null
-                ? DSL.inline((Double) null)
-                : DSL.field(
-                        "round((ST_Distance({0}, {1}) / 1000.0)::numeric, 1)::float8",
-                        Double.class, GIG.LOCATION, point(filter.origin()));
+        Field<Double> distanceKm = distanceFrom(filter.origin());
+        List<Condition> where = conditions(filter);
+        if (filter.cursor() != null) {
+            var last = DSL.row(at(filter.cursor().at()), filter.cursor().id());
+            var key = DSL.row(GIG.STARTS_AT, GIG.ID);
+            where.add(filter.newestFirst() ? key.lt(last) : key.gt(last));
+        }
+        return dsl.select(gigFields(distanceKm))
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(where)
+                .orderBy(
+                        filter.newestFirst() ? GIG.STARTS_AT.desc() : GIG.STARTS_AT.asc(),
+                        filter.newestFirst() ? GIG.ID.desc() : GIG.ID.asc())
+                .limit(filter.limit() + 1)
+                .fetch(r -> toGigRow(r, distanceKm));
+    }
+
+    /** One calendar day (UK time) and how many gigs matching a filter start on it. */
+    record DayCount(LocalDate date, int count) {}
+
+    /**
+     * How many gigs match the filter on each UK calendar day, for the calendar view. Same conditions as
+     * {@link #gigs}, without the cursor and the page size; days without a gig are absent. The window is
+     * bounded by the caller, so this groups at most a few hundred rows. Expected indexes: as for
+     * {@link #gigs} ({@code gig_starts_at} for the window).
+     */
+    List<DayCount> dayCounts(GigFilter filter) {
+        Field<LocalDate> day = DSL.field("({0} at time zone 'Europe/London')::date", LocalDate.class, GIG.STARTS_AT);
+        return dsl.select(day, DSL.count())
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(conditions(filter))
+                .groupBy(day)
+                .orderBy(day)
+                .fetch(r -> new DayCount(r.value1(), r.value2()));
+    }
+
+    /** The WHERE clause of a gig filter (everything but the keyset cursor). */
+    private List<Condition> conditions(GigFilter filter) {
         List<Condition> where = new ArrayList<>();
         if (filter.origin() != null && filter.radiusKm() != null) {
             where.add(DSL.condition(
@@ -160,60 +199,40 @@ class CatalogReadRepository {
             }
             where.add(DSL.exists(DSL.selectOne().from(GIG_ATTENDANCE).where(mine)));
         }
-        if (filter.cursor() != null) {
-            var last = DSL.row(at(filter.cursor().at()), filter.cursor().id());
-            var key = DSL.row(GIG.STARTS_AT, GIG.ID);
-            where.add(filter.newestFirst() ? key.lt(last) : key.gt(last));
-        }
-        return dsl.select(
-                        GIG.ID,
-                        GIG.TITLE,
-                        GIG.STARTS_AT,
-                        GIG.STATUS,
-                        GIG.IMAGE_URL,
-                        GIG.TICKET_URL,
-                        GIG.PRICE_MIN,
-                        GIG.PRICE_MAX,
-                        GIG.CURRENCY,
-                        VENUE.ID,
-                        VENUE.NAME,
-                        VENUE.CITY,
-                        VENUE_LAT,
-                        VENUE_LNG,
-                        distanceKm)
-                .from(GIG)
-                .join(VENUE)
-                .on(VENUE.ID.eq(GIG.VENUE_ID))
-                .where(where)
-                .orderBy(
-                        filter.newestFirst() ? GIG.STARTS_AT.desc() : GIG.STARTS_AT.asc(),
-                        filter.newestFirst() ? GIG.ID.desc() : GIG.ID.asc())
-                .limit(filter.limit() + 1)
-                .fetch(r -> toGigRow(r, distanceKm));
+        return where;
     }
 
-    Optional<GigRow> gig(UUID id, @Nullable GeoPoint origin) {
-        Field<Double> distanceKm = origin == null
+    private Field<Double> distanceFrom(@Nullable GeoPoint origin) {
+        return origin == null
                 ? DSL.inline((Double) null)
                 : DSL.field(
                         "round((ST_Distance({0}, {1}) / 1000.0)::numeric, 1)::float8",
                         Double.class, GIG.LOCATION, point(origin));
-        return dsl.select(
-                        GIG.ID,
-                        GIG.TITLE,
-                        GIG.STARTS_AT,
-                        GIG.STATUS,
-                        GIG.IMAGE_URL,
-                        GIG.TICKET_URL,
-                        GIG.PRICE_MIN,
-                        GIG.PRICE_MAX,
-                        GIG.CURRENCY,
-                        VENUE.ID,
-                        VENUE.NAME,
-                        VENUE.CITY,
-                        VENUE_LAT,
-                        VENUE_LNG,
-                        distanceKm)
+    }
+
+    private static List<Field<?>> gigFields(Field<Double> distanceKm) {
+        return List.of(
+                GIG.ID,
+                GIG.TITLE,
+                GIG.STARTS_AT,
+                GIG.STATUS,
+                GIG.IMAGE_URL,
+                GIG.TICKET_URL,
+                GIG.PRICE_MIN,
+                GIG.PRICE_MAX,
+                GIG.CURRENCY,
+                VENUE.ID,
+                VENUE.NAME,
+                VENUE.CITY,
+                VENUE_LAT,
+                VENUE_LNG,
+                distanceKm,
+                GIG.CREATED_BY);
+    }
+
+    Optional<GigRow> gig(UUID id, @Nullable GeoPoint origin) {
+        Field<Double> distanceKm = distanceFrom(origin);
+        return dsl.select(gigFields(distanceKm))
                 .from(GIG)
                 .join(VENUE)
                 .on(VENUE.ID.eq(GIG.VENUE_ID))
@@ -226,23 +245,8 @@ class CatalogReadRepository {
         if (ids.isEmpty()) {
             return List.of();
         }
-        Field<Double> noDistance = DSL.inline((Double) null);
-        return dsl.select(
-                        GIG.ID,
-                        GIG.TITLE,
-                        GIG.STARTS_AT,
-                        GIG.STATUS,
-                        GIG.IMAGE_URL,
-                        GIG.TICKET_URL,
-                        GIG.PRICE_MIN,
-                        GIG.PRICE_MAX,
-                        GIG.CURRENCY,
-                        VENUE.ID,
-                        VENUE.NAME,
-                        VENUE.CITY,
-                        VENUE_LAT,
-                        VENUE_LNG,
-                        noDistance)
+        Field<Double> noDistance = distanceFrom(null);
+        return dsl.select(gigFields(noDistance))
                 .from(GIG)
                 .join(VENUE)
                 .on(VENUE.ID.eq(GIG.VENUE_ID))
@@ -463,6 +467,29 @@ class CatalogReadRepository {
                         r.value8()));
     }
 
+    /** A venue in a search result: where it is and how far from the viewer's home (when known). */
+    record VenueHit(UUID id, String name, @Nullable String city, @Nullable Double lat, @Nullable Double lng) {}
+
+    /**
+     * Venue name search for the "add a gig" picker: names starting with the query first, then names with
+     * a similar word (pg_trgm), nearest to {@code origin} first within each, then by name. Expected index:
+     * venue_name_norm_trgm (prefix LIKE and the {@code <%} operator).
+     */
+    List<VenueHit> searchVenues(String query, @Nullable GeoPoint origin, int limit) {
+        String norm = NameNormaliser.normalise(query);
+        Condition prefix = VENUE.NAME_NORM.like(DSL.escape(norm, '!') + "%", '!');
+        Condition similar = DSL.condition("{0} <% {1}", DSL.val(norm), VENUE.NAME_NORM);
+        Field<Double> distance = origin == null
+                ? DSL.inline(0.0)
+                : DSL.field("coalesce(ST_Distance({0}, {1}), 1e9)", Double.class, VENUE.LOCATION, point(origin));
+        return dsl.select(VENUE.ID, VENUE.NAME, VENUE.CITY, VENUE_LAT, VENUE_LNG)
+                .from(VENUE)
+                .where(prefix.or(similar))
+                .orderBy(DSL.when(prefix, 0).otherwise(1), distance, VENUE.NAME, VENUE.ID)
+                .limit(limit)
+                .fetch(r -> new VenueHit(r.value1(), r.value2(), r.value3(), r.value4(), r.value5()));
+    }
+
     /** Genre ids matching a slug: the genre itself plus its children ("rock" includes "indie"). */
     Set<Short> genreWithChildren(String slug) {
         Map<Short, Short> parents = new LinkedHashMap<>();
@@ -502,7 +529,8 @@ class CatalogReadRepository {
                 r.get(VENUE.CITY),
                 r.get(VENUE_LAT),
                 r.get(VENUE_LNG),
-                r.get(distanceKm));
+                r.get(distanceKm),
+                r.get(GIG.CREATED_BY) != null);
     }
 
     private static Field<Object> point(GeoPoint p) {

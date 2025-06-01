@@ -30,5 +30,7 @@ export interface GigSummary {
   support: ArtistSummary[];
   ticketUrl?: GigSummaryTicketUrl;
   title: string;
+  /** Added by a fan, not from a ticketing source */
+  userAdded: boolean;
   venue: VenueSummary;
 }

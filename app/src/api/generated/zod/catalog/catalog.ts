@@ -36,6 +36,29 @@ export const listArtistsResponse = zod.object({
 })
 
 /**
+ * @summary The act with this name: 200 when the catalog knows it, 201 when it was added
+ */
+export const addArtistBodyNameMin = 0;
+
+export const addArtistBodyNameMax = 120;
+
+
+export const addArtistBody = zod.object({
+  "name": zod.string().min(addArtistBodyNameMin).max(addArtistBodyNameMax)
+})
+
+export const addArtistResponse = zod.object({
+  "created": zod.boolean().describe('False when an existing one matched'),
+  "item": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})
+})
+
+/**
  * @summary Artist detail with the next five gigs
  */
 export const getArtistParams = zod.object({
@@ -78,6 +101,7 @@ export const getArtistResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -129,6 +153,7 @@ export const listArtistGigsResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -158,7 +183,7 @@ export const listGigsQueryGenreMax = 40;
 export const listGigsQueryQMin = 0;
 
 export const listGigsQueryQMax = 80;
-
+export const listGigsQueryNationwideDefault = false;
 
 export const listGigsQueryParams = zod.object({
   "lat": zod.number().min(listGigsQueryLatMin).max(listGigsQueryLatMax).optional(),
@@ -168,6 +193,9 @@ export const listGigsQueryParams = zod.object({
   "to": zod.string().datetime({}).optional(),
   "genre": zod.string().min(listGigsQueryGenreMin).max(listGigsQueryGenreMax).optional(),
   "q": zod.string().min(listGigsQueryQMin).max(listGigsQueryQMax).optional(),
+  "artistId": zod.string().uuid().optional(),
+  "venueId": zod.string().uuid().optional(),
+  "nationwide": zod.boolean().optional(),
   "cursor": zod.string().optional(),
   "limit": zod.number().optional()
 })
@@ -199,6 +227,7 @@ export const listGigsResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -211,6 +240,117 @@ export const listGigsResponse = zod.object({
 })),
   "nextCursor": zod.string().nullish()
 })
+
+/**
+ * @summary Add a gig no source lists: 201 when created, 200 when one at that venue that night already matches. The caller is marked GOING (future) or WENT (past).
+ */
+export const addGigBodyArtistIdsMin = 0;
+
+export const addGigBodyArtistIdsMax = 10;
+export const addGigBodyArtistNamesItemMin = 0;
+
+export const addGigBodyArtistNamesItemMax = 120;
+export const addGigBodyArtistNamesMin = 0;
+
+export const addGigBodyArtistNamesMax = 10;
+export const addGigBodyNewVenueNameMin = 0;
+
+export const addGigBodyNewVenueNameMax = 120;
+export const addGigBodyTitleMin = 0;
+
+export const addGigBodyTitleMax = 200;
+
+
+export const addGigBody = zod.object({
+  "artistIds": zod.array(zod.string().uuid()).min(addGigBodyArtistIdsMin).max(addGigBodyArtistIdsMax),
+  "artistNames": zod.array(zod.string().min(addGigBodyArtistNamesItemMin).max(addGigBodyArtistNamesItemMax)).min(addGigBodyArtistNamesMin).max(addGigBodyArtistNamesMax),
+  "date": zod.string().date(),
+  "newVenue": zod.object({
+  "cityId": zod.number(),
+  "name": zod.string().min(addGigBodyNewVenueNameMin).max(addGigBodyNewVenueNameMax)
+}),
+  "time": zod.string().nullish(),
+  "title": zod.string().min(addGigBodyTitleMin).max(addGigBodyTitleMax),
+  "venueId": zod.string().uuid()
+})
+
+export const addGigResponse = zod.object({
+  "created": zod.boolean().describe('False when an existing one matched'),
+  "item": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+})
+})
+
+/**
+ * @summary For a calendar: how many gigs match the GET /gigs filters on each UK day of a window (from and to required, at most 100 days)
+ */
+export const listGigDaysQueryLatMin = -90;
+
+export const listGigDaysQueryLatMax = 90;
+export const listGigDaysQueryLngMin = -180;
+
+export const listGigDaysQueryLngMax = 180;
+export const listGigDaysQueryRadiusKmMax = 200;
+export const listGigDaysQueryGenreMin = 0;
+
+export const listGigDaysQueryGenreMax = 40;
+export const listGigDaysQueryQMin = 0;
+
+export const listGigDaysQueryQMax = 80;
+export const listGigDaysQueryNationwideDefault = false;
+
+export const listGigDaysQueryParams = zod.object({
+  "lat": zod.number().min(listGigDaysQueryLatMin).max(listGigDaysQueryLatMax).optional(),
+  "lng": zod.number().min(listGigDaysQueryLngMin).max(listGigDaysQueryLngMax).optional(),
+  "radiusKm": zod.number().min(1).max(listGigDaysQueryRadiusKmMax).optional(),
+  "from": zod.string().datetime({}),
+  "to": zod.string().datetime({}),
+  "genre": zod.string().min(listGigDaysQueryGenreMin).max(listGigDaysQueryGenreMax).optional(),
+  "q": zod.string().min(listGigDaysQueryQMin).max(listGigDaysQueryQMax).optional(),
+  "artistId": zod.string().uuid().optional(),
+  "venueId": zod.string().uuid().optional(),
+  "nationwide": zod.boolean().optional()
+})
+
+export const listGigDaysResponseItem = zod.object({
+  "count": zod.number(),
+  "date": zod.string().date()
+})
+export const listGigDaysResponse = zod.array(listGigDaysResponseItem)
 
 /**
  * @summary Gig detail: line-up, attendance counts, sources
@@ -251,6 +391,7 @@ export const getGigResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -308,6 +449,8 @@ export const setGigAttendanceResponse = zod.object({
 export const listMyGigsQueryParams = zod.object({
   "status": zod.string().optional(),
   "when": zod.string().optional(),
+  "from": zod.string().datetime({}).optional(),
+  "to": zod.string().datetime({}).optional(),
   "cursor": zod.string().optional(),
   "limit": zod.number().optional()
 })
@@ -339,6 +482,7 @@ export const listMyGigsResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -399,6 +543,7 @@ export const searchResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
@@ -410,6 +555,29 @@ export const searchResponse = zod.object({
 })
 }))
 })
+
+/**
+ * @summary Venues by name (at most 10), the ones near home first
+ */
+export const searchVenuesQueryQMin = 0;
+
+export const searchVenuesQueryQMax = 80;
+
+
+export const searchVenuesQueryParams = zod.object({
+  "q": zod.string().min(searchVenuesQueryQMin).max(searchVenuesQueryQMax)
+})
+
+export const searchVenuesResponseItem = zod.object({
+  "city": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+export const searchVenuesResponse = zod.array(searchVenuesResponseItem)
 
 /**
  * @summary Venue detail
@@ -470,6 +638,7 @@ export const listVenueGigsResponse = zod.object({
 })),
   "ticketUrl": zod.string().nullish(),
   "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
   "id": zod.string().uuid(),
