@@ -21,7 +21,7 @@
             },
             "maxItems" : 10,
             "minItems" : 0,
-            "type" : "array"
+            "type" : [ "array", "null" ]
           },
           "artistNames" : {
             "items" : {
@@ -31,14 +31,15 @@
             },
             "maxItems" : 10,
             "minItems" : 0,
-            "type" : "array"
+            "type" : [ "array", "null" ]
           },
           "date" : {
             "format" : "date",
             "type" : "string"
           },
           "newVenue" : {
-            "$ref" : "#/components/schemas/NewVenueRequest"
+            "$ref" : "#/components/schemas/NewVenueRequest",
+            "type" : "null"
           },
           "time" : {
             "example" : "19:30",
@@ -46,16 +47,17 @@
             "type" : [ "string", "null" ]
           },
           "title" : {
+            "description" : "Defaults to the headliner's name",
             "maxLength" : 200,
             "minLength" : 0,
-            "type" : "string"
+            "type" : [ "string", "null" ]
           },
           "venueId" : {
             "format" : "uuid",
-            "type" : "string"
+            "type" : [ "string", "null" ]
           }
         },
-        "required" : [ "artistIds", "artistNames", "date", "newVenue", "title", "venueId" ],
+        "required" : [ "date" ],
         "type" : "object"
       },
       "AddedArtistSummary" : {

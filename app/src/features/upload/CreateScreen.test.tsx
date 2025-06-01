@@ -29,16 +29,31 @@ jest.mock('./uploadRunner', () => ({
   pruneFinished: (ownerId: string) => mockPrune(ownerId),
   submitPost: (localId: string, draft: unknown) => mockSubmit(localId, draft),
 }));
-// The compose form has its own test; here it is a button that posts a fixed draft.
+// The compose form has its own test; here it is a button that posts a fixed draft for a fixed gig,
+// and shows how many clips it was opened for and the gig it started on.
 jest.mock('./ComposeForm', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    ComposeForm: ({ onPost }: { onPost: (draft: unknown) => void }) =>
+    ComposeForm: ({
+      clips,
+      initialGig,
+      onPost,
+    }: {
+      clips: number;
+      initialGig: { title: string } | null;
+      onPost: (draft: unknown, gig: unknown) => void;
+    }) =>
       React.createElement(
         Text,
-        { onPress: () => onPost({ caption: 'Encore', gigId: 'gig-1', artistIds: ['artist-1'] }) },
-        'compose-stub',
+        {
+          onPress: () =>
+            onPost(
+              { caption: 'Encore', gigId: 'gig-1', artistIds: ['artist-1'] },
+              { id: 'gig-1', title: 'Pale Kites' },
+            ),
+        },
+        `compose-stub ${clips} ${initialGig?.title ?? 'no-gig'}`,
       ),
   };
 });
@@ -90,7 +105,7 @@ describe('CreateScreen', () => {
   });
 
   it('compresses the picked clip, queues the smaller file with both sizes recorded, and starts the upload', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', video });
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [video] });
     mockCompress.mockResolvedValue({
       uri: 'file:///cache/compressed.mp4',
       bytes: 18 * 1024 * 1024,
@@ -98,7 +113,7 @@ describe('CreateScreen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByText('Choose a video'));
+    await fireEvent.press(screen.getByText('Choose videos'));
 
     await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
     const [entry] = useUploadQueue.getState().entries;
@@ -120,7 +135,7 @@ describe('CreateScreen', () => {
   });
 
   it('uploads the original and deletes the compressed file when compression made it bigger', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', video });
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [video] });
     mockCompress.mockResolvedValue({
       uri: 'file:///cache/compressed.mp4',
       bytes: 70 * 1024 * 1024,
@@ -128,7 +143,7 @@ describe('CreateScreen', () => {
     });
     await renderScreen();
 
-    await fireEvent.press(screen.getByText('Choose a video'));
+    await fireEvent.press(screen.getByText('Choose videos'));
 
     await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
     expect(useUploadQueue.getState().entries[0]).toMatchObject({
@@ -139,15 +154,15 @@ describe('CreateScreen', () => {
   });
 
   it('shows the compose form while the clip uploads; Post hands the draft over and returns to the profile', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', video });
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [video] });
     await renderScreen();
-    expect(screen.queryByText('compose-stub')).toBeNull();
+    expect(screen.queryByText(/compose-stub/)).toBeNull();
 
-    await fireEvent.press(screen.getByText('Choose a video'));
+    await fireEvent.press(screen.getByText('Choose videos'));
     await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
     const localId = useUploadQueue.getState().entries[0]!.localId;
 
-    await fireEvent.press(await screen.findByText('compose-stub'));
+    await fireEvent.press(await screen.findByText(/compose-stub/));
 
     expect(mockSubmit).toHaveBeenCalledWith(localId, {
       caption: 'Encore',
@@ -155,7 +170,7 @@ describe('CreateScreen', () => {
       artistIds: ['artist-1'],
     });
     expect(mockPush).toHaveBeenCalledWith('/me');
-    expect(screen.queryByText('compose-stub')).toBeNull();
+    expect(screen.queryByText(/compose-stub/)).toBeNull();
   });
 
   it('offers Post again when the post request failed, and Write post when nothing was written', async () => {
@@ -183,9 +198,9 @@ describe('CreateScreen', () => {
     await fireEvent.press(screen.getByText('Post again'));
     expect(mockSubmit).toHaveBeenCalledWith(unposted, draft);
 
-    expect(screen.queryByText('compose-stub')).toBeNull();
+    expect(screen.queryByText(/compose-stub/)).toBeNull();
     await fireEvent.press(screen.getByText('Write post'));
-    await fireEvent.press(await screen.findByText('compose-stub'));
+    await fireEvent.press(await screen.findByText(/compose-stub/));
     expect(mockSubmit).toHaveBeenLastCalledWith(unwritten, {
       caption: 'Encore',
       gigId: 'gig-1',
@@ -194,10 +209,10 @@ describe('CreateScreen', () => {
   });
 
   it('refuses a clip that is too long without uploading anything', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', video: { ...video, durationMs: 75_000 } });
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [{ ...video, durationMs: 75_000 }] });
     await renderScreen();
 
-    await fireEvent.press(screen.getByText('Choose a video'));
+    await fireEvent.press(screen.getByText('Choose videos'));
 
     expect(await screen.findByText('Clips can be up to 60 seconds long.')).toBeTruthy();
     expect(mockCompress).not.toHaveBeenCalled();
@@ -208,7 +223,7 @@ describe('CreateScreen', () => {
   it('does nothing when the picker is cancelled, and explains a denied camera permission', async () => {
     mockPick.mockResolvedValueOnce({ kind: 'cancelled' });
     await renderScreen();
-    await fireEvent.press(screen.getByText('Choose a video'));
+    await fireEvent.press(screen.getByText('Choose videos'));
     await waitFor(() => expect(mockPick).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('create-problem')).toBeNull();
 
@@ -252,5 +267,47 @@ describe('CreateScreen', () => {
     await fireEvent.press(screen.getAllByText('Remove')[1]!);
     expect(mockRemove).toHaveBeenCalledWith(failed);
     expect(useUploadQueue.getState().entries.map((e) => e.localId)).not.toContain(failed);
+  });
+
+  it('posts several clips from one gig as one post each, then offers more clips from that gig', async () => {
+    const second = { ...video, uri: 'file:///DCIM/clip2.mp4', fileName: 'clip2.mp4' };
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [video, second] });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByText('Choose videos'));
+    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(2));
+    expect(screen.getByTestId('compose-for').props.children).toBe(
+      '2 clips: one post each, same gig and tags',
+    );
+    const ids = useUploadQueue.getState().entries.map((entry) => entry.localId);
+
+    await fireEvent.press(await screen.findByText('compose-stub 2 no-gig'));
+
+    const draft = { caption: 'Encore', gigId: 'gig-1', artistIds: ['artist-1'] };
+    expect(mockSubmit.mock.calls.map(([id]) => id).sort()).toEqual([...ids].sort());
+    expect(
+      mockSubmit.mock.calls.every(([, sent]) => JSON.stringify(sent) === JSON.stringify(draft)),
+    ).toBe(true);
+
+    // The next pick starts on the same gig.
+    mockPick.mockResolvedValue({
+      kind: 'picked',
+      videos: [{ ...video, uri: 'file:///DCIM/clip3.mp4' }],
+    });
+    await fireEvent.press(screen.getByText('Add more clips from Pale Kites'));
+    expect(await screen.findByText('compose-stub 1 Pale Kites')).toBeTruthy();
+  });
+
+  it('posts the clips that can be posted and names the ones that cannot', async () => {
+    const tooLong = { ...video, fileName: 'long.mp4', durationMs: 75_000 };
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [video, tooLong] });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByText('Choose videos'));
+
+    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('create-problem').props.children).toBe(
+      'long.mp4: Clips can be up to 60 seconds long.',
+    );
   });
 });

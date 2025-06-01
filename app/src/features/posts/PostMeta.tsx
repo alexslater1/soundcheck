@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { Post } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
+import { formatGigDate } from '@/features/gigs/format';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
@@ -19,8 +20,9 @@ const LIGHT = '#FFFFFF';
 const LIGHT_MUTED = 'rgba(255,255,255,0.8)';
 
 /**
- * Who posted the clip, the caption (two lines until tapped), the gig and the artists. The author and
- * the gig are links, and tapping them is reported as a signal of interest.
+ * Who posted the clip, the caption (two lines until tapped), the gig (its date and venue),
+ * the venue and the artists. The author, the gig, the venue and each artist are links; tapping the
+ * author or the gig is reported as a signal of interest.
  */
 export function PostMeta({ post, onDark = false }: Props) {
   const { colors } = useTheme();
@@ -58,21 +60,36 @@ export function PostMeta({ post, onDark = false }: Props) {
           {post.caption}
         </Text>
       ) : null}
+      {post.gig ? (
+        <Link
+          href={{ pathname: '/gig/[id]', params: { id: post.gig.id } }}
+          onPress={() => track('GIG_TAP', post.id)}
+          asChild
+        >
+          <Pressable accessibilityRole="link" style={styles.gig} testID="post-gig">
+            <Ionicons
+              name="calendar-outline"
+              size={16}
+              color={onDark ? LIGHT_MUTED : colors.accent}
+            />
+            <Text variant="caption" style={[styles.bold, ink]} numberOfLines={1}>
+              {formatGigDate(post.gig.startsAt)} · {post.gig.title}
+            </Text>
+          </Pressable>
+        </Link>
+      ) : null}
       <View style={styles.chips}>
         {post.gig ? (
-          <Link
-            href={{ pathname: '/gig/[id]', params: { id: post.gig.id } }}
-            onPress={() => track('GIG_TAP', post.id)}
-            asChild
-          >
-            <Pressable accessibilityRole="link" style={chipStyle}>
+          <Link href={{ pathname: '/venue/[id]', params: { id: post.gig.venue.id } }} asChild>
+            <Pressable accessibilityRole="link" style={chipStyle} testID="post-venue">
               <Ionicons
-                name="calendar-outline"
+                name="location-outline"
                 size={14}
                 color={onDark ? LIGHT_MUTED : colors.textMuted}
               />
               <Text variant="caption" style={ink}>
-                {post.gig.title} · {post.gig.venue.name}
+                {post.gig.venue.name}
+                {post.gig.venue.city ? `, ${post.gig.venue.city}` : ''}
               </Text>
             </Pressable>
           </Link>
@@ -84,6 +101,11 @@ export function PostMeta({ post, onDark = false }: Props) {
             asChild
           >
             <Pressable accessibilityRole="link" style={chipStyle}>
+              <Ionicons
+                name="mic-outline"
+                size={14}
+                color={onDark ? LIGHT_MUTED : colors.textMuted}
+              />
               <Text variant="caption" style={ink}>
                 {artist.name}
               </Text>
@@ -99,6 +121,7 @@ const styles = StyleSheet.create({
   meta: { gap: spacing.sm },
   author: { minHeight: touchTarget, justifyContent: 'center' },
   bold: { fontWeight: '700' },
+  gig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 28 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: {
     flexDirection: 'row',

@@ -2,6 +2,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 
+import type { GigSummary } from '@/api/generated/model';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -25,9 +26,10 @@ import {
 import { problemWith } from './validate';
 
 /**
- * Create tab: pick or record a clip, compress it on Android and start uploading it; then write the
- * caption and choose the gig and artists while it uploads, and Post. The list below shows every upload
- * from this device going through the pipeline.
+ * Create tab: pick (up to ten) or record clips, compress them on Android and start uploading them;
+ * then choose the gig and artists and write the caption while they upload, and Post: each clip becomes
+ * a post with the same tags. After posting, "Add more clips from <gig>" starts again with
+ * that gig chosen. The list below shows the uploads from this device still on their way.
  */
 export function CreateScreen() {
   const { colors } = useTheme();
@@ -36,8 +38,11 @@ export function CreateScreen() {
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  // The upload whose caption and tags are being written (it uploads meanwhile).
-  const [composing, setComposing] = useState<string | null>(null);
+  // The uploads whose caption and tags are being written (they upload meanwhile).
+  const [composing, setComposing] = useState<string[]>([]);
+  // The gig of the last post from this screen (offered for more clips), and the gig a form starts on.
+  const [lastGig, setLastGig] = useState<GigSummary | null>(null);
+  const [formGig, setFormGig] = useState<GigSummary | null>(null);
 
   // Uploads the worker had not finished when the app was last open: ask about them again.
   useEffect(() => {
@@ -60,7 +65,7 @@ export function CreateScreen() {
   }
   const entries = all.filter((entry) => entry.ownerId === ownerId);
 
-  const add = async (pick: () => Promise<PickResult>) => {
+  const add = async (pick: () => Promise<PickResult>, gig: GigSummary | null = null) => {
     setProblem(null);
     try {
       const picked = await pick();
@@ -71,26 +76,42 @@ export function CreateScreen() {
       if (picked.kind === 'cancelled') {
         return;
       }
-      const refused = problemWith(picked.video);
-      if (refused) {
-        setProblem(refused);
-        return;
+      // Clips that cannot be posted (too long, too big) are named; the others go ahead.
+      const several = picked.videos.length > 1;
+      const refusals: string[] = [];
+      const accepted = picked.videos.filter((video) => {
+        const refused = problemWith(video);
+        if (refused) {
+          refusals.push(several ? `${video.fileName ?? 'A clip'}: ${refused}` : refused);
+        }
+        return !refused;
+      });
+      if (refusals.length > 0) {
+        setProblem(refusals.join('\n'));
       }
-      setBusy('Preparing…');
-      const compressed = await compressVideo(picked.video, (fraction) =>
-        setBusy(`Compressing ${Math.round(fraction * 100)}%`),
-      );
-      const { video, clientMeta, temporary, discard } = chooseUpload(
-        picked.video,
-        compressed,
-        Platform.OS,
-      );
-      if (discard) {
-        discardFile(discard);
+      const queued: string[] = [];
+      for (const [index, original] of accepted.entries()) {
+        const which = accepted.length > 1 ? ` ${index + 1} of ${accepted.length}` : '';
+        setBusy(`Preparing${which}…`);
+        const compressed = await compressVideo(original, (fraction) =>
+          setBusy(`Compressing${which}: ${Math.round(fraction * 100)}%`),
+        );
+        const { video, clientMeta, temporary, discard } = chooseUpload(
+          original,
+          compressed,
+          Platform.OS,
+        );
+        if (discard) {
+          discardFile(discard);
+        }
+        const localId = useUploadQueue.getState().enqueue(ownerId, video, clientMeta, temporary);
+        void startUpload(localId);
+        queued.push(localId);
       }
-      const localId = useUploadQueue.getState().enqueue(ownerId, video, clientMeta, temporary);
-      void startUpload(localId);
-      setComposing(localId);
+      if (queued.length > 0) {
+        setFormGig(gig);
+        setComposing(queued);
+      }
     } catch {
       setProblem('That video could not be opened. Try another one.');
     } finally {
@@ -98,17 +119,30 @@ export function CreateScreen() {
     }
   };
 
-  // The upload the compose form is open for, as long as nothing has been written for it.
-  const composingEntry = entries.find((entry) => entry.localId === composing && !entry.draft);
+  // The uploads the compose form is open for, as long as nothing has been written for them.
+  const composingEntries = entries.filter(
+    (entry) => composing.includes(entry.localId) && !entry.draft,
+  );
 
   return (
     <Screen keyboard>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text variant="title">Share a clip</Text>
-        <Text muted>Up to 60 seconds from a gig. It uploads in the background.</Text>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <Text variant="title">Share clips</Text>
+        <Text muted>
+          Up to 60 seconds each, up to ten at a time from one gig. They upload in the background.
+        </Text>
+        {lastGig && composingEntries.length === 0 ? (
+          <Button
+            title={`Add more clips from ${lastGig.title}`}
+            variant="secondary"
+            disabled={busy !== null}
+            onPress={() => void add(pickFromLibrary, lastGig)}
+            testID="more-from-gig"
+          />
+        ) : null}
         <View style={styles.buttons}>
           <Button
-            title="Choose a video"
+            title="Choose videos"
             disabled={busy !== null}
             onPress={() => void add(pickFromLibrary)}
             testID="choose-video"
@@ -133,28 +167,36 @@ export function CreateScreen() {
           </Text>
         ) : null}
 
-        {composingEntry ? (
-          <Text variant="caption" muted testID="compose-for">
-            The post for {composingEntry.fileName ?? 'your recorded clip'}
-          </Text>
-        ) : null}
-        {composing && composingEntry ? (
-          <ComposeForm
-            onPost={(draft) => {
-              void submitPost(composing, draft);
-              setComposing(null);
-              // Back to the profile, where the new post shows with a "Processing…" badge.
-              router.push('/me');
-            }}
-          />
+        {composingEntries.length > 0 ? (
+          <>
+            <Text variant="caption" muted testID="compose-for">
+              {composingEntries.length === 1
+                ? `The post for ${composingEntries[0]!.fileName ?? 'your recorded clip'}`
+                : `${composingEntries.length} clips: one post each, same gig and tags`}
+            </Text>
+            <ComposeForm
+              key={composingEntries.map((entry) => entry.localId).join(',')}
+              clips={composingEntries.length}
+              initialGig={formGig}
+              onPost={(draft, gig) => {
+                for (const entry of composingEntries) {
+                  void submitPost(entry.localId, draft);
+                }
+                setComposing([]);
+                setLastGig(gig);
+                // Back to the profile, where the new posts show with a "Processing…" badge.
+                router.push('/me');
+              }}
+            />
+          </>
         ) : null}
 
         <Text variant="label" muted style={styles.heading}>
-          MY UPLOADS
+          ON THEIR WAY
         </Text>
         {entries.length === 0 ? (
           <Text muted testID="uploads-empty">
-            Nothing uploaded from this device yet.
+            Nothing uploading. Posted clips are on your profile.
           </Text>
         ) : (
           entries.map((entry) => (
@@ -169,7 +211,12 @@ export function CreateScreen() {
                 }
               }}
               onWritePost={
-                entry.localId === composing ? undefined : () => setComposing(entry.localId)
+                composing.includes(entry.localId)
+                  ? undefined
+                  : () => {
+                      setFormGig(null);
+                      setComposing([entry.localId]);
+                    }
               }
             />
           ))

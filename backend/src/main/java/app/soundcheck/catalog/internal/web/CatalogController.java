@@ -276,14 +276,15 @@ public class CatalogController {
         return catalog.search(userId(jwt), q, wanted);
     }
 
+    /** Acts by id and/or by name (at least one in all); exactly one of {@code venueId} and {@code newVenue}. */
     public record AddGigRequest(
-            @Size(max = 10) List<UUID> artistIds,
-            @Size(max = 10) List<@NotBlank @Size(max = 120) String> artistNames,
-            UUID venueId,
-            @Valid NewVenueRequest newVenue,
+            @Size(max = 10) @Schema(nullable = true) List<UUID> artistIds,
+            @Size(max = 10) @Schema(nullable = true) List<@NotBlank @Size(max = 120) String> artistNames,
+            @Schema(nullable = true) UUID venueId,
+            @Valid @Schema(nullable = true) NewVenueRequest newVenue,
             @NotNull LocalDate date,
             @Schema(type = "string", format = "time", example = "19:30", nullable = true) LocalTime time,
-            @Size(max = 200) String title) {}
+            @Size(max = 200) @Schema(nullable = true, description = "Defaults to the headliner's name") String title) {}
 
     public record NewVenueRequest(@NotBlank @Size(max = 120) String name, int cityId) {}
 

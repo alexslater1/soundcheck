@@ -1,34 +1,50 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { useListGigs, useListMyGigs } from '@/api/generated/catalog/catalog';
+import type { GigSummary } from '@/api/generated/model';
 import { Button } from '@/components/ui/Button';
-import { Chip } from '@/components/ui/Chip';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
-import { billOf, gigChoices } from './composeDraft';
+import { ArtistTagger, type TaggedArtist } from './ArtistTagger';
+import { billOf } from './composeDraft';
+import { GigPicker } from './GigPicker';
+import { postLabel } from './gigPicker';
 import type { PostDraft } from './types';
 
 /**
- * The second half of creating a post: a caption, the gig the clip is from (ones the user
- * went to, then recent ones nearby), and the artists in it (the gig's bill, each one untickable).
- * The clip keeps uploading underneath; Post can be pressed before it has finished.
+ * The second half of creating a post: a caption, the gig the clips are from
+ * (suggested, searched, or added), and the artists in them (the gig's bill, untickable, plus any other
+ * act). One form can post several clips from the same gig: each becomes its own post with the same
+ * caption and tags. The clips keep uploading underneath; Post can be pressed before they have finished.
  */
-export function ComposeForm({ onPost }: { onPost: (draft: PostDraft) => void }) {
+export function ComposeForm({
+  clips = 1,
+  initialGig = null,
+  onPost,
+}: {
+  clips?: number;
+  initialGig?: GigSummary | null;
+  onPost: (draft: PostDraft, gig: GigSummary | null) => void;
+}) {
   const { colors } = useTheme();
-  // Fixed when the form opens: gigs from the last two days onwards ("recent") near the user's city.
-  const [since] = useState(() => new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString());
-  const attended = useListMyGigs({ when: 'past', limit: 5 });
-  const nearby = useListGigs({ from: since, limit: 8 });
   const [caption, setCaption] = useState('');
-  const [gigId, setGigId] = useState<string | null>(null);
-  const [untagged, setUntagged] = useState<string[]>([]);
+  const [gig, setGig] = useState<GigSummary | null>(initialGig);
+  const [artists, setArtists] = useState<TaggedArtist[]>(() =>
+    initialGig ? billOf(initialGig) : [],
+  );
 
-  const choices = gigChoices(attended.data?.items ?? [], nearby.data?.items ?? []);
-  const gig = choices.find((candidate) => candidate.id === gigId) ?? null;
-  const bill = gig ? billOf(gig) : [];
+  const chooseGig = (next: GigSummary | null) => {
+    setGig(next);
+    // A new gig brings its own bill; acts added by hand are kept.
+    setArtists((current) => {
+      const oldBill = gig ? billOf(gig).map((a) => a.id) : [];
+      const extras = current.filter((a) => !oldBill.includes(a.id));
+      const bill = next ? billOf(next) : [];
+      return [...bill, ...extras.filter((a) => !bill.some((b) => b.id === a.id))];
+    });
+  };
 
   return (
     <View
@@ -36,74 +52,36 @@ export function ComposeForm({ onPost }: { onPost: (draft: PostDraft) => void }) 
       testID="compose-form"
     >
       <Text variant="label" muted>
+        WHICH GIG?
+      </Text>
+      <GigPicker value={gig} onChange={chooseGig} />
+      <Text variant="label" muted>
+        WHO IS IN {clips > 1 ? 'THEM' : 'IT'}?
+      </Text>
+      <ArtistTagger bill={gig ? billOf(gig) : []} value={artists} onChange={setArtists} />
+      <Text variant="label" muted>
         CAPTION
       </Text>
       <TextInput
         value={caption}
         onChangeText={setCaption}
-        placeholder="Say something about it"
+        placeholder={clips > 1 ? 'Said under each of the clips' : 'Say something about it'}
         placeholderTextColor={colors.textMuted}
         accessibilityLabel="Caption"
         multiline
         maxLength={2200}
         style={[styles.input, { color: colors.text, borderColor: colors.border }]}
       />
-      <Text variant="label" muted>
-        WHICH GIG?
-      </Text>
-      {attended.isPending || nearby.isPending ? (
-        <Text muted>Looking for gigs…</Text>
-      ) : choices.length === 0 ? (
-        <Text muted testID="compose-no-gigs">
-          No recent gigs near you. You can post without one.
+      {!gig ? (
+        <Text variant="caption" muted>
+          You can post without a gig, but then nobody finds the clip on the gig&apos;s page.
         </Text>
-      ) : (
-        <View style={styles.chips} accessibilityRole="radiogroup">
-          {choices.map((candidate) => (
-            <Chip
-              key={candidate.id}
-              label={`${candidate.title} · ${candidate.venue.name}`}
-              selected={candidate.id === gigId}
-              onPress={() => {
-                setGigId(candidate.id === gigId ? null : candidate.id);
-                setUntagged([]);
-              }}
-            />
-          ))}
-        </View>
-      )}
-      {bill.length > 0 ? (
-        <>
-          <Text variant="label" muted>
-            WHO IS IN IT?
-          </Text>
-          <View style={styles.chips}>
-            {bill.map((artist) => (
-              <Chip
-                key={artist.id}
-                label={artist.name}
-                selected={!untagged.includes(artist.id)}
-                onPress={() =>
-                  setUntagged((current) =>
-                    current.includes(artist.id)
-                      ? current.filter((id) => id !== artist.id)
-                      : [...current, artist.id],
-                  )
-                }
-              />
-            ))}
-          </View>
-        </>
       ) : null}
       <Button
-        title="Post"
+        title={postLabel(clips)}
         testID="post-button"
         onPress={() =>
-          onPost({
-            caption,
-            gigId,
-            artistIds: bill.map((artist) => artist.id).filter((id) => !untagged.includes(id)),
-          })
+          onPost({ caption, gigId: gig?.id ?? null, artistIds: artists.map((a) => a.id) }, gig)
         }
       />
     </View>
@@ -119,5 +97,4 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     textAlignVertical: 'top',
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
 });

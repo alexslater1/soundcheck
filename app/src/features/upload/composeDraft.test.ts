@@ -1,6 +1,6 @@
 import type { GigSummary } from '@/api/generated/model';
 
-import { billOf, gigChoices } from './composeDraft';
+import { billOf } from './composeDraft';
 
 const gig = (id: string, headliner = 'Headliner', support: string[] = []): GigSummary =>
   ({
@@ -20,11 +20,6 @@ const gig = (id: string, headliner = 'Headliner', support: string[] = []): GigSu
   }) as GigSummary;
 
 describe('compose form helpers', () => {
-  it('offers attended gigs first, then nearby ones, each once', () => {
-    const choices = gigChoices([gig('a'), gig('b')], [gig('b'), gig('c'), gig('d')], 3);
-    expect(choices.map((g) => g.id)).toEqual(['a', 'b', 'c']);
-  });
-
   it('lists a gig’s bill headliner first', () => {
     expect(billOf(gig('a', 'Main Act', ['Opener', 'Second'])).map((artist) => artist.name)).toEqual(
       ['Main Act', 'Opener', 'Second'],

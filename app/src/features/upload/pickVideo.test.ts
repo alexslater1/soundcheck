@@ -1,6 +1,6 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 
-import { toPicked } from './pickVideo';
+import { result, toPicked } from './pickVideo';
 
 jest.mock('expo-image-picker', () => ({}));
 
@@ -46,5 +46,22 @@ describe('toPicked', () => {
       contentType: 'video/mp4',
       fileName: null,
     });
+  });
+});
+
+describe('result', () => {
+  it('returns every picked video in order, or cancelled', () => {
+    const picked = result(
+      {
+        canceled: false,
+        assets: [asset({ uri: 'file:///a.mp4' }), asset({ uri: 'file:///b.mp4' })],
+      },
+      'android',
+    );
+    expect(picked.kind === 'picked' && picked.videos.map((v) => v.uri)).toEqual([
+      'file:///a.mp4',
+      'file:///b.mp4',
+    ]);
+    expect(result({ canceled: true, assets: null }, 'android')).toEqual({ kind: 'cancelled' });
   });
 });

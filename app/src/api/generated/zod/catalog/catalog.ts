@@ -263,16 +263,16 @@ export const addGigBodyTitleMax = 200;
 
 
 export const addGigBody = zod.object({
-  "artistIds": zod.array(zod.string().uuid()).min(addGigBodyArtistIdsMin).max(addGigBodyArtistIdsMax),
-  "artistNames": zod.array(zod.string().min(addGigBodyArtistNamesItemMin).max(addGigBodyArtistNamesItemMax)).min(addGigBodyArtistNamesMin).max(addGigBodyArtistNamesMax),
+  "artistIds": zod.array(zod.string().uuid()).min(addGigBodyArtistIdsMin).max(addGigBodyArtistIdsMax).nullish(),
+  "artistNames": zod.array(zod.string().min(addGigBodyArtistNamesItemMin).max(addGigBodyArtistNamesItemMax)).min(addGigBodyArtistNamesMin).max(addGigBodyArtistNamesMax).nullish(),
   "date": zod.string().date(),
   "newVenue": zod.object({
   "cityId": zod.number(),
   "name": zod.string().min(addGigBodyNewVenueNameMin).max(addGigBodyNewVenueNameMax)
-}),
+}).optional(),
   "time": zod.string().nullish(),
-  "title": zod.string().min(addGigBodyTitleMin).max(addGigBodyTitleMax),
-  "venueId": zod.string().uuid()
+  "title": zod.string().min(addGigBodyTitleMin).max(addGigBodyTitleMax).nullish().describe('Defaults to the headliner\'s name'),
+  "venueId": zod.string().uuid().nullish()
 })
 
 export const addGigResponse = zod.object({

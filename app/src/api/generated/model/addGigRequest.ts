@@ -5,27 +5,32 @@
  * Gig discovery and concert clips.
  * OpenAPI spec version: v1
  */
+import type { AddGigRequestArtistIds } from './addGigRequestArtistIds';
+import type { AddGigRequestArtistNames } from './addGigRequestArtistNames';
 import type { NewVenueRequest } from './newVenueRequest';
 import type { AddGigRequestTime } from './addGigRequestTime';
+import type { AddGigRequestTitle } from './addGigRequestTitle';
+import type { AddGigRequestVenueId } from './addGigRequestVenueId';
 
 export interface AddGigRequest {
   /**
    * @minItems 0
    * @maxItems 10
    */
-  artistIds: string[];
+  artistIds?: AddGigRequestArtistIds;
   /**
    * @minItems 0
    * @maxItems 10
    */
-  artistNames: string[];
+  artistNames?: AddGigRequestArtistNames;
   date: string;
-  newVenue: NewVenueRequest;
+  newVenue?: NewVenueRequest;
   time?: AddGigRequestTime;
   /**
+   * Defaults to the headliner's name
    * @minLength 0
    * @maxLength 200
    */
-  title: string;
-  venueId: string;
+  title?: AddGigRequestTitle;
+  venueId?: AddGigRequestVenueId;
 }

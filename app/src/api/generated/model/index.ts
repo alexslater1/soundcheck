@@ -8,7 +8,11 @@
 
 export * from './addArtistRequest';
 export * from './addGigRequest';
+export * from './addGigRequestArtistIds';
+export * from './addGigRequestArtistNames';
 export * from './addGigRequestTime';
+export * from './addGigRequestTitle';
+export * from './addGigRequestVenueId';
 export * from './addedArtistSummary';
 export * from './addedGigSummary';
 export * from './artistDetail';

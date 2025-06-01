@@ -4,7 +4,12 @@ import { Platform } from 'react-native';
 import type { PickedVideo } from './types';
 
 export type PickResult =
-  { kind: 'picked'; video: PickedVideo } | { kind: 'cancelled' } | { kind: 'denied' };
+  | { kind: 'picked'; videos: PickedVideo[] }
+  | { kind: 'cancelled' }
+  | { kind: 'denied' };
+
+/** How many clips can be picked at once (several clips from one gig). */
+export const MAX_CLIPS_AT_ONCE = 10;
 
 /** The picker's asset in the app's own shape. Pure, so the unit differences are tested. */
 export function toPicked(asset: ImagePicker.ImagePickerAsset, platform: string): PickedVideo {
@@ -37,14 +42,27 @@ const OPTIONS: ImagePicker.ImagePickerOptions = {
   allowsMultipleSelection: false,
 };
 
-function result(picked: ImagePicker.ImagePickerResult): PickResult {
-  const asset = picked.canceled ? undefined : picked.assets[0];
-  return asset ? { kind: 'picked', video: toPicked(asset, Platform.OS) } : { kind: 'cancelled' };
+export function result(picked: ImagePicker.ImagePickerResult, platform: string): PickResult {
+  const assets = picked.canceled ? [] : picked.assets;
+  return assets.length > 0
+    ? { kind: 'picked', videos: assets.map((asset) => toPicked(asset, platform)) }
+    : { kind: 'cancelled' };
 }
 
-/** Choose an existing video: the system photo picker on Android (no permission needed), a file dialog on web. */
+/**
+ * Choose existing videos, up to ten at once: the system photo picker on Android (no permission
+ * needed), a file dialog on web. They are kept in the order they were picked.
+ */
 export async function pickFromLibrary(): Promise<PickResult> {
-  return result(await ImagePicker.launchImageLibraryAsync(OPTIONS));
+  return result(
+    await ImagePicker.launchImageLibraryAsync({
+      ...OPTIONS,
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_CLIPS_AT_ONCE,
+      orderedSelection: true,
+    }),
+    Platform.OS,
+  );
 }
 
 /** Record a new clip with the system camera (Android). */
@@ -53,5 +71,5 @@ export async function recordWithCamera(): Promise<PickResult> {
   if (!permission.granted) {
     return { kind: 'denied' };
   }
-  return result(await ImagePicker.launchCameraAsync(OPTIONS));
+  return result(await ImagePicker.launchCameraAsync(OPTIONS), Platform.OS);
 }
