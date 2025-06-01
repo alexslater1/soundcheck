@@ -120,7 +120,9 @@ export function AuthForm<T extends FieldValues>({
           { backgroundColor: colors.accent, opacity: formState.isSubmitting ? 0.6 : 1 },
         ]}
       >
-        <Text style={styles.buttonText}>{formState.isSubmitting ? '…' : submitLabel}</Text>
+        <Text style={[styles.buttonText, { color: colors.onAccent }]}>
+          {formState.isSubmitting ? '…' : submitLabel}
+        </Text>
       </Pressable>
     </View>
   );
@@ -162,5 +164,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: spacing.sm,
   },
-  buttonText: { color: '#FFFFFF', fontWeight: '700' },
+  buttonText: { fontWeight: '700' },
 });

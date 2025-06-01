@@ -29,11 +29,11 @@ export function ProfileHeader({
   const { colors } = useTheme();
   return (
     <View style={[styles.header, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={[styles.avatar, { backgroundColor: colors.accentMuted }]}>
+      <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
         {avatarUrl ? (
           <Image source={{ uri: avatarUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
-          <Text variant="title" style={styles.initial}>
+          <Text variant="title" style={{ color: colors.onAccent }}>
             {displayName.slice(0, 1).toUpperCase()}
           </Text>
         )}
@@ -87,7 +87,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  initial: { color: '#FFFFFF' },
   counts: { flexDirection: 'row', gap: spacing.lg, marginVertical: spacing.sm },
   count: { alignItems: 'center' },
   bold: { fontWeight: '700' },

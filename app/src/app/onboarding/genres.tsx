@@ -68,7 +68,7 @@ export default function GenresStep() {
                   },
                 ]}
               >
-                <Text style={{ color: on ? '#FFFFFF' : colors.text }}>{g.name}</Text>
+                <Text style={{ color: on ? colors.onAccent : colors.text }}>{g.name}</Text>
               </Pressable>
               {on
                 ? WEIGHTS.map((w) => (

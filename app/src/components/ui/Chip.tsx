@@ -38,7 +38,13 @@ export function Chip({
         },
       ]}
     >
-      <Text variant="caption" style={{ color: selected ? '#FFFFFF' : colors.text }}>
+      <Text
+        variant="caption"
+        style={{
+          color: selected ? colors.onAccent : colors.text,
+          fontWeight: selected ? '700' : '400',
+        }}
+      >
         {label}
       </Text>
     </Pressable>

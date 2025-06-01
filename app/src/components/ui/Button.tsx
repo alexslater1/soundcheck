@@ -16,7 +16,8 @@ export function Button({ title, variant = 'primary', disabled, style, ...props }
       : variant === 'danger'
         ? colors.danger
         : colors.surfaceRaised;
-  const color = variant === 'secondary' ? colors.text : '#FFFFFF';
+  const color =
+    variant === 'secondary' ? colors.text : variant === 'danger' ? '#FFFFFF' : colors.onAccent;
   return (
     <Pressable
       accessibilityRole="button"

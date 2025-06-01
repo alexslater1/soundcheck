@@ -13,6 +13,9 @@ export default function SettingsScreen() {
   return (
     <Screen>
       <View style={styles.list}>
+        <Link href="/settings/appearance" style={styles.item}>
+          <Text>Appearance: theme, dark or light →</Text>
+        </Link>
         <Link href="/settings/profile" style={styles.item}>
           <Text>Edit profile →</Text>
         </Link>
