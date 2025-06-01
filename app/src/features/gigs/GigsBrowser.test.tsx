@@ -5,6 +5,8 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { GigsBrowser } from './GigsBrowser';
 
 // The cards link to /gig/[id]; outside a navigator the link just renders its child.
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+jest.mock('expo-image', () => ({ Image: () => null }));
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: ReactNode }) => children,
   // Outside a navigator "focus" is simply "mounted".
@@ -42,6 +44,7 @@ const gig = (id: string, title: string) => ({
   currency: 'GBP',
   myAttendance: null,
   distanceKm: 1.2,
+  userAdded: false,
 });
 
 const genres = [
@@ -51,11 +54,24 @@ const genres = [
 ];
 
 /** Routes the fake network by URL; `gigs` decides what the gig list answers. */
-function respondWith(gigs: (url: URL) => Response | Promise<Response>) {
+function respondWith(
+  gigs: (url: URL) => Response | Promise<Response>,
+  days: (url: URL) => Response = () => json([]),
+) {
   fetchMock.mockImplementation(async (input) => {
     const url = new URL(String(input));
     if (url.pathname === '/api/v1/genres') return json(genres);
     if (url.pathname === '/api/v1/gigs') return gigs(url);
+    if (url.pathname === '/api/v1/gigs/days') return days(url);
+    if (url.pathname === '/api/v1/artists') {
+      return json({
+        items: [{ id: 'a9', name: 'Pale Kites', imageUrl: null, genres: [], isFollowing: false }],
+        nextCursor: null,
+      });
+    }
+    if (url.pathname === '/api/v1/venues') {
+      return json([{ id: 'v9', name: 'Palace Theatre', city: 'Manchester', location: null }]);
+    }
     throw new Error(`unexpected request ${url}`);
   });
 }
@@ -82,7 +98,8 @@ describe('GigsBrowser', () => {
     expect(screen.getByTestId('gigs-loading')).toBeOnTheScreen();
     answer(json({ items: [gig('g1', 'Harbour Wolves')], nextCursor: null }));
     await waitFor(() => expect(screen.getByText('Harbour Wolves')).toBeOnTheScreen());
-    expect(screen.getByText('The Tin Exchange, Manchester · 1.2 km · £12.50')).toBeOnTheScreen();
+    expect(screen.getByText('The Tin Exchange, Manchester')).toBeOnTheScreen();
+    expect(screen.getByText('19:30 · 1.2 km · £12.50')).toBeOnTheScreen();
     // The default chip is "Next 7 days": a from/to window seven days apart, page size 20.
     const first = gigRequests()[0]!;
     const from = Date.parse(first.searchParams.get('from')!);
@@ -150,5 +167,55 @@ describe('GigsBrowser', () => {
     await fireEvent.press(screen.getByRole('button', { name: 'Try again' }));
     await waitFor(() => expect(screen.getByText('Second Page Act')).toBeOnTheScreen());
     expect(screen.getByText('First Page Act')).toBeOnTheScreen();
+  });
+
+  it('turns a suggested artist into an exact, UK-wide filter that can be removed', async () => {
+    respondWith(() => json({ items: [], nextCursor: null }));
+    await render(<GigsBrowser />, { wrapper: Providers });
+
+    await fireEvent.changeText(screen.getByLabelText('Search gigs'), 'pale');
+    await fireEvent.press(await screen.findByLabelText('Artist: Pale Kites'));
+
+    await waitFor(() => {
+      const last = gigRequests().at(-1)!;
+      expect(last.searchParams.get('artistId')).toBe('a9');
+      expect(last.searchParams.get('nationwide')).toBe('true');
+      expect(last.searchParams.get('q')).toBeNull();
+    });
+    await fireEvent.press(screen.getByLabelText('Remove filter Pale Kites'));
+    await waitFor(() => {
+      const last = gigRequests().at(-1)!;
+      expect(last.searchParams.get('artistId')).toBeNull();
+      expect(last.searchParams.get('nationwide')).toBeNull();
+    });
+  });
+
+  it('shows a calendar of the days with matching gigs, and lists one day when it is tapped', async () => {
+    const dayRequests: URL[] = [];
+    respondWith(
+      () => json({ items: [gig('g1', 'Harbour Wolves')], nextCursor: null }),
+      (url) => {
+        dayRequests.push(url);
+        const month = new Date(url.searchParams.get('from')!);
+        // The 17th of the month the calendar shows (UK midnight is the evening before in UTC in summer).
+        const shown = new Date(month.getTime() + 12 * 60 * 60 * 1000);
+        const iso = `${shown.getUTCFullYear()}-${String(shown.getUTCMonth() + 1).padStart(2, '0')}-17`;
+        return json([{ date: iso, count: 2 }]);
+      },
+    );
+    await render(<GigsBrowser />, { wrapper: Providers });
+    await fireEvent.press(screen.getByLabelText('Calendar view'));
+
+    const highlighted = await screen.findByLabelText(/-17, 2 gigs$/);
+    expect(screen.getByTestId('gigs-calendar')).toBeOnTheScreen();
+    expect(dayRequests.length).toBeGreaterThan(0);
+    await fireEvent.press(highlighted);
+
+    await waitFor(() => {
+      const last = gigRequests().at(-1)!;
+      const span =
+        Date.parse(last.searchParams.get('to')!) - Date.parse(last.searchParams.get('from')!);
+      expect(span).toBeLessThanOrEqual(25 * 60 * 60 * 1000); // one UK day
+    });
   });
 });

@@ -60,3 +60,42 @@ export function ticketLabel(sources: readonly { source: string }[]): string {
   if (sources.some((s) => s.source === 'SKIDDLE')) return 'Tickets on Skiddle';
   return 'Tickets';
 }
+
+/** The pieces of a gig's start for a date tile: "FRI", "17", "OCT", "19:30" (UK time by default). */
+export function dateParts(
+  iso: string,
+  timeZone = 'Europe/London',
+): { weekday: string; day: string; month: string; time: string } {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    timeZone,
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return {
+    weekday: get('weekday').toUpperCase(),
+    day: get('day'),
+    month: get('month').toUpperCase(),
+    time: `${get('hour')}:${get('minute')}`,
+  };
+}
+
+/**
+ * "Fri 17 Oct 2026": the date of a concert under a clip (no time: it is the night that matters). Built
+ * from parts because engines punctuate the whole-string format differently (Node adds a comma).
+ */
+export function formatGigDate(iso: string, timeZone = 'Europe/London'): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    timeZone,
+  }).formatToParts(new Date(iso));
+  const get = (type: string) => parts.find((p) => p.type === type)?.value ?? '';
+  return `${get('weekday')} ${get('day')} ${get('month')} ${get('year')}`;
+}

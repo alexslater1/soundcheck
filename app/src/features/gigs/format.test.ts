@@ -1,4 +1,12 @@
-import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
+import {
+  dateParts,
+  formatGigDate,
+  formatDistance,
+  formatGigTime,
+  formatPrice,
+  statusLabel,
+  ticketLabel,
+} from './format';
 
 describe('gig formatting', () => {
   it('formats the start in the given zone', () => {
@@ -30,5 +38,22 @@ describe('gig formatting', () => {
     expect(ticketLabel([{ source: 'TICKETMASTER' }])).toBe('Tickets on Ticketmaster');
     expect(ticketLabel([{ source: 'SKIDDLE' }])).toBe('Tickets on Skiddle');
     expect(ticketLabel([])).toBe('Tickets');
+  });
+});
+
+describe('dateParts and formatGigDate', () => {
+  it('splits a start into a date tile on the UK clock', () => {
+    expect(dateParts('2026-10-17T18:30:00Z')).toEqual({
+      weekday: 'SAT',
+      day: '17',
+      month: 'OCT',
+      time: '19:30',
+    });
+    // 00:30 UK on the 18th, not the 17th.
+    expect(dateParts('2026-10-17T23:30:00Z').day).toBe('18');
+  });
+
+  it('names the night of a concert with its year', () => {
+    expect(formatGigDate('2026-10-17T18:30:00Z')).toBe('Sat 17 Oct 2026');
   });
 });
