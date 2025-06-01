@@ -78,6 +78,8 @@ function RootStack() {
         <Stack.Screen name="u/[handle]/followers" options={{ title: 'Followers' }} />
         <Stack.Screen name="u/[handle]/following" options={{ title: 'Following' }} />
         <Stack.Screen name="console" options={{ headerShown: false }} />
+        {/* Settings has its own stack and header; without this a second "settings" bar sat above it. */}
+        <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ title: 'Not found' }} />
       </Stack>
     </>
