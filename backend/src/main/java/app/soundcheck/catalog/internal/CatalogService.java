@@ -55,6 +55,7 @@ public class CatalogService {
     /**
      * {@code GET /gigs} parameters after validation. {@code nationwide} drops the radius (a search for a
      * gig the user filmed in another city); distances are still measured from the origin.
+     * {@code newestFirst} walks the window from its end (the clip picker: last night before last month).
      */
     public record GigQuery(
             @Nullable Double lat,
@@ -67,6 +68,7 @@ public class CatalogService {
             @Nullable UUID artistId,
             @Nullable UUID venueId,
             boolean nationwide,
+            boolean newestFirst,
             @Nullable String cursor,
             @Nullable Integer limit) {}
 
@@ -203,7 +205,7 @@ public class CatalogService {
                 query.venueId(),
                 null,
                 null,
-                false,
+                query.newestFirst(),
                 limit == null ? Cursor.decode(query.cursor()) : null,
                 limit == null ? Cursor.limit(query.limit()) : limit);
     }

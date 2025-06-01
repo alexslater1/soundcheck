@@ -162,6 +162,19 @@ class UserGigsIT extends IntegrationTest {
                 "/api/v1/gigs?venueId=" + inGlasgow.path("venue").path("id").asText("") + "&nationwide=true";
         assertThat(ok(api.get(byVenue, fan)).path("items")).isEmpty(); // default window starts now
         assertThat(ok(api.get(byVenue + "&from=" + from, fan)).path("items")).hasSize(1);
+
+        // The clip picker's search: newest first, one page at a time.
+        String venueId = inGlasgow.path("venue").path("id").asText("");
+        api.post("/api/v1/gigs", gigAt(List.of("Earlier Act " + tag), venueId, day.minusDays(2)), fan);
+        String newest = "/api/v1/gigs?venueId=" + venueId + "&nationwide=true&order=desc&limit=1&from="
+                + day.minusDays(10).atStartOfDay(UK).toInstant() + "&to="
+                + day.plusDays(1).atStartOfDay(UK).toInstant();
+        JsonNode first = ok(api.get(newest, fan));
+        assertThat(first.path("items").path(0).path("title").asText("")).isEqualTo("Far Act " + tag);
+        JsonNode second =
+                ok(api.get(newest + "&cursor=" + first.path("nextCursor").asText(""), fan));
+        assertThat(second.path("items").path(0).path("title").asText("")).isEqualTo("Earlier Act " + tag);
+        assertThat(code(api.get(newest + "&order=sideways", fan))).isEqualTo("ORDER_INVALID");
     }
 
     @Test

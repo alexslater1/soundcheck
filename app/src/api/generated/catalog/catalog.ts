@@ -435,7 +435,7 @@ export function useListArtistGigs<TData = Awaited<ReturnType<typeof listArtistGi
 
 
 /**
- * @summary Upcoming gigs near a point (default: the viewer's home city), ordered by start time
+ * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end
  */
 export const getListGigsUrl = (params?: ListGigsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -517,7 +517,7 @@ export function useListGigs<TData = Awaited<ReturnType<typeof listGigs>>, TError
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Upcoming gigs near a point (default: the viewer's home city), ordered by start time
+ * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end
  */
 
 export function useListGigs<TData = Awaited<ReturnType<typeof listGigs>>, TError = unknown>(

@@ -74,7 +74,8 @@ public class CatalogController {
     @GetMapping("/gigs")
     @Operation(
             operationId = "listGigs",
-            summary = "Upcoming gigs near a point (default: the viewer's home city), ordered by start time")
+            summary =
+                    "Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end")
     public Page<GigSummary> gigs(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") Double lat,
@@ -87,11 +88,29 @@ public class CatalogController {
             @RequestParam(required = false) UUID artistId,
             @RequestParam(required = false) UUID venueId,
             @RequestParam(required = false, defaultValue = "false") boolean nationwide,
+            @RequestParam(required = false, defaultValue = "asc") @Schema(allowableValues = {"asc", "desc"})
+                    String order,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) Integer limit) {
+        if (!order.equals("asc") && !order.equals("desc")) {
+            throw ApiException.badRequest("ORDER_INVALID", "order must be asc or desc");
+        }
         return catalog.gigs(
                 userId(jwt),
-                new GigQuery(lat, lng, radiusKm, from, to, genre, q, artistId, venueId, nationwide, cursor, limit));
+                new GigQuery(
+                        lat,
+                        lng,
+                        radiusKm,
+                        from,
+                        to,
+                        genre,
+                        q,
+                        artistId,
+                        venueId,
+                        nationwide,
+                        order.equals("desc"),
+                        cursor,
+                        limit));
     }
 
     @GetMapping("/gigs/days")
@@ -113,7 +132,7 @@ public class CatalogController {
             @RequestParam(required = false, defaultValue = "false") boolean nationwide) {
         return catalog.gigDays(
                 userId(jwt),
-                new GigQuery(lat, lng, radiusKm, from, to, genre, q, artistId, venueId, nationwide, null, null));
+                new GigQuery(lat, lng, radiusKm, from, to, genre, q, artistId, venueId, nationwide, false, null, null));
     }
 
     @PostMapping("/gigs")

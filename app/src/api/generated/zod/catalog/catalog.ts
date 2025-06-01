@@ -168,7 +168,7 @@ export const listArtistGigsResponse = zod.object({
 })
 
 /**
- * @summary Upcoming gigs near a point (default: the viewer's home city), ordered by start time
+ * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end
  */
 export const listGigsQueryLatMin = -90;
 
@@ -183,7 +183,7 @@ export const listGigsQueryGenreMax = 40;
 export const listGigsQueryQMin = 0;
 
 export const listGigsQueryQMax = 80;
-export const listGigsQueryNationwideDefault = false;
+export const listGigsQueryNationwideDefault = false;export const listGigsQueryOrderDefault = "asc";
 
 export const listGigsQueryParams = zod.object({
   "lat": zod.number().min(listGigsQueryLatMin).max(listGigsQueryLatMax).optional(),
@@ -196,6 +196,7 @@ export const listGigsQueryParams = zod.object({
   "artistId": zod.string().uuid().optional(),
   "venueId": zod.string().uuid().optional(),
   "nationwide": zod.boolean().optional(),
+  "order": zod.enum(['asc', 'desc']).default(listGigsQueryOrderDefault),
   "cursor": zod.string().optional(),
   "limit": zod.number().optional()
 })

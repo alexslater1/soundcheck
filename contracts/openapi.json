@@ -2070,6 +2070,15 @@
           }
         }, {
           "in" : "query",
+          "name" : "order",
+          "required" : false,
+          "schema" : {
+            "default" : "asc",
+            "enum" : [ "asc", "desc" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "cursor",
           "required" : false,
           "schema" : {
@@ -2096,7 +2105,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Upcoming gigs near a point (default: the viewer's home city), ordered by start time",
+        "summary" : "Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end",
         "tags" : [ "catalog" ]
       },
       "post" : {

@@ -5,6 +5,7 @@
  * Gig discovery and concert clips.
  * OpenAPI spec version: v1
  */
+import type { ListGigsOrder } from './listGigsOrder';
 
 export type ListGigsParams = {
 lat?: number;
@@ -17,6 +18,7 @@ q?: string;
 artistId?: string;
 venueId?: string;
 nationwide?: boolean;
+order?: ListGigsOrder;
 cursor?: string;
 limit?: number;
 };

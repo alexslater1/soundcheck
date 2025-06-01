@@ -89,6 +89,7 @@ export * from './listFollowersParams';
 export * from './listFollowingParams';
 export * from './listGigDaysParams';
 export * from './listGigPostsParams';
+export * from './listGigsOrder';
 export * from './listGigsParams';
 export * from './listMyGigsParams';
 export * from './listMyPostsParams';
