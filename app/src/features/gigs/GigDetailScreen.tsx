@@ -71,6 +71,11 @@ export function GigDetailScreen({ id }: { id: string }) {
           </Text>
         ) : null}
         <Text testID="gig-time">{formatGigTime(gig.startsAt)}</Text>
+        {gig.userAdded ? (
+          <Text variant="caption" muted testID="gig-user-added">
+            Added by fans: no ticket site lists this gig, so details may be approximate.
+          </Text>
+        ) : null}
         <Link href={`/venue/${gig.venue.id}`}>
           <Text style={{ color: colors.accent }}>
             {gig.venue.name}

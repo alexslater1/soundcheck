@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -8,7 +9,10 @@ import { spacing, touchTarget } from '@/theme/tokens';
 
 import { FollowButton } from './FollowButton';
 
-/** An artist in a list: initial, name, genres, and a follow button; the name opens the artist page. */
+/**
+ * An artist in a list: photo (or initial), name, genres, and a follow button; the name opens the
+ * artist page.
+ */
 export function ArtistRow({
   artist,
   genreNames,
@@ -23,8 +27,20 @@ export function ArtistRow({
   const genres = artist.genres.map((slug) => genreNames.get(slug) ?? slug).join(' · ');
   const label = (
     <View style={styles.label}>
-      <View style={[styles.avatar, { backgroundColor: colors.surfaceRaised }]}>
-        <Text style={{ fontWeight: '700' }}>{artist.name.slice(0, 1).toUpperCase()}</Text>
+      <View style={[styles.avatar, { backgroundColor: colors.accentSoft }]}>
+        {artist.imageUrl ? (
+          <Image
+            source={{ uri: artist.imageUrl }}
+            style={StyleSheet.absoluteFill}
+            contentFit="cover"
+            transition={150}
+            accessibilityIgnoresInvertColors
+          />
+        ) : (
+          <Text style={{ fontWeight: '800', color: colors.accent }}>
+            {artist.name.slice(0, 1).toUpperCase()}
+          </Text>
+        )}
       </View>
       <View style={styles.text}>
         <Text numberOfLines={1} style={{ fontWeight: '600' }}>
@@ -72,6 +88,7 @@ const styles = StyleSheet.create({
     width: touchTarget,
     height: touchTarget,
     borderRadius: touchTarget / 2,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
