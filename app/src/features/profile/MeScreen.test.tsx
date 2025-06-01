@@ -10,6 +10,8 @@ const mockRefetch = jest.fn(async () => undefined);
 const mockPosts = jest.fn();
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+// The gigs calendar has its own tests and its own data.
+jest.mock('./MyGigsCalendar', () => ({ MyGigsCalendar: () => null }));
 jest.mock('@/api/generated/posts/posts', () => ({
   useListMyPosts: (...args: unknown[]) => mockPosts(...args),
 }));

@@ -14,11 +14,12 @@ import { postOnItsWay } from '@/features/upload/labels';
 import { useUploadQueue } from '@/features/upload/uploadQueue';
 import { spacing } from '@/theme/tokens';
 
+import { MyGigsCalendar } from './MyGigsCalendar';
 import { ProfileHeader } from './ProfileHeader';
 
 /**
- * Own profile (Me tab): header with counts, then every post of one's own, including the ones still
- * processing or failed, each with a badge.
+ * Own profile (Me tab): header with counts, every post of one's own, including the ones still
+ * processing or failed, each with a badge, then a calendar of the gigs the user marked.
  */
 export function MeScreen() {
   const me = useAuthStore((state) => state.me);
@@ -111,6 +112,7 @@ export function MeScreen() {
         ) : (
           <PostGrid posts={posts.data.items} />
         )}
+        <MyGigsCalendar />
         <Link href="/settings" style={styles.link}>
           <Text muted>Settings →</Text>
         </Link>
