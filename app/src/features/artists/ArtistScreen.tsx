@@ -1,11 +1,17 @@
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
-import { useGetArtist } from '@/api/generated/catalog/catalog';
+import {
+  getListArtistGigsQueryKey,
+  listArtistGigs,
+  useGetArtist,
+} from '@/api/generated/catalog/catalog';
+import { useListArtistPosts } from '@/api/generated/posts/posts';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
-import { GigCard } from '@/features/gigs/GigCard';
+import { PagedGigs } from '@/features/gigs/PagedGigs';
+import { PostGrid } from '@/features/posts/PostGrid';
 import { openWebLink } from '@/lib/openLink';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
@@ -13,7 +19,7 @@ import { radius, spacing } from '@/theme/tokens';
 import { FollowButton } from './FollowButton';
 import { useGenreNames } from './useGenreNames';
 
-/** Artist page: genres, follower count, follow, upcoming gigs. */
+/** Artist page: genres, follower count, follow, upcoming gigs (more on request), clips. */
 export function ArtistScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
@@ -67,13 +73,16 @@ export function ArtistScreen({ id }: { id: string }) {
         <Text variant="label" muted style={styles.heading}>
           UPCOMING GIGS
         </Text>
-        {data.upcomingGigs.length === 0 ? (
-          <Text muted testID="artist-no-gigs">
-            No upcoming gigs listed.
-          </Text>
-        ) : (
-          data.upcomingGigs.map((gig) => <GigCard key={gig.id} gig={gig} />)
-        )}
+        <PagedGigs
+          queryKey={getListArtistGigsQueryKey(id)}
+          fetchPage={(cursor) => listArtistGigs(id, { limit: 10, ...(cursor ? { cursor } : {}) })}
+          empty="No upcoming gigs listed."
+          testID="artist-gigs"
+        />
+        <Text variant="label" muted style={styles.heading}>
+          CLIPS
+        </Text>
+        <ArtistClips artistId={id} name={artist.name} />
         {/* Last.fm asks for attribution wherever its data is shown (API terms §2.7). */}
         <Text
           variant="caption"
@@ -95,3 +104,18 @@ const styles = StyleSheet.create({
   heading: { marginTop: spacing.md },
   credit: { marginTop: spacing.md },
 });
+
+/** Clips tagged with this artist, newest first. */
+function ArtistClips({ artistId, name }: { artistId: string; name: string }) {
+  const posts = useListArtistPosts(artistId, { limit: 12 });
+  if (posts.isPending) {
+    return <Skeleton height={120} />;
+  }
+  if (!posts.data) {
+    return <StateMessage title="Could not load clips" onRetry={() => void posts.refetch()} />;
+  }
+  if (posts.data.items.length === 0) {
+    return <Text muted>No clips of {name} yet.</Text>;
+  }
+  return <PostGrid posts={posts.data.items} />;
+}

@@ -1,19 +1,28 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 
-import { useGetVenue, useListVenueGigs } from '@/api/generated/catalog/catalog';
+import {
+  getListVenueGigsQueryKey,
+  listVenueGigs,
+  useGetVenue,
+} from '@/api/generated/catalog/catalog';
+import { useListVenuePosts } from '@/api/generated/posts/posts';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
-import { GigCard } from '@/features/gigs/GigCard';
+import { PagedGigs } from '@/features/gigs/PagedGigs';
+import { PostGrid } from '@/features/posts/PostGrid';
 import { openWebLink } from '@/lib/openLink';
 import { spacing } from '@/theme/tokens';
 
-/** Venue page: address, a link out to a maps app (maps are out of scope), upcoming gigs. */
+/**
+ * Venue page: address, a link out to a maps app (maps are out of scope), upcoming gigs
+ * (more on request) and the clips filmed there.
+ */
 export function VenueScreen({ id }: { id: string }) {
   const venue = useGetVenue(id);
-  const gigs = useListVenueGigs(id, { limit: 20 });
+  const clips = useListVenuePosts(id, { limit: 12 });
 
   if (venue.isPending) {
     return (
@@ -59,16 +68,23 @@ export function VenueScreen({ id }: { id: string }) {
         <Text variant="label" muted style={styles.heading}>
           UPCOMING GIGS
         </Text>
-        {gigs.isPending ? (
-          <Skeleton height={96} />
-        ) : !gigs.data ? (
-          <StateMessage title="Could not load gigs" onRetry={() => void gigs.refetch()} />
-        ) : gigs.data.items.length === 0 ? (
-          <Text muted testID="venue-no-gigs">
-            No upcoming gigs listed.
-          </Text>
+        <PagedGigs
+          queryKey={getListVenueGigsQueryKey(id)}
+          fetchPage={(cursor) => listVenueGigs(id, { limit: 10, ...(cursor ? { cursor } : {}) })}
+          empty="No upcoming gigs listed."
+          testID="venue-gigs"
+        />
+        <Text variant="label" muted style={styles.heading}>
+          CLIPS FILMED HERE
+        </Text>
+        {clips.isPending ? (
+          <Skeleton height={120} />
+        ) : !clips.data ? (
+          <StateMessage title="Could not load clips" onRetry={() => void clips.refetch()} />
+        ) : clips.data.items.length === 0 ? (
+          <Text muted>No clips from here yet.</Text>
         ) : (
-          gigs.data.items.map((gig) => <GigCard key={gig.id} gig={gig} />)
+          <PostGrid posts={clips.data.items} />
         )}
       </ScrollView>
     </Screen>
