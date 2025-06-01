@@ -26,7 +26,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
+.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
 	openapi openapi-check ingest record-fixtures purge-fixtures seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -108,6 +108,9 @@ status: ## Show what is running: containers, api/worker/expo, build daemons, pho
 	$(CURDIR)/ops/scripts/local-status.sh
 
 # ── Run services ─────────────────────────────────────────────────────────────
+dev: ## Everything in one terminal: make up, then api + worker in the background, then the app (ANDROID=1: rebuild and install the dev build first). Ctrl+C stops all but the containers
+	$(CURDIR)/ops/scripts/dev.sh
+
 api: ## Run the API (roles api,scheduler) from Gradle against the local stack
 	SOUNDCHECK_ROLES=api,scheduler $(GRADLE) bootRun --args='--spring.profiles.active=local'
 

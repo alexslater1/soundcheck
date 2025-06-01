@@ -33,6 +33,9 @@ Prerequisites: `docs/SETUP.md` Parts A–B (accounts, keys, Ubuntu toolchain).
 ```bash
 git clone git@github.com:alexslater1/soundcheck.git && cd soundcheck
 make setup          # checks the toolchain, creates .env from .env.example — set the API keys
+make dev            # all of the below in ONE terminal: containers, API + worker in the background (logs in .localdata/logs/), Expo in front; Ctrl+C stops them
+make dev ANDROID=1  # the same, but rebuilds and installs the Android dev build instead of plain Expo (after native changes)
+# …or one service per terminal:
 make up             # db, localstack, lgtm, edge (Docker Compose); waits until healthy
 make api            # terminal 1 — API on :8080 (first run downloads Gradle deps and generates jOOQ code, ~1–2 min)
 make worker         # terminal 2 — transcode worker (role worker)

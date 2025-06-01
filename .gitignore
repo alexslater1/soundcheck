@@ -5,6 +5,7 @@
 .secrets/
 
 # Generated / local data
+.localdata/
 # Real API recordings stay local (provider terms); committed fixtures are synthetic.
 fixtures/recorded/
 fixtures/clips/*
