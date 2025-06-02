@@ -28,7 +28,7 @@ export async function signUpAndOnboard(page: Page, displayName = 'E2E User'): Pr
     .click();
   await expect(page.getByText('Follow some artists')).toBeVisible();
   await page.getByRole('button', { name: 'Finish' }).last().click();
-  await expect(page.getByTestId('health-status')).toHaveText(/API: UP/);
+  await expect(page.getByRole('radio', { name: 'For You' }).last()).toBeVisible();
   return { handle, password };
 }
 

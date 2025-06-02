@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 /**
- * Sign up → onboarding (city, genres, artists) → Home shows the API health badge.
+ * Sign up → onboarding (city, genres, artists) → Home; Settings shows the API health. Then follow
  * an artist during onboarding, find a gig near the chosen city, mark Going.
  * Runs against the real stack through the edge (the catalog must hold gigs: `make ingest`); the account
  * is deleted at the end via Settings.
@@ -55,7 +55,6 @@ test('sign up, onboard, follow an artist, mark a gig as Going, delete the accoun
   await expect(page.getByRole('button', { name: /^Unfollow / }).first()).toBeVisible();
   await page.getByRole('button', { name: 'Finish' }).last().click();
   await expect(page.getByText('Soundcheck', { exact: true }).first()).toBeVisible();
-  await expect(page.getByTestId('health-status')).toHaveText(/API: UP/);
 
   // Find a gig near the onboarding city and mark Going.
   await page.getByRole('tab', { name: /Gigs$/ }).click();
@@ -86,6 +85,7 @@ test('sign up, onboard, follow an artist, mark a gig as Going, delete the accoun
   await page.getByRole('tab', { name: /Me$/ }).click();
   await expect(page.getByText(`@${handle}`)).toBeVisible();
   await page.getByText('Settings →').last().click();
+  await expect(page.getByTestId('health-status')).toHaveText(/API: UP/);
   await page.getByText('Account and deletion →').last().click();
   await page.getByLabel('Password').last().fill(password);
   await page.getByRole('button', { name: 'Delete account' }).last().click();

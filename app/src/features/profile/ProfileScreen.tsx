@@ -6,6 +6,7 @@ import { getGetUserByHandleQueryKey, useGetUserByHandle } from '@/api/generated/
 import { useListUserPosts } from '@/api/generated/posts/posts';
 import { blockUser, unblockUser } from '@/api/generated/social/social';
 import { Button } from '@/components/ui/Button';
+import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -76,10 +77,10 @@ export function ProfileScreen({ handle }: { handle: string }) {
                   onChange={() => void refresh()}
                 />
               )}
-              <Button
-                title="More"
-                variant="secondary"
+              <IconButton
+                icon="ellipsis-horizontal"
                 accessibilityLabel="More actions"
+                accessibilityState={{ expanded: menuOpen }}
                 onPress={() => setMenuOpen((open) => !open)}
               />
             </View>
@@ -127,5 +128,5 @@ function UserPosts({ userId }: { userId: string }) {
 
 const styles = StyleSheet.create({
   gap: { gap: spacing.md, paddingBottom: spacing.xl },
-  buttons: { flexDirection: 'row', gap: spacing.sm },
+  buttons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 });

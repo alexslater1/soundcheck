@@ -5,16 +5,19 @@ import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { HealthBadge } from '@/features/health/HealthBadge';
 import { spacing, touchTarget } from '@/theme/tokens';
 
-/** Settings hub: profile, account (delete), sign out. */
+/**
+ * Settings hub: appearance, profile, account (delete), sign out, and the server's status.
+ */
 export default function SettingsScreen() {
   const signOut = useAuthStore((s) => s.signOut);
   return (
     <Screen>
       <View style={styles.list}>
         <Link href="/settings/appearance" style={styles.item}>
-          <Text>Appearance: theme, dark or light →</Text>
+          <Text>Appearance: dark or light →</Text>
         </Link>
         <Link href="/settings/profile" style={styles.item}>
           <Text>Edit profile →</Text>
@@ -24,6 +27,12 @@ export default function SettingsScreen() {
         </Link>
       </View>
       <Button title="Sign out" variant="secondary" onPress={() => void signOut()} />
+      <View style={styles.about}>
+        <Text variant="label" muted>
+          ABOUT
+        </Text>
+        <HealthBadge />
+      </View>
     </Screen>
   );
 }
@@ -31,4 +40,5 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   list: { gap: spacing.sm, marginBottom: spacing.xl },
   item: { minHeight: touchTarget, paddingVertical: spacing.sm },
+  about: { gap: spacing.sm, marginTop: spacing.xl },
 });

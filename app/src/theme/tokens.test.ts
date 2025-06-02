@@ -30,7 +30,7 @@ describe('theme palettes', () => {
   );
 
   it('every theme defines the same roles in both variants', () => {
-    const roles = Object.keys(themes.original.palettes.dark).sort();
+    const roles = Object.keys(themes.electric.palettes.dark).sort();
     for (const id of THEME_ORDER) {
       for (const scheme of schemes) {
         expect(Object.keys(themes[id].palettes[scheme]).sort()).toEqual(roles);
