@@ -72,7 +72,6 @@ export function CreateScreen() {
   const composingEntries = entries.filter(
     (entry) => composing.includes(entry.localId) && !entry.draft,
   );
-  const others = entries.filter((entry) => !composingEntries.includes(entry));
 
   const add = async (pick: () => Promise<PickResult>) => {
     setProblem(null);
@@ -253,12 +252,12 @@ export function CreateScreen() {
         <Text variant="label" muted style={styles.heading}>
           ON THEIR WAY
         </Text>
-        {others.length === 0 ? (
+        {entries.length === 0 ? (
           <Text muted testID="uploads-empty">
-            Nothing else uploading. Posted clips are on your profile.
+            Nothing uploading. Posted clips are on your profile.
           </Text>
         ) : (
-          others.map((entry) => (
+          entries.map((entry) => (
             <UploadRow
               key={entry.localId}
               entry={entry}
@@ -269,7 +268,11 @@ export function CreateScreen() {
                   void submitPost(entry.localId, entry.draft);
                 }
               }}
-              onWritePost={() => setComposing((current) => [...current, entry.localId])}
+              onWritePost={
+                composing.includes(entry.localId)
+                  ? undefined
+                  : () => setComposing((current) => [...current, entry.localId])
+              }
             />
           ))
         )}

@@ -161,7 +161,8 @@ describe('CreateScreen', () => {
     });
     expect(mockStartUpload).toHaveBeenCalledWith(entry!.localId);
     expect(screen.getByText('preview file:///DCIM/clip.mp4')).toBeTruthy();
-    expect(screen.getByText('Getting ready…')).toBeTruthy();
+    // Its state under the preview, and in full in the uploads list below.
+    expect(screen.getAllByText('Getting ready…')).toHaveLength(2);
     expect(screen.getByText('compose-stub 1 Pale Kites')).toBeTruthy();
   });
 
