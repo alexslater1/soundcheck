@@ -23,6 +23,7 @@ describe('chooseUpload', () => {
       original,
       { uri: 'file:///compressed.mp4', bytes: 18_000_000, elapsedMs: 4200 },
       'android',
+      'cellular',
     );
 
     expect(video).toMatchObject({
@@ -33,6 +34,7 @@ describe('chooseUpload', () => {
     });
     expect(clientMeta).toEqual({
       platform: 'android',
+      connection: 'cellular',
       originalBytes: 60_000_000,
       compressedBytes: 18_000_000,
       compressMs: 4200,
@@ -47,6 +49,7 @@ describe('chooseUpload', () => {
       original,
       { uri: 'file:///compressed.mp4', bytes: 61_000_000, elapsedMs: 3000 },
       'android',
+      'cellular',
     );
 
     expect(video).toBe(original);
@@ -57,9 +60,9 @@ describe('chooseUpload', () => {
   });
 
   it('uploads the original with only the platform when there was no compression (web)', () => {
-    expect(chooseUpload(original, null, 'web')).toEqual({
+    expect(chooseUpload(original, null, 'web', 'unknown')).toEqual({
       video: original,
-      clientMeta: { platform: 'web' },
+      clientMeta: { platform: 'web', connection: 'unknown' },
       temporary: false,
       discard: null,
     });
@@ -82,23 +85,32 @@ describe('compressionPlan', () => {
 
   it('compresses a typical phone recording to 1080p at 8 Mbit/s', () => {
     // 20 s of 1080p30 from a Pixel: about 17 Mbit/s.
-    expect(compressionPlan(video(42_500_000, 20_000, 1920, 1080))).toEqual({
+    expect(compressionPlan(video(42_500_000, 20_000, 1920, 1080), 'cellular')).toEqual({
       maxSize: CLIENT_MAX_LONG_EDGE,
       bitrate: CLIENT_TARGET_BITRATE,
     });
   });
 
   it('compresses 4K even at a modest bitrate (the frame is bigger than the server ever uses)', () => {
-    expect(compressionPlan(video(20_000_000, 20_000, 3840, 2160))).not.toBeNull();
+    expect(compressionPlan(video(20_000_000, 20_000, 3840, 2160), 'cellular')).not.toBeNull();
   });
 
   it('leaves an already efficient 1080p clip alone', () => {
     // 20 s at 6 Mbit/s: re-encoding would lose quality and save almost nothing.
-    expect(compressionPlan(video(15_000_000, 20_000, 1080, 1920))).toBeNull();
+    expect(compressionPlan(video(15_000_000, 20_000, 1080, 1920), 'cellular')).toBeNull();
   });
 
   it('compresses when the duration is unknown (the safe side for the data plan)', () => {
-    expect(compressionPlan(video(15_000_000, null, 1080, 1920))).not.toBeNull();
+    expect(compressionPlan(video(15_000_000, null, 1080, 1920), 'cellular')).not.toBeNull();
+  });
+
+  it('sends the original on Wi-Fi, whatever it is', () => {
+    expect(compressionPlan(video(42_500_000, 20_000, 1920, 1080), 'wifi')).toBeNull();
+    expect(compressionPlan(video(300_000_000, 60_000, 3840, 2160), 'wifi')).toBeNull();
+  });
+
+  it('compresses when the connection is unknown, as on mobile data', () => {
+    expect(compressionPlan(video(42_500_000, 20_000, 1920, 1080), 'unknown')).not.toBeNull();
   });
 
   it('works the bitrate out from size and duration', () => {

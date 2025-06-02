@@ -2,6 +2,9 @@ import type { ClientMeta, PickedVideo } from './types';
 
 export type Compressed = { uri: string; bytes: number; elapsedMs: number };
 
+/** The connection the upload will go over, as far as the phone can tell (`connection.ts`). */
+export type Connection = 'wifi' | 'cellular' | 'unknown';
+
 /**
  * Client compression settings (fixed, not an "auto bitrate"). The server makes its own renditions
  * (top rung 720p at 3 Mbit/s), so the phone's job is only to stop a 4K or 50 Mbit/s original from
@@ -25,11 +28,24 @@ export function sourceBitrate(video: PickedVideo): number | null {
 }
 
 /**
- * Whether and how to compress before uploading. Null means upload the original: it is already no
- * bigger than 1080p at about the target bitrate, so re-encoding would cost quality and battery and
- * save little. Unknown sizes or durations are compressed (the safe side for the user's data plan).
+ * Whether and how to compress before uploading. Null means upload the original:
+ *
+ * - On Wi-Fi, always. Measured on the Pixel (2025-06-02): 140.6 MB took 24.8 s to compress to 57.4 MB,
+ *   so compressing pays off only when the upload is slower than about 27 Mbit/s — usual on 4G, rare on
+ *   Wi-Fi — and the original is the better source for the server's transcode.
+ * - When the file is already no bigger than 1080p at about the target bitrate: re-encoding would cost
+ *   quality and battery and save little.
+ *
+ * On mobile data, or when the connection is unknown (the safe side for the user's data plan), anything
+ * else is compressed. Unknown sizes or durations are compressed too.
  */
-export function compressionPlan(video: PickedVideo): CompressionPlan | null {
+export function compressionPlan(
+  video: PickedVideo,
+  connection: Connection,
+): CompressionPlan | null {
+  if (connection === 'wifi') {
+    return null;
+  }
   const bitrate = sourceBitrate(video);
   const longEdge =
     video.width && video.height ? Math.max(video.width, video.height) : Number.POSITIVE_INFINITY;
@@ -53,6 +69,7 @@ export function chooseUpload(
   original: PickedVideo,
   compressed: Compressed | null,
   platform: string,
+  connection: Connection,
 ): {
   video: PickedVideo;
   clientMeta: ClientMeta;
@@ -62,10 +79,16 @@ export function chooseUpload(
   discard: string | null;
 } {
   if (compressed === null) {
-    return { video: original, clientMeta: { platform }, temporary: false, discard: null };
+    return {
+      video: original,
+      clientMeta: { platform, connection },
+      temporary: false,
+      discard: null,
+    };
   }
   const clientMeta: ClientMeta = {
     platform,
+    connection,
     originalBytes: original.bytes,
     compressedBytes: compressed.bytes,
     compressMs: compressed.elapsedMs,

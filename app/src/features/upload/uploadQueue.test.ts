@@ -79,6 +79,7 @@ describe('upload queue', () => {
       { ...base, localId: 'c', state: 'PROCESSING' },
       { ...base, localId: 'd', state: 'READY' },
       { ...base, localId: 'e', state: 'QUEUED' },
+      { ...base, localId: 'f', state: 'PREPARING' },
     ]);
 
     expect(restored.map((e) => e.state)).toEqual([
@@ -87,11 +88,45 @@ describe('upload queue', () => {
       'PROCESSING',
       'READY',
       'FAILED',
+      'FAILED', // compressing when the app stopped: Retry prepares it again
     ]);
     expect(restored[0]).toMatchObject({
       error: 'Interrupted before it finished. Retry to continue.',
       parts: { 1: '"a"' }, // the uploaded parts are kept: retrying sends only what is missing
     });
     expect(restored[2]!.error).toBeNull();
+  });
+
+  it('queues a clip that still has to be prepared as PREPARING, previewing the original', () => {
+    const id = useUploadQueue
+      .getState()
+      .enqueue('user-1', video, { platform: 'android' }, false, false);
+
+    expect(useUploadQueue.getState().entries.find((e) => e.localId === id)).toMatchObject({
+      state: 'PREPARING',
+      prepared: false,
+      previewUri: 'file:///clip.mp4',
+    });
+  });
+
+  it('reads version-1 entries as prepared, previewing their own file', async () => {
+    // What version 1 wrote: no `prepared`, no `previewUri` (it compressed before queueing).
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    useUploadQueue.setState({
+      entries: useUploadQueue
+        .getState()
+        .entries.map(({ prepared: _p, previewUri: _u, ...old }) => ({
+          ...old,
+          state: 'READY',
+        })) as never,
+    });
+
+    await useUploadQueue.persist.rehydrate();
+
+    expect(useUploadQueue.getState().entries.find((e) => e.localId === id)).toMatchObject({
+      prepared: true,
+      previewUri: 'file:///clip.mp4',
+      state: 'READY',
+    });
   });
 });

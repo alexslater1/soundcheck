@@ -26,6 +26,8 @@ const entry = (patch: Partial<UploadEntry>): UploadEntry => ({
   height: null,
   clientMeta: { platform: 'android' },
   temporary: false,
+  prepared: true,
+  previewUri: 'file:///clip.mp4',
   state: 'PROCESSING',
   progress: 1,
   mediaId: 'm1',

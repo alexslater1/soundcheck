@@ -9,52 +9,43 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { ArtistTagger, type TaggedArtist } from './ArtistTagger';
 import { billOf } from './composeDraft';
-import { GigPicker } from './GigPicker';
 import { postLabel } from './gigPicker';
 import type { PostDraft } from './types';
 
 /**
- * The second half of creating a post: a caption, the gig the clips are from
- * (suggested, searched, or added), and the artists in them (the gig's bill, untickable, plus any other
- * act). One form can post several clips from the same gig: each becomes its own post with the same
- * caption and tags. The clips keep uploading underneath; Post can be pressed before they have finished.
+ * The last step of creating a post: who is in the clips (the
+ * chosen gig's bill, untickable, plus any other act) and a caption. The gig is chosen first, above this
+ * form. One form posts several clips from that gig: each becomes its own post with the same caption and
+ * tags. The clips keep preparing and uploading underneath; Post can be pressed before they have finished.
  */
 export function ComposeForm({
   clips = 1,
-  initialGig = null,
+  gig,
   onPost,
 }: {
   clips?: number;
-  initialGig?: GigSummary | null;
-  onPost: (draft: PostDraft, gig: GigSummary | null) => void;
+  gig: GigSummary | null;
+  onPost: (draft: PostDraft) => void;
 }) {
   const { colors } = useTheme();
   const [caption, setCaption] = useState('');
-  const [gig, setGig] = useState<GigSummary | null>(initialGig);
-  const [artists, setArtists] = useState<TaggedArtist[]>(() =>
-    initialGig ? billOf(initialGig) : [],
-  );
-
-  const chooseGig = (next: GigSummary | null) => {
-    setGig(next);
-    // A new gig brings its own bill; acts added by hand are kept.
-    setArtists((current) => {
-      const oldBill = gig ? billOf(gig).map((a) => a.id) : [];
-      const extras = current.filter((a) => !oldBill.includes(a.id));
-      const bill = next ? billOf(next) : [];
-      return [...bill, ...extras.filter((a) => !bill.some((b) => b.id === a.id))];
-    });
-  };
+  const [artists, setArtists] = useState<TaggedArtist[]>(() => (gig ? billOf(gig) : []));
+  // The gig can still be changed above: its bill replaces the old one, acts added by hand stay. (State
+  // adjusted while rendering, as React recommends for "reset some state when a prop changes".)
+  const [billGig, setBillGig] = useState<GigSummary | null>(gig);
+  if (billGig?.id !== gig?.id) {
+    const oldBill = billGig ? billOf(billGig).map((a) => a.id) : [];
+    const extras = artists.filter((a) => !oldBill.includes(a.id));
+    const bill = gig ? billOf(gig) : [];
+    setArtists([...bill, ...extras.filter((a) => !bill.some((b) => b.id === a.id))]);
+    setBillGig(gig);
+  }
 
   return (
     <View
       style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}
       testID="compose-form"
     >
-      <Text variant="label" muted>
-        WHICH GIG?
-      </Text>
-      <GigPicker value={gig} onChange={chooseGig} />
       <Text variant="label" muted>
         WHO IS IN {clips > 1 ? 'THEM' : 'IT'}?
       </Text>
@@ -72,16 +63,11 @@ export function ComposeForm({
         maxLength={2200}
         style={[styles.input, { color: colors.text, borderColor: colors.border }]}
       />
-      {!gig ? (
-        <Text variant="caption" muted>
-          You can post without a gig, but then nobody finds the clip on the gig&apos;s page.
-        </Text>
-      ) : null}
       <Button
         title={postLabel(clips)}
         testID="post-button"
         onPress={() =>
-          onPost({ caption, gigId: gig?.id ?? null, artistIds: artists.map((a) => a.id) }, gig)
+          onPost({ caption, gigId: gig?.id ?? null, artistIds: artists.map((a) => a.id) })
         }
       />
     </View>

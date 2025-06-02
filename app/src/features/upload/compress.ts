@@ -1,4 +1,4 @@
-import type { Compressed } from './compressDecision';
+import type { CompressionPlan, Compressed } from './compressDecision';
 import type { PickedVideo } from './types';
 
 /**
@@ -10,6 +10,7 @@ export function discardFile(_uri: string): void {}
 
 export async function compressVideo(
   _video: PickedVideo,
+  _plan: CompressionPlan,
   _onProgress?: (fraction: number) => void,
 ): Promise<Compressed | null> {
   return null;

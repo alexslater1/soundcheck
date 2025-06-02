@@ -19,6 +19,8 @@ function entry(overrides: Partial<UploadEntry> = {}): UploadEntry {
     height: 1280,
     clientMeta: { platform: 'android', originalBytes: 60 * MIB, compressedBytes: 20 * MIB },
     temporary: false,
+    prepared: true,
+    previewUri: 'file:///clip.mp4',
     state: 'QUEUED',
     progress: 0,
     mediaId: null,

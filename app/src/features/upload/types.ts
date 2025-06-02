@@ -13,16 +13,20 @@ export type PickedVideo = {
 /** What the client tells the server about how the file was prepared. */
 export type ClientMeta = {
   platform: string;
+  /** Wi-Fi uploads the original; mobile data or unknown compresses. */
+  connection?: 'wifi' | 'cellular' | 'unknown';
   originalBytes?: number;
   compressedBytes?: number;
   compressMs?: number;
 };
 
 /**
- * Where an upload is. QUEUED → REQUESTING (ticket) → UPLOADING → COMPLETING → PROCESSING (the worker
- * has it) → READY | REJECTED | FAILED. FAILED before PROCESSING can be retried from where it stopped.
+ * Where an upload is. PREPARING (the phone compresses it, off Wi-Fi only) → QUEUED →
+ * REQUESTING (ticket) → UPLOADING → COMPLETING → PROCESSING (the worker has it) → READY | REJECTED |
+ * FAILED. FAILED before PROCESSING can be retried from where it stopped.
  */
 export type UploadState =
+  | 'PREPARING'
   | 'QUEUED'
   | 'REQUESTING'
   | 'UPLOADING'
@@ -51,6 +55,13 @@ export type UploadEntry = {
   clientMeta: ClientMeta;
   /** True when `fileUri` is a file the app made itself (the compressor's output) and must delete. */
   temporary: boolean;
+  /**
+   * False until the phone has decided whether to compress and done it: the PREPARING step
+   * runs inside the queue, so picking a clip returns at once and the user writes the post meanwhile.
+   */
+  prepared: boolean;
+  /** The file as picked: the compose form previews it, whatever is uploaded. */
+  previewUri: string;
   state: UploadState;
   /** Share of the bytes that storage has acknowledged, 0 to 1. */
   progress: number;

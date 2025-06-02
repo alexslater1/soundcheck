@@ -33,6 +33,7 @@ export function UploadRow({ entry, onRetry, onRemove, onPostAgain, onWritePost }
     onRemove().catch(() => setRemoveProblem('Could not delete the post. Try again.'));
   };
   const inFlight =
+    entry.state === 'PREPARING' ||
     entry.state === 'QUEUED' ||
     entry.state === 'REQUESTING' ||
     entry.state === 'UPLOADING' ||

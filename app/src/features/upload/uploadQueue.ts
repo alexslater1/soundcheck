@@ -6,16 +6,18 @@ import type { ClientMeta, PickedVideo, UploadEntry, UploadState } from './types'
 import { newUuid } from './uuid';
 
 /** States in which an upload was in the middle of something when the app last stopped. */
-const IN_FLIGHT: UploadState[] = ['QUEUED', 'REQUESTING', 'UPLOADING', 'COMPLETING'];
+const IN_FLIGHT: UploadState[] = ['PREPARING', 'QUEUED', 'REQUESTING', 'UPLOADING', 'COMPLETING'];
 
 type UploadQueueState = {
   /** Newest first. Entries of every account that used this device; screens filter by owner. */
   entries: (UploadEntry & { ownerId: string })[];
+  /** `prepared` false: the queue compresses it first if it should (PREPARING). */
   enqueue: (
     ownerId: string,
     video: PickedVideo,
     clientMeta: ClientMeta,
     temporary?: boolean,
+    prepared?: boolean,
   ) => string;
   patch: (localId: string, patch: Partial<UploadEntry>) => void;
   remove: (localId: string) => void;
@@ -50,7 +52,7 @@ export const useUploadQueue = create<UploadQueueState>()(
   persist(
     (set) => ({
       entries: [],
-      enqueue: (ownerId, video, clientMeta, temporary = false) => {
+      enqueue: (ownerId, video, clientMeta, temporary = false, prepared = true) => {
         const localId = newUuid();
         const entry: UploadEntry & { ownerId: string } = {
           localId,
@@ -66,7 +68,9 @@ export const useUploadQueue = create<UploadQueueState>()(
           height: video.height,
           clientMeta,
           temporary,
-          state: 'QUEUED',
+          prepared,
+          previewUri: video.uri,
+          state: prepared ? 'QUEUED' : 'PREPARING',
           progress: 0,
           mediaId: null,
           strategy: null,
@@ -91,13 +95,22 @@ export const useUploadQueue = create<UploadQueueState>()(
     }),
     {
       name: 'upload-queue',
-      version: 1,
+      // 2: `prepared` and `previewUri`. Entries stored by version 1 were compressed
+      // before they were queued, so they count as prepared, and their file is their preview.
+      version: 2,
+      migrate: (persisted) => persisted as { entries: UploadQueueState['entries'] },
       storage,
       partialize: (state) => ({ entries: state.entries }),
       merge: (persisted, current) => ({
         ...current,
         entries: afterRestart(
-          (persisted as { entries?: UploadQueueState['entries'] })?.entries ?? [],
+          ((persisted as { entries?: UploadQueueState['entries'] })?.entries ?? []).map(
+            (entry) => ({
+              ...entry,
+              prepared: entry.prepared ?? true,
+              previewUri: entry.previewUri ?? entry.fileUri,
+            }),
+          ),
         ),
       }),
     },

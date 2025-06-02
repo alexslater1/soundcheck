@@ -8,6 +8,10 @@ export function megabytes(bytes: number): string {
 /** What the user reads for each state of an upload. */
 export function stateLabel(entry: Pick<UploadEntry, 'state' | 'progress'>): string {
   switch (entry.state) {
+    case 'PREPARING':
+      return entry.progress > 0
+        ? `Compressing for mobile data ${Math.round(entry.progress * 100)}%`
+        : 'Getting ready…';
     case 'QUEUED':
       return 'Waiting…';
     case 'REQUESTING':

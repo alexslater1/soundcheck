@@ -1,11 +1,15 @@
+import { Platform } from 'react-native';
+
 import { completeUpload, createUpload, getMedia } from '@/api/generated/media/media';
 import type { CompleteRequest, CompleteResponse } from '@/api/generated/model';
 import { createPost, deletePost } from '@/api/generated/posts/posts';
 import { ApiError } from '@/api/http';
 
-import { discardFile } from './compress';
-import { transport } from './transport';
+import { compressVideo, discardFile } from './compress';
+import { currentConnection } from './connection';
 import { ensurePost } from './postDraft';
+import { prepareClip } from './prepareClip';
+import { transport } from './transport';
 import type { PostDraft, UploadEntry } from './types';
 import { runUpload } from './uploadMachine';
 import { useUploadQueue } from './uploadQueue';
@@ -23,8 +27,9 @@ const completeWithOptionalParts = completeUpload as (
 ) => Promise<CompleteResponse>;
 
 /**
- * Runs the upload machine for one queue entry, wired to the real API, the platform's transport and the
- * persisted store. Resolves when the entry has settled (or polling has given up); never rejects.
+ * Runs one queue entry: first the PREPARING step if it has not been done (compress or not),
+ * then the upload machine, wired to the real API, the platform's transport and the persisted store.
+ * Resolves when the entry has settled (or polling has given up); never rejects.
  */
 export async function startUpload(localId: string): Promise<void> {
   const find = (): UploadEntry | undefined =>
@@ -33,7 +38,29 @@ export async function startUpload(localId: string): Promise<void> {
     return;
   }
   running.add(localId);
+  const current = () => {
+    const entry = find();
+    if (!entry) {
+      throw new Error('The upload was removed.');
+    }
+    return entry;
+  };
+  // An entry removed while it runs is simply not written back.
+  const update = (patch: Partial<UploadEntry>) => useUploadQueue.getState().patch(localId, patch);
   try {
+    if (!current().prepared) {
+      const stillThere = await prepareClip({
+        current,
+        update,
+        connection: currentConnection,
+        compress: compressVideo,
+        discard: discardFile,
+        platform: Platform.OS,
+      });
+      if (!stillThere) {
+        return;
+      }
+    }
     await runUpload({
       api: {
         createUpload: (body, idempotencyKey) =>
@@ -43,15 +70,8 @@ export async function startUpload(localId: string): Promise<void> {
         getMedia: (mediaId) => getMedia(mediaId),
       },
       transport,
-      current: () => {
-        const entry = find();
-        if (!entry) {
-          throw new Error('The upload was removed.');
-        }
-        return entry;
-      },
-      // An entry removed while it runs is simply not written back.
-      update: (patch) => useUploadQueue.getState().patch(localId, patch),
+      current,
+      update,
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       random: Math.random,
       onAccepted: () => ensurePostFor(localId),
