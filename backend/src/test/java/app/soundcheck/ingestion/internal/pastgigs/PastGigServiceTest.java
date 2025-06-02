@@ -35,7 +35,8 @@ class PastGigServiceTest {
     void setUp() {
         when(client.configured()).thenReturn(true);
         when(client.search(any(), any(), anyInt())).thenReturn(EMPTY);
-        service = new PastGigService(client, new RateLimiter(), properties(3), clock);
+        service = new PastGigService(
+                client, new RateLimiter(), properties(3), new SetlistFmBudget(properties(3), clock), clock);
     }
 
     static IngestionProperties properties(int dailyBudget) {

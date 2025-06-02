@@ -2,6 +2,7 @@ package app.soundcheck.catalog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.soundcheck.ingestion.internal.pastgigs.SetlistFmClient;
 import app.soundcheck.support.IntegrationTest;
 import app.soundcheck.support.TestApi;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,6 +32,9 @@ class UserGigsIT extends IntegrationTest {
 
     @Autowired
     TestRestTemplate rest;
+
+    @Autowired
+    SetlistFmClient setlistFm;
 
     TestApi api;
     TestApi.User fan;
@@ -406,6 +410,31 @@ class UserGigsIT extends IntegrationTest {
         }
         assertThat(code(api.post("/api/v1/me/gig-filters", Map.of("name", "21st", "place", "HOME"), fan)))
                 .isEqualTo("SAVED_FILTERS_FULL");
+    }
+
+    @Test
+    void aGigPageAsksForItsSetlistAndAGigStillToComeHasNone() {
+        // The setlist lookup through HTTP: the route, the sign-in and the "not yet" answer. No call reaches
+        // setlist.fm (the gig is in the future); with no key configured the answer is 503 instead.
+        JsonNode upcoming = item(api.post(
+                "/api/v1/gigs",
+                gig(
+                        List.of("Soon Act " + tag),
+                        newVenue("Hall " + tag, manchester),
+                        LocalDate.now(UK).plusDays(5)),
+                fan));
+        ResponseEntity<JsonNode> answer =
+                api.get("/api/v1/gigs/" + upcoming.path("id").asText("") + "/setlist", fan);
+        if (setlistFm.configured()) {
+            assertThat(answer.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+            assertThat(code(answer)).isEqualTo("SETLIST_NOT_FOUND");
+        } else {
+            assertThat(answer.getStatusCode()).isEqualTo(HttpStatus.SERVICE_UNAVAILABLE);
+            assertThat(answer.getBody().path("code").asText("")).isEqualTo("SETLISTS_UNAVAILABLE");
+        }
+        assertThat(rest.getForEntity("/api/v1/gigs/" + upcoming.path("id").asText("") + "/setlist", String.class)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     private Map<String, Object> gig(List<String> names, Map<String, Object> venue, LocalDate date) {

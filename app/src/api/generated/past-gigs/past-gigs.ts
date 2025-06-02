@@ -22,13 +22,109 @@ import type {
 
 import type {
   PastGigPage,
-  SearchPastGigsParams
+  SearchPastGigsParams,
+  Setlist
 } from '.././model';
 
 import { customFetch } from '../../http';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+/**
+ * @summary The setlist of a past gig from setlist.fm (cached for an hour, never stored). 404 SETLIST_NOT_FOUND when setlist.fm has none (or the gig is still to come); 503 SETLISTS_UNAVAILABLE without a setlist.fm key
+ */
+export const getGetGigSetlistUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/gigs/${id}/setlist`
+}
+
+export const getGigSetlist = async (id: string, options?: RequestInit): Promise<Setlist> => {
+  
+  return customFetch<Setlist>(getGetGigSetlistUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getGetGigSetlistQueryKey = (id: string,) => {
+    return [`/api/v1/gigs/${id}/setlist`] as const;
+    }
+
+    
+export const getGetGigSetlistQueryOptions = <TData = Awaited<ReturnType<typeof getGigSetlist>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGigSetlist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetGigSetlistQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGigSetlist>>> = ({ signal }) => getGigSetlist(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getGigSetlist>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetGigSetlistQueryResult = NonNullable<Awaited<ReturnType<typeof getGigSetlist>>>
+export type GetGigSetlistQueryError = unknown
+
+
+export function useGetGigSetlist<TData = Awaited<ReturnType<typeof getGigSetlist>>, TError = unknown>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGigSetlist>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGigSetlist>>,
+          TError,
+          Awaited<ReturnType<typeof getGigSetlist>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGigSetlist<TData = Awaited<ReturnType<typeof getGigSetlist>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGigSetlist>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getGigSetlist>>,
+          TError,
+          Awaited<ReturnType<typeof getGigSetlist>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetGigSetlist<TData = Awaited<ReturnType<typeof getGigSetlist>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGigSetlist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The setlist of a past gig from setlist.fm (cached for an hour, never stored). 404 SETLIST_NOT_FOUND when setlist.fm has none (or the gig is still to come); 503 SETLISTS_UNAVAILABLE without a setlist.fm key
+ */
+
+export function useGetGigSetlist<TData = Awaited<ReturnType<typeof getGigSetlist>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGigSetlist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetGigSetlistQueryOptions(id,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
 
 
 

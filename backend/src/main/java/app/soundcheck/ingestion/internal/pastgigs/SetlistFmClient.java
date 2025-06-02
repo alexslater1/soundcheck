@@ -9,15 +9,19 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.micrometer.core.instrument.MeterRegistry;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
@@ -25,8 +29,9 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
 /**
- * setlist.fm {@code GET /1.0/search/setlists}: past concerts of an artist in the UK, for the
- * "was it this gig?" step of adding a gig. The key travels in the {@code x-api-key} header and never in
+ * setlist.fm {@code GET /1.0/search/setlists} and {@code GET /1.0/setlist/{id}}: past concerts of an
+ * artist in the UK, for the "was it this gig?" step of adding a gig, and the songs played at a
+ * past gig, for its page. The key travels in the {@code x-api-key} header and never in
  * a message or a log line. setlist.fm answers 404 when a search has no results (its documentation says
  * 200 with an empty list; both are read as "nothing"). 429 and 5xx are temporary.
  */
@@ -34,6 +39,7 @@ import org.springframework.web.client.RestClient;
 public class SetlistFmClient {
 
     static final String PATH = "/rest/1.0/search/setlists";
+    static final String SETLIST_PATH = "/rest/1.0/setlist";
     static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("dd-MM-yyyy");
 
     private final RestClient rest;
@@ -69,6 +75,52 @@ public class SetlistFmClient {
 
     /** UK setlists of an artist, newest first; {@code year} narrows to one year when given. */
     public PastGigPage search(String artistName, @Nullable Integer year, int page) {
+        Map<String, Object> query = new LinkedHashMap<>();
+        query.put("artistName", artistName);
+        query.put("countryCode", "GB");
+        query.put("p", page);
+        if (year != null) {
+            query.put("year", year);
+        }
+        JsonNode body = fetch(PATH, query);
+        return body == null ? new PastGigPage(List.of(), page, 0, 20) : parse(body);
+    }
+
+    /**
+     * The UK setlists of one act on one day: by MusicBrainz id when the catalog knows it
+     * (exact), else by name. Usually one; a festival day or a mistyped entry can give more.
+     */
+    public List<Setlist> setlistsOn(@Nullable UUID artistMbid, String artistName, LocalDate date) {
+        Map<String, Object> query = new LinkedHashMap<>();
+        if (artistMbid != null) {
+            query.put("artistMbid", artistMbid.toString());
+        } else {
+            query.put("artistName", artistName);
+        }
+        query.put("countryCode", "GB");
+        query.put("date", DATE.format(date));
+        JsonNode body = fetch(PATH, query);
+        if (body == null) {
+            return List.of();
+        }
+        List<Setlist> setlists = new ArrayList<>();
+        for (JsonNode s : body.path("setlist")) {
+            parseSetlist(s).ifPresent(setlists::add);
+        }
+        return setlists;
+    }
+
+    /** One setlist by its setlist.fm id (a gig added from setlist.fm keeps it). */
+    public Optional<Setlist> setlist(String setlistId) {
+        JsonNode body = fetch(SETLIST_PATH + "/" + URLEncoder.encode(setlistId, StandardCharsets.UTF_8), Map.of());
+        return body == null ? Optional.empty() : parseSetlist(body);
+    }
+
+    /**
+     * One GET against setlist.fm at the shared rate, with the key in its header; null when setlist.fm
+     * has nothing (404). Values travel as URI variables: an artist may be called "Florence + The Machine".
+     */
+    private @Nullable JsonNode fetch(String path, Map<String, Object> query) {
         if (!configured()) {
             throw new SourceException("SETLISTFM_API_KEY is not set");
         }
@@ -80,23 +132,13 @@ public class SetlistFmClient {
             Thread.currentThread().interrupt();
             throw new SourceException("Interrupted while waiting for the setlist.fm rate limit");
         }
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("artist", artistName);
-        vars.put("page", page);
-        vars.put("year", year == null ? "" : year);
         JsonNode body;
         try {
             body = rest.get()
                     .uri(uri -> {
-                        // Values as URI variables: an artist may be called "Florence + The Machine".
-                        uri.path(PATH)
-                                .queryParam("artistName", "{artist}")
-                                .queryParam("countryCode", "GB")
-                                .queryParam("p", "{page}");
-                        if (year != null) {
-                            uri.queryParam("year", "{year}");
-                        }
-                        return uri.build(vars);
+                        uri.path(path);
+                        query.keySet().forEach(name -> uri.queryParam(name, "{" + name + "}"));
+                        return uri.build(query);
                     })
                     .header("x-api-key", apiKey)
                     .header("Accept", "application/json")
@@ -126,12 +168,58 @@ public class SetlistFmClient {
             throw new TransientSourceException("I/O error calling setlist.fm ("
                     + e.getMostSpecificCause().getClass().getSimpleName() + ")");
         }
-        if (body == null) {
-            count("not_found");
-            return new PastGigPage(List.of(), page, 0, 20);
+        count(body == null ? "not_found" : "ok");
+        return body;
+    }
+
+    /**
+     * A setlist's songs as setlist.fm structures them: {@code sets.set[]}, each with an optional name or
+     * an {@code encore} number and its {@code song[]}. Empty when it has no songs (a placeholder someone
+     * created before anyone filled it in).
+     */
+    static Optional<Setlist> parseSetlist(JsonNode s) {
+        List<Setlist.SetlistPart> parts = new ArrayList<>();
+        for (JsonNode set : s.path("sets").path("set")) {
+            List<Setlist.SetlistSong> songs = new ArrayList<>();
+            for (JsonNode song : set.path("song")) {
+                String name = song.path("name").asText("").strip();
+                if (name.isEmpty()) {
+                    continue;
+                }
+                songs.add(new Setlist.SetlistSong(
+                        name,
+                        blankToNull(song.path("info").asText(null)),
+                        blankToNull(song.path("cover").path("name").asText(null)),
+                        song.path("tape").asBoolean(false)));
+            }
+            if (songs.isEmpty()) {
+                continue;
+            }
+            int encore = set.path("encore").asInt(0);
+            String title = blankToNull(set.path("name").asText(null));
+            if (title == null && encore > 0) {
+                title = encore == 1 ? "Encore" : "Encore " + encore;
+            }
+            parts.add(new Setlist.SetlistPart(title, songs));
         }
-        count("ok");
-        return parse(body);
+        if (parts.isEmpty()) {
+            return Optional.empty();
+        }
+        LocalDate date;
+        try {
+            date = LocalDate.parse(s.path("eventDate").asText(""), DATE);
+        } catch (DateTimeParseException e) {
+            return Optional.empty();
+        }
+        return Optional.of(new Setlist(
+                s.path("id").asText(""),
+                s.path("url").asText(null),
+                s.path("artist").path("name").asText("").strip(),
+                s.path("venue").path("name").asText("").strip(),
+                blankToNull(s.path("venue").path("city").path("name").asText(null)),
+                date,
+                blankToNull(s.path("tour").path("name").asText(null)),
+                parts));
     }
 
     /** The response's {@code setlist[]} as past gigs; entries without a date or venue are skipped. */

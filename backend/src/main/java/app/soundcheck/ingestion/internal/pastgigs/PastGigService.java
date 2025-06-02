@@ -7,8 +7,6 @@ import app.soundcheck.shared.web.RateLimiter;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -42,16 +40,19 @@ public class PastGigService {
             return size() > MAX_CACHED;
         }
     };
-    private LocalDate budgetDay;
-    private int spentToday;
+    private final SetlistFmBudget budget;
 
     public PastGigService(
-            SetlistFmClient client, RateLimiter rateLimiter, IngestionProperties properties, Clock clock) {
+            SetlistFmClient client,
+            RateLimiter rateLimiter,
+            IngestionProperties properties,
+            SetlistFmBudget budget,
+            Clock clock) {
         this.client = client;
         this.rateLimiter = rateLimiter;
         this.config = properties.setlistfm();
+        this.budget = budget;
         this.clock = clock;
-        this.budgetDay = LocalDate.now(clock.withZone(ZoneOffset.UTC));
     }
 
     public PastGigPage search(UUID userId, String artist, @Nullable Integer year, int page) {
@@ -74,7 +75,7 @@ public class PastGigService {
             }
         }
         rateLimiter.enforce("past-gigs:" + userId, config.perUserPerHour(), Duration.ofHours(1));
-        spend(now);
+        budget.spend(now);
         PastGigPage result;
         try {
             result = client.search(name, year, page);
@@ -86,19 +87,5 @@ public class PastGigService {
             cache.put(key, new Cached(result, now));
         }
         return result;
-    }
-
-    /** Counts a call against today's budget (UTC day), refusing once it is spent. */
-    private synchronized void spend(Instant now) {
-        LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
-        if (!today.equals(budgetDay)) {
-            budgetDay = today;
-            spentToday = 0;
-        }
-        if (spentToday >= config.dailyBudget()) {
-            throw new ApiException(
-                    HttpStatus.SERVICE_UNAVAILABLE, "PAST_GIGS_BUSY", "Past gig lookups are used up for today");
-        }
-        spentToday++;
     }
 }

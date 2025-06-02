@@ -16,9 +16,13 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
 import { AttendanceButtons } from './AttendanceButtons';
+import { GigSetlist } from './GigSetlist';
 import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
 
-/** Gig page: line-up, venue, local date and time, price, attendance, ticket link out. */
+/**
+ * Gig page: line-up, venue, local date and time, price, attendance, ticket link out, and
+ * for a past gig its setlist from setlist.fm.
+ */
 export function GigDetailScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
@@ -109,6 +113,8 @@ export function GigDetailScreen({ id }: { id: string }) {
             Setlist on setlist.fm →
           </Text>
         ) : null}
+
+        <GigSetlist gigId={id} startsAt={gig.startsAt} />
 
         <Text variant="label" muted style={styles.heading}>
           LINE-UP

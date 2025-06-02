@@ -11,6 +11,32 @@ import {
 
 
 /**
+ * @summary The setlist of a past gig from setlist.fm (cached for an hour, never stored). 404 SETLIST_NOT_FOUND when setlist.fm has none (or the gig is still to come); 503 SETLISTS_UNAVAILABLE without a setlist.fm key
+ */
+export const getGigSetlistParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const getGigSetlistResponse = zod.object({
+  "artist": zod.string(),
+  "city": zod.string().nullish(),
+  "date": zod.string().date(),
+  "id": zod.string(),
+  "sets": zod.array(zod.object({
+  "songs": zod.array(zod.object({
+  "coverOf": zod.string().nullish(),
+  "info": zod.string().nullish(),
+  "name": zod.string(),
+  "tape": zod.boolean()
+})),
+  "title": zod.string().nullish()
+})),
+  "tour": zod.string().nullish(),
+  "url": zod.string().nullish(),
+  "venue": zod.string()
+})
+
+/**
  * @summary An artist's past UK concerts on setlist.fm, newest first (20 a page). 503 PAST_GIGS_UNAVAILABLE when no setlist.fm key is configured
  */
 export const searchPastGigsQueryArtistMin = 0;

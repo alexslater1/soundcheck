@@ -1441,6 +1441,73 @@
         "required" : [ "artists", "gigs" ],
         "type" : "object"
       },
+      "Setlist" : {
+        "properties" : {
+          "artist" : {
+            "type" : "string"
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "date" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "id" : {
+            "type" : "string"
+          },
+          "sets" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SetlistPart"
+            },
+            "type" : "array"
+          },
+          "tour" : {
+            "type" : [ "string", "null" ]
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          },
+          "venue" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "artist", "date", "id", "sets", "venue" ],
+        "type" : "object"
+      },
+      "SetlistPart" : {
+        "properties" : {
+          "songs" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SetlistSong"
+            },
+            "type" : "array"
+          },
+          "title" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "songs" ],
+        "type" : "object"
+      },
+      "SetlistSong" : {
+        "properties" : {
+          "coverOf" : {
+            "type" : [ "string", "null" ]
+          },
+          "info" : {
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "tape" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "name", "tape" ],
+        "type" : "object"
+      },
       "SourceLink" : {
         "properties" : {
           "source" : {
@@ -2687,6 +2754,34 @@
         },
         "summary" : "Published clips from a gig, newest first",
         "tags" : [ "posts" ]
+      }
+    },
+    "/api/v1/gigs/{id}/setlist" : {
+      "get" : {
+        "operationId" : "getGigSetlist",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Setlist"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The setlist of a past gig from setlist.fm (cached for an hour, never stored). 404 SETLIST_NOT_FOUND when setlist.fm has none (or the gig is still to come); 503 SETLISTS_UNAVAILABLE without a setlist.fm key",
+        "tags" : [ "past-gigs" ]
       }
     },
     "/api/v1/health" : {

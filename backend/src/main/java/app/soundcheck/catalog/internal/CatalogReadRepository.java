@@ -298,6 +298,16 @@ class CatalogReadRepository {
     // ── attendance ──────────────────────────────────────────────────────────
 
     /** The viewer's status for each of the gigs they have marked. */
+    /** The gig's id at a source (its setlist.fm id, say), if that source lists it. Index: gig_source_gig. */
+    Optional<String> externalId(UUID gigId, String source) {
+        return dsl.select(GIG_SOURCE.EXTERNAL_ID)
+                .from(GIG_SOURCE)
+                .where(GIG_SOURCE.GIG_ID.eq(gigId))
+                .and(GIG_SOURCE.SOURCE.eq(source))
+                .limit(1)
+                .fetchOptional(GIG_SOURCE.EXTERNAL_ID);
+    }
+
     Map<UUID, String> attendance(UUID userId, Collection<UUID> gigIds) {
         Map<UUID, String> byGig = new HashMap<>();
         if (!gigIds.isEmpty()) {

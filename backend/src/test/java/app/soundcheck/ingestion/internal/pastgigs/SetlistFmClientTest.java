@@ -17,6 +17,8 @@ import com.github.tomakehurst.wiremock.junit5.WireMockExtension;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.LocalDate;
+import java.util.List;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -146,5 +148,72 @@ class SetlistFmClientTest {
         assertThatThrownBy(() -> client.search("Pale Kites", null, 1))
                 .isInstanceOf(TransientSourceException.class)
                 .hasMessageNotContaining(KEY);
+    }
+
+    static final String SETLIST =
+            """
+            {"id":"7bd6a2a8","url":"https://www.setlist.fm/setlist/pale-kites/2025/the-snug-7bd6a2a8.html",
+             "eventDate":"17-10-2025","artist":{"name":"Pale Kites"},
+             "venue":{"name":"The Snug","city":{"name":"Manchester"}},"tour":{"name":"Autumn Tour"},
+             "sets":{"set":[
+               {"song":[{"name":"Intro","tape":true},{"name":"Harbour Lights"},
+                        {"name":"Paper Moon","cover":{"name":"Night Bus"}},{"name":""}]},
+               {"name":"Acoustic","song":[{"name":"Small Hours","info":"solo"}]},
+               {"song":[]},
+               {"encore":1,"song":[{"name":"Last Train"}]}
+             ]}}
+            """;
+
+    @Test
+    void findsTheSetlistsOfAnActOnADayByMusicBrainzIdAndReadsTheSongs() {
+        // The songs, set by set, with covers, tapes and notes.
+        api.stubFor(get(urlPathEqualTo(SetlistFmClient.PATH))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody("{\"setlist\":[" + SETLIST + "]}")));
+
+        List<Setlist> found = client.setlistsOn(
+                UUID.fromString("5b11f4ce-a62d-471e-81fc-a69a8278c7da"), "Pale Kites", LocalDate.of(2025, 10, 17));
+
+        api.verify(getRequestedFor(urlPathEqualTo(SetlistFmClient.PATH))
+                .withHeader("x-api-key", equalTo(KEY))
+                .withQueryParam("artistMbid", equalTo("5b11f4ce-a62d-471e-81fc-a69a8278c7da"))
+                .withQueryParam("countryCode", equalTo("GB"))
+                .withQueryParam("date", equalTo("17-10-2025")));
+        assertThat(api.getAllServeEvents()
+                        .getFirst()
+                        .getRequest()
+                        .queryParameter("artistName")
+                        .isPresent())
+                .isFalse();
+        Setlist setlist = found.getFirst();
+        assertThat(setlist.url()).startsWith("https://www.setlist.fm/setlist/");
+        assertThat(setlist.city()).isEqualTo("Manchester");
+        assertThat(setlist.tour()).isEqualTo("Autumn Tour");
+        // The empty set and the nameless song are dropped; the encore is named.
+        assertThat(setlist.sets()).extracting(Setlist.SetlistPart::title).containsExactly(null, "Acoustic", "Encore");
+        assertThat(setlist.sets().getFirst().songs())
+                .containsExactly(
+                        new Setlist.SetlistSong("Intro", null, null, true),
+                        new Setlist.SetlistSong("Harbour Lights", null, null, false),
+                        new Setlist.SetlistSong("Paper Moon", null, "Night Bus", false));
+        assertThat(setlist.sets().get(1).songs().getFirst().info()).isEqualTo("solo");
+    }
+
+    @Test
+    void readsOneSetlistByIdAndSearchesByNameWithoutAnId() {
+        api.stubFor(get(urlPathEqualTo(SetlistFmClient.SETLIST_PATH + "/7bd6a2a8"))
+                .willReturn(aResponse()
+                        .withHeader("Content-Type", "application/json")
+                        .withBody(SETLIST)));
+        assertThat(client.setlist("7bd6a2a8")).map(Setlist::id).contains("7bd6a2a8");
+
+        api.stubFor(
+                get(urlPathEqualTo(SetlistFmClient.PATH)).willReturn(aResponse().withStatus(404)));
+        assertThat(client.setlistsOn(null, "Pale Kites", LocalDate.of(2025, 10, 17)))
+                .isEmpty();
+        api.verify(getRequestedFor(urlPathEqualTo(SetlistFmClient.PATH))
+                .withQueryParam("artistName", equalTo("Pale Kites"))
+                .withQueryParam("date", equalTo("17-10-2025")));
     }
 }
