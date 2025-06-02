@@ -1,6 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { ImpactFeedbackStyle, impactAsync } from 'expo-haptics';
 import { useState } from 'react';
-import { Pressable, StyleSheet } from 'react-native';
+import { Platform, Pressable, StyleSheet } from 'react-native';
 
 import { likePost, unlikePost } from '@/api/generated/engagement/engagement';
 import { Text } from '@/components/ui/Text';
@@ -37,6 +38,10 @@ export function LikeButton({
     const before = state;
     const guess = toggled(before);
     setState(guess);
+    if (guess.likedByMe && Platform.OS !== 'web') {
+      // A light tap under the thumb when liking; not on the web.
+      void impactAsync(ImpactFeedbackStyle.Light).catch(() => undefined);
+    }
     setBusy(true);
     try {
       const confirmed = await (guess.likedByMe ? likePost(postId) : unlikePost(postId));

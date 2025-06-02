@@ -16,10 +16,13 @@ export function FollowButton({
   artistId,
   artistName,
   isFollowing,
+  compact = false,
 }: {
   artistId: string;
   artistName: string;
   isFollowing: boolean;
+  /** Inside a list row: a small outline button, so a list of artists is not a wall of buttons. */
+  compact?: boolean;
 }) {
   const client = useQueryClient();
   const follow = useFollowArtist();
@@ -53,7 +56,8 @@ export function FollowButton({
             ? `Unfollow ${artistName}`
             : `Follow ${artistName}`
       }
-      variant={following ? 'secondary' : 'primary'}
+      variant={following ? 'secondary' : compact ? 'outline' : 'primary'}
+      size={compact ? 'small' : 'regular'}
       disabled={follow.isPending || unfollow.isPending}
       onPress={() => void toggle()}
     />

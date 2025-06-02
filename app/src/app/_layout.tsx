@@ -1,4 +1,5 @@
 import { QueryClientProvider } from '@tanstack/react-query';
+import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
@@ -9,6 +10,7 @@ import { nextRoute } from '@/features/auth/nextRoute';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
+import { FONT_FILES } from '@/theme/typography';
 
 /** Root providers: QueryClient, Theme; redirects by auth/onboarding state. */
 export default function RootLayout() {
@@ -28,6 +30,9 @@ function RootStack() {
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const segments = useSegments();
   const router = useRouter();
+  // Space Grotesk and Inter. A font that fails to load leaves the platform font in place,
+  // so an error counts as "done" and never blocks the app.
+  const [fontsLoaded, fontError] = useFonts(FONT_FILES);
 
   useEffect(() => {
     void bootstrap();
@@ -41,7 +46,7 @@ function RootStack() {
     if (target) router.replace(target);
   }, [status, me, segments, router]);
 
-  if (status === 'unknown') {
+  if (status === 'unknown' || (!fontsLoaded && !fontError)) {
     return (
       <View
         style={{

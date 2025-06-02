@@ -69,6 +69,7 @@ export function ArtistRow({
         artistId={artist.id}
         artistName={artist.name}
         isFollowing={artist.isFollowing}
+        compact
       />
     </View>
   );

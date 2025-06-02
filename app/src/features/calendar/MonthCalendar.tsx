@@ -79,11 +79,15 @@ export function MonthCalendar({
           {week.map((cell) => {
             const count = counts[cell.date] ?? 0;
             const isSelected = cell.date === selected;
+            const tier = heat(count);
+            // Busier days are deeper purple: a month reads at a glance.
             const background = isSelected
               ? colors.accent
-              : count > 0
-                ? colors.accentSoft
-                : 'transparent';
+              : tier === 0
+                ? 'transparent'
+                : tier === 1
+                  ? colors.accentSoft
+                  : `${colors.accent}${tier === 2 ? '59' : '99'}`;
             const ink = isSelected
               ? colors.onAccent
               : cell.inMonth
@@ -110,7 +114,9 @@ export function MonthCalendar({
                 {count > 0 ? (
                   <Text
                     variant="label"
-                    style={{ color: isSelected ? colors.onAccent : colors.accent }}
+                    style={{
+                      color: isSelected ? colors.onAccent : tier >= 2 ? colors.text : colors.accent,
+                    }}
                   >
                     {count > 99 ? '99+' : count}
                   </Text>
@@ -124,6 +130,11 @@ export function MonthCalendar({
       ))}
     </View>
   );
+}
+
+/** How busy a day is: 0 none, 1 a few (1–3), 2 several (4–9), 3 many (10 or more). */
+export function heat(count: number): 0 | 1 | 2 | 3 {
+  return count <= 0 ? 0 : count < 4 ? 1 : count < 10 ? 2 : 3;
 }
 
 const styles = StyleSheet.create({

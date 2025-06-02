@@ -1,4 +1,5 @@
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, View } from 'react-native';
 
 import type { Post, Reason } from '@/api/generated/model';
@@ -84,6 +85,14 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
           frameAspect={clip.fill ? width / height : undefined}
         />
       </View>
+      {/* A gradient from clear to dark under the overlay: text stays readable on a bright frame
+          without a box over the clip. */}
+      <LinearGradient
+        pointerEvents="none"
+        colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
+        locations={[0, 0.55, 1]}
+        style={[styles.shade, { height: Math.min(height * 0.45, 360) }]}
+      />
       {/* box-none: taps between the controls reach the clip (tap toggles sound). */}
       <View style={styles.overlay} pointerEvents="box-none">
         <View style={styles.scrim}>
@@ -110,13 +119,8 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     padding: spacing.md,
   },
-  // A dark veil behind the text, so it reads over any frame of the clip.
-  scrim: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-    borderRadius: 12,
-    padding: spacing.sm,
-  },
+  shade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  scrim: { flex: 1, paddingVertical: spacing.sm },
   wide: {
     flexDirection: 'row',
     alignItems: 'center',

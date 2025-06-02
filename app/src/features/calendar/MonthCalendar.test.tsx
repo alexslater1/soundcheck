@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { MonthCalendar } from './MonthCalendar';
+import { heat, MonthCalendar } from './MonthCalendar';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 
@@ -53,5 +53,9 @@ describe('MonthCalendar', () => {
     expect(onMonthChange).toHaveBeenLastCalledWith({ year: 2026, month: 11 });
     await fireEvent.press(screen.getByLabelText('Previous month'));
     expect(onMonthChange).toHaveBeenLastCalledWith({ year: 2026, month: 9 });
+  });
+
+  it('shades busier days deeper', () => {
+    expect([0, 1, 3, 4, 9, 10, 40].map(heat)).toEqual([0, 1, 1, 2, 2, 3, 3]);
   });
 });

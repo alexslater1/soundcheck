@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
-import { Text } from '@/components/ui/Text';
+import { Wordmark } from '@/components/ui/Wordmark';
 import { useTabReselect } from '@/lib/useTabReselect';
 import { spacing } from '@/theme/tokens';
 
@@ -24,7 +24,7 @@ export function HomeScreen() {
   return (
     <Screen wide>
       <View style={styles.header}>
-        <Text variant="title">Soundcheck</Text>
+        <Wordmark />
       </View>
       <View style={styles.tabs} accessibilityRole="radiogroup">
         <Chip

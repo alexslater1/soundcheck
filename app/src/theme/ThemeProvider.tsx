@@ -3,13 +3,22 @@ import { useColorScheme } from 'react-native';
 
 import { useThemePrefs, type ThemeMode } from './themePrefs';
 import { DEFAULT_THEME, themes, type ColorScheme, type Colors, type ThemeId } from './tokens';
+import type { TypeStyle } from './typography';
 
-type ThemeValue = { themeId: ThemeId; scheme: ColorScheme; colors: Colors };
+type ThemeValue = {
+  themeId: ThemeId;
+  scheme: ColorScheme;
+  colors: Colors;
+  typeStyle: TypeStyle;
+  glow: boolean;
+};
 
 const ThemeContext = createContext<ThemeValue>({
   themeId: DEFAULT_THEME,
   scheme: 'dark',
   colors: themes[DEFAULT_THEME].palettes.dark,
+  typeStyle: 'grotesk',
+  glow: true,
 });
 
 /**
@@ -32,11 +41,13 @@ export function ThemeProvider({ children }: PropsWithChildren) {
   const system = useColorScheme();
   const themeId = useThemePrefs((state) => state.themeId);
   const mode = useThemePrefs((state) => state.mode);
+  const typeStyle = useThemePrefs((state) => state.typeStyle);
+  const glow = useThemePrefs((state) => state.glow);
   const value = useMemo<ThemeValue>(() => {
     const theme = themes[themeId];
     const scheme = resolveScheme(mode, system, theme.prefers);
-    return { themeId, scheme, colors: theme.palettes[scheme] };
-  }, [themeId, mode, system]);
+    return { themeId, scheme, colors: theme.palettes[scheme], typeStyle, glow };
+  }, [themeId, mode, system, typeStyle, glow]);
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 

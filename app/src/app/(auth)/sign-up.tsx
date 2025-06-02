@@ -1,9 +1,10 @@
 import { Link } from 'expo-router';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { z } from 'zod';
 
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
+import { Wordmark } from '@/components/ui/Wordmark';
 import { AuthForm } from '@/features/auth/AuthForm';
 import { newPassword, notACredential, signUpEmail } from '@/features/auth/autofill';
 import { useAuthStore } from '@/features/auth/store';
@@ -27,6 +28,9 @@ export default function SignUpScreen() {
   return (
     <Screen keyboard>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.brand}>
+          <Wordmark size={30} />
+        </View>
         <Text variant="display">Create account</Text>
         <AuthForm<Values>
           schema={schema}
@@ -60,4 +64,7 @@ export default function SignUpScreen() {
   );
 }
 
-const styles = StyleSheet.create({ content: { gap: spacing.md, paddingBottom: spacing.xl } });
+const styles = StyleSheet.create({
+  content: { gap: spacing.md, paddingBottom: spacing.xl },
+  brand: { marginTop: spacing.lg, marginBottom: spacing.md },
+});

@@ -17,4 +17,18 @@ jest.mock('@/features/telemetry/telemetry', () => ({
   },
 }));
 
+// The font packages also export expo-font's useFonts, whose loader needs expo-asset (not available
+// under Jest). Tests need only the family names: each font module is a number, as with any asset.
+jest.mock('@expo-google-fonts/inter', () => ({
+  Inter_400Regular: 1,
+  Inter_500Medium: 2,
+  Inter_600SemiBold: 3,
+  Inter_700Bold: 4,
+}));
+jest.mock('@expo-google-fonts/space-grotesk', () => ({
+  SpaceGrotesk_500Medium: 5,
+  SpaceGrotesk_600SemiBold: 6,
+  SpaceGrotesk_700Bold: 7,
+}));
+
 export {};
