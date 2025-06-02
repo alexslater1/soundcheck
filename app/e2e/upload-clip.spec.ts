@@ -30,6 +30,12 @@ test('upload a clip on web, watch it when it is ready, then upload a large one i
     }
   });
 
+  // An upload's state as its row in the list says it (the preview strip above repeats it).
+  const rowsSaying = (state: string) =>
+    page.locator('[data-testid^="upload-"][data-testid$="-state"]', {
+      hasText: new RegExp(`^${state}$`),
+    });
+
   const user = await signUpAndOnboard(page);
   await page.getByRole('tab', { name: /Create$/ }).click();
   await expect(page.getByTestId('uploads-empty')).toBeVisible();
@@ -37,7 +43,7 @@ test('upload a clip on web, watch it when it is ready, then upload a large one i
   // A small clip: one PUT, then the worker makes it Ready.
   await choose(page, SMALL);
   await expect(page.getByText('clip-02-portrait-720p-12s.mp4', { exact: true })).toBeVisible();
-  await expect(page.getByText('Ready', { exact: true })).toBeVisible({ timeout: 90_000 });
+  await expect(rowsSaying('Ready')).toBeVisible({ timeout: 90_000 });
   expect(puts).toEqual(['whole']);
 
   // Watch: the video element is playing an HLS stream fed by hls.js, the poster is gone.
@@ -60,10 +66,10 @@ test('upload a clip on web, watch it when it is ready, then upload a large one i
   // A clip over 16 MB goes up in parts and becomes Ready too. (A full page load: the list comes back
   // from the persisted queue.)
   await page.goto('/create');
-  await expect(page.getByText('Ready', { exact: true })).toHaveCount(1);
+  await expect(rowsSaying('Ready')).toHaveCount(1);
   await choose(page, LARGE);
   await expect(page.getByText(/uploaded in parts/)).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText('Ready', { exact: true })).toHaveCount(2, { timeout: 120_000 });
+  await expect(rowsSaying('Ready')).toHaveCount(2, { timeout: 120_000 });
   expect(puts).toEqual(['whole', 'part', 'part', 'part']);
 
   // Clean up: delete the account.
