@@ -1,7 +1,9 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, render, screen } from '@testing-library/react-native';
 
+import { fireEvent } from '@/test/fireEvent';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
+import { PlaybackScope } from './PlaybackScope';
 import { usePlayerPrefs } from './playerPrefs';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -51,6 +53,10 @@ jest.mock('expo-video', () => {
   };
 });
 
+// Whether the screen around a PlaybackScope is the one in view (react-navigation's focus).
+let mockFocused = true;
+jest.mock('@react-navigation/native', () => ({ useIsFocused: () => mockFocused }));
+
 // Icon fonts are loaded through expo-asset, which is not available under Jest.
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 
@@ -79,6 +85,7 @@ function renderPlayer(props: Partial<React.ComponentProps<typeof VideoPlayer>> =
 describe('VideoPlayer (native)', () => {
   beforeEach(() => {
     mockPlayers.length = 0;
+    mockFocused = true;
     usePlayerPrefs.setState({ muted: true });
   });
 
@@ -137,7 +144,7 @@ describe('VideoPlayer (native)', () => {
     expect(screen.queryByTestId('player-poster')).toBeNull();
   });
 
-  it('toggles sound for every player with one tap, and labels the control', async () => {
+  it('toggles sound with one tap outside a screen scope, and labels the control', async () => {
     await renderPlayer();
     const player = mockPlayers[0]!;
     const sound = screen.getByLabelText('Turn sound on');
@@ -188,5 +195,46 @@ describe('VideoPlayer (native)', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('pauses when its screen is covered or another tab is open, and resumes when it is back', async () => {
+    const scoped = () => (
+      <ThemeProvider>
+        <PlaybackScope>
+          <VideoPlayer testID="player" hlsUrl="http://localhost:8088/m/master.m3u8" active />
+        </PlaybackScope>
+      </ThemeProvider>
+    );
+    const view = await render(scoped());
+    const player = mockPlayers[0]!;
+    expect(player.play).toHaveBeenCalledTimes(1);
+
+    mockFocused = false;
+    await view.rerender(scoped());
+    expect(player.pause).toHaveBeenCalledTimes(1);
+
+    mockFocused = true;
+    await view.rerender(scoped());
+    expect(player.play).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps each screen's sound to itself", async () => {
+    await render(
+      <ThemeProvider>
+        <PlaybackScope>
+          <VideoPlayer testID="feed" hlsUrl="http://localhost:8088/a/master.m3u8" active />
+        </PlaybackScope>
+        <PlaybackScope>
+          <VideoPlayer testID="post" hlsUrl="http://localhost:8088/b/master.m3u8" active />
+        </PlaybackScope>
+      </ThemeProvider>,
+    );
+    const [feed, post] = mockPlayers;
+
+    await fireEvent.press(screen.getByTestId('post-sound'));
+
+    expect(post!.muted).toBe(false);
+    expect(feed!.muted).toBe(true);
+    expect(usePlayerPrefs.getState().muted).toBe(true);
   });
 });

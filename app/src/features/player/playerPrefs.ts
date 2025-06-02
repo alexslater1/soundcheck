@@ -7,7 +7,10 @@ type PlayerPrefs = {
   toggleMuted: () => void;
 };
 
-/** Sound preference shared by every player, kept for the session only. */
+/**
+ * The sound setting of players outside any {@link PlaybackScope} (components rendered on their own, as
+ * in tests). Screens that show clips wrap them in a scope with its own setting.
+ */
 export const usePlayerPrefs = create<PlayerPrefs>((set) => ({
   muted: true,
   setMuted: (muted) => set({ muted }),

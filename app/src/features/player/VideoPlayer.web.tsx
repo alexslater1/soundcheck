@@ -5,7 +5,7 @@ import Hls from 'hls.js';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
 import { PlayerFrame } from './PlayerFrame';
-import { usePlayerPrefs } from './playerPrefs';
+import { usePlayback } from './PlaybackScope';
 import type { VideoPlayerProps } from './types';
 
 const DEFAULT_ASPECT = 9 / 16;
@@ -23,7 +23,7 @@ const FILL: CSSProperties = {
  * Extensions; Safari plays HLS natively and gets the URL directly.
  */
 export function VideoPlayer(props: VideoPlayerProps) {
-  const { live = true, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, testID } = props;
+  const { live = true, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, rounded, testID } = props;
   if (!live) {
     return (
       <PlayerFrame
@@ -32,6 +32,7 @@ export function VideoPlayer(props: VideoPlayerProps) {
         aspectRatio={aspectRatio}
         showPoster
         showSound={false}
+        rounded={rounded}
         testID={testID}
       />
     );
@@ -47,12 +48,14 @@ function LivePlayer({
   active,
   loop = true,
   soundAtTop,
+  rounded,
   onProgress,
   testID,
 }: VideoPlayerProps) {
   const video = useRef<HTMLVideoElement>(null);
-  const muted = usePlayerPrefs((state) => state.muted);
-  const setMuted = usePlayerPrefs((state) => state.setMuted);
+  const { onScreen, muted, setMuted } = usePlayback();
+  // A clip plays only while it is the active one and its screen is the one in view.
+  const playing = active && onScreen;
   const [firstFrame, setFirstFrame] = useState(false);
   const [failed, setFailed] = useState(false);
   // Incremented by "Try again": the effect below runs again and builds a fresh hls.js instance.
@@ -109,7 +112,7 @@ function LivePlayer({
     if (!element) {
       return;
     }
-    if (!active) {
+    if (!playing) {
       element.pause();
       return;
     }
@@ -122,7 +125,7 @@ function LivePlayer({
         element.play().catch(() => undefined);
       }
     });
-  }, [active, generation, setMuted]);
+  }, [playing, generation, setMuted]);
 
   return (
     <PlayerFrame
@@ -132,6 +135,7 @@ function LivePlayer({
       showPoster={!firstFrame}
       showSound
       soundAtTop={soundAtTop}
+      rounded={rounded}
       failed={failed}
       onRetry={() => {
         setFailed(false);

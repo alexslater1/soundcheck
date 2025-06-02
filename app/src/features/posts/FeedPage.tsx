@@ -1,3 +1,4 @@
+import { Image } from 'expo-image';
 import { StyleSheet, View } from 'react-native';
 
 import type { Post, Reason } from '@/api/generated/model';
@@ -9,6 +10,7 @@ import { spacing } from '@/theme/tokens';
 import { PostActions } from './PostActions';
 import { aspectOf, PostMedia } from './PostMedia';
 import { PostMeta } from './PostMeta';
+import { fitClip, pageFit } from './pageFit';
 
 /** From this width on, the clip gets a details panel beside it instead of an overlay. */
 export const WIDE_FROM = 900;
@@ -21,12 +23,6 @@ type Props = {
   height: number;
   onGone?: (postId: string) => void;
 };
-
-/** The largest box of the clip's shape that fits into the given space. */
-export function fitClip(aspect: number, maxWidth: number, maxHeight: number) {
-  const width = Math.min(maxWidth, maxHeight * aspect);
-  return { width, height: width / aspect };
-}
 
 /**
  * One page of a feed: the clip fills the screen, with the author, caption and tags laid
@@ -65,11 +61,28 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
     );
   }
 
-  const clip = fitClip(aspect, width, height);
+  const clip = pageFit(aspect, width, height);
   return (
     <View style={[styles.page, { height }]} testID={`post-${post.id}`}>
+      {clip.fill ? null : (
+        <Image
+          source={post.playback.posterUrl ? { uri: post.playback.posterUrl } : null}
+          placeholder={post.playback.blurhash ? { blurhash: post.playback.blurhash } : null}
+          blurRadius={30}
+          contentFit="cover"
+          style={StyleSheet.absoluteFill}
+          accessibilityIgnoresInvertColors
+          testID="page-backdrop"
+        />
+      )}
       <View style={{ width: clip.width }}>
-        <PostMedia post={post} active={active} live={live} soundAtTop />
+        <PostMedia
+          post={post}
+          active={active}
+          live={live}
+          soundAtTop
+          frameAspect={clip.fill ? width / height : undefined}
+        />
       </View>
       {/* box-none: taps between the controls reach the clip (tap toggles sound). */}
       <View style={styles.overlay} pointerEvents="box-none">

@@ -18,6 +18,11 @@ type Props = {
   live?: boolean;
   /** The sound button at the top of the clip (the feed lays its controls over the foot). */
   soundAtTop?: boolean;
+  /**
+   * The shape of the box the clip is shown in, when it is not the clip's own: the feed fills a page
+   * whose shape is close to the clip's, cropping the edges (see `pageFit`).
+   */
+  frameAspect?: number;
 };
 
 /** Width divided by height of a post's clip; portrait 9:16 until the size is known. */
@@ -30,11 +35,11 @@ export function aspectOf(post: Post): number {
  * A post's clip: the player when it is ready, a note while it is processing or when it failed. While
  * the clip is the active one, what the viewer watches is reported: the start, each quarter, the end.
  */
-export function PostMedia({ post, active, live = true, soundAtTop }: Props) {
+export function PostMedia({ post, active, live = true, soundAtTop, frameAspect }: Props) {
   const { colors } = useTheme();
   const track = useTrack();
   const { playback } = post;
-  const aspectRatio = aspectOf(post);
+  const aspectRatio = frameAspect ?? aspectOf(post);
 
   // One "viewing" lasts from the clip becoming active until it stops being so; each watch event is
   // reported once per viewing, however often the clip loops.
@@ -65,6 +70,7 @@ export function PostMedia({ post, active, live = true, soundAtTop }: Props) {
         active={active}
         live={live}
         soundAtTop={soundAtTop}
+        rounded={frameAspect === undefined}
         onProgress={onProgress}
       />
     );

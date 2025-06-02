@@ -12,6 +12,8 @@ export type VideoPlayerProps = {
   /** True plays, false pauses. In a list exactly one clip is active. */
   active: boolean;
   loop?: boolean;
+  /** False draws square corners: a clip that fills a feed page edge to edge (default true). */
+  rounded?: boolean;
   /** Puts the sound button in the top corner (the feed lays its own controls over the foot of the clip). */
   soundAtTop?: boolean;
   /** Called about twice a second while playing; watch-time telemetry hooks in here. */

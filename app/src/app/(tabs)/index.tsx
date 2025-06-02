@@ -1,5 +1,10 @@
 import { HomeScreen } from '@/features/feed/HomeScreen';
+import { PlaybackScope } from '@/features/player/PlaybackScope';
 
 export default function HomeRoute() {
-  return <HomeScreen />;
+  return (
+    <PlaybackScope>
+      <HomeScreen />
+    </PlaybackScope>
+  );
 }

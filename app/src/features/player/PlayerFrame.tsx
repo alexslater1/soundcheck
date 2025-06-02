@@ -8,7 +8,7 @@ import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
-import { usePlayerPrefs } from './playerPrefs';
+import { usePlayback } from './PlaybackScope';
 
 type Props = PropsWithChildren<{
   posterUrl?: string | null;
@@ -20,6 +20,8 @@ type Props = PropsWithChildren<{
   showSound: boolean;
   /** The sound button in the top corner instead of the bottom one. */
   soundAtTop?: boolean;
+  /** False: square corners (a clip filling a feed page). */
+  rounded?: boolean;
   failed?: boolean;
   onRetry?: () => void;
   testID?: string;
@@ -38,16 +40,23 @@ export function PlayerFrame({
   showPoster,
   showSound,
   soundAtTop = false,
+  rounded = true,
   failed = false,
   onRetry,
   testID,
 }: Props) {
   const { colors } = useTheme();
-  const muted = usePlayerPrefs((state) => state.muted);
-  const toggleMuted = usePlayerPrefs((state) => state.toggleMuted);
+  const { muted, toggleMuted } = usePlayback();
 
   return (
-    <View style={[styles.frame, { aspectRatio, backgroundColor: colors.surface }]} testID={testID}>
+    <View
+      style={[
+        styles.frame,
+        { aspectRatio, backgroundColor: colors.surface },
+        rounded ? null : styles.square,
+      ]}
+      testID={testID}
+    >
       {children}
       {showPoster ? (
         <Image
@@ -87,6 +96,7 @@ export function PlayerFrame({
 
 const styles = StyleSheet.create({
   frame: { width: '100%', borderRadius: radius.md, overflow: 'hidden' },
+  square: { borderRadius: 0 },
   failed: {
     alignItems: 'center',
     justifyContent: 'center',

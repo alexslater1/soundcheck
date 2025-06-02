@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet } from 'react-native';
 
 import { PlayerFrame } from './PlayerFrame';
-import { usePlayerPrefs } from './playerPrefs';
+import { usePlayback } from './PlaybackScope';
 import type { VideoPlayerProps } from './types';
 
 const DEFAULT_ASPECT = 9 / 16;
@@ -15,7 +15,7 @@ const DEFAULT_ASPECT = 9 / 16;
  * rendered and no player exists.
  */
 export function VideoPlayer(props: VideoPlayerProps) {
-  const { live = true, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, testID } = props;
+  const { live = true, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, rounded, testID } = props;
   if (!live) {
     return (
       <PlayerFrame
@@ -24,6 +24,7 @@ export function VideoPlayer(props: VideoPlayerProps) {
         aspectRatio={aspectRatio}
         showPoster
         showSound={false}
+        rounded={rounded}
         testID={testID}
       />
     );
@@ -89,13 +90,16 @@ function LivePlayer({
   active,
   loop = true,
   soundAtTop,
+  rounded,
   onProgress,
   testID,
   failed,
   onFailed,
   onRetry,
 }: VideoPlayerProps & { failed: boolean; onFailed: () => void; onRetry: () => void }) {
-  const muted = usePlayerPrefs((state) => state.muted);
+  const { onScreen, muted } = usePlayback();
+  // A clip plays only while it is the active one and its screen is the one in view.
+  const playing = active && onScreen;
   const [firstFrame, setFirstFrame] = useState(false);
 
   const player = useVideoPlayer({ uri: hlsUrl, contentType: 'hls' }, (created) => {
@@ -109,12 +113,12 @@ function LivePlayer({
   }, [player, muted, loop]);
 
   useEffect(() => {
-    if (active) {
+    if (playing) {
       player.play();
     } else {
       player.pause();
     }
-  }, [player, active]);
+  }, [player, playing]);
 
   useEventListener(player, 'timeUpdate', ({ currentTime }) => {
     onProgress?.({
@@ -136,6 +140,7 @@ function LivePlayer({
       showPoster={!firstFrame}
       showSound
       soundAtTop={soundAtTop}
+      rounded={rounded}
       failed={failed}
       onRetry={onRetry}
       testID={testID}
