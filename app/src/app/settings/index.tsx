@@ -19,6 +19,9 @@ export default function SettingsScreen() {
         <Link href="/settings/appearance" style={styles.item}>
           <Text>Appearance: dark or light →</Text>
         </Link>
+        <Link href="/settings/genres" style={styles.item}>
+          <Text>Your genres: love or like →</Text>
+        </Link>
         <Link href="/settings/profile" style={styles.item}>
           <Text>Edit profile →</Text>
         </Link>

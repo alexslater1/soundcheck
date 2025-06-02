@@ -11,16 +11,20 @@ import {
 
 
 /**
- * @summary Search artists by name (?q=) or list popular ones
+ * @summary Search artists by name (?q=), or list popular ones (in genreIds and their children when given)
  */
 export const listArtistsQueryQMin = 0;
 
 export const listArtistsQueryQMax = 80;
+export const listArtistsQueryGenreIdsMin = 0;
+
+export const listArtistsQueryGenreIdsMax = 8;
 
 
 export const listArtistsQueryParams = zod.object({
   "q": zod.string().min(listArtistsQueryQMin).max(listArtistsQueryQMax).optional(),
   "popular": zod.boolean().optional(),
+  "genreIds": zod.array(zod.number()).min(listArtistsQueryGenreIdsMin).max(listArtistsQueryGenreIdsMax).optional(),
   "limit": zod.number().optional()
 })
 

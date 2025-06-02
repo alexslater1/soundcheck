@@ -207,13 +207,16 @@ public class CatalogController {
     // ── artists ─────────────────────────────────────────────────────────────
 
     @GetMapping("/artists")
-    @Operation(operationId = "listArtists", summary = "Search artists by name (?q=) or list popular ones")
+    @Operation(
+            operationId = "listArtists",
+            summary = "Search artists by name (?q=), or list popular ones (in genreIds and their children when given)")
     public Page<ArtistSummary> artists(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) @Size(max = 80) String q,
             @RequestParam(required = false) Boolean popular,
+            @RequestParam(required = false) @Size(max = 8) List<Short> genreIds,
             @RequestParam(required = false) Integer limit) {
-        return catalog.artists(userId(jwt), q, limit);
+        return catalog.artists(userId(jwt), q, genreIds, limit);
     }
 
     @PostMapping("/artists")

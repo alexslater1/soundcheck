@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Size;
 import java.util.List;
+import java.util.Map;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,7 +33,10 @@ public class ReferenceController {
     @GetMapping("/genres")
     @Operation(operationId = "listGenres", summary = "Canonical genre list")
     public List<GenreResponse> genres() {
-        return referenceData.genres().stream().map(GenreResponse::from).toList();
+        Map<Short, List<String>> aliases = referenceData.genreAliases();
+        return referenceData.genres().stream()
+                .map(g -> GenreResponse.from(g, aliases.getOrDefault(g.id(), List.of())))
+                .toList();
     }
 
     @GetMapping("/cities")
@@ -43,11 +47,13 @@ public class ReferenceController {
                 .toList();
     }
 
-    /** A genre as exposed to clients. */
-    public record GenreResponse(int id, String slug, String name, @Schema(nullable = true) Integer parentId) {
+    /** A genre as exposed to clients; {@code aliases} are its other names, for searching (lower case). */
+    public record GenreResponse(
+            int id, String slug, String name, @Schema(nullable = true) Integer parentId, List<String> aliases) {
 
-        static GenreResponse from(Genre g) {
-            return new GenreResponse(g.id(), g.slug(), g.name(), g.parentId() == null ? null : (int) g.parentId());
+        static GenreResponse from(Genre g, List<String> aliases) {
+            return new GenreResponse(
+                    g.id(), g.slug(), g.name(), g.parentId() == null ? null : (int) g.parentId(), aliases);
         }
     }
 

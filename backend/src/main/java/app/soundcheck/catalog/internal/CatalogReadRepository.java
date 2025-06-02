@@ -30,6 +30,7 @@ import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
+import org.jooq.Row2;
 import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
@@ -440,6 +441,72 @@ class CatalogReadRepository {
                 .orderBy(ARTIST.POPULARITY.desc(), upcoming.desc(), ARTIST.NAME, ARTIST.ID)
                 .limit(limit)
                 .fetch(ARTIST.ID);
+    }
+
+    /**
+     * Artists for the onboarding "follow some artists" step once genres are picked: artists
+     * tagged with any of the genres, taking turns between the picked genres so that one big genre does
+     * not fill the list. Within a genre, artists with upcoming gigs come first, then the strongest tag,
+     * then the most upcoming gigs.
+     *
+     * @param pickedByGenre every genre to match (a picked one and its children) → the picked genre it counts for
+     * Expected index: artist_genre_genre (genre_id) for the tags, gig_artist_artist for the gig counts.
+     */
+    List<UUID> popularArtistsInGenres(Instant now, Map<Short, Short> pickedByGenre, int limit) {
+        if (pickedByGenre.isEmpty()) {
+            return List.of();
+        }
+        Field<Short> genreId = DSL.field(DSL.name("m", "genre_id"), Short.class);
+        Field<Short> pickedId = DSL.field(DSL.name("m", "picked_id"), Short.class);
+        @SuppressWarnings("unchecked") // a generic array: every element is built as a Row2<Short, Short> here
+        Row2<Short, Short>[] rows = pickedByGenre.entrySet().stream()
+                .map(e -> DSL.row(e.getKey(), e.getValue()))
+                .toArray(Row2[]::new);
+        var mapping = DSL.values(rows).as("m", "genre_id", "picked_id");
+        Field<Integer> upcoming = DSL.field(DSL.selectCount()
+                .from(GIG_ARTIST)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_ARTIST.GIG_ID))
+                .where(GIG_ARTIST.ARTIST_ID.eq(ARTIST_GENRE.ARTIST_ID))
+                .and(GIG.STARTS_AT.ge(at(now))));
+        var ranked = dsl.select(
+                        ARTIST_GENRE.ARTIST_ID.as("artist_id"),
+                        ARTIST_GENRE.WEIGHT.as("weight"),
+                        DSL.rowNumber()
+                                .over(DSL.partitionBy(pickedId)
+                                        .orderBy(
+                                                DSL.when(upcoming.gt(0), 0).otherwise(1),
+                                                ARTIST_GENRE.WEIGHT.desc(),
+                                                upcoming.desc(),
+                                                ARTIST_GENRE.ARTIST_ID))
+                                .as("turn"))
+                .from(ARTIST_GENRE)
+                .join(mapping)
+                .on(genreId.eq(ARTIST_GENRE.GENRE_ID))
+                .asTable("ranked");
+        Field<UUID> artistId = ranked.field("artist_id", UUID.class);
+        return dsl.select(artistId)
+                .from(ranked)
+                .groupBy(artistId)
+                .orderBy(
+                        DSL.min(ranked.field("turn", Integer.class)),
+                        DSL.max(ranked.field("weight")).desc(),
+                        artistId)
+                .limit(limit)
+                .fetch(artistId);
+    }
+
+    /** Each given genre and its children, mapped to the given genre ("rock" counts "indie" as rock). */
+    Map<Short, Short> withChildren(Collection<Short> genreIds) {
+        Map<Short, Short> mapped = new LinkedHashMap<>();
+        dsl.select(GENRE.ID, GENRE.PARENT_ID).from(GENRE).forEach(r -> {
+            if (genreIds.contains(r.value1())) {
+                mapped.put(r.value1(), r.value1());
+            } else if (r.value2() != null && genreIds.contains(r.value2())) {
+                mapped.putIfAbsent(r.value1(), r.value2());
+            }
+        });
+        return mapped;
     }
 
     // ── venues ──────────────────────────────────────────────────────────────

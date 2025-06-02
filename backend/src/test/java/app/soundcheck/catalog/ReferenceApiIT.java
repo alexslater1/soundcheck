@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import app.soundcheck.support.IntegrationTest;
 import java.util.List;
 import java.util.Map;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -38,6 +39,18 @@ class ReferenceApiIT extends IntegrationTest {
                 .findFirst()
                 .orElseThrow();
         assertThat(indie.get("parentId")).isEqualTo(1); // Rock
+        // Other names, for the sign-up genre search; never the genre's own name again.
+        assertThat(indie.get("aliases"))
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .contains("shoegaze", "britpop")
+                .doesNotContain("indie");
+        Map<String, Object> dnb = genres.stream()
+                .filter(g -> "drum-and-bass".equals(g.get("slug")))
+                .findFirst()
+                .orElseThrow();
+        assertThat(dnb.get("aliases"))
+                .asInstanceOf(InstanceOfAssertFactories.LIST)
+                .contains("dnb", "jungle");
     }
 
     @Test

@@ -36,6 +36,7 @@ export const searchCitiesResponse = zod.array(searchCitiesResponseItem)
  * @summary Canonical genre list
  */
 export const listGenresResponseItem = zod.object({
+  "aliases": zod.array(zod.string()),
   "id": zod.number(),
   "name": zod.string(),
   "parentId": zod.number().nullish(),

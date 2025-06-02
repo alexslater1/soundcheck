@@ -542,6 +542,12 @@
       },
       "GenreResponse" : {
         "properties" : {
+          "aliases" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "id" : {
             "format" : "int32",
             "type" : "integer"
@@ -557,7 +563,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "id", "name", "slug" ],
+        "required" : [ "aliases", "id", "name", "slug" ],
         "type" : "object"
       },
       "GenreWeight" : {
@@ -1508,6 +1514,19 @@
           }
         }, {
           "in" : "query",
+          "name" : "genreIds",
+          "required" : false,
+          "schema" : {
+            "items" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "maxItems" : 8,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        }, {
+          "in" : "query",
           "name" : "limit",
           "required" : false,
           "schema" : {
@@ -1527,7 +1546,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Search artists by name (?q=) or list popular ones",
+        "summary" : "Search artists by name (?q=), or list popular ones (in genreIds and their children when given)",
         "tags" : [ "catalog" ]
       },
       "post" : {

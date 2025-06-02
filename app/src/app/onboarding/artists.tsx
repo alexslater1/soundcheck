@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { FlatList, StyleSheet, TextInput, View } from 'react-native';
 
 import { useListArtists } from '@/api/generated/catalog/catalog';
@@ -16,12 +16,15 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
 /**
- * Last onboarding step: popular artists, or search results while typing, each with a
- * follow button. Following is optional; Finish marks onboarding complete.
+ * Last onboarding step: artists of the genres picked in the step before, or
+ * search results while typing, each with a follow button. Following is optional; Finish marks
+ * onboarding complete.
  */
 export default function ArtistsStep() {
   const { colors } = useTheme();
   const reloadMe = useAuthStore((s) => s.reloadMe);
+  const myGenres = useAuthStore((s) => s.me?.genres);
+  const genreIds = useMemo(() => (myGenres ?? []).map((g) => g.genreId), [myGenres]);
   const { saving, error, run } = useSaveStep();
   const { mutateAsync: completeOnboarding } = useCompleteOnboarding();
   const genreNames = useGenreNames();
@@ -33,7 +36,7 @@ export default function ArtistsStep() {
     return () => clearTimeout(timer);
   }, [text]);
 
-  const artists = useListArtists(q ? { q, limit: 20 } : { popular: true, limit: 20 }, {
+  const artists = useListArtists(q ? { q, limit: 20 } : { popular: true, limit: 20, genreIds }, {
     query: { placeholderData: (previous) => previous },
   });
 
@@ -47,7 +50,11 @@ export default function ArtistsStep() {
   return (
     <Screen keyboard>
       <Text variant="title">Follow some artists</Text>
-      <Text muted>Their gigs and clips will show up first. You can skip this.</Text>
+      <Text muted>
+        {genreIds.length > 0
+          ? 'Picked for the genres you chose. Their gigs and clips show up first. You can skip this.'
+          : 'Their gigs and clips will show up first. You can skip this.'}
+      </Text>
       <TextInput
         accessibilityLabel="Search artists"
         placeholder="Search artists"

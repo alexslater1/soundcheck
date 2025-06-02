@@ -1,4 +1,4 @@
-import { canContinue, setWeight, toggleGenre, toRequest } from './genreSelection';
+import { canContinue, searchGenres, setWeight, toggleGenre, toRequest } from './genreSelection';
 
 describe('genre selection', () => {
   it('toggles, caps at 8 and needs at least one to continue', () => {
@@ -21,5 +21,38 @@ describe('genre selection', () => {
     expect(setWeight(s, 99, 0.5)).toBe(s);
     expect(setWeight(s, 14, 2)).toBe(s);
     expect(toRequest(s)).toEqual([{ genreId: 14, weight: 0.5 }]);
+  });
+
+  describe('searchGenres', () => {
+    const genres = [
+      { id: 2, name: 'Indie', aliases: ['indie rock', 'britpop', 'shoegaze'] },
+      { id: 4, name: 'Punk', aliases: ['post-punk', 'pop punk'] },
+      { id: 6, name: 'Pop', aliases: ['synthpop', 'k-pop'] },
+      { id: 15, name: 'Drum and Bass', aliases: ['dnb', 'jungle'] },
+    ];
+    const names = (q: string) => searchGenres(genres, q).map((m) => [m.genre.name, m.via]);
+
+    it('lists every genre for an empty query', () => {
+      expect(names('  ')).toHaveLength(4);
+    });
+
+    it('finds a style by its other name and says which', () => {
+      expect(names('shoe')).toEqual([['Indie', 'shoegaze']]);
+      expect(names('DNB')).toEqual([['Drum and Bass', 'dnb']]);
+    });
+
+    it('puts names before aliases, and prefixes before matches inside', () => {
+      // "pop": Pop (its name) → Punk ("pop punk" starts with it) → Indie ("britpop" contains it).
+      expect(names('pop')).toEqual([
+        ['Pop', null],
+        ['Punk', 'pop punk'],
+        ['Indie', 'britpop'],
+      ]);
+      expect(names('bass')).toEqual([['Drum and Bass', null]]);
+    });
+
+    it('finds nothing for a word no genre has', () => {
+      expect(names('polka')).toEqual([]);
+    });
   });
 });

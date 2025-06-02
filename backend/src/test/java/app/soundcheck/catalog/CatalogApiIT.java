@@ -350,6 +350,26 @@ class CatalogApiIT extends IntegrationTest {
         // Popular list (onboarding): bounded, every entry has a name.
         JsonNode popular = ok(api.get("/api/v1/artists?popular=true&limit=5", fan));
         assertThat(popular.path("items").size()).isBetween(1, 5);
+        // In the genres just picked: Jazz (17) suggests it and only jazz acts; Techno (14)
+        // does not suggest it; Rock (1) counts its children, so an Indie act is suggested for it.
+        JsonNode jazz = ok(api.get("/api/v1/artists?popular=true&genreIds=17&limit=50", fan));
+        assertThat(jazz.path("items").valueStream().map(a -> a.path("id").asText("")))
+                .contains(artistId.toString());
+        assertThat(jazz.path("items").valueStream())
+                .allSatisfy(a -> assertThat(a.path("genres").valueStream().map(value -> value.asText("")))
+                        .contains("jazz"));
+        assertThat(ok(api.get("/api/v1/artists?popular=true&genreIds=14&limit=50", fan))
+                        .path("items")
+                        .valueStream()
+                        .map(a -> a.path("id").asText("")))
+                .doesNotContain(artistId.toString());
+        String indieName = "Paper Lanterns " + tag;
+        gig("indie", base, venue, new SourceArtist("a-pl-" + tag, indieName, null, List.of("Indie"), null));
+        assertThat(ok(api.get("/api/v1/artists?popular=true&genreIds=1&genreIds=17&limit=50", fan))
+                        .path("items")
+                        .valueStream()
+                        .map(a -> a.path("name").asText("")))
+                .contains(indieName, name);
 
         // Detail: genres, follower count, the next five gigs only.
         JsonNode detail = ok(api.get("/api/v1/artists/" + artistId, fan));

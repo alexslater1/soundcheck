@@ -57,13 +57,19 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary Search artists by name (?q=) or list popular ones
+ * @summary Search artists by name (?q=), or list popular ones (in genreIds and their children when given)
  */
 export const getListArtistsUrl = (params?: ListArtistsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    
+    const explodeParameters = ["genreIds"];
+
+    if (value instanceof Array && explodeParameters.includes(key)) {
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      return;
+    }
+      
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
@@ -139,7 +145,7 @@ export function useListArtists<TData = Awaited<ReturnType<typeof listArtists>>, 
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Search artists by name (?q=) or list popular ones
+ * @summary Search artists by name (?q=), or list popular ones (in genreIds and their children when given)
  */
 
 export function useListArtists<TData = Awaited<ReturnType<typeof listArtists>>, TError = unknown>(

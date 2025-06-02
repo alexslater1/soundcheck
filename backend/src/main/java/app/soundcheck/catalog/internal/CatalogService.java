@@ -291,11 +291,21 @@ public class CatalogService {
     // ── artists ─────────────────────────────────────────────────────────────
 
     /** {@code ?q=} searches by name; {@code ?popular=true} (or no query) lists popular artists. */
-    public Page<ArtistSummary> artists(UUID viewer, @Nullable String q, @Nullable Integer limit) {
+    /**
+     * A name search, or else the artists to suggest: popular ones, or popular ones in the given genres
+     * (and their children) when there are any — the sign-up step passes the genres just picked.
+     */
+    public Page<ArtistSummary> artists(
+            UUID viewer, @Nullable String q, @Nullable Collection<Short> genreIds, @Nullable Integer limit) {
         int size = Cursor.limit(limit);
-        List<UUID> ids = q != null && !q.isBlank()
-                ? repository.searchArtists(q, size)
-                : repository.popularArtists(Instant.now(clock), size);
+        List<UUID> ids;
+        if (q != null && !q.isBlank()) {
+            ids = repository.searchArtists(q, size);
+        } else if (genreIds != null && !genreIds.isEmpty()) {
+            ids = repository.popularArtistsInGenres(Instant.now(clock), repository.withChildren(genreIds), size);
+        } else {
+            ids = repository.popularArtists(Instant.now(clock), size);
+        }
         return Page.of(artistSummaries(viewer, ids));
     }
 

@@ -9,5 +9,6 @@
 export type ListArtistsParams = {
 q?: string;
 popular?: boolean;
+genreIds?: number[];
 limit?: number;
 };

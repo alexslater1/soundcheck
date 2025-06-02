@@ -8,6 +8,7 @@
 import type { GenreResponseParentId } from './genreResponseParentId';
 
 export interface GenreResponse {
+  aliases: string[];
   id: number;
   name: string;
   parentId?: GenreResponseParentId;
