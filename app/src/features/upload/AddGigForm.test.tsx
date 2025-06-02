@@ -6,6 +6,9 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 import { AddGigForm } from './AddGigForm';
 
 const mockAddGig = jest.fn();
+
+/** Suggestions arrive after a 250 ms debounce and a request: allow for a busy test machine. */
+const SLOW = { timeout: 4000 };
 jest.mock('@/api/generated/catalog/catalog', () => ({
   addGig: (...args: unknown[]) => mockAddGig(...args),
   useListArtists: ({ q }: { q: string }) => ({
@@ -45,14 +48,14 @@ describe('AddGigForm', () => {
     expect(screen.getByTestId('add-gig-submit')).toBeDisabled();
 
     await fireEvent.changeText(screen.getByLabelText('Act name'), 'pale');
-    await fireEvent.press(await screen.findByText('Pale Kites'));
+    await fireEvent.press(await screen.findByText('Pale Kites', {}, SLOW));
     await fireEvent.changeText(screen.getByLabelText('Act name'), 'Night  Bus');
-    await fireEvent.press(await screen.findByText('+ New act “Night  Bus”'));
+    await fireEvent.press(await screen.findByText('+ New act “Night  Bus”', {}, SLOW));
 
     await fireEvent.changeText(screen.getByLabelText('Venue name'), 'The Snug');
-    await fireEvent.press(await screen.findByText('+ New venue “The Snug”'));
+    await fireEvent.press(await screen.findByText('+ New venue “The Snug”', {}, SLOW));
     await fireEvent.changeText(screen.getByLabelText('Venue city'), 'man');
-    await fireEvent.press(await screen.findByText('Manchester, England'));
+    await fireEvent.press(await screen.findByText('Manchester, England', {}, SLOW));
 
     await fireEvent.press(screen.getByText('Yesterday'));
     await fireEvent.changeText(screen.getByLabelText('Start time'), '21:30');
@@ -73,9 +76,9 @@ describe('AddGigForm', () => {
     mockAddGig.mockResolvedValue({ item: { id: 'g2' }, created: false });
     await renderForm();
     await fireEvent.changeText(screen.getByLabelText('Act name'), 'pale');
-    await fireEvent.press(await screen.findByText('Pale Kites'));
+    await fireEvent.press(await screen.findByText('Pale Kites', {}, SLOW));
     await fireEvent.changeText(screen.getByLabelText('Venue name'), 'apollo');
-    await fireEvent.press(await screen.findByText('Apollo, Manchester'));
+    await fireEvent.press(await screen.findByText('Apollo, Manchester', {}, SLOW));
 
     await fireEvent.changeText(screen.getByLabelText('Start time'), '8pm');
     expect(screen.getByText('Write the time as 20:00.')).toBeTruthy();

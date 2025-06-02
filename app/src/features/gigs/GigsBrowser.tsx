@@ -4,6 +4,7 @@ import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native'
 import { useListGigDays } from '@/api/generated/catalog/catalog';
 import type { ListGigsParams } from '@/api/generated/model';
 import { useListGenres } from '@/api/generated/reference/reference';
+import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -15,68 +16,58 @@ import { useDebounced } from '@/lib/useDebounced';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
-import { chipRange, DATE_CHIPS, type DateChip } from './dateChips';
 import { formatGigDate } from './format';
 import { GigCard } from './GigCard';
-import { FilterPill, SearchSuggestions, type PickedFilter } from './SearchSuggestions';
+import {
+  addPick,
+  describePlace,
+  EMPTY_SEARCH,
+  pickKey,
+  removePick,
+  toParams,
+  type GigSearch,
+} from './gigFilters';
+import { PlacePicker } from './PlacePicker';
+import { SavedFilters } from './SavedFilters';
+import { FilterPill, SearchSuggestions } from './SearchSuggestions';
 import { useGigList } from './useGigList';
-import { useWindowAnchor } from './useWindowAnchor';
 
-/** How long typing must pause before the search is sent. */
+/** How long typing must pause before suggestions are fetched. */
 const SEARCH_DEBOUNCE_MS = 300;
 
-type View_ = 'list' | 'calendar';
-
 /**
- * The Gigs tab: gigs near the viewer's home city (or anywhere in the UK),
- * narrowed by a search box, an artist or venue picked from its suggestions, and a genre. Two views of
- * the same search: a list by date chip, or a month calendar whose highlighted days are the days with
- * matching gigs; tapping a day lists that day's gigs.
+ * The Gigs tab: a month calendar whose highlighted days have
+ * matching gigs, and the gigs of the month (from today on) or of the day tapped. The search box only
+ * suggests; the results change when a suggestion is picked (G13): one or more artists and venues (G15),
+ * or "Gigs titled …" for the text. The place is near home, UK-wide or another city (G16) and changes
+ * only when the user changes it (G14). A search can be saved and brought back with one tap (G17).
  */
 export function GigsBrowser() {
   const { colors } = useTheme();
-  const homeCity = useAuthStore((s) => s.me?.homeCity ?? null);
-  const [view, setView] = useState<View_>('list');
-  const [chip, setChip] = useState<DateChip>('week');
-  const [genre, setGenre] = useState<string | null>(null);
+  const homeCity = useAuthStore((s) => s.me?.homeCity?.name ?? null);
+  const [search, setSearch] = useState<GigSearch>(EMPTY_SEARCH);
   const [text, setText] = useState('');
-  const [filter, setFilter] = useState<PickedFilter | null>(null);
-  const [nationwide, setNationwide] = useState(false);
   const [month, setMonth] = useState<Month>(() => monthOf(new Date()));
   const [day, setDay] = useState<string | null>(null);
+  // Today, fixed for the life of the screen: a new Date() per render would be a new query key each time.
+  const [today] = useState(() => ukDate(new Date()));
   const q = useDebounced(text.trim(), SEARCH_DEBOUNCE_MS);
   const { data: genres } = useListGenres();
 
-  // What every request shares: the search and the filters, whatever the view.
-  const filters = useMemo(
-    () => ({
-      ...(genre ? { genre } : {}),
-      ...(q ? { q } : {}),
-      ...(filter?.kind === 'artist' ? { artistId: filter.id } : {}),
-      ...(filter?.kind === 'venue' ? { venueId: filter.id } : {}),
-      ...(nationwide ? { nationwide: true } : {}),
-    }),
-    [genre, q, filter, nationwide],
-  );
+  const filters = useMemo(() => toParams(search), [search]);
 
-  // The list's window is computed from a stable anchor, not from `new Date()` on every render (that
-  // would be a new query key each render); the anchor moves when a chip is chosen or the tab is
-  // revisited later. In the calendar view the window is the chosen day, or else the shown month.
-  const { anchor, reset } = useWindowAnchor();
+  // The list: the chosen day, or else the shown month from today on (earlier days are in the past).
   const range = useMemo(() => {
-    if (view === 'calendar') {
-      return day ? dayWindow(day) : monthWindow(month);
+    if (day) {
+      return dayWindow(day);
     }
-    const { from, to } = chipRange(chip, new Date(anchor));
-    return { from: from.toISOString(), to: to.toISOString() };
-  }, [view, day, month, chip, anchor]);
-
+    const whole = monthWindow(month);
+    const fromToday = dayWindow(today).from;
+    return { from: whole.from > fromToday ? whole.from : fromToday, to: whole.to };
+  }, [day, month, today]);
   const params: Omit<ListGigsParams, 'cursor'> = { ...range, ...filters, limit: 20 };
   const list = useGigList(params);
-  const days = useListGigDays(
-    { ...monthWindow(month), ...filters },
-    { query: { enabled: view === 'calendar' } },
-  );
+  const days = useListGigDays({ ...monthWindow(month), ...filters });
   const counts = useMemo(
     () => Object.fromEntries((days.data ?? []).map((d) => [d.date, d.count])),
     [days.data],
@@ -84,45 +75,24 @@ export function GigsBrowser() {
 
   const gigs = list.data?.pages.flatMap((page) => page.items) ?? [];
   const topGenres = (genres ?? []).filter((g) => g.parentId == null);
-  const where = nationwide
-    ? 'Anywhere in the UK'
-    : homeCity
-      ? `Within 25 km of ${homeCity.name}`
-      : 'Across the UK — pick a home city in Settings';
+  const monthIsPast = range.from >= range.to;
 
   const header = (
     <View>
-      <View style={styles.titleRow}>
-        <Text variant="title">Gigs</Text>
-        <View
-          style={[styles.toggle, { backgroundColor: colors.surface, borderColor: colors.border }]}
-        >
-          {(['list', 'calendar'] as const).map((v) => (
-            <Text
-              key={v}
-              role="radio"
-              aria-checked={view === v}
-              accessibilityLabel={v === 'list' ? 'List view' : 'Calendar view'}
-              onPress={() => {
-                setView(v);
-                setDay(null);
-              }}
-              style={[
-                styles.toggleItem,
-                view === v
-                  ? { backgroundColor: colors.accent, color: colors.onAccent, fontWeight: '700' }
-                  : null,
-              ]}
-            >
-              {v === 'list' ? 'List' : 'Calendar'}
-            </Text>
-          ))}
-        </View>
-      </View>
-      <Text muted>{where}</Text>
+      <Text variant="title">Gigs</Text>
+      <Text muted testID="gigs-where">
+        {describePlace(search.place, homeCity)}
+      </Text>
+      <SavedFilters
+        search={search}
+        onApply={(next) => {
+          setSearch(next);
+          setDay(null);
+        }}
+      />
       <TextInput
         accessibilityLabel="Search gigs"
-        placeholder="Search artists, gigs or venues"
+        placeholder="Search artists or venues"
         placeholderTextColor={colors.textMuted}
         value={text}
         onChangeText={setText}
@@ -133,93 +103,80 @@ export function GigsBrowser() {
           { color: colors.text, backgroundColor: colors.surface, borderColor: colors.border },
         ]}
       />
-      {filter ? null : (
-        <SearchSuggestions
-          q={q}
-          onPick={(picked) => {
-            setFilter(picked);
-            setText('');
-            // An artist's or a venue's gigs are worth seeing wherever they are.
-            setNationwide(true);
-          }}
-        />
-      )}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.chips}
-        keyboardShouldPersistTaps="handled"
-      >
-        {filter ? (
-          <FilterPill
-            filter={filter}
-            onClear={() => {
-              setFilter(null);
-              setNationwide(false);
-            }}
-          />
-        ) : null}
-        <Chip
-          label={homeCity ? `Near ${homeCity.name}` : 'Near me'}
-          selected={!nationwide}
-          onPress={() => setNationwide(false)}
-        />
-        <Chip label="UK-wide" selected={nationwide} onPress={() => setNationwide(true)} />
-      </ScrollView>
-      {view === 'list' ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-          {DATE_CHIPS.map((c) => (
-            <Chip
-              key={c.key}
-              label={c.label}
-              selected={chip === c.key}
-              onPress={() => {
-                setChip(c.key);
-                reset();
-              }}
+      <SearchSuggestions
+        q={q}
+        onPick={(picked) => {
+          setSearch((s) => addPick(s, picked));
+          setText('');
+        }}
+        onPickText={(typed) => {
+          setSearch((s) => addPick(s, { kind: 'text', text: typed }));
+          setText('');
+        }}
+      />
+      {search.picks.length > 0 ? (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.chips}
+          keyboardShouldPersistTaps="handled"
+          testID="active-filters"
+        >
+          {search.picks.map((pick) => (
+            <FilterPill
+              key={pickKey(pick)}
+              filter={pick}
+              onClear={() => setSearch((s) => removePick(s, pick))}
             />
           ))}
         </ScrollView>
       ) : null}
+      <PlacePicker
+        place={search.place}
+        homeCity={homeCity}
+        onChange={(place) => setSearch((s) => ({ ...s, place }))}
+      />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chips}>
-        <Chip label="All genres" selected={genre === null} onPress={() => setGenre(null)} />
+        <Chip
+          label="All genres"
+          selected={search.genre === null}
+          onPress={() => setSearch((s) => ({ ...s, genre: null }))}
+        />
         {topGenres.map((g) => (
           <Chip
             key={g.id}
             label={g.name}
-            selected={genre === g.slug}
-            onPress={() => setGenre(genre === g.slug ? null : g.slug)}
+            selected={search.genre === g.slug}
+            onPress={() => setSearch((s) => ({ ...s, genre: s.genre === g.slug ? null : g.slug }))}
           />
         ))}
       </ScrollView>
-      {view === 'calendar' ? (
-        <View style={styles.calendar}>
-          <MonthCalendar
-            month={month}
-            onMonthChange={(next) => {
-              setMonth(next);
-              setDay(null);
-            }}
-            counts={counts}
-            selected={day}
-            onSelect={setDay}
-            today={ukDate(new Date())}
-            loading={days.isFetching}
-            testID="gigs-calendar"
-          />
-          <Text variant="label" muted style={styles.dayHeading}>
-            {day
-              ? `GIGS ON ${formatGigDate(`${day}T12:00:00Z`).toUpperCase()}`
-              : 'ALL GIGS THIS MONTH · TAP A DAY TO NARROW'}
-          </Text>
-        </View>
-      ) : null}
+      <View style={styles.calendar}>
+        <MonthCalendar
+          month={month}
+          onMonthChange={(next) => {
+            setMonth(next);
+            setDay(null);
+          }}
+          counts={counts}
+          selected={day}
+          onSelect={(picked) => setDay((current) => (current === picked ? null : picked))}
+          today={today}
+          loading={days.isFetching}
+          testID="gigs-calendar"
+        />
+        <Text variant="label" muted style={styles.dayHeading}>
+          {day
+            ? `GIGS ON ${formatGigDate(`${day}T12:00:00Z`).toUpperCase()} · TAP AGAIN FOR THE MONTH`
+            : 'GIGS THIS MONTH · TAP A DAY TO NARROW'}
+        </Text>
+      </View>
     </View>
   );
 
   return (
     <FlatList
-      data={list.isPending || (list.isError && !list.data) ? [] : gigs}
+      data={monthIsPast || list.isPending || (list.isError && !list.data) ? [] : gigs}
       keyExtractor={(gig) => gig.id}
       renderItem={({ item }) => <GigCard gig={item} />}
       testID="gig-list"
@@ -231,7 +188,7 @@ export function GigsBrowser() {
       onEndReachedThreshold={0.5}
       keyboardShouldPersistTaps="handled"
       ListEmptyComponent={
-        list.isPending ? (
+        list.isPending && !monthIsPast ? (
           <View style={styles.skeletons} testID="gigs-loading">
             <Skeleton height={96} />
             <Skeleton height={96} />
@@ -245,15 +202,26 @@ export function GigsBrowser() {
             onRetry={() => void list.refetch()}
           />
         ) : (
-          <StateMessage
-            testID="gigs-empty"
-            title="No gigs found"
-            detail={
-              nationwide
-                ? 'Try other dates or another search.'
-                : 'Try other dates, UK-wide, or another search.'
-            }
-          />
+          <View style={styles.empty} testID="gigs-empty">
+            <StateMessage
+              title={monthIsPast ? 'This month is over' : 'No gigs found'}
+              detail={
+                monthIsPast
+                  ? 'Tap a highlighted day to see its gigs.'
+                  : search.place.kind === 'uk'
+                    ? 'Try another month or another search.'
+                    : 'Try another month, another search, or the whole UK.'
+              }
+            />
+            {!monthIsPast && search.place.kind !== 'uk' ? (
+              <Button
+                title="Search UK-wide"
+                variant="secondary"
+                onPress={() => setSearch((s) => ({ ...s, place: { kind: 'uk' } }))}
+                testID="gigs-uk-wide"
+              />
+            ) : null}
+          </View>
         )
       }
       ListFooterComponent={
@@ -278,19 +246,6 @@ export function GigsBrowser() {
 }
 
 const styles = StyleSheet.create({
-  titleRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  toggle: {
-    flexDirection: 'row',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radius.pill,
-    overflow: 'hidden',
-  },
-  toggleItem: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    minHeight: 36,
-    fontSize: 13,
-  },
   input: {
     minHeight: touchTarget,
     borderWidth: StyleSheet.hairlineWidth,
@@ -303,6 +258,7 @@ const styles = StyleSheet.create({
   calendar: { marginTop: spacing.md, gap: spacing.sm },
   dayHeading: { marginTop: spacing.xs },
   skeletons: { gap: spacing.sm, marginTop: spacing.md },
+  empty: { gap: spacing.sm, alignItems: 'stretch' },
   list: { paddingBottom: spacing.xl, gap: 0 },
   credit: { paddingVertical: spacing.md },
 });

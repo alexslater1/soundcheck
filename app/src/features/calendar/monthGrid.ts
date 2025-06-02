@@ -1,4 +1,4 @@
-import { instantAt, UK_TIME_ZONE, wallTime } from '@/features/gigs/dateChips';
+import { instantAt, UK_TIME_ZONE, wallTime } from '@/features/gigs/ukTime';
 
 /** A calendar month: `month` is 1–12. */
 export type Month = { year: number; month: number };

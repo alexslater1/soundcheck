@@ -11,6 +11,7 @@ import app.soundcheck.catalog.internal.CatalogService.GigQuery;
 import app.soundcheck.catalog.internal.CatalogService.SearchResults;
 import app.soundcheck.catalog.internal.CatalogService.VenueDetail;
 import app.soundcheck.catalog.internal.CatalogService.VenueHit;
+import app.soundcheck.catalog.internal.SuggestionService;
 import app.soundcheck.catalog.internal.UserSubmissionService;
 import app.soundcheck.catalog.internal.UserSubmissionService.AddGig;
 import app.soundcheck.catalog.internal.UserSubmissionService.Added;
@@ -38,6 +39,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -62,12 +64,17 @@ public class CatalogController {
 
     static final Set<String> SEARCH_TYPES = Set.of("artists", "gigs");
 
+    /** At most this many artists, and as many venues, in one gig filter. */
+    static final int MAX_FILTER_IDS = 20;
+
     private final CatalogService catalog;
     private final UserSubmissionService submissions;
+    private final SuggestionService suggestions;
 
-    public CatalogController(CatalogService catalog, UserSubmissionService submissions) {
+    public CatalogController(CatalogService catalog, UserSubmissionService submissions, SuggestionService suggestions) {
         this.catalog = catalog;
         this.submissions = submissions;
+        this.suggestions = suggestions;
     }
 
     // ── gigs ────────────────────────────────────────────────────────────────
@@ -76,7 +83,7 @@ public class CatalogController {
     @Operation(
             operationId = "listGigs",
             summary =
-                    "Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end")
+                    "Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end. artistIds: any of these acts; venueIds: at any of these venues; both: both hold")
     public Page<GigSummary> gigs(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") Double lat,
@@ -86,8 +93,8 @@ public class CatalogController {
             @RequestParam(required = false) Instant to,
             @RequestParam(required = false) @Size(max = 40) String genre,
             @RequestParam(required = false) @Size(max = 80) String q,
-            @RequestParam(required = false) UUID artistId,
-            @RequestParam(required = false) UUID venueId,
+            @RequestParam(required = false) @Size(max = MAX_FILTER_IDS) List<UUID> artistIds,
+            @RequestParam(required = false) @Size(max = MAX_FILTER_IDS) List<UUID> venueIds,
             @RequestParam(required = false, defaultValue = "false") boolean nationwide,
             @RequestParam(required = false, defaultValue = "asc") @Schema(allowableValues = {"asc", "desc"})
                     String order,
@@ -106,8 +113,8 @@ public class CatalogController {
                         to,
                         genre,
                         q,
-                        artistId,
-                        venueId,
+                        orEmpty(artistIds),
+                        orEmpty(venueIds),
                         nationwide,
                         order.equals("desc"),
                         cursor,
@@ -128,12 +135,25 @@ public class CatalogController {
             @RequestParam Instant to,
             @RequestParam(required = false) @Size(max = 40) String genre,
             @RequestParam(required = false) @Size(max = 80) String q,
-            @RequestParam(required = false) UUID artistId,
-            @RequestParam(required = false) UUID venueId,
+            @RequestParam(required = false) @Size(max = MAX_FILTER_IDS) List<UUID> artistIds,
+            @RequestParam(required = false) @Size(max = MAX_FILTER_IDS) List<UUID> venueIds,
             @RequestParam(required = false, defaultValue = "false") boolean nationwide) {
         return catalog.gigDays(
                 userId(jwt),
-                new GigQuery(lat, lng, radiusKm, from, to, genre, q, artistId, venueId, nationwide, false, null, null));
+                new GigQuery(
+                        lat,
+                        lng,
+                        radiusKm,
+                        from,
+                        to,
+                        genre,
+                        q,
+                        orEmpty(artistIds),
+                        orEmpty(venueIds),
+                        nationwide,
+                        false,
+                        null,
+                        null));
     }
 
     @PostMapping("/gigs")
@@ -291,6 +311,16 @@ public class CatalogController {
         return catalog.search(userId(jwt), q, wanted);
     }
 
+    @GetMapping("/search/suggest")
+    @Operation(
+            operationId = "suggest",
+            summary = "Artists and venues for the Gigs search box, ranked by name match, then by the viewer "
+                    + "(followed, near home, their genres), then upcoming gigs (max 8)")
+    public List<SuggestionService.Suggestion> suggest(
+            @AuthenticationPrincipal Jwt jwt, @RequestParam @NotBlank @Size(min = 2, max = 80) String q) {
+        return suggestions.suggest(userId(jwt), q.strip());
+    }
+
     /** Acts by id and/or by name (at least one in all); exactly one of {@code venueId} and {@code newVenue}. */
     public record AddGigRequest(
             @Size(max = 10) @Schema(nullable = true) List<UUID> artistIds,
@@ -324,5 +354,9 @@ public class CatalogController {
 
     static UUID userId(Jwt jwt) {
         return UUID.fromString(jwt.getSubject());
+    }
+
+    private static List<UUID> orEmpty(@Nullable List<UUID> ids) {
+        return ids == null ? List.of() : ids;
     }
 }

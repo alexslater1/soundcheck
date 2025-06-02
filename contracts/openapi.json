@@ -861,6 +861,35 @@
         "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role" ],
         "type" : "object"
       },
+      "NamedArtist" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ],
+        "type" : "object"
+      },
+      "NamedVenue" : {
+        "properties" : {
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "name" ],
+        "type" : "object"
+      },
       "NewVenueRequest" : {
         "properties" : {
           "cityId" : {
@@ -1098,6 +1127,31 @@
         "required" : [ "items", "itemsPerPage", "page", "total" ],
         "type" : "object"
       },
+      "Place" : {
+        "properties" : {
+          "cityId" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "cityName" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "HOME", "UK", "CITY" ],
+            "type" : "string"
+          },
+          "lat" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "lng" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "kind" ],
+        "type" : "object"
+      },
       "Playback" : {
         "properties" : {
           "blurhash" : {
@@ -1288,6 +1342,87 @@
         "required" : [ "reason" ],
         "type" : "object"
       },
+      "SaveGigFilterRequest" : {
+        "properties" : {
+          "artistIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
+          "cityId" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "genre" : {
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "name" : {
+            "maxLength" : 60,
+            "minLength" : 0,
+            "type" : "string"
+          },
+          "place" : {
+            "enum" : [ "HOME", "UK", "CITY" ],
+            "type" : "string"
+          },
+          "q" : {
+            "maxLength" : 80,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "venueIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          }
+        },
+        "required" : [ "name", "place" ],
+        "type" : "object"
+      },
+      "SavedGigFilter" : {
+        "properties" : {
+          "artists" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NamedArtist"
+            },
+            "type" : "array"
+          },
+          "genre" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "place" : {
+            "$ref" : "#/components/schemas/Place"
+          },
+          "q" : {
+            "type" : [ "string", "null" ]
+          },
+          "venues" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NamedVenue"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "artists", "id", "name", "place", "venues" ],
+        "type" : "object"
+      },
       "SearchResults" : {
         "properties" : {
           "artists" : {
@@ -1316,6 +1451,34 @@
           }
         },
         "required" : [ "source" ],
+        "type" : "object"
+      },
+      "Suggestion" : {
+        "properties" : {
+          "city" : {
+            "description" : "The venue's town; null for an artist",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "imageUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "enum" : [ "ARTIST", "VENUE" ],
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "upcomingGigs" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "id", "kind", "name", "upcomingGigs" ],
         "type" : "object"
       },
       "UnreadResponse" : {
@@ -2175,19 +2338,29 @@
           }
         }, {
           "in" : "query",
-          "name" : "artistId",
+          "name" : "artistIds",
           "required" : false,
           "schema" : {
-            "format" : "uuid",
-            "type" : "string"
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 0,
+            "type" : "array"
           }
         }, {
           "in" : "query",
-          "name" : "venueId",
+          "name" : "venueIds",
           "required" : false,
           "schema" : {
-            "format" : "uuid",
-            "type" : "string"
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 0,
+            "type" : "array"
           }
         }, {
           "in" : "query",
@@ -2234,7 +2407,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end",
+        "summary" : "Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end. artistIds: any of these acts; venueIds: at any of these venues; both: both hold",
         "tags" : [ "catalog" ]
       },
       "post" : {
@@ -2334,19 +2507,29 @@
           }
         }, {
           "in" : "query",
-          "name" : "artistId",
+          "name" : "artistIds",
           "required" : false,
           "schema" : {
-            "format" : "uuid",
-            "type" : "string"
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 0,
+            "type" : "array"
           }
         }, {
           "in" : "query",
-          "name" : "venueId",
+          "name" : "venueIds",
           "required" : false,
           "schema" : {
-            "format" : "uuid",
-            "type" : "string"
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 20,
+            "minItems" : 0,
+            "type" : "array"
           }
         }, {
           "in" : "query",
@@ -2619,6 +2802,76 @@
         },
         "summary" : "Replace the explicit genre preferences (1–8)",
         "tags" : [ "me" ]
+      }
+    },
+    "/api/v1/me/gig-filters" : {
+      "get" : {
+        "operationId" : "listSavedGigFilters",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/SavedGigFilter"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The viewer's saved gig searches, oldest first",
+        "tags" : [ "catalog" ]
+      },
+      "post" : {
+        "operationId" : "saveGigFilter",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/SaveGigFilterRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedGigFilter"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Save the current gig search under a name (at most 20; 409 SAVED_FILTERS_FULL)",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/me/gig-filters/{id}" : {
+      "delete" : {
+        "operationId" : "deleteGigFilter",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Delete one of the viewer's saved gig searches",
+        "tags" : [ "catalog" ]
       }
     },
     "/api/v1/me/gigs" : {
@@ -3292,6 +3545,38 @@
           }
         },
         "summary" : "Top results per type (artists, gigs; max 5 each)",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/search/suggest" : {
+      "get" : {
+        "operationId" : "suggest",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 2,
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/Suggestion"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Artists and venues for the Gigs search box, ranked by name match, then by the viewer (followed, near home, their genres), then upcoming gigs (max 8)",
         "tags" : [ "catalog" ]
       }
     },

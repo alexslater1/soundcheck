@@ -31,6 +31,7 @@ jest.mock('@/api/generated/catalog/catalog', () => ({
   useListGigs: (...args: unknown[]) => mockGigs(...args),
   useListArtists: (...args: unknown[]) => mockArtists(...args),
   useSearchVenues: () => ({ data: [] }),
+  useSuggest: () => ({ data: [] }),
   addArtist: (...args: unknown[]) => mockAddArtist(...args),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');

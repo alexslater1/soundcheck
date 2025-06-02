@@ -172,7 +172,7 @@ export const listArtistGigsResponse = zod.object({
 })
 
 /**
- * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end
+ * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end. artistIds: any of these acts; venueIds: at any of these venues; both: both hold
  */
 export const listGigsQueryLatMin = -90;
 
@@ -187,6 +187,12 @@ export const listGigsQueryGenreMax = 40;
 export const listGigsQueryQMin = 0;
 
 export const listGigsQueryQMax = 80;
+export const listGigsQueryArtistIdsMin = 0;
+
+export const listGigsQueryArtistIdsMax = 20;
+export const listGigsQueryVenueIdsMin = 0;
+
+export const listGigsQueryVenueIdsMax = 20;
 export const listGigsQueryNationwideDefault = false;export const listGigsQueryOrderDefault = "asc";
 
 export const listGigsQueryParams = zod.object({
@@ -197,8 +203,8 @@ export const listGigsQueryParams = zod.object({
   "to": zod.string().datetime({}).optional(),
   "genre": zod.string().min(listGigsQueryGenreMin).max(listGigsQueryGenreMax).optional(),
   "q": zod.string().min(listGigsQueryQMin).max(listGigsQueryQMax).optional(),
-  "artistId": zod.string().uuid().optional(),
-  "venueId": zod.string().uuid().optional(),
+  "artistIds": zod.array(zod.string().uuid()).min(listGigsQueryArtistIdsMin).max(listGigsQueryArtistIdsMax).optional(),
+  "venueIds": zod.array(zod.string().uuid()).min(listGigsQueryVenueIdsMin).max(listGigsQueryVenueIdsMax).optional(),
   "nationwide": zod.boolean().optional(),
   "order": zod.enum(['asc', 'desc']).default(listGigsQueryOrderDefault),
   "cursor": zod.string().optional(),
@@ -354,6 +360,12 @@ export const listGigDaysQueryGenreMax = 40;
 export const listGigDaysQueryQMin = 0;
 
 export const listGigDaysQueryQMax = 80;
+export const listGigDaysQueryArtistIdsMin = 0;
+
+export const listGigDaysQueryArtistIdsMax = 20;
+export const listGigDaysQueryVenueIdsMin = 0;
+
+export const listGigDaysQueryVenueIdsMax = 20;
 export const listGigDaysQueryNationwideDefault = false;
 
 export const listGigDaysQueryParams = zod.object({
@@ -364,8 +376,8 @@ export const listGigDaysQueryParams = zod.object({
   "to": zod.string().datetime({}),
   "genre": zod.string().min(listGigDaysQueryGenreMin).max(listGigDaysQueryGenreMax).optional(),
   "q": zod.string().min(listGigDaysQueryQMin).max(listGigDaysQueryQMax).optional(),
-  "artistId": zod.string().uuid().optional(),
-  "venueId": zod.string().uuid().optional(),
+  "artistIds": zod.array(zod.string().uuid()).min(listGigDaysQueryArtistIdsMin).max(listGigDaysQueryArtistIdsMax).optional(),
+  "venueIds": zod.array(zod.string().uuid()).min(listGigDaysQueryVenueIdsMin).max(listGigDaysQueryVenueIdsMax).optional(),
   "nationwide": zod.boolean().optional()
 })
 
@@ -464,6 +476,93 @@ export const setGigAttendanceResponse = zod.object({
   "went": zod.number()
 }),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish()
+})
+
+/**
+ * @summary The viewer's saved gig searches, oldest first
+ */
+export const listSavedGigFiltersResponseItem = zod.object({
+  "artists": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+})),
+  "genre": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "place": zod.object({
+  "cityId": zod.number().nullish(),
+  "cityName": zod.string().nullish(),
+  "kind": zod.enum(['HOME', 'UK', 'CITY']),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+}),
+  "q": zod.string().nullish(),
+  "venues": zod.array(zod.object({
+  "city": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}))
+})
+export const listSavedGigFiltersResponse = zod.array(listSavedGigFiltersResponseItem)
+
+/**
+ * @summary Save the current gig search under a name (at most 20; 409 SAVED_FILTERS_FULL)
+ */
+export const saveGigFilterBodyArtistIdsMin = 0;
+
+export const saveGigFilterBodyArtistIdsMax = 20;
+export const saveGigFilterBodyGenreMin = 0;
+
+export const saveGigFilterBodyGenreMax = 40;
+export const saveGigFilterBodyNameMin = 0;
+
+export const saveGigFilterBodyNameMax = 60;
+export const saveGigFilterBodyQMin = 0;
+
+export const saveGigFilterBodyQMax = 80;
+export const saveGigFilterBodyVenueIdsMin = 0;
+
+export const saveGigFilterBodyVenueIdsMax = 20;
+
+
+export const saveGigFilterBody = zod.object({
+  "artistIds": zod.array(zod.string().uuid()).min(saveGigFilterBodyArtistIdsMin).max(saveGigFilterBodyArtistIdsMax).nullish(),
+  "cityId": zod.number().nullish(),
+  "genre": zod.string().min(saveGigFilterBodyGenreMin).max(saveGigFilterBodyGenreMax).nullish(),
+  "name": zod.string().min(saveGigFilterBodyNameMin).max(saveGigFilterBodyNameMax),
+  "place": zod.enum(['HOME', 'UK', 'CITY']),
+  "q": zod.string().min(saveGigFilterBodyQMin).max(saveGigFilterBodyQMax).nullish(),
+  "venueIds": zod.array(zod.string().uuid()).min(saveGigFilterBodyVenueIdsMin).max(saveGigFilterBodyVenueIdsMax).nullish()
+})
+
+export const saveGigFilterResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+})),
+  "genre": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "place": zod.object({
+  "cityId": zod.number().nullish(),
+  "cityName": zod.string().nullish(),
+  "kind": zod.enum(['HOME', 'UK', 'CITY']),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+}),
+  "q": zod.string().nullish(),
+  "venues": zod.array(zod.object({
+  "city": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}))
+})
+
+/**
+ * @summary Delete one of the viewer's saved gig searches
+ */
+export const deleteGigFilterParams = zod.object({
+  "id": zod.string().uuid()
 })
 
 /**
@@ -578,6 +677,28 @@ export const searchResponse = zod.object({
 })
 }))
 })
+
+/**
+ * @summary Artists and venues for the Gigs search box, ranked by name match, then by the viewer (followed, near home, their genres), then upcoming gigs (max 8)
+ */
+export const suggestQueryQMin = 2;
+
+export const suggestQueryQMax = 80;
+
+
+export const suggestQueryParams = zod.object({
+  "q": zod.string().min(suggestQueryQMin).max(suggestQueryQMax)
+})
+
+export const suggestResponseItem = zod.object({
+  "city": zod.string().nullish().describe('The venue\'s town; null for an artist'),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "kind": zod.enum(['ARTIST', 'VENUE']),
+  "name": zod.string(),
+  "upcomingGigs": zod.number()
+})
+export const suggestResponse = zod.array(suggestResponseItem)
 
 /**
  * @summary Venues by name (at most 10), the ones near home first

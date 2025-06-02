@@ -42,9 +42,13 @@ import type {
   ListVenueGigsParams,
   PageArtistSummary,
   PageGigSummary,
+  SaveGigFilterRequest,
+  SavedGigFilter,
   SearchParams,
   SearchResults,
   SearchVenuesParams,
+  SuggestParams,
+  Suggestion,
   VenueDetail,
   VenueHit
 } from '.././model';
@@ -441,13 +445,19 @@ export function useListArtistGigs<TData = Awaited<ReturnType<typeof listArtistGi
 
 
 /**
- * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end
+ * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end. artistIds: any of these acts; venueIds: at any of these venues; both: both hold
  */
 export const getListGigsUrl = (params?: ListGigsParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    
+    const explodeParameters = ["artistIds","venueIds"];
+
+    if (value instanceof Array && explodeParameters.includes(key)) {
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      return;
+    }
+      
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
@@ -523,7 +533,7 @@ export function useListGigs<TData = Awaited<ReturnType<typeof listGigs>>, TError
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end
+ * @summary Gigs near a point (default: the viewer's home city) from now (or a window), by start time; order=desc walks the window from its end. artistIds: any of these acts; venueIds: at any of these venues; both: both hold
  */
 
 export function useListGigs<TData = Awaited<ReturnType<typeof listGigs>>, TError = unknown>(
@@ -620,7 +630,13 @@ export const getListGigDaysUrl = (params: ListGigDaysParams,) => {
   const normalizedParams = new URLSearchParams();
 
   Object.entries(params || {}).forEach(([key, value]) => {
-    
+    const explodeParameters = ["artistIds","venueIds"];
+
+    if (value instanceof Array && explodeParameters.includes(key)) {
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      return;
+    }
+      
     if (value !== undefined) {
       normalizedParams.append(key, value === null ? 'null' : value.toString())
     }
@@ -953,6 +969,242 @@ export const useSetGigAttendance = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
+ * @summary The viewer's saved gig searches, oldest first
+ */
+export const getListSavedGigFiltersUrl = () => {
+
+
+  
+
+  return `/api/v1/me/gig-filters`
+}
+
+export const listSavedGigFilters = async ( options?: RequestInit): Promise<SavedGigFilter[]> => {
+  
+  return customFetch<SavedGigFilter[]>(getListSavedGigFiltersUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListSavedGigFiltersQueryKey = () => {
+    return [`/api/v1/me/gig-filters`] as const;
+    }
+
+    
+export const getListSavedGigFiltersQueryOptions = <TData = Awaited<ReturnType<typeof listSavedGigFilters>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSavedGigFilters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListSavedGigFiltersQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listSavedGigFilters>>> = ({ signal }) => listSavedGigFilters({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listSavedGigFilters>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListSavedGigFiltersQueryResult = NonNullable<Awaited<ReturnType<typeof listSavedGigFilters>>>
+export type ListSavedGigFiltersQueryError = unknown
+
+
+export function useListSavedGigFilters<TData = Awaited<ReturnType<typeof listSavedGigFilters>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSavedGigFilters>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listSavedGigFilters>>,
+          TError,
+          Awaited<ReturnType<typeof listSavedGigFilters>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListSavedGigFilters<TData = Awaited<ReturnType<typeof listSavedGigFilters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSavedGigFilters>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listSavedGigFilters>>,
+          TError,
+          Awaited<ReturnType<typeof listSavedGigFilters>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListSavedGigFilters<TData = Awaited<ReturnType<typeof listSavedGigFilters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSavedGigFilters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The viewer's saved gig searches, oldest first
+ */
+
+export function useListSavedGigFilters<TData = Awaited<ReturnType<typeof listSavedGigFilters>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listSavedGigFilters>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListSavedGigFiltersQueryOptions(options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Save the current gig search under a name (at most 20; 409 SAVED_FILTERS_FULL)
+ */
+export const getSaveGigFilterUrl = () => {
+
+
+  
+
+  return `/api/v1/me/gig-filters`
+}
+
+export const saveGigFilter = async (saveGigFilterRequest: SaveGigFilterRequest, options?: RequestInit): Promise<SavedGigFilter> => {
+  
+  return customFetch<SavedGigFilter>(getSaveGigFilterUrl(),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      saveGigFilterRequest,)
+  }
+);}
+
+
+
+
+export const getSaveGigFilterMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveGigFilter>>, TError,{data: SaveGigFilterRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveGigFilter>>, TError,{data: SaveGigFilterRequest}, TContext> => {
+
+const mutationKey = ['saveGigFilter'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveGigFilter>>, {data: SaveGigFilterRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveGigFilter(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveGigFilterMutationResult = NonNullable<Awaited<ReturnType<typeof saveGigFilter>>>
+    export type SaveGigFilterMutationBody = SaveGigFilterRequest
+    export type SaveGigFilterMutationError = unknown
+
+    /**
+ * @summary Save the current gig search under a name (at most 20; 409 SAVED_FILTERS_FULL)
+ */
+export const useSaveGigFilter = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveGigFilter>>, TError,{data: SaveGigFilterRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof saveGigFilter>>,
+        TError,
+        {data: SaveGigFilterRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSaveGigFilterMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Delete one of the viewer's saved gig searches
+ */
+export const getDeleteGigFilterUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/me/gig-filters/${id}`
+}
+
+export const deleteGigFilter = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getDeleteGigFilterUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteGigFilterMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGigFilter>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteGigFilter>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteGigFilter'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteGigFilter>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteGigFilter(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteGigFilterMutationResult = NonNullable<Awaited<ReturnType<typeof deleteGigFilter>>>
+    
+    export type DeleteGigFilterMutationError = unknown
+
+    /**
+ * @summary Delete one of the viewer's saved gig searches
+ */
+export const useDeleteGigFilter = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGigFilter>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteGigFilter>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteGigFilterMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Gigs the viewer marked, upcoming (default) or past
  */
 export const getListMyGigsUrl = (params?: ListMyGigsParams,) => {
@@ -1146,6 +1398,108 @@ export function useSearch<TData = Awaited<ReturnType<typeof search>>, TError = u
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getSearchQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Artists and venues for the Gigs search box, ranked by name match, then by the viewer (followed, near home, their genres), then upcoming gigs (max 8)
+ */
+export const getSuggestUrl = (params: SuggestParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/search/suggest?${stringifiedParams}` : `/api/v1/search/suggest`
+}
+
+export const suggest = async (params: SuggestParams, options?: RequestInit): Promise<Suggestion[]> => {
+  
+  return customFetch<Suggestion[]>(getSuggestUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getSuggestQueryKey = (params: SuggestParams,) => {
+    return [`/api/v1/search/suggest`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getSuggestQueryOptions = <TData = Awaited<ReturnType<typeof suggest>>, TError = unknown>(params: SuggestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof suggest>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSuggestQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof suggest>>> = ({ signal }) => suggest(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof suggest>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SuggestQueryResult = NonNullable<Awaited<ReturnType<typeof suggest>>>
+export type SuggestQueryError = unknown
+
+
+export function useSuggest<TData = Awaited<ReturnType<typeof suggest>>, TError = unknown>(
+ params: SuggestParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof suggest>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof suggest>>,
+          TError,
+          Awaited<ReturnType<typeof suggest>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSuggest<TData = Awaited<ReturnType<typeof suggest>>, TError = unknown>(
+ params: SuggestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof suggest>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof suggest>>,
+          TError,
+          Awaited<ReturnType<typeof suggest>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSuggest<TData = Awaited<ReturnType<typeof suggest>>, TError = unknown>(
+ params: SuggestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof suggest>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Artists and venues for the Gigs search box, ranked by name match, then by the viewer (followed, near home, their genres), then upcoming gigs (max 8)
+ */
+
+export function useSuggest<TData = Awaited<ReturnType<typeof suggest>>, TError = unknown>(
+ params: SuggestParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof suggest>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSuggestQueryOptions(params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

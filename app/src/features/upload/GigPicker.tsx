@@ -46,8 +46,8 @@ export function GigPicker({
   const found = useListGigs(
     {
       ...windows.search,
-      ...(filter?.kind === 'artist' ? { artistId: filter.id } : {}),
-      ...(filter?.kind === 'venue' ? { venueId: filter.id } : {}),
+      ...(filter?.kind === 'artist' ? { artistIds: [filter.id] } : {}),
+      ...(filter?.kind === 'venue' ? { venueIds: [filter.id] } : {}),
       ...(filter ? {} : { q }),
       nationwide: true,
       order: 'desc',

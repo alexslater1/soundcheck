@@ -209,22 +209,39 @@ class UserGigsIT extends IntegrationTest {
                         .getStatusCode()
                         .is2xxSuccessful())
                 .isTrue();
-        String byArtist = "/api/v1/gigs?artistId=" + artistId + "&from=" + from;
+        String byArtist = "/api/v1/gigs?artistIds=" + artistId + "&from=" + from;
         assertThat(ok(api.get(byArtist, fan)).path("items")).isEmpty();
         JsonNode nationwide = ok(api.get(byArtist + "&nationwide=true", fan));
         assertThat(nationwide.path("items")).hasSize(1);
         assertThat(nationwide.path("items").path(0).path("distanceKm").asDouble())
                 .isGreaterThan(250);
 
+        // Several acts at once: gigs of any of them. An act and a venue: both must hold.
+        JsonNode other = item(api.post(
+                "/api/v1/gigs", gig(List.of("Second Act " + tag), newVenue("Barn " + tag, glasgow), day), fan));
+        String both = "/api/v1/gigs?nationwide=true&from=" + from + "&artistIds=" + artistId + "&artistIds="
+                + other.path("headliner").path("id").asText("");
+        assertThat(ok(api.get(both, fan)).path("items").valueStream().map(g -> g.path("title")
+                        .asText("")))
+                .containsExactlyInAnyOrder("Far Act " + tag, "Second Act " + tag);
+        assertThat(ok(api.get(
+                                both + "&venueIds="
+                                        + other.path("venue").path("id").asText(""),
+                                fan))
+                        .path("items")
+                        .valueStream()
+                        .map(g -> g.path("title").asText("")))
+                .containsExactly("Second Act " + tag);
+
         String byVenue =
-                "/api/v1/gigs?venueId=" + inGlasgow.path("venue").path("id").asText("") + "&nationwide=true";
+                "/api/v1/gigs?venueIds=" + inGlasgow.path("venue").path("id").asText("") + "&nationwide=true";
         assertThat(ok(api.get(byVenue, fan)).path("items")).isEmpty(); // default window starts now
         assertThat(ok(api.get(byVenue + "&from=" + from, fan)).path("items")).hasSize(1);
 
         // The clip picker's search: newest first, one page at a time.
         String venueId = inGlasgow.path("venue").path("id").asText("");
         api.post("/api/v1/gigs", gigAt(List.of("Earlier Act " + tag), venueId, day.minusDays(2)), fan);
-        String newest = "/api/v1/gigs?venueId=" + venueId + "&nationwide=true&order=desc&limit=1&from="
+        String newest = "/api/v1/gigs?venueIds=" + venueId + "&nationwide=true&order=desc&limit=1&from="
                 + day.minusDays(10).atStartOfDay(UK).toInstant() + "&to="
                 + day.plusDays(1).atStartOfDay(UK).toInstant();
         JsonNode first = ok(api.get(newest, fan));
@@ -256,7 +273,7 @@ class UserGigsIT extends IntegrationTest {
 
         String window = "from=" + base.withDayOfMonth(1).atStartOfDay(UK).toInstant() + "&to="
                 + base.withDayOfMonth(1).plusMonths(1).atStartOfDay(UK).toInstant();
-        JsonNode days = ok(api.get("/api/v1/gigs/days?venueId=" + venueId + "&nationwide=true&" + window, fan));
+        JsonNode days = ok(api.get("/api/v1/gigs/days?venueIds=" + venueId + "&nationwide=true&" + window, fan));
 
         Map<String, Integer> counts = new HashMap<>();
         days.forEach(d -> counts.put(d.path("date").asText(""), d.path("count").asInt()));
@@ -268,7 +285,7 @@ class UserGigsIT extends IntegrationTest {
 
         // The search box filters the counts like the list.
         JsonNode searched = ok(api.get(
-                "/api/v1/gigs/days?venueId=" + venueId + "&nationwide=true&q=late+show+" + tag + "&" + window, fan));
+                "/api/v1/gigs/days?venueIds=" + venueId + "&nationwide=true&q=late+show+" + tag + "&" + window, fan));
         assertThat(searched).hasSize(1);
         assertThat(searched.path(0).path("date").asText("")).isEqualTo(base.toString());
 
@@ -304,6 +321,92 @@ class UserGigsIT extends IntegrationTest {
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
+
+    @Test
+    void savedSearchesKeepTheirActsVenuesGenreAndPlace() {
+        // "Keo, Bleech 9:3 and The North in London" one tap away.
+        LocalDate day = LocalDate.now(UK).plusDays(10);
+        JsonNode one = item(
+                api.post("/api/v1/gigs", gig(List.of("Keo " + tag), newVenue("Hall " + tag, manchester), day), fan));
+        JsonNode two = item(
+                api.post("/api/v1/gigs", gig(List.of("Bleech " + tag), newVenue("Barn " + tag, glasgow), day), fan));
+        String keo = one.path("headliner").path("id").asText("");
+        String bleech = two.path("headliner").path("id").asText("");
+        String barn = two.path("venue").path("id").asText("");
+        int london = cityId("London");
+
+        ResponseEntity<JsonNode> saved = api.post(
+                "/api/v1/me/gig-filters",
+                Map.of(
+                        "name",
+                        "My bands in London",
+                        "artistIds",
+                        List.of(keo, bleech, keo),
+                        "venueIds",
+                        List.of(barn),
+                        "genre",
+                        "rock",
+                        "place",
+                        "CITY",
+                        "cityId",
+                        london),
+                fan);
+        assertThat(saved.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        JsonNode filter = saved.getBody();
+        assertThat(filter.path("name").asText("")).isEqualTo("My bands in London");
+        assertThat(filter.path("artists").valueStream().map(a -> a.path("name").asText("")))
+                .containsExactly("Keo " + tag, "Bleech " + tag); // the repeated id is kept once
+        assertThat(filter.path("venues").path(0).path("city").asText("")).isEqualTo("Glasgow");
+        assertThat(filter.path("genre").asText("")).isEqualTo("rock");
+        assertThat(filter.path("place").path("kind").asText("")).isEqualTo("CITY");
+        assertThat(filter.path("place").path("cityName").asText("")).isEqualTo("London");
+        assertThat(filter.path("place").path("lat").asDouble()).isBetween(51.0, 52.0);
+
+        api.post("/api/v1/me/gig-filters", Map.of("name", "Anything UK-wide", "place", "UK"), fan);
+        JsonNode list = ok(api.get("/api/v1/me/gig-filters", fan));
+        assertThat(list.valueStream().map(f -> f.path("name").asText("")))
+                .containsExactly("My bands in London", "Anything UK-wide");
+
+        // Someone else sees none of them and cannot delete them.
+        TestApi.User other = api.register("other");
+        assertThat(ok(api.get("/api/v1/me/gig-filters", other))).isEmpty();
+        String id = filter.path("id").asText("");
+        assertThat(code(api.delete("/api/v1/me/gig-filters/" + id, other))).isEqualTo("SAVED_FILTER_NOT_FOUND");
+        assertThat(api.delete("/api/v1/me/gig-filters/" + id, fan).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(ok(api.get("/api/v1/me/gig-filters", fan))).hasSize(1);
+
+        // Refusals: a city filter without a city, unknown ids, genre or city, no name.
+        assertThat(code(api.post("/api/v1/me/gig-filters", Map.of("name", "x", "place", "CITY"), fan)))
+                .isEqualTo("CITY_REQUIRED");
+        assertThat(code(api.post(
+                        "/api/v1/me/gig-filters",
+                        Map.of(
+                                "name",
+                                "x",
+                                "place",
+                                "UK",
+                                "artistIds",
+                                List.of(UUID.randomUUID().toString())),
+                        fan)))
+                .isEqualTo("ARTIST_UNKNOWN");
+        assertThat(code(api.post("/api/v1/me/gig-filters", Map.of("name", "x", "place", "UK", "genre", "polka"), fan)))
+                .isEqualTo("GENRE_UNKNOWN");
+        assertThat(code(api.post(
+                        "/api/v1/me/gig-filters", Map.of("name", "x", "place", "CITY", "cityId", 999_999), fan)))
+                .isEqualTo("CITY_UNKNOWN");
+        assertThat(api.post("/api/v1/me/gig-filters", Map.of("name", " ", "place", "UK"), fan)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(ok(api.get("/api/v1/me/gig-filters", fan))).hasSize(1); // nothing refused was stored
+
+        // At most 20.
+        for (int i = 1; i < 20; i++) {
+            api.post("/api/v1/me/gig-filters", Map.of("name", "f" + i, "place", "HOME"), fan);
+        }
+        assertThat(code(api.post("/api/v1/me/gig-filters", Map.of("name", "21st", "place", "HOME"), fan)))
+                .isEqualTo("SAVED_FILTERS_FULL");
+    }
 
     private Map<String, Object> gig(List<String> names, Map<String, Object> venue, LocalDate date) {
         Map<String, Object> body = new HashMap<>();

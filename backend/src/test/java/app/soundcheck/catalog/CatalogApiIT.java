@@ -474,6 +474,51 @@ class CatalogApiIT extends IntegrationTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
+    @Test
+    void suggestionsPutTheExactNameFirstThenTheViewer() {
+        // "The North" listed "North Base" and "North Shared Lounge" above "the north" (the
+        // normaliser drops "the", all three start with "north", and the tie was broken by name).
+        String word = "North" + tag;
+        SourceVenue hall = venue("north", 61.0, -1.0);
+        gig("nb", base, hall, new SourceArtist("a-nb-" + tag, word + " Base", null, List.of("Jazz"), null));
+        gig(
+                "ns",
+                base.plus(Duration.ofDays(1)),
+                hall,
+                new SourceArtist("a-ns-" + tag, word + " Shared Lounge", null, List.of("Jazz"), null));
+        String theNorth = "the " + word.toLowerCase(java.util.Locale.ROOT);
+        gig(
+                "tn",
+                base.plus(Duration.ofDays(2)),
+                hall,
+                new SourceArtist("a-tn-" + tag, theNorth, null, List.of("Jazz"), null));
+        SourceVenue iwm =
+                new SourceVenue("v-iwm-" + tag, "IWM " + word, null, "Salford", null, 61.1, -1.1, "Europe/London");
+        gig("iwm", base, iwm, "Someone");
+
+        JsonNode typed = ok(api.get("/api/v1/search/suggest?q=The " + word, fan));
+        // (Further down, only similar names: the test venue "Venue north <tag>".)
+        assertThat(names(typed)).startsWith(theNorth, word + " Base", word + " Shared Lounge", "IWM " + word);
+        assertThat(typed.path(3).path("kind").asText("")).isEqualTo("VENUE");
+        assertThat(typed.path(3).path("city").asText("")).isEqualTo("Salford");
+        // Without "the", the same act is still the exact match.
+        assertThat(names(ok(api.get("/api/v1/search/suggest?q=" + word, fan))).getFirst())
+                .isEqualTo(theNorth);
+
+        // Then the viewer: an act they follow comes first among the equally good matches.
+        String lounge = typed.path(2).path("id").asText("");
+        assertThat(api.put("/api/v1/artists/" + lounge + "/follow", null, fan).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(names(ok(api.get("/api/v1/search/suggest?q=The " + word, fan))))
+                .startsWith(theNorth, word + " Shared Lounge", word + " Base", "IWM " + word);
+
+        assertThat(api.get("/api/v1/search/suggest?q=n", fan).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    private static List<String> names(JsonNode suggestions) {
+        return suggestions.valueStream().map(s -> s.path("name").asText("")).toList();
+    }
+
     private SourceVenue venue(String key, double lat, double lng) {
         return new SourceVenue(
                 "v-" + key + "-" + tag, "Venue " + key + " " + tag, null, "Testville", null, lat, lng, "Europe/London");

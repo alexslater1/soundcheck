@@ -50,8 +50,10 @@ class CatalogReadRepository {
             @Nullable Instant to,
             @Nullable Set<Short> genreIds,
             @Nullable String q,
-            @Nullable UUID artistId,
-            @Nullable UUID venueId,
+            /** Gigs with any of these acts on the bill; null or empty: any act. */
+            @Nullable Set<UUID> artistIds,
+            /** Gigs at any of these venues; null or empty: any venue. Both set: both must hold. */
+            @Nullable Set<UUID> venueIds,
             @Nullable UUID attendeeId,
             @Nullable String attendanceStatus,
             boolean newestFirst,
@@ -184,14 +186,14 @@ class CatalogReadRepository {
                             .where(GIG_ARTIST.GIG_ID.eq(GIG.ID))
                             .and(ARTIST.NAME_NORM.like(norm, '!')))));
         }
-        if (filter.artistId() != null) {
+        if (filter.artistIds() != null && !filter.artistIds().isEmpty()) {
             where.add(DSL.exists(DSL.selectOne()
                     .from(GIG_ARTIST)
                     .where(GIG_ARTIST.GIG_ID.eq(GIG.ID))
-                    .and(GIG_ARTIST.ARTIST_ID.eq(filter.artistId()))));
+                    .and(GIG_ARTIST.ARTIST_ID.in(filter.artistIds()))));
         }
-        if (filter.venueId() != null) {
-            where.add(GIG.VENUE_ID.eq(filter.venueId()));
+        if (filter.venueIds() != null && !filter.venueIds().isEmpty()) {
+            where.add(GIG.VENUE_ID.in(filter.venueIds()));
         }
         if (filter.attendeeId() != null) {
             Condition mine = GIG_ATTENDANCE.GIG_ID.eq(GIG.ID).and(GIG_ATTENDANCE.USER_ID.eq(filter.attendeeId()));
@@ -507,6 +509,96 @@ class CatalogReadRepository {
             }
         });
         return mapped;
+    }
+
+    // ── search suggestions ─────────────────────────────────────
+
+    /**
+     * A name that matches what was typed, with what the suggestion ranking needs: how well it matches
+     * ({@link #matchTier}), how similar it is, how many gigs are coming up, and whether one of them (or the
+     * venue itself) is near the viewer's home.
+     */
+    record NameMatch(
+            UUID id, String name, @Nullable String city, int tier, double similarity, int upcoming, boolean nearHome) {}
+
+    /**
+     * How well a name matches the query, best first: 0 the whole name as typed ("The North"); 1 the same
+     * name once normalised (leading "the", case, accents and punctuation ignored, so "north" finds "The
+     * North"); 2 it starts with the query as whole words ("North Base"); 3 it starts with it
+     * ("Northlane"); 4 a later word starts with it ("IWM North"); 5 only similar (a typo).
+     */
+    static Field<Integer> matchTier(Field<String> name, Field<String> nameNorm, String raw, String norm) {
+        String escaped = DSL.escape(norm, '!');
+        return DSL.when(DSL.lower(name).eq(raw.strip().toLowerCase(java.util.Locale.ROOT)), 0)
+                .when(nameNorm.eq(norm), 1)
+                .when(nameNorm.like(escaped + " %", '!'), 2)
+                .when(nameNorm.like(escaped + "%", '!'), 3)
+                .when(nameNorm.like("% " + escaped + "%", '!'), 4)
+                .otherwise(5);
+    }
+
+    /** Names starting with the query, with a word starting with it, or with a similar word (pg_trgm). */
+    private static Condition nameMatches(Field<String> nameNorm, String norm) {
+        String escaped = DSL.escape(norm, '!');
+        return nameNorm.like(escaped + "%", '!')
+                .or(nameNorm.like("% " + escaped + "%", '!'))
+                .or(DSL.condition("{0} <% {1}", DSL.val(norm), nameNorm));
+    }
+
+    /**
+     * Artists whose name matches, best text match first (then most upcoming gigs): a pool the suggestion
+     * service re-ranks by the viewer. Expected index: artist_name_norm_trgm (LIKE and {@code <%}); the gig
+     * counts use gig_artist_artist and gig_starts_at.
+     */
+    List<NameMatch> artistMatches(String raw, Instant now, @Nullable GeoPoint home, int radiusKm, int limit) {
+        String norm = NameNormaliser.normalise(raw);
+        Field<Integer> tier = matchTier(ARTIST.NAME, ARTIST.NAME_NORM, raw, norm);
+        Field<Double> similarity =
+                DSL.field("word_similarity({0}, {1})", Double.class, DSL.val(norm), ARTIST.NAME_NORM);
+        Field<Integer> upcoming = DSL.field(DSL.selectCount()
+                .from(GIG_ARTIST)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_ARTIST.GIG_ID))
+                .where(GIG_ARTIST.ARTIST_ID.eq(ARTIST.ID))
+                .and(GIG.STARTS_AT.ge(at(now))));
+        Field<Boolean> near = home == null
+                ? DSL.inline(false)
+                : DSL.field(DSL.exists(DSL.selectOne()
+                        .from(GIG_ARTIST)
+                        .join(GIG)
+                        .on(GIG.ID.eq(GIG_ARTIST.GIG_ID))
+                        .where(GIG_ARTIST.ARTIST_ID.eq(ARTIST.ID))
+                        .and(GIG.STARTS_AT.ge(at(now)))
+                        .and(DSL.condition(
+                                "ST_DWithin({0}, {1}, {2})", GIG.LOCATION, point(home), DSL.val(radiusKm * 1000.0)))));
+        return dsl.select(ARTIST.ID, ARTIST.NAME, tier, similarity, upcoming, near)
+                .from(ARTIST)
+                .where(nameMatches(ARTIST.NAME_NORM, norm))
+                .orderBy(tier, upcoming.desc(), similarity.desc(), ARTIST.NAME, ARTIST.ID)
+                .limit(limit)
+                .fetch(r ->
+                        new NameMatch(r.value1(), r.value2(), null, r.value3(), r.value4(), r.value5(), r.value6()));
+    }
+
+    /** Venues whose name matches, as {@link #artistMatches}. Expected index: venue_name_norm_trgm. */
+    List<NameMatch> venueMatches(String raw, Instant now, @Nullable GeoPoint home, int radiusKm, int limit) {
+        String norm = NameNormaliser.normalise(raw);
+        Field<Integer> tier = matchTier(VENUE.NAME, VENUE.NAME_NORM, raw, norm);
+        Field<Double> similarity = DSL.field("word_similarity({0}, {1})", Double.class, DSL.val(norm), VENUE.NAME_NORM);
+        Field<Integer> upcoming = DSL.field(
+                DSL.selectCount().from(GIG).where(GIG.VENUE_ID.eq(VENUE.ID)).and(GIG.STARTS_AT.ge(at(now))));
+        Field<Boolean> near = home == null
+                ? DSL.inline(false)
+                : DSL.field(DSL.condition(
+                        "coalesce(ST_DWithin({0}, {1}, {2}), false)",
+                        VENUE.LOCATION, point(home), DSL.val(radiusKm * 1000.0)));
+        return dsl.select(VENUE.ID, VENUE.NAME, VENUE.CITY, tier, similarity, upcoming, near)
+                .from(VENUE)
+                .where(nameMatches(VENUE.NAME_NORM, norm))
+                .orderBy(tier, upcoming.desc(), similarity.desc(), VENUE.NAME, VENUE.ID)
+                .limit(limit)
+                .fetch(r -> new NameMatch(
+                        r.value1(), r.value2(), r.value3(), r.value4(), r.value5(), r.value6(), r.value7()));
     }
 
     // ── venues ──────────────────────────────────────────────────────────────
