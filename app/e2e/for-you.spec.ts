@@ -36,8 +36,15 @@ async function scrollToPage(list: Locator, n: number): Promise<void> {
   }, n);
 }
 
-/** Registers an author through the API and publishes `count` clips; resolves when all are playable. */
-async function seedPosts(request: APIRequestContext, count: number): Promise<string> {
+/**
+ * Registers an author through the API and publishes `count` clips; resolves when all are playable.
+ * Returns the author's token so that the journey can delete the account at the end: left behind, the
+ * clips of every run filled the local For You feeds.
+ */
+async function seedPosts(
+  request: APIRequestContext,
+  count: number,
+): Promise<{ Authorization: string }> {
   const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 100000)}`;
   const handle = `fy_${suffix}`.slice(0, 30);
   const registered = await request.post('/api/v1/auth/register', {
@@ -89,7 +96,7 @@ async function seedPosts(request: APIRequestContext, count: number): Promise<str
       { timeout: 180_000, intervals: [2_000] },
     )
     .toBe(count);
-  return handle;
+  return auth;
 }
 
 test('For You: the first clip plays, is explained, and scrolling ten clips reports ten impressions', async ({
@@ -99,7 +106,7 @@ test('For You: the first clip plays, is explained, and scrolling ten clips repor
   // Not test.skip: a journey that did not run must not look like one that passed.
   expect(existsSync(CLIPS[0]!), 'synthetic clips missing: run `make clips` first').toBe(true);
   test.setTimeout(420_000);
-  await seedPosts(request, POSTS);
+  const author = await seedPosts(request, POSTS);
 
   // A phone-sized window: one clip per screen, details laid over it.
   const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
@@ -214,5 +221,10 @@ test('For You: the first clip plays, is explained, and scrolling ten clips repor
 
   console.log(`for-you journey: feed session ${feed.sessionId}`);
   await deleteAccount(page, user);
+  const deleted = await request.delete('/api/v1/me', {
+    headers: author,
+    data: { password: 'correct horse battery' },
+  });
+  expect(deleted.status()).toBe(202);
   await context.close();
 });
