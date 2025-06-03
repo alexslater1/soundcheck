@@ -1,0 +1,127 @@
+package app.soundcheck.ingestion.internal.resolve;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import app.soundcheck.ingestion.internal.resolve.TitleParser.Flag;
+import app.soundcheck.ingestion.internal.resolve.TitleParser.Parsed;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+
+/**
+ * The title parser, one row per title shape seen on London venue sites (made-up acts, real shapes):
+ * the acts in billing order, the flags and the tour name. {@code |} separates expected acts.
+ */
+class TitleParserTest {
+
+    static Stream<Arguments> titles() {
+        return Stream.of(
+                // plain and simple bills
+                row("Pale Kites", "Pale Kites"),
+                row("Pale Kites + Night Bus", "Pale Kites|Night Bus"),
+                row("Pale Kites + Night Bus + Glass Harbour", "Pale Kites|Night Bus|Glass Harbour"),
+                row("Pale Kites w/ Night Bus", "Pale Kites|Night Bus"),
+                row("Pale Kites w/Night Bus", "Pale Kites|Night Bus"),
+                row("Pale Kites with Night Bus", "Pale Kites|Night Bus"),
+                row("Pale Kites, Night Bus, Glass Harbour", "Pale Kites|Night Bus|Glass Harbour"),
+                row("Pale Kites / Night Bus", "Pale Kites|Night Bus"),
+                row("Pale Kites supported by Night Bus", "Pale Kites|Night Bus"),
+                row("Pale Kites support from Night Bus & The Lanterns", "Pale Kites|Night Bus & The Lanterns"),
+                row("Pale Kites. Support: Night Bus", "Pale Kites|Night Bus"),
+                row("DJ Meredith feat. Sol Rivers", "DJ Meredith|Sol Rivers"),
+                row("DJ Meredith ft. Sol Rivers", "DJ Meredith|Sol Rivers"),
+                // names that contain separators must survive
+                row("Simon & Garfunkel Tribute", "Simon & Garfunkel Tribute"),
+                row("Echo & The Bunnymen", "Echo & The Bunnymen"),
+                row("Florence and the Machine Tribute Night", "Florence and the Machine Tribute Night"),
+                row("AC/DC UK", "AC/DC UK"),
+                row("Hot Chip DJs + Night Bus", "Hot Chip DJs|Night Bus"),
+                row("Crosby, Stills & Nash Revue", "Crosby|Stills & Nash Revue"), // known limit: commas split
+                // placeholders are not acts
+                row("Pale Kites + support", "Pale Kites"),
+                row("Pale Kites + Special Guests", "Pale Kites"),
+                row("Pale Kites + very special guests", "Pale Kites"),
+                row("Pale Kites + guests", "Pale Kites"),
+                row("Pale Kites + more TBA", "Pale Kites"),
+                row("Pale Kites + Night Bus + more", "Pale Kites|Night Bus"),
+                row("Pale Kites with friends", "Pale Kites"),
+                row("Pale Kites + support TBC", "Pale Kites"),
+                // status words, anywhere
+                row("SOLD OUT: Pale Kites", "Pale Kites", Set.of(Flag.SOLD_OUT)),
+                row("SOLD OUT - Pale Kites + Night Bus", "Pale Kites|Night Bus", Set.of(Flag.SOLD_OUT)),
+                row("Pale Kites (SOLD OUT)", "Pale Kites", Set.of(Flag.SOLD_OUT)),
+                row("**SOLD OUT** Pale Kites", "Pale Kites", Set.of(Flag.SOLD_OUT)),
+                row("Pale Kites - SOLD OUT", "Pale Kites", Set.of(Flag.SOLD_OUT)),
+                row("CANCELLED Pale Kites", "Pale Kites", Set.of(Flag.CANCELLED)),
+                row("Pale Kites [CANCELED]", "Pale Kites", Set.of(Flag.CANCELLED)),
+                row("POSTPONED: Pale Kites", "Pale Kites", Set.of(Flag.POSTPONED)),
+                row("NEW DATE Pale Kites", "Pale Kites", Set.of(Flag.RESCHEDULED)),
+                row("Pale Kites - RESCHEDULED", "Pale Kites", Set.of(Flag.RESCHEDULED)),
+                row("Last Few Tickets! Pale Kites", "Pale Kites"),
+                row("Pale Kites (Low Tickets)", "Pale Kites"),
+                row("Pale Kites - Selling Fast", "Pale Kites"),
+                // show flags
+                row("Pale Kites (Early Show)", "Pale Kites", Set.of(Flag.EARLY_SHOW)),
+                row("Pale Kites - Late Show", "Pale Kites", Set.of(Flag.LATE_SHOW)),
+                row("Pale Kites (18+)", "Pale Kites", Set.of(Flag.AGE_RESTRICTED)),
+                row("Pale Kites 14+", "Pale Kites", Set.of(Flag.AGE_RESTRICTED)),
+                row("Pale Kites (Over 18s)", "Pale Kites", Set.of(Flag.AGE_RESTRICTED)),
+                row("FREE ENTRY: Open Mic Night", "Open Mic Night", Set.of(Flag.FREE)),
+                row("Pale Kites (Free)", "Pale Kites", Set.of(Flag.FREE)),
+                // promoters
+                row("Club Fandango presents: Pale Kites", "Pale Kites"),
+                row("Club Fandango Presents Pale Kites + Night Bus", "Pale Kites|Night Bus"),
+                row("Eat Your Own Ears present Pale Kites", "Pale Kites"),
+                row("Communion Presents - Pale Kites", "Pale Kites"),
+                // tours and event names
+                row("Pale Kites: The Long Way Home Tour", "Pale Kites", Set.of(), "The Long Way Home Tour"),
+                row("Pale Kites - Album Launch", "Pale Kites", Set.of(), "Album Launch"),
+                row("Pale Kites – UK Tour 2026", "Pale Kites", Set.of(), "UK Tour 2026"),
+                row("Pale Kites | Headline Show", "Pale Kites", Set.of(), "Headline Show"),
+                row("Pale Kites (Album Launch)", "Pale Kites", Set.of(), "Album Launch"),
+                row("Pale Kites (Acoustic)", "Pale Kites", Set.of(), "Acoustic"),
+                row("Pale Kites plays 'Dusk' in full", "Pale Kites plays 'Dusk' in full"),
+                row("Night Bus - Glass Harbour", "Night Bus - Glass Harbour"), // no tour word: not cut
+                // everything at once
+                row(
+                        "SOLD OUT: Club Fandango presents Pale Kites + Night Bus + support (18+)",
+                        "Pale Kites|Night Bus",
+                        Set.of(Flag.SOLD_OUT, Flag.AGE_RESTRICTED)),
+                row(
+                        "NEW DATE: Pale Kites w/ Night Bus, Glass Harbour - Autumn Tour (Early Show)",
+                        "Pale Kites|Night Bus|Glass Harbour",
+                        Set.of(Flag.RESCHEDULED, Flag.EARLY_SHOW),
+                        "Autumn Tour"),
+                // unicode, whitespace, punctuation
+                row("  Sigur Rós  +  Björk  ", "Sigur Rós|Björk"),
+                row("Pale Kites + Night Bus", "Pale Kites|Night Bus"),
+                row("!!! (Chk Chk Chk)", "!!! (Chk Chk Chk)"),
+                row("Pale Kites!!", "Pale Kites"),
+                row("Pale Kites + Pale Kites", "Pale Kites"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("titles")
+    void readsTheActsFlagsAndTour(String title, List<String> acts, Set<Flag> flags, String tour) {
+        Parsed parsed = TitleParser.parse(title);
+        assertThat(parsed.acts()).as("acts").containsExactlyElementsOf(acts);
+        assertThat(parsed.flags()).as("flags").containsExactlyInAnyOrderElementsOf(flags);
+        assertThat(parsed.tour()).as("tour").isEqualTo(tour);
+    }
+
+    private static Arguments row(String title, String acts) {
+        return row(title, acts, Set.of(), null);
+    }
+
+    private static Arguments row(String title, String acts, Set<Flag> flags) {
+        return row(title, acts, flags, null);
+    }
+
+    private static Arguments row(String title, String acts, Set<Flag> flags, String tour) {
+        return Arguments.of(title, Arrays.asList(acts.split("\\|")), flags, tour);
+    }
+}
