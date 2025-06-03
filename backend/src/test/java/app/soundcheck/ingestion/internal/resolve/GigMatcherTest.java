@@ -1,15 +1,15 @@
 package app.soundcheck.ingestion.internal.resolve;
 
-import static app.soundcheck.ingestion.internal.resolve.GigMatcher.TimePrecision.DATE_ONLY;
-import static app.soundcheck.ingestion.internal.resolve.GigMatcher.TimePrecision.DOORS;
-import static app.soundcheck.ingestion.internal.resolve.GigMatcher.TimePrecision.EXACT;
 import static app.soundcheck.ingestion.internal.resolve.GigMatcher.Verdict.DIFFERENT;
 import static app.soundcheck.ingestion.internal.resolve.GigMatcher.Verdict.MAYBE;
 import static app.soundcheck.ingestion.internal.resolve.GigMatcher.Verdict.SAME;
+import static app.soundcheck.ingestion.internal.source.TimePrecision.DATE_ONLY;
+import static app.soundcheck.ingestion.internal.source.TimePrecision.DOORS;
+import static app.soundcheck.ingestion.internal.source.TimePrecision.EXACT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.soundcheck.ingestion.internal.resolve.GigMatcher.Side;
-import app.soundcheck.ingestion.internal.resolve.GigMatcher.TimePrecision;
+import app.soundcheck.ingestion.internal.source.TimePrecision;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;

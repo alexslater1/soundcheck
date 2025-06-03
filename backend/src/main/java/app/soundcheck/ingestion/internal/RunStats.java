@@ -37,6 +37,11 @@ public final class RunStats {
     public int updated;
     public int unchanged;
     public int merged;
+    /** Listings that almost matched an existing gig: kept apart and logged in {@code match_review}. */
+    public int flaggedForReview;
+    /** Gigs that gained details (acts, prices, links) from a listing that is not their primary one. */
+    public int filled;
+
     public int skipped;
     public int errors;
     public int apiCalls;
@@ -59,6 +64,8 @@ public final class RunStats {
         updated += other.updated;
         unchanged += other.unchanged;
         merged += other.merged;
+        flaggedForReview += other.flaggedForReview;
+        filled += other.filled;
         for (Resolution[] pair :
                 new Resolution[][] {{venues, other.venues}, {artists, other.artists}, {gigs, other.gigs}}) {
             pair[0].created += pair[1].created;
@@ -96,6 +103,8 @@ public final class RunStats {
         map.put("updated", updated);
         map.put("unchanged", unchanged);
         map.put("merged", merged);
+        map.put("flaggedForReview", flaggedForReview);
+        map.put("filled", filled);
         map.put("skipped", skipped);
         map.put("errors", errors);
         map.put("apiCalls", apiCalls);

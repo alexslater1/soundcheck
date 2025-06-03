@@ -1,5 +1,6 @@
 package app.soundcheck.ingestion.internal.resolve;
 
+import app.soundcheck.ingestion.internal.source.TimePrecision;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -40,16 +41,6 @@ public final class GigMatcher {
     static final double ACT_MAYBE = 0.5;
 
     private GigMatcher() {}
-
-    /** How much a listing's start time can be trusted. */
-    public enum TimePrecision {
-        /** The show's start (ticketing sources). */
-        EXACT,
-        /** Doors opening (most venue sites); the show starts later. */
-        DOORS,
-        /** Only the day is known (fan-added gigs without a time, setlist.fm). */
-        DATE_ONLY
-    }
 
     public enum Verdict {
         SAME,

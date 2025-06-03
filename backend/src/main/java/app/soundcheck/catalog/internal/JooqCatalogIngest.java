@@ -12,6 +12,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_EXTERNAL_ID;
 
 import app.soundcheck.catalog.ArtistDraft;
 import app.soundcheck.catalog.CatalogIngest;
+import app.soundcheck.catalog.GigCandidate;
 import app.soundcheck.catalog.GigDraft;
 import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.NameNormaliser;
@@ -360,6 +361,83 @@ class JooqCatalogIngest implements CatalogIngest {
                 .stream()
                 .map(this::ref)
                 .toList();
+    }
+
+    @Override
+    public List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to) {
+        List<UUID> ids = dsl.select(GIG.ID)
+                .from(GIG)
+                .where(GIG.VENUE_ID.eq(venueId))
+                .and(GIG.STARTS_AT.ge(at(from)))
+                .and(GIG.STARTS_AT.lt(at(to)))
+                .orderBy(GIG.STARTS_AT, GIG.ID)
+                .limit(20)
+                .fetch(GIG.ID);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<UUID>> artistIds = new java.util.HashMap<>();
+        Map<UUID, List<String>> artistNames = new java.util.HashMap<>();
+        dsl.select(GIG_ARTIST.GIG_ID, ARTIST.ID, ARTIST.NAME)
+                .from(GIG_ARTIST)
+                .join(ARTIST)
+                .on(ARTIST.ID.eq(GIG_ARTIST.ARTIST_ID))
+                .where(GIG_ARTIST.GIG_ID.in(ids))
+                .orderBy(GIG_ARTIST.GIG_ID, GIG_ARTIST.BILLING_ORDER)
+                .forEach(r -> {
+                    artistIds
+                            .computeIfAbsent(r.value1(), k -> new java.util.ArrayList<>())
+                            .add(r.value2());
+                    artistNames
+                            .computeIfAbsent(r.value1(), k -> new java.util.ArrayList<>())
+                            .add(r.value3());
+                });
+        return ids.stream()
+                .map(id -> new GigCandidate(
+                        ref(id), artistIds.getOrDefault(id, List.of()), artistNames.getOrDefault(id, List.of())))
+                .toList();
+    }
+
+    @Override
+    public boolean fillGig(UUID gigId, GigDraft from) {
+        int fields = dsl.update(GIG)
+                .set(
+                        GIG.DOORS_AT,
+                        DSL.coalesce(GIG.DOORS_AT, DSL.val(from.doorsAt() == null ? null : at(from.doorsAt()))))
+                .set(GIG.TICKET_URL, DSL.coalesce(GIG.TICKET_URL, DSL.val(from.ticketUrl())))
+                .set(GIG.PRICE_MIN, DSL.coalesce(GIG.PRICE_MIN, DSL.val(from.priceMin())))
+                .set(GIG.PRICE_MAX, DSL.coalesce(GIG.PRICE_MAX, DSL.val(from.priceMax())))
+                .set(GIG.CURRENCY, DSL.coalesce(GIG.CURRENCY, DSL.val(from.currency())))
+                .set(GIG.IMAGE_URL, DSL.coalesce(GIG.IMAGE_URL, DSL.val(from.imageUrl())))
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.ID.eq(gigId))
+                .and(GIG.DOORS_AT
+                        .isNull()
+                        .and(DSL.val(from.doorsAt()).isNotNull())
+                        .or(GIG.TICKET_URL
+                                .isNull()
+                                .and(DSL.val(from.ticketUrl()).isNotNull()))
+                        .or(GIG.PRICE_MIN.isNull().and(DSL.val(from.priceMin()).isNotNull()))
+                        .or(GIG.PRICE_MAX.isNull().and(DSL.val(from.priceMax()).isNotNull()))
+                        .or(GIG.IMAGE_URL.isNull().and(DSL.val(from.imageUrl()).isNotNull())))
+                .execute();
+        List<UUID> bill = dsl.select(GIG_ARTIST.ARTIST_ID)
+                .from(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                .orderBy(GIG_ARTIST.BILLING_ORDER)
+                .fetch(GIG_ARTIST.ARTIST_ID);
+        int added = 0;
+        for (UUID artistId : from.artistIds()) {
+            if (!bill.contains(artistId)) {
+                dsl.insertInto(GIG_ARTIST)
+                        .set(GIG_ARTIST.GIG_ID, gigId)
+                        .set(GIG_ARTIST.ARTIST_ID, artistId)
+                        .set(GIG_ARTIST.BILLING_ORDER, (short) (bill.size() + added))
+                        .execute();
+                added++;
+            }
+        }
+        return fields > 0 || added > 0;
     }
 
     @Override

@@ -96,6 +96,19 @@ public interface CatalogIngest {
     List<GigRef> gigsAtVenueAround(
             UUID venueId, Instant startsAt, Duration window, UUID headlinerId, String title, double minTitleSimilarity);
 
+    /**
+     * Gigs at the venue starting in {@code [from, to)}, with their bills (the matcher decides
+     * which, if any, is the same show; this only gathers them). Expected index: gig_venue.
+     */
+    List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to);
+
+    /**
+     * Fills what the gig does not have from a listing that is not its primary one, never overwriting:
+     * empty doors time, ticket link, prices, image, and acts missing
+     * from the bill (added after the existing ones). Returns whether anything changed.
+     */
+    boolean fillGig(UUID gigId, GigDraft from);
+
     UUID createGig(GigDraft gig);
 
     /** Replaces the gig's fields and line-up. */
