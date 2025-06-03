@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { useListGigDays } from '@/api/generated/catalog/catalog';
@@ -49,8 +50,11 @@ export function GigsBrowser() {
   const [text, setText] = useState('');
   const [month, setMonth] = useState<Month>(() => monthOf(new Date()));
   const [day, setDay] = useState<string | null>(null);
-  // Today, fixed for the life of the screen: a new Date() per render would be a new query key each time.
-  const [today] = useState(() => ukDate(new Date()));
+  // Today, read when the tab is opened (and again whenever it comes back into view), not on every
+  // render: a new Date() per render would be a new query key each time, and a value fixed for the life
+  // of the screen would go stale overnight (the tab stays mounted).
+  const [today, setToday] = useState(() => ukDate(new Date()));
+  useFocusEffect(useCallback(() => setToday(ukDate(new Date())), []));
   const q = useDebounced(text.trim(), SEARCH_DEBOUNCE_MS);
   const { data: genres } = useListGenres();
 

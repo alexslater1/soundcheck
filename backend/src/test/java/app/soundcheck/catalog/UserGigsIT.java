@@ -18,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 
 /**
@@ -435,6 +436,30 @@ class UserGigsIT extends IntegrationTest {
         assertThat(rest.getForEntity("/api/v1/gigs/" + upcoming.path("id").asText("") + "/setlist", String.class)
                         .getStatusCode())
                 .isEqualTo(HttpStatus.UNAUTHORIZED);
+    }
+
+    @Test
+    void savesAtTheSameMomentStillStopAtTwenty() throws Exception {
+        // "Count, then insert" under a per-user advisory lock: five saves racing for the 20th place.
+        for (int i = 0; i < 19; i++) {
+            api.post("/api/v1/me/gig-filters", Map.of("name", "f" + i, "place", "HOME"), fan);
+        }
+        try (var pool = java.util.concurrent.Executors.newFixedThreadPool(5)) {
+            List<java.util.concurrent.Future<HttpStatusCode>> saves = new java.util.ArrayList<>();
+            for (int i = 0; i < 5; i++) {
+                int n = i;
+                saves.add(pool.submit(
+                        () -> api.post("/api/v1/me/gig-filters", Map.of("name", "race " + n, "place", "UK"), fan)
+                                .getStatusCode()));
+            }
+            List<HttpStatusCode> codes = new java.util.ArrayList<>();
+            for (var save : saves) {
+                codes.add(save.get());
+            }
+            assertThat(codes).filteredOn(c -> c.equals(HttpStatus.CREATED)).hasSize(1);
+            assertThat(codes).filteredOn(c -> c.equals(HttpStatus.CONFLICT)).hasSize(4);
+        }
+        assertThat(ok(api.get("/api/v1/me/gig-filters", fan))).hasSize(20);
     }
 
     private Map<String, Object> gig(List<String> names, Map<String, Object> venue, LocalDate date) {

@@ -9,6 +9,7 @@ import { compressVideo, discardFile } from './compress';
 import { currentConnection } from './connection';
 import { ensurePost } from './postDraft';
 import { prepareClip } from './prepareClip';
+import { serially } from './serially';
 import { transport } from './transport';
 import type { PostDraft, UploadEntry } from './types';
 import { runUpload } from './uploadMachine';
@@ -16,6 +17,12 @@ import { useUploadQueue } from './uploadQueue';
 
 /** Entries with a machine running, so a second tap on Retry (or a screen re-mount) cannot start another. */
 const running = new Set<string>();
+
+/**
+ * One compression at a time: several clips picked together are prepared one after another (an encode
+ * holds the phone's video encoder and a lot of memory), while the ones already prepared upload.
+ */
+const compressOneAtATime = serially(compressVideo);
 
 /**
  * `completeUpload` as it runs: a single-PUT upload sends no body (`undefined`), but orval 7 types the
@@ -53,7 +60,7 @@ export async function startUpload(localId: string): Promise<void> {
         current,
         update,
         connection: currentConnection,
-        compress: compressVideo,
+        compress: compressOneAtATime,
         discard: discardFile,
         platform: Platform.OS,
       });

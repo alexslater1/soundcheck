@@ -54,6 +54,14 @@ class SavedFilterRepository {
                         r.getCityId()));
     }
 
+    /**
+     * Serialises one user's saves until the transaction ends, so "count, then insert" cannot let two
+     * saves at the same moment both see 19 and store 21.
+     */
+    void lockUser(UUID userId) {
+        dsl.fetch("select pg_advisory_xact_lock(hashtextextended(?, 0))", "saved-gig-filters:" + userId);
+    }
+
     int count(UUID userId) {
         return dsl.fetchCount(SAVED_GIG_FILTER, SAVED_GIG_FILTER.USER_ID.eq(userId));
     }

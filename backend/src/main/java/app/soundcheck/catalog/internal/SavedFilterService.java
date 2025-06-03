@@ -114,6 +114,7 @@ public class SavedFilterService {
 
     @Transactional
     public SavedGigFilter save(UUID userId, NewFilter filter) {
+        filters.lockUser(userId);
         if (filters.count(userId) >= MAX_PER_USER) {
             throw ApiException.conflict(
                     "SAVED_FILTERS_FULL", "At most " + MAX_PER_USER + " saved searches; delete one first");
