@@ -45,6 +45,14 @@ services:
       # LocalStack's free edition keeps nothing between runs, while the database keeps the posts:
       # `make down` copies the bucket here and the ready hook copies it back (20-restore-media.sh).
       - media-snapshot:/snapshot
+    # LocalStack's S3 keeps a file handle open per upload (on a deleted temp file) and never closes it:
+    # on 2025-06-03 the demo seeding's ~300 large uploads plus the worker's transcodes used up the
+    # default 1,024 and every PutObject/UploadPart failed with "[Errno 24] Too many open files" until a
+    # restart. A higher soft limit (the hard limit is already 524,288) puts that far out of reach.
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     healthcheck:
       # The init hook creates the bucket and queues; "ready" means every stage has run.
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/init/ready | grep -q '\"completed\": true'"]
