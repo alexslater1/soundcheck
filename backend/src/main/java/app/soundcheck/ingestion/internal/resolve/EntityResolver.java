@@ -265,7 +265,8 @@ public class EntityResolver {
             GigMatcher.Decision decision = GigMatcher.decide(
                     incoming,
                     existing,
-                    ref.listings().stream().map(GigRef.Listing::source).toList());
+                    ref.listings().stream().map(GigRef.Listing::source).toList(),
+                    candidate.venueId().equals(draft.venueId()));
             switch (decision.verdict()) {
                 case SAME -> {
                     if (best == null || closer(gig, ref, best.gig())) {

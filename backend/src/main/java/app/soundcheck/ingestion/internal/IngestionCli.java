@@ -1,6 +1,8 @@
 package app.soundcheck.ingestion.internal;
 
 import app.soundcheck.ingestion.internal.source.GigSource;
+import app.soundcheck.ingestion.internal.source.venues.VenueCoverage;
+import java.time.Clock;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,7 +14,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 
 /**
- * One-shot commands behind {@code make record-fixtures} and {@code make ingest}: the application starts,
+ * One-shot commands behind {@code make record-fixtures}, {@code make ingest} and {@code make venue-coverage}:
+ * the application starts,
  * runs the command named by {@code soundcheck.ingestion.cli}, and exits with 0 or 1.
  */
 @Component
@@ -27,6 +30,8 @@ class IngestionCli implements ApplicationRunner {
     private final FixtureRecorder recorder;
     private final IngestionService service;
     private final IngestionGuard guard;
+    private final VenueCoverage coverage;
+    private final Clock clock;
 
     IngestionCli(
             ApplicationContext context,
@@ -34,13 +39,17 @@ class IngestionCli implements ApplicationRunner {
             List<GigSource> sources,
             FixtureRecorder recorder,
             IngestionService service,
-            IngestionGuard guard) {
+            IngestionGuard guard,
+            VenueCoverage coverage,
+            Clock clock) {
         this.context = context;
         this.properties = properties;
         this.sources = sources;
         this.recorder = recorder;
         this.service = service;
         this.guard = guard;
+        this.coverage = coverage;
+        this.clock = clock;
     }
 
     @Override
@@ -71,6 +80,8 @@ class IngestionCli implements ApplicationRunner {
                         }
                     }
                 }
+                // How many of each venue site's shows Ticketmaster misses (from the catalog, no fetching).
+                case "venue-coverage" -> System.out.println(VenueCoverage.report(coverage.measure(), clock.instant()));
                 default -> throw new IllegalArgumentException("Unknown soundcheck.ingestion.cli command: " + command);
             }
         } catch (RuntimeException e) {

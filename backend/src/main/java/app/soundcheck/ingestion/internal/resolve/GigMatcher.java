@@ -20,7 +20,8 @@ import java.util.UUID;
  * <ol>
  *   <li>Same UK <em>night</em> (06:00 to 06:00), or it is not the same show.
  *   <li>Within one source the source's own ids mean something: two of its listings on one night are
- *       one show only at the same instant, or when one is a package listing (the existing rule).
+ *       one show only at the same instant in the same room, or when one is a package listing (the
+ *       existing rule). A venue's own site lists each show once, so for it they are always two shows.
  *   <li>When both sides give a real start time, more than 3 h apart is an early and a late show.
  *       A doors time may be up to 4 h before the show; a date-only listing fits anywhere in the night.
  *   <li>A shared act (by catalog id) is the same show.
@@ -60,19 +61,32 @@ public final class GigMatcher {
 
     public record Decision(Verdict verdict, String reason, double titleSimilarity, double actSimilarity) {}
 
+    /** Sources that list each show exactly once: a venue's own site has one page per show. */
+    static final Set<String> ONE_LISTING_PER_SHOW = Set.of("VENUE");
+
+    /** Like {@link #decide(Side, Side, Collection, boolean)} for a gig in the same room. */
+    public static Decision decide(Side incoming, Side existing, Collection<String> existingSources) {
+        return decide(incoming, existing, existingSources, true);
+    }
+
     /**
      * @param incoming the listing being ingested
      * @param existing the gig as its primary listing describes it
      * @param existingSources every source that already lists the gig
+     * @param sameRoom whether the gig is at the incoming listing's venue, not at a sibling of it
      */
-    public static Decision decide(Side incoming, Side existing, Collection<String> existingSources) {
+    public static Decision decide(Side incoming, Side existing, Collection<String> existingSources, boolean sameRoom) {
         if (!night(incoming.startsAt()).equals(night(existing.startsAt()))) {
             return new Decision(Verdict.DIFFERENT, "different night", 0, 0);
         }
         if (existingSources.contains(incoming.source())) {
-            boolean same = incoming.startsAt().equals(existing.startsAt())
-                    || incoming.packageListing()
-                    || existing.packageListing();
+            // A venue's site lists each show once, so two of its listings are two shows, even when both
+            // rooms open at 19:00. Another source lists one show twice only in the same room.
+            boolean same = !ONE_LISTING_PER_SHOW.contains(incoming.source())
+                    && sameRoom
+                    && (incoming.startsAt().equals(existing.startsAt())
+                            || incoming.packageListing()
+                            || existing.packageListing());
             return new Decision(
                     same ? Verdict.SAME : Verdict.DIFFERENT,
                     same ? "same source, same instant or a package listing" : "same source, another show",

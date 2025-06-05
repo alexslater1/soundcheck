@@ -81,6 +81,20 @@ class VenueListingMatchingIT extends IntegrationTest {
         RunStats again = new RunStats();
         assertThat(resolver.ingest(site, again, SEEN)).isEqualTo(Outcome.UNCHANGED);
         assertThat(again.gigs.matchedByExternalId).isEqualTo(1);
+
+        // Coverage sees the venue's listing as one Ticketmaster also has; a venue-only show as a miss.
+        assertThat(resolver.ingest(site("ev-only", "Rope Burns " + tag, "2026-11-14T19:00:00Z"), new RunStats(), SEEN))
+                .isEqualTo(Outcome.CREATED);
+        assertThat(catalog
+                        .listingsAlsoListedBy(
+                                "VENUE",
+                                "TICKETMASTER",
+                                Instant.parse("2026-11-13T00:00:00Z"),
+                                Instant.parse("2026-11-15T00:00:00Z"))
+                        .stream()
+                        .filter(l -> l.externalId().startsWith(siteVenue.externalId() + ":"))
+                        .map(l -> l.title() + "=" + l.alsoListed()))
+                .containsExactly("Harbour Hounds " + tag + "=true", "Rope Burns " + tag + "=false");
     }
 
     @Test
@@ -242,6 +256,18 @@ class VenueListingMatchingIT extends IntegrationTest {
         assertThat(sources(after)).containsExactlyInAnyOrder("TICKETMASTER", "VENUE");
         assertThat(dsl.fetchValue(dsl.select(GIG.VENUE_ID).from(GIG).where(GIG.ID.eq(after))))
                 .isEqualTo(venueOf("TICKETMASTER", downstairs.externalId()));
+    }
+
+    @Test
+    void twoShowsTheSiteListsAtTheSameTimeStayTwoGigs() {
+        // Both rooms open at 19:00; the second listing must not fold into the first night's gig.
+        assertThat(resolver.ingest(
+                        site("ev-up", "COCKNEY REBELS " + tag, "2026-10-17T18:00:00Z"), new RunStats(), SEEN))
+                .isEqualTo(Outcome.CREATED);
+        assertThat(resolver.ingest(site("ev-down", "ACRE " + tag, "2026-10-17T18:00:00Z"), new RunStats(), SEEN))
+                .isEqualTo(Outcome.CREATED);
+        assertThat(gigId("VENUE", "ev-up")).isNotEqualTo(gigId("VENUE", "ev-down"));
+        assertThat(bill(gigId("VENUE", "ev-up"))).containsExactly("COCKNEY REBELS " + tag);
     }
 
     @Test

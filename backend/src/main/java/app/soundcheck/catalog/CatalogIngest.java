@@ -117,6 +117,13 @@ public interface CatalogIngest {
     List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to);
 
     /**
+     * Every gig {@code source} lists that starts in {@code [from, to)} and is not cancelled, and whether
+     * {@code other} lists it too, by start time. Expected indexes: gig_source_pkey (source
+     * prefix), gig_pkey.
+     */
+    List<ListingOverlap> listingsAlsoListedBy(String source, String other, Instant from, Instant to);
+
+    /**
      * Fills what the gig does not have from a listing that is not its primary one, never overwriting:
      * empty doors time, ticket link, prices, image, and acts missing
      * from the bill (added after the existing ones). Returns whether anything changed.

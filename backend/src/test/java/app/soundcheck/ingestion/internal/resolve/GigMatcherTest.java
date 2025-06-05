@@ -97,11 +97,35 @@ class GigMatcherTest {
 
     @Test
     void withinOneSourceTwoListingsOnOneNightAreTwoShowsUnlessOneIsAPackage() {
-        Side early = side("VENUE", "18:00", DOORS, "Pale Kites", PALE_KITES);
-        Side late = side("VENUE", "21:00", DOORS, "Pale Kites", PALE_KITES);
-        assertThat(verdict(late, early, "VENUE")).isEqualTo(DIFFERENT);
-        Side vip = side("VENUE", "18:00", DOORS, "Pale Kites - VIP Package", PALE_KITES);
-        assertThat(verdict(vip, late, "VENUE")).isEqualTo(SAME);
+        Side early = side("TICKETMASTER", "18:00", EXACT, "Pale Kites", PALE_KITES);
+        Side late = side("TICKETMASTER", "21:00", EXACT, "Pale Kites", PALE_KITES);
+        assertThat(verdict(late, early, "TICKETMASTER")).isEqualTo(DIFFERENT);
+        Side vip = side("TICKETMASTER", "18:00", EXACT, "Pale Kites - VIP Package", PALE_KITES);
+        assertThat(verdict(vip, late, "TICKETMASTER")).isEqualTo(SAME);
+        Side again = side("TICKETMASTER", "18:00", EXACT, "Pale Kites (resale)", PALE_KITES);
+        assertThat(verdict(again, early, "TICKETMASTER")).isEqualTo(SAME); // the same instant in one room
+    }
+
+    @Test
+    void aVenueSiteListsEachShowOnceSoItsTwoListingsAreTwoShowsEvenAtTheSameTime() {
+        // The Dome, 17 October: both rooms open at 19:00 and the site lists both.
+        Side upstairs = side("VENUE", "19:00", DOORS, "COCKNEY REJECTS", PALE_KITES);
+        Side downstairs = side("VENUE", "19:00", DOORS, "ACRES", NIGHT_BUS);
+        assertThat(verdict(downstairs, upstairs, "VENUE")).isEqualTo(DIFFERENT);
+        // ... and a gig that already has the site's listing (merged into Ticketmaster's) is not the next one.
+        assertThat(verdict(downstairs, upstairs, "TICKETMASTER", "VENUE")).isEqualTo(DIFFERENT);
+    }
+
+    @Test
+    void twoListingsOfOneSourceInTwoRoomsAtTheSameInstantAreTwoShows() {
+        Side dome = side("TICKETMASTER", "19:00", EXACT, "Hed Pe X Cold", PALE_KITES);
+        Side downstairs = side("TICKETMASTER", "19:00", EXACT, "Shelf Lives", NIGHT_BUS);
+        assertThat(GigMatcher.decide(dome, downstairs, List.of("TICKETMASTER"), false)
+                        .verdict())
+                .isEqualTo(DIFFERENT);
+        assertThat(GigMatcher.decide(dome, downstairs, List.of("TICKETMASTER"), true)
+                        .verdict())
+                .isEqualTo(SAME); // one room: the existing duplicate rule
     }
 
     @Test

@@ -16,6 +16,7 @@ import app.soundcheck.catalog.CatalogIngest;
 import app.soundcheck.catalog.GigCandidate;
 import app.soundcheck.catalog.GigDraft;
 import app.soundcheck.catalog.GigRef;
+import app.soundcheck.catalog.ListingOverlap;
 import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.catalog.VenueDraft;
 import app.soundcheck.shared.Ids;
@@ -26,6 +27,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -398,7 +400,8 @@ class JooqCatalogIngest implements CatalogIngest {
 
     @Override
     public List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to) {
-        List<UUID> ids = dsl.select(GIG.ID)
+        Map<UUID, UUID> venueOf = new LinkedHashMap<>();
+        dsl.select(GIG.ID, GIG.VENUE_ID)
                 .from(GIG)
                 .where(GIG.VENUE_ID
                         .eq(venueId)
@@ -409,7 +412,8 @@ class JooqCatalogIngest implements CatalogIngest {
                 .and(GIG.STARTS_AT.lt(at(to)))
                 .orderBy(GIG.STARTS_AT, GIG.ID)
                 .limit(20)
-                .fetch(GIG.ID);
+                .forEach(r -> venueOf.put(r.value1(), r.value2()));
+        List<UUID> ids = List.copyOf(venueOf.keySet());
         if (ids.isEmpty()) {
             return List.of();
         }
@@ -431,8 +435,31 @@ class JooqCatalogIngest implements CatalogIngest {
                 });
         return ids.stream()
                 .map(id -> new GigCandidate(
-                        ref(id), artistIds.getOrDefault(id, List.of()), artistNames.getOrDefault(id, List.of())))
+                        ref(id),
+                        venueOf.get(id),
+                        artistIds.getOrDefault(id, List.of()),
+                        artistNames.getOrDefault(id, List.of())))
                 .toList();
+    }
+
+    @Override
+    public List<ListingOverlap> listingsAlsoListedBy(String source, String other, Instant from, Instant to) {
+        var otherListing = GIG_SOURCE.as("other_listing");
+        Field<Boolean> alsoListed = DSL.field(DSL.exists(DSL.selectOne()
+                .from(otherListing)
+                .where(otherListing.GIG_ID.eq(GIG_SOURCE.GIG_ID))
+                .and(otherListing.SOURCE.eq(other))));
+        return dsl.select(GIG_SOURCE.EXTERNAL_ID, GIG.ID, GIG.TITLE, GIG.STARTS_AT, alsoListed)
+                .from(GIG_SOURCE)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_SOURCE.GIG_ID))
+                .where(GIG_SOURCE.SOURCE.eq(source))
+                .and(GIG.STARTS_AT.ge(at(from)))
+                .and(GIG.STARTS_AT.lt(at(to)))
+                .and(GIG.STATUS.ne("CANCELLED"))
+                .orderBy(GIG.STARTS_AT, GIG.ID)
+                .fetch(r -> new ListingOverlap(
+                        r.value1(), r.value2(), r.value3(), r.value4().toInstant(), r.value5()));
     }
 
     @Override

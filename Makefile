@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
-	openapi openapi-check ingest record-fixtures purge-fixtures prune-local seed-demo seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage record-fixtures purge-fixtures prune-local seed-demo seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -199,6 +199,9 @@ purge-fixtures: ## Remove the synthetic fixture gigs, venues and artists from th
 	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -v ON_ERROR_STOP=1 -f - < $(CURDIR)/ops/scripts/purge-synthetic.sql
 prune-local: ## Mark local posts whose clip files LocalStack lost as deleted (needs `make up`)
 	$(CURDIR)/ops/scripts/prune-local.sh
+venue-coverage: ## For each venue read from its own site: its shows in the next 60 days that Ticketmaster misses (after an ingest)
+	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 $(GRADLE) bootRun -q --args='--spring.profiles.active=local --soundcheck.ingestion.cli=venue-coverage'
+
 record-fixtures: ## Record external API responses into fixtures/ (live calls; needs the keys in .env and `make up`)
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures --logging.level.org.jooq.tools.LoggerListener=info'
 	$(CURDIR)/ops/scripts/check-fixture-secrets.sh
