@@ -1,4 +1,4 @@
--- V021 — ingestion: listings that almost matched an existing gig.
+-- V031 — ingestion: listings that almost matched an existing gig.
 -- The resolver never merges on weak evidence: a pair that is close but not convincing (same venue and night,
 -- similar names, no shared act) becomes two gigs and one row here, for a person to decide in the console.
 -- The decision is kept so the same pair is never asked about twice.

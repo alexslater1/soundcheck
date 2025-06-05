@@ -1,0 +1,6 @@
+{"events":[
+ {"id":11,"url":"https://lantern.example/event/a","title":"Saturday 10th October &#8211; Kholla Moths take the helm","start_date":"2026-10-10 18:00:00","end_date":"2026-10-10 23:00:00","all_day":false,"timezone":"UTC+0","cost":"£7","image":{"url":"https://lantern.example/a.jpg"},"status":"publish"},
+ {"id":12,"url":"https://lantern.example/event/b","title":"The Ondine Owls are headlining at The Lantern Arms on Saturday 24th October 2026!","start_date":"2026-10-24 19:30:00","all_day":false,"timezone":"UTC+0","cost":"","image":false,"status":"publish"},
+ {"id":13,"url":"https://lantern.example/event/c","title":"Joe Clarke, Ric Tarmac, Father Levity","start_date":"2026-10-25 00:00:00","all_day":true,"cost":"Free","image":false},
+ {"id":14,"title":"Broken","start_date":"soon"}
+],"rest_url":"https://lantern.example/wp-json/tribe/events/v1/events","next_rest_url":"https://lantern.example/wp-json/tribe/events/v1/events?page=2","total":4,"total_pages":2}

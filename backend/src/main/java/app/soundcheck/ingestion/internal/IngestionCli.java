@@ -1,6 +1,7 @@
 package app.soundcheck.ingestion.internal;
 
 import app.soundcheck.ingestion.internal.source.GigSource;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -22,7 +23,7 @@ class IngestionCli implements ApplicationRunner {
 
     private final ApplicationContext context;
     private final IngestionProperties properties;
-    private final GigSource source;
+    private final List<GigSource> sources;
     private final FixtureRecorder recorder;
     private final IngestionService service;
     private final IngestionGuard guard;
@@ -30,13 +31,13 @@ class IngestionCli implements ApplicationRunner {
     IngestionCli(
             ApplicationContext context,
             IngestionProperties properties,
-            GigSource source,
+            List<GigSource> sources,
             FixtureRecorder recorder,
             IngestionService service,
             IngestionGuard guard) {
         this.context = context;
         this.properties = properties;
-        this.source = source;
+        this.sources = sources;
         this.recorder = recorder;
         this.service = service;
         this.guard = guard;
@@ -52,10 +53,14 @@ class IngestionCli implements ApplicationRunner {
                     if (!properties.live()) {
                         throw new IllegalStateException("record-fixtures needs INGESTION_MODE=live");
                     }
-                    recorder.record(source);
+                    // Recordings are of the ticketing source only; venue sites are never recorded.
+                    recorder.record(sources.stream()
+                            .filter(s -> !s.name().equals("VENUE"))
+                            .findFirst()
+                            .orElseThrow());
                 }
                 case "ingest" -> {
-                    guard.check(source);
+                    sources.forEach(guard::check);
                     for (String name : service.sourceNames()) {
                         IngestionService.RunResult result = service.run(name, "CLI");
                         if (result.status().equals("FAILED")) {

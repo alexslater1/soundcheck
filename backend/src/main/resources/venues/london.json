@@ -1,0 +1,41 @@
+{
+  "about": "Venues whose own websites Soundcheck may read. An entry is added only after the venue passed the compliance gate (own data, robots.txt allows, terms do not forbid); reading it also needs its key in soundcheck.ingestion.venues.sites. Coordinates: postcodes.io for the postcode (2025-06-05). ticketmasterVenueId pins the venue to the one Ticketmaster created.",
+  "venues": [
+    {
+      "key": "hope-and-anchor",
+      "adapter": "hope-and-anchor-api",
+      "url": "https://hopeandanchor.info/api/v1/events",
+      "venue": { "name": "Hope & Anchor", "address": "207 Upper Street", "city": "London", "postcode": "N1 1RL", "lat": 51.543575, "lng": -0.103485 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "notes": "Public keyless JSON API documented at /developers/; robots.txt invites API use."
+    },
+    {
+      "key": "amersham-arms",
+      "adapter": "tribe-events",
+      "url": "https://amershamarms.co.uk/wp-json/tribe/events/v1/events",
+      "venue": { "name": "The Amersham Arms", "address": "388 New Cross Road", "city": "London", "postcode": "SE14 6TY", "lat": 51.475428, "lng": -0.030438 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "notes": "The Events Calendar REST API; times labelled UTC+0 are London wall-clock times; titles are sentences."
+    },
+    {
+      "key": "new-river-studios",
+      "adapter": "tribe-events",
+      "url": "https://newriverstudios.com/wp-json/tribe/events/v1/events",
+      "venue": { "name": "New River Studios", "address": "199 Eade Road", "city": "London", "postcode": "N4 1DN", "lat": 51.574961, "lng": -0.088152 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "notes": "The Events Calendar REST API; same timezone label quirk as Amersham Arms."
+    },
+    {
+      "key": "moth-club",
+      "adapter": "moth-rss",
+      "url": "https://mothclub.co.uk/rss",
+      "venue": { "name": "MOTH Club", "address": "Old Trades Hall, Valette Street", "city": "London", "postcode": "E9 6NU", "lat": 51.545639, "lng": -0.05442 },
+      "ticketmasterVenueId": "KovZ91776m0",
+      "precision": "DOORS",
+      "notes": "RSS of the most recently added events only (about 10); robots.txt Crawl-delay 2."
+    }
+  ]
+}
