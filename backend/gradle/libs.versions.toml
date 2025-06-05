@@ -11,6 +11,7 @@ springdoc = "2.8.8"
 archunit = "1.4.1"
 jqwik = "1.9.2"
 wiremock = "3.13.0"
+jsoup = "1.20.1"
 spotless = "7.0.4"
 palantir-java-format = "2.67.0"
 bucket4j = "8.10.1"
@@ -69,6 +70,7 @@ testcontainers-junit-jupiter = { module = "org.testcontainers:junit-jupiter" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 jqwik = { module = "net.jqwik:jqwik", version.ref = "jqwik" }
 wiremock = { module = "org.wiremock:wiremock-standalone", version.ref = "wiremock" }
+jsoup = { module = "org.jsoup:jsoup", version.ref = "jsoup" }
 junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
 
 [plugins]

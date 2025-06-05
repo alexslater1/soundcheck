@@ -104,6 +104,31 @@ class TitleParserTest {
                 row("Pale Kites + Pale Kites", "Pale Kites"));
     }
 
+    /** Titles written as sentences about the venue (Amersham Arms style), made-up acts. */
+    static Stream<Arguments> sentences() {
+        return Stream.of(
+                Arguments.of(
+                        "Saturday 10th October &#8211; Kholla take the helm".replace("&#8211;", "–"),
+                        "Kholla take the helm"),
+                Arguments.of(
+                        "Headlining Rough Edges at The Lantern Arms on Thursday 22nd October – S0FTD0LLY.",
+                        "S0FTD0LLY"),
+                Arguments.of(
+                        "The Ondines are headlining at The Lantern Arms on Saturday 24th October 2026!", "The Ondines"),
+                Arguments.of("Keez headlines at The Lantern Arms on Thursday 29th October!", "Keez"),
+                Arguments.of("Pale Kites live at the Lantern Arms", "Pale Kites"),
+                Arguments.of("Pale Kites @ Lantern Arms Fri 27 Nov 2026", "Pale Kites"),
+                Arguments.of(
+                        "Joe Clark, Ricardo Tarma, Father Levi, Lydia", "Joe Clark|Ricardo Tarma|Father Levi|Lydia"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("sentences")
+    void readsActsOutOfSentencesAboutTheVenue(String title, String acts) {
+        assertThat(TitleParser.parse(title, "The Lantern Arms").acts())
+                .containsExactlyElementsOf(Arrays.asList(acts.split("\\|")));
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource("titles")
     void readsTheActsFlagsAndTour(String title, List<String> acts, Set<Flag> flags, String tour) {

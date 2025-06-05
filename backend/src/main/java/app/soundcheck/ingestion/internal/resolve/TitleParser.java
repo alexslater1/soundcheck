@@ -95,6 +95,37 @@ public final class TitleParser {
                     + "evening|plays|performs|celebrat\\w*|farewell|reunion|residency|session|special|20\\d\\d)\\b",
             Pattern.CASE_INSENSITIVE);
 
+    private static final String WEEKDAY =
+            "(?:mon|tue|tues|wed|weds|thu|thur|thurs|fri|sat|sun)(?:day|nesday|sday|urday)?\\.?";
+    private static final String MONTH = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\\.?";
+    /** "Saturday 10th October", "Fri 27 Nov 2026", "24th October 2026", with an optional "on" in front. */
+    private static final Pattern DATE_PHRASE = Pattern.compile(
+            "(?:\\bon\\s+)?(?:\\b" + WEEKDAY + "\\s+)?\\b\\d{1,2}(?:st|nd|rd|th)?\\s+" + MONTH + "(?:\\s+\\d{4})?\\b",
+            Pattern.CASE_INSENSITIVE);
+    /** "are headlining", "headlines", "Headlining …" around the act's name. */
+    private static final Pattern HEADLINING =
+            Pattern.compile("(?:\\b(?:is|are)\\s+)?\\bheadlin(?:e|es|ing)\\b", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Like {@link #parse(String)} for a title written as a sentence about the venue ("The Ondines are
+     * headlining at The Amersham Arms on Saturday 24th October 2026!"): the venue's name, date phrases
+     * and "headlining" wording are removed first. "Headlining Rough Edges – S0FTD0LLY" keeps what
+     * follows the dash: the event name comes first there.
+     */
+    public static Parsed parse(String title, String venueName) {
+        String venue = Pattern.quote(venueName.replaceFirst("(?i)^the\\s+", ""));
+        String text = title.replaceAll("(?i)(?:\\blive\\s+)?(?:\\bat\\s+|@\\s*)(?:the\\s+)?" + venue + "\\b", " ");
+        text = DATE_PHRASE.matcher(text).replaceAll(" ");
+        boolean leadsWithHeadlining = title.strip().toLowerCase(Locale.ROOT).startsWith("headlin");
+        text = HEADLINING.matcher(text).replaceAll(" ").strip();
+        Matcher afterDash = Pattern.compile("^(.+?)\\s+[–—-]\\s+(.+)$").matcher(text);
+        if (leadsWithHeadlining && afterDash.matches()) {
+            text = afterDash.group(2);
+        }
+        text = text.replaceAll("^\\s*[–—-]\\s*|\\s*[–—-]\\s*$", " ");
+        return parse(text);
+    }
+
     public static Parsed parse(String title) {
         Set<Flag> flags = EnumSet.noneOf(Flag.class);
         String text = title.replace(' ', ' ').strip().replaceAll("\\s+", " ");
@@ -166,7 +197,7 @@ public final class TitleParser {
     private static String tidy(String s) {
         return s.replaceAll("\\s+", " ")
                 // A leading "!" goes only when a space follows ("Tickets! Pale Kites"), not in a name ("!!!").
-                .replaceAll("^(?:[\\s:|*.,–—-]|!(?=\\s))+|[\\s:|*!,–—-]+$", "")
+                .replaceAll("^(?:[\\s:|*.,–—-]|!(?=\\s))+|[\\s:|*!.,–—-]+$", "")
                 .strip();
     }
 }

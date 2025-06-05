@@ -26,7 +26,8 @@ public record IngestionProperties(
         @DefaultValue Lastfm lastfm,
         @DefaultValue MusicBrainz musicbrainz,
         @DefaultValue Enrichment enrichment,
-        @DefaultValue Setlistfm setlistfm) {
+        @DefaultValue Setlistfm setlistfm,
+        @DefaultValue Venues venues) {
 
     public boolean live() {
         return "live".equalsIgnoreCase(mode);
@@ -36,6 +37,22 @@ public record IngestionProperties(
             @DefaultValue("https://ws.audioscrobbler.com") String baseUrl,
             @DefaultValue("") String apiKey,
             @DefaultValue("4") int requestsPerSecond) {}
+
+    /**
+     * Venues' own websites. Off unless {@code enabled} and the venue's key is in {@code sites}:
+     * a venue is read only after it has passed the compliance gate.
+     */
+    public record Venues(
+            @DefaultValue("false") boolean enabled,
+            /** The keys (from {@code registry}) to read; empty reads none. */
+            @DefaultValue({}) List<String> sites,
+            @DefaultValue("classpath:venues/london.json") String registry,
+            /** Short and stable: some venue firewalls refuse long user-agent strings. */
+            @DefaultValue("SoundcheckBot/0.1 (+https://github.com/alexslater1/soundcheck)") String userAgent,
+            /** At least this long between two requests to one host (more if robots.txt asks). */
+            @DefaultValue("5s") Duration minSpacing,
+            /** How long a host that answered 403 or 429 is left alone. */
+            @DefaultValue("24h") Duration backOff) {}
 
     /**
      * setlist.fm: looked up live when a fan adds a past gig, never ingested. The free key
