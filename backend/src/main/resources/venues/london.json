@@ -36,6 +36,71 @@
       "ticketmasterVenueId": "KovZ91776m0",
       "precision": "DOORS",
       "notes": "RSS of the most recently added events only (about 10); robots.txt Crawl-delay 2."
+    },
+    {
+      "key": "black-heart",
+      "adapter": "squarespace",
+      "url": "https://www.ourblackheart.com/events",
+      "venue": { "name": "The Black Heart", "address": "2-3 Greenland Place", "city": "London", "postcode": "NW1 0AP", "lat": 51.53871, "lng": -0.141685 },
+      "ticketmasterVenueId": "KovZ9177C6f",
+      "precision": "DOORS",
+      "notes": "Squarespace events page (server HTML); robots.txt disallows ?format=json/ical, so only the page is read. Times are doors."
+    },
+    {
+      "key": "the-dome",
+      "adapter": "squarespace",
+      "url": "https://www.domelondon.co.uk/whatson",
+      "venue": { "name": "The Dome", "address": "178 Junction Road, Tufnell Park", "city": "London", "postcode": "N19 5QQ", "lat": 51.558124, "lng": -0.13821 },
+      "ticketmasterVenueId": "KovZ9177rRV",
+      "otherTicketmasterVenueIds": ["KovZ9177Ho0", "KovZ9177To0"],
+      "precision": "DOORS",
+      "notes": "Squarespace events page (server HTML); robots.txt disallows ?format=json/ical, so only the page is read. Lists both rooms; Ticketmaster has three rows for the building (The Dome, Downstairs at The Dome, The Dome London), linked as siblings."
+    },
+    {
+      "key": "the-finsbury",
+      "adapter": "squarespace",
+      "url": "https://www.thefinsbury.co.uk/listings",
+      "venue": { "name": "The Finsbury", "address": "336 Green Lanes", "city": "London", "postcode": "N4 1BY", "lat": 51.571946, "lng": -0.096273 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "notes": "Squarespace events page (server HTML); robots.txt disallows ?format=json/ical, so only the page is read. Terms checked: no automated-access clause."
+    },
+    {
+      "key": "brixton-jamm",
+      "adapter": "squarespace",
+      "url": "https://www.brixtonjamm.org/gigs",
+      "venue": { "name": "Brixton Jamm", "address": "261 Brixton Road", "city": "London", "postcode": "SW9 6LH", "lat": 51.470969, "lng": -0.11197 },
+      "ticketmasterVenueId": null,
+      "precision": "DATE_ONLY",
+      "notes": "Squarespace summary blocks: a day and month, no time (date-only)."
+    },
+    {
+      "key": "fiddlers-elbow",
+      "adapter": "squarespace",
+      "url": "https://www.thefiddlerselbow.co.uk/",
+      "venue": { "name": "The Fiddler's Elbow", "address": "1 Malden Road", "city": "London", "postcode": "NW5 3HS", "lat": 51.546207, "lng": -0.151201 },
+      "ticketmasterVenueId": null,
+      "precision": "DATE_ONLY",
+      "notes": "Squarespace summary blocks on the home page: full dates, no time (date-only)."
+    },
+    {
+      "key": "ivy-house",
+      "adapter": "squarespace-list",
+      "url": "https://www.ivyhousenunhead.com/whats-on",
+      "venue": { "name": "The Ivy House", "address": "40 Stuart Road", "city": "London", "postcode": "SE15 3BE", "lat": 51.45851, "lng": -0.052342 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "skipTitles": "piñata|cyanotype|craft|knit|drama|film",
+      "notes": "A community pub: Squarespace list sections, 'Fri 2 Oct / 19:00 / £12' lines; regulars and non-music nights are skipped."
+    },
+    {
+      "key": "the-social",
+      "adapter": "json-ld",
+      "url": "https://www.thesocial.com/events/",
+      "venue": { "name": "The Social", "address": "5 Little Portland Street", "city": "London", "postcode": "W1W 7JD", "lat": 51.517392, "lng": -0.140809 },
+      "ticketmasterVenueId": "KovZ9177AWf",
+      "precision": "DOORS",
+      "notes": "schema.org Event JSON-LD on the events page; start times without an offset are London time."
     }
   ]
 }

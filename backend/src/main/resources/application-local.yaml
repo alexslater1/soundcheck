@@ -21,5 +21,5 @@ soundcheck:
       # Locally every venue that passed the compliance gate is read (live mode only). Override
       # with INGESTION_VENUES_ENABLED=false or a shorter INGESTION_VENUE_SITES.
       enabled: ${INGESTION_VENUES_ENABLED:true}
-      sites: ${INGESTION_VENUE_SITES:hope-and-anchor,amersham-arms,new-river-studios,moth-club}
+      sites: ${INGESTION_VENUE_SITES:hope-and-anchor,amersham-arms,new-river-studios,moth-club,black-heart,the-dome,the-finsbury,brixton-jamm,fiddlers-elbow,ivy-house,the-social}
 
