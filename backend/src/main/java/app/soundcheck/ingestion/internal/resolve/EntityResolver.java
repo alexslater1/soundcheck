@@ -103,7 +103,7 @@ public class EntityResolver {
     /**
      * The acts to resolve. Acts read out of a title (sources without act ids) were split on
      * {@code +} and commas, which breaks names like "Florence + The Machine": when the unsplit text is
-     * one artist the catalog already knows, that artist is the act.
+     * one artist the catalog already knows (and a source vouches for), that artist is the act.
      */
     private List<SourceArtist> actsOf(SourceGig gig) {
         List<SourceArtist> acts = gig.artists();
@@ -111,7 +111,10 @@ public class EntityResolver {
                 acts.size() > 1 && acts.stream().allMatch(a -> a.externalId().isBlank());
         if (fromTitle) {
             String whole = TitleParser.parse(gig.title()).whole();
-            if (catalog.artistByName(whole, null).isPresent()) {
+            Optional<UUID> known = catalog.artistByName(whole, null);
+            // Only an artist something vouches for (MBID, a source's id) may undo the split: an artist
+            // created from an earlier, wrong parse of the same title must not confirm itself.
+            if (known.isPresent() && catalog.artistIsVouchedFor(known.get())) {
                 return List.of(new SourceArtist("", whole, null, List.of(), null));
             }
         }

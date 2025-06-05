@@ -220,6 +220,12 @@ class JooqCatalogIngest implements CatalogIngest {
     }
 
     @Override
+    public boolean artistIsVouchedFor(UUID artistId) {
+        return dsl.fetchExists(ARTIST, ARTIST.ID.eq(artistId).and(ARTIST.MBID.isNotNull()))
+                || dsl.fetchExists(ARTIST_EXTERNAL_ID, ARTIST_EXTERNAL_ID.ARTIST_ID.eq(artistId));
+    }
+
+    @Override
     public void linkArtist(String source, String externalId, UUID artistId) {
         dsl.insertInto(ARTIST_EXTERNAL_ID)
                 .set(ARTIST_EXTERNAL_ID.SOURCE, source)

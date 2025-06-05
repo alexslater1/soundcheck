@@ -106,6 +106,37 @@ class VenueListingMatchingIT extends IntegrationTest {
     }
 
     @Test
+    void aWrongEarlierParseDoesNotConfirmItself() {
+        // A first run stored "Red Moth/Blue Owl" as one act (no source vouches for it)...
+        SourceGig once = new SourceGig(
+                "VENUE",
+                siteVenue.externalId() + ":old-" + tag,
+                null,
+                "Red Moth " + tag + "/Blue Owl " + tag,
+                Instant.parse("2026-11-27T19:00:00Z"),
+                null,
+                "SCHEDULED",
+                null,
+                null,
+                null,
+                null,
+                null,
+                siteVenue,
+                List.of(new SourceArtist("", "Red Moth " + tag + "/Blue Owl " + tag, null, List.of(), null)),
+                TimePrecision.DOORS);
+        assertThat(resolver.ingest(once, new RunStats(), SEEN)).isEqualTo(Outcome.CREATED);
+        // ...the better parse splits it, and the old one-act name does not pull the acts back together.
+        UUID gig = gigOf(
+                resolver.ingest(
+                        site("new", "Red Moth " + tag + "/Blue Owl " + tag, "2026-11-28T19:00:00Z"),
+                        new RunStats(),
+                        SEEN),
+                "VENUE",
+                "new");
+        assertThat(bill(gig)).containsExactly("Red Moth " + tag, "Blue Owl " + tag);
+    }
+
+    @Test
     void anAlmostMatchingActIsKeptApartAndLoggedForReviewOnce() {
         UUID tmGig = create(tm("tm-pk", "Pale Kite " + tag, "2026-11-14T20:00:00Z", "Pale Kite " + tag));
 

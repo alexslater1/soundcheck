@@ -58,6 +58,12 @@ public interface CatalogIngest {
 
     UUID createArtist(ArtistDraft artist);
 
+    /**
+     * Whether something other than a parsed title vouches for this artist: a MusicBrainz id or an id at
+     * a source (only such artists may undo a title split, so a wrong parse cannot confirm itself).
+     */
+    boolean artistIsVouchedFor(UUID artistId);
+
     /** Records that {@code source} calls this artist {@code externalId} (idempotent). */
     void linkArtist(String source, String externalId, UUID artistId);
 
