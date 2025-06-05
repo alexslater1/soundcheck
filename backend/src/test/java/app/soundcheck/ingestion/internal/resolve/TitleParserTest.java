@@ -96,6 +96,40 @@ class TitleParserTest {
                         "Pale Kites|Night Bus|Glass Harbour",
                         Set.of(Flag.RESCHEDULED, Flag.EARLY_SHOW),
                         "Autumn Tour"),
+                // shapes found on the first live run of the venue sites (2025-06-05), invented names
+                row("Lantern Ultimate Showcase: Steeplehound", "Steeplehound", Set.of(), "Lantern Ultimate Showcase"),
+                row(
+                        "LOUD LANTERNS 11th Birthday Party: Alexa Leaving + Gem Rogue + Lola Pony",
+                        "Alexa Leaving|Gem Rogue|Lola Pony",
+                        Set.of(),
+                        "LOUD LANTERNS 11th Birthday Party"),
+                row(
+                        "SHAKE SOME LANTERN #178.THE SPACEHOUNDS,HAUNTED MEN,THE BAD BREEDS",
+                        "THE SPACEHOUNDS|HAUNTED MEN|THE BAD BREEDS"),
+                row(
+                        "SHAKE SOME LANTERN #183. JELLY DIVERS, GLITTER KICKS, X- RAY LOVERS",
+                        "JELLY DIVERS|GLITTER KICKS|X- RAY LOVERS"),
+                row("Rockaway Lantern #112 Andi Sax Gang", "Andi Sax Gang"),
+                row("Subject B supporting Skaville Lantern", "Skaville Lantern|Subject B"),
+                row(
+                        "Bones and the Raft plus Edmund Fjord and Warren Marten",
+                        "Bones and the Raft|Edmund Fjord and Warren Marten"),
+                row(
+                        "Micko & The Mellowtones/Rachel Mayfair Group/European Moon",
+                        "Micko & The Mellowtones|Rachel Mayfair Group|European Moon"),
+                row("Less Than Hollow and guests TBA", "Less Than Hollow"),
+                row("Less Than Hollow + guests TBC", "Less Than Hollow"),
+                row("Odd Lust DJ set", "Odd Lust"),
+                row(
+                        "DESPERATE MEASURES 45TH ANNIVERSARY SHOW",
+                        "DESPERATE MEASURES",
+                        Set.of(),
+                        "45TH ANNIVERSARY SHOW"),
+                row("Emilie Cushion IGYC Tour London", "Emilie Cushion", Set.of(), "IGYC Tour London"),
+                row("Civil War Presents... Sleeping Mountains", "Sleeping Mountains"),
+                row("K2B Presents... An Evening with Groom of the Stool", "Groom of the Stool"),
+                row("Back With a Bang - The Satellights", "Back With a Bang - The Satellights"),
+                row("NIGHT BUS WITH PALE KITES", "NIGHT BUS|PALE KITES"),
                 // unicode, whitespace, punctuation
                 row("  Sigur Rós  +  Björk  ", "Sigur Rós|Björk"),
                 row("Pale Kites + Night Bus", "Pale Kites|Night Bus"),
@@ -126,6 +160,24 @@ class TitleParserTest {
     @MethodSource("sentences")
     void readsActsOutOfSentencesAboutTheVenue(String title, String acts) {
         assertThat(TitleParser.parse(title, "The Lantern Arms").acts())
+                .containsExactlyElementsOf(Arrays.asList(acts.split("\\|")));
+    }
+
+    /** A venue whose name has an "&", written with "and" too, and after a bar with the city. */
+    static Stream<Arguments> ampersandVenue() {
+        return Stream.of(
+                Arguments.of(
+                        "Back With a Bang - The Satellights at The Hope and Lantern",
+                        "Back With a Bang - The Satellights"),
+                Arguments.of("Connor McBryde | London, Hope & Lantern", "Connor McBryde"),
+                Arguments.of("Silent Confidants @Hope and Lantern", "Silent Confidants"),
+                Arguments.of("IDestroyer live @ Hope & Lantern: SOLD OUT", "IDestroyer"));
+    }
+
+    @ParameterizedTest(name = "{0}")
+    @MethodSource("ampersandVenue")
+    void recognisesTheVenueWrittenWithAndOrAmpersand(String title, String acts) {
+        assertThat(TitleParser.parse(title, "Hope & Lantern").acts())
                 .containsExactlyElementsOf(Arrays.asList(acts.split("\\|")));
     }
 

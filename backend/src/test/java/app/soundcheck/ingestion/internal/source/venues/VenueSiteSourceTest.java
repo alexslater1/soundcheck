@@ -115,7 +115,9 @@ class VenueSiteSourceTest {
                         "hope:1",
                         "moth:Femmes-Fatales-Fri-27-Nov-2026",
                         "moth:3b3c-Left-of-The-Dial-warmup-w-Mon-19-Oct-2026",
-                        "moth:Cory-Harrison-WANDS-Sun-4-Oct-2026"); // "Too Late" is past the window
+                        "moth:Cory-Harrison-WANDS-Sun-4-Oct-2026",
+                        "moth:K2C-Presents-An-Evening-with-Groom-of-the-Stools-Sat-12-Dec-2026"); // "Too Late" is past
+        // the window
         assertThat(gigs).allSatisfy(g -> assertThat(g.source()).isEqualTo("VENUE"));
         assertThat(pages.getFirst().body().path("eventsRead").asInt()).isEqualTo(2);
         assertThat(pages.getFirst().body().path("eventsInWindow").asInt()).isEqualTo(1);

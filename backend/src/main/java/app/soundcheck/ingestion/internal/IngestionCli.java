@@ -61,7 +61,10 @@ class IngestionCli implements ApplicationRunner {
                 }
                 case "ingest" -> {
                     sources.forEach(guard::check);
-                    for (String name : service.sourceNames()) {
+                    // --soundcheck.ingestion.cli-sources=VENUE runs only those sources (default: all).
+                    String only = context.getEnvironment().getProperty("soundcheck.ingestion.cli-sources", "");
+                    List<String> wanted = only.isBlank() ? service.sourceNames() : List.of(only.split("\\s*,\\s*"));
+                    for (String name : wanted) {
                         IngestionService.RunResult result = service.run(name, "CLI");
                         if (result.status().equals("FAILED")) {
                             exit = 1;

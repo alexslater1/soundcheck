@@ -73,14 +73,44 @@ public final class TitleParser {
             marker("on\\s+sale\\s+now|tickets\\s+on\\s+sale", null),
             marker("this\\s+show\\s+is\\s+\\w+", null));
 
-    /** "Club Fandango presents:", "Eat Your Own Ears Present" at the start. */
+    /** "Club Fandango presents:", "Eat Your Own Ears Present", "Civil War Presents..." at the start. */
     private static final Pattern PROMOTER = Pattern.compile(
-            "^(.{2,60}?)\\s+(?:presents?|proudly\\s+presents?)\\s*[:\\-–—]?\\s+", Pattern.CASE_INSENSITIVE);
+            "^(.{2,60}?)\\s+(?:presents?|proudly\\s+presents?)(?:\\.{2,3}|…)?\\s*[:\\-–—]?\\s+",
+            Pattern.CASE_INSENSITIVE);
+
+    /** A numbered club night in front: "SHAKE SOME ACTON #178.", "Rockaway Beach #112". */
+    private static final Pattern SERIES = Pattern.compile("^(.{2,50}?)\\s+#\\d+\\s*[.:\\-–—]?\\s*");
+
+    /** "An Evening with X": the act is X. */
+    private static final Pattern EVENING_WITH =
+            Pattern.compile("^(?:an?\\s+)?evening\\s+with\\s+", Pattern.CASE_INSENSITIVE);
+
+    /** "… and guests TBA", "+ special guests": more acts to come, at the end. */
+    private static final Pattern GUESTS_TAIL = Pattern.compile(
+            "\\s+(?:and|&|\\+|plus|w/|with)\\s+(?:very\\s+)?(?:special\\s+)?guests?(?:\\s+tb[ac])?\\s*$",
+            Pattern.CASE_INSENSITIVE);
+
+    /** "Subject A supporting Skaville UK": the headliner comes second. */
+    private static final Pattern SUPPORTING =
+            Pattern.compile("^(.+?)\\s+supporting\\s+(.+)$", Pattern.CASE_INSENSITIVE);
+
+    /** A tour or anniversary named at the end without a separator: "… IGYC Tour London", "… 45th Anniversary Show". */
+    private static final Pattern TRAILING_TOUR = Pattern.compile(
+            "\\s+((?:\\d+(?:st|nd|rd|th)\\s+anniversary(?:\\s+(?:show|tour|gig|celebration))?)"
+                    + "|(?:\\S+\\s+tour(?:\\s+(?:\\d{4}|london|uk|europe))*))\\s*$",
+            Pattern.CASE_INSENSITIVE);
+
+    /** On the left of a colon, these mean an event's name, so the acts are on the right. */
+    private static final Pattern EVENT_WORDS = Pattern.compile(
+            "\\b(?:showcase|presents?|birthday|party|club|night|festival|weekender|all-?dayer|takeover|series|"
+                    + "sessions?|fundraiser|benefit|celebrat\\w*|launch|special|ultimate|social|alldayer)\\b",
+            Pattern.CASE_INSENSITIVE);
 
     /** Separators between acts on one bill. */
     private static final Pattern SPLIT = Pattern.compile(
-            "\\s+\\+\\s+|\\s+w/\\s*|\\s+with\\s+|\\s*\\bsupport(?:ed)?\\s+(?:from|by)\\s*:?\\s*|\\s*\\bsupport\\s*:\\s*"
-                    + "|\\s*,\\s*|\\s+(?:feat\\.?|ft\\.|featuring)\\s+|\\s+/\\s+|\\s+x\\s+(?=[A-Z])",
+            // " with " splits in lower case or all capitals only: "Back With a Bang" is a name.
+            "\\s+\\+\\s+|\\s+w/\\s*|(?-i:\\s+(?:with|WITH)\\s+)|\\s+plus\\s+|\\s*\\bsupport(?:ed)?\\s+(?:from|by)\\s*:?\\s*|\\s*\\bsupport\\s*:\\s*"
+                    + "|\\s*,\\s*|\\s+(?:feat\\.?|ft\\.|featuring)\\s+|\\s+/\\s+|(?<=[\\p{L}\\d]{3})/(?=[\\p{L}\\d]{3})|\\s+x\\s+(?=[A-Z])",
             Pattern.CASE_INSENSITIVE);
 
     /** Words that mean "more acts to come", not an act. */
@@ -113,8 +143,10 @@ public final class TitleParser {
      * follows the dash: the event name comes first there.
      */
     public static Parsed parse(String title, String venueName) {
-        String venue = Pattern.quote(venueName.replaceFirst("(?i)^the\\s+", ""));
-        String text = title.replaceAll("(?i)(?:\\blive\\s+)?(?:\\bat\\s+|@\\s*)(?:the\\s+)?" + venue + "\\b", " ");
+        String venue = venuePattern(venueName);
+        // "Connor McBride | London, Hope & Anchor": a trailing "| <place>" naming the venue.
+        String text = title.replaceAll("(?i)\\s*\\|\\s*(?:london,?\\s*)?(?:the\\s+)?" + venue + "\\b.*$", " ");
+        text = text.replaceAll("(?i)(?:\\blive\\s+)?(?:\\bat\\s+|@\\s*)(?:the\\s+)?" + venue + "\\b", " ");
         text = DATE_PHRASE.matcher(text).replaceAll(" ");
         boolean leadsWithHeadlining = title.strip().toLowerCase(Locale.ROOT).startsWith("headlin");
         text = HEADLINING.matcher(text).replaceAll(" ").strip();
@@ -124,6 +156,16 @@ public final class TitleParser {
         }
         text = text.replaceAll("^\\s*[–—-]\\s*|\\s*[–—-]\\s*$", " ");
         return parse(text);
+    }
+
+    /** The venue's name as a pattern: without a leading "The", "&" and "and" interchangeable. */
+    static String venuePattern(String venueName) {
+        String bare = venueName.strip().replaceFirst("(?i)^the\\s+", "");
+        List<String> parts = new ArrayList<>();
+        for (String part : bare.split("\\s*&\\s*|\\s+and\\s+")) {
+            parts.add(Pattern.quote(part));
+        }
+        return String.join("\\s*(?:&|and)\\s*", parts);
     }
 
     public static Parsed parse(String title) {
@@ -148,12 +190,29 @@ public final class TitleParser {
         if (promoter.find()) {
             text = text.substring(promoter.end());
         }
+        Matcher series = SERIES.matcher(text);
+        if (series.find()) {
+            text = text.substring(series.end());
+        }
+        text = EVENING_WITH.matcher(text).replaceFirst("");
+        text = GUESTS_TAIL.matcher(text).replaceFirst("");
 
         String tour = null;
-        int cut = tourCut(text);
-        if (cut >= 0) {
-            tour = tidy(text.substring(cut).replaceFirst("^\\s*[:|–—-]+\\s*", ""));
-            text = text.substring(0, cut);
+        Matcher colon = Pattern.compile(":\\s+").matcher(text);
+        if (colon.find() && colon.start() > 0) {
+            // "Pale Kites: Autumn Tour" has the acts on the left; "Ultimate Showcase: Pale Kites" and
+            // "Birthday Party: A + B" on the right.
+            String left = text.substring(0, colon.start());
+            String right = text.substring(colon.end());
+            boolean actsOnTheRight = EVENT_WORDS.matcher(left).find() || (separates(right) && !separates(left));
+            tour = tidy(actsOnTheRight ? left : right);
+            text = actsOnTheRight ? right : left;
+        } else {
+            int cut = tourCut(text);
+            if (cut >= 0) {
+                tour = tidy(text.substring(cut).replaceFirst("^\\s*[:|–—-]+\\s*", ""));
+                text = text.substring(0, cut);
+            }
         }
         // A trailing "(…)" that is not an act: "Pale Kites (Album Launch)", "Night Bus (Acoustic)".
         Matcher bracket = Pattern.compile("\\s*[(\\[]([^)\\]]*)[)\\]]\\s*$").matcher(text);
@@ -165,10 +224,20 @@ public final class TitleParser {
             text = text.substring(0, bracket.start());
         }
 
+        Matcher trailing = TRAILING_TOUR.matcher(text);
+        if (tour == null && trailing.find() && trailing.start() > 0) {
+            tour = tidy(trailing.group(1));
+            text = text.substring(0, trailing.start());
+        }
+        Matcher supporting = SUPPORTING.matcher(tidy(text));
+        if (supporting.matches()) {
+            text = supporting.group(2) + " + " + supporting.group(1);
+        }
+
         String whole = tidy(text);
         List<String> acts = new ArrayList<>();
         for (String part : SPLIT.split(whole)) {
-            String act = tidy(part.replaceAll("^[(\\[](.*)[)\\]]$", "$1"));
+            String act = tidy(part.replaceAll("^[(\\[](.*)[)\\]]$", "$1").replaceAll("(?i)\\s+dj\\s+set$", ""));
             if (!act.isEmpty() && !PLACEHOLDER.matcher(act).matches() && !acts.contains(act)) {
                 acts.add(act);
             }
@@ -176,15 +245,13 @@ public final class TitleParser {
         return new Parsed(List.copyOf(acts), whole, flags, tour == null || tour.isEmpty() ? null : tour);
     }
 
-    /**
-     * Where the tour part starts: at {@code ": "} unless the left side is short and the right side reads
-     * like more acts, or at a spaced dash / bar when the right side contains a tour word. -1 when none.
-     */
+    /** Whether a piece of title lists several acts (a bill separator in it). */
+    private static boolean separates(String text) {
+        return text.matches("(?is).*(?:\\s\\+\\s|,|\\sw/|\\swith\\s|\\s/\\s).*");
+    }
+
+    /** Where the tour part starts: at a spaced dash or bar when what follows has a tour word. -1 when none. */
     private static int tourCut(String text) {
-        Matcher colon = Pattern.compile(":\\s+").matcher(text);
-        if (colon.find() && colon.start() > 0) {
-            return colon.start();
-        }
         Matcher dash = Pattern.compile("\\s+[–—|-]\\s+").matcher(text);
         while (dash.find()) {
             if (TOUR_WORDS.matcher(text.substring(dash.end())).find()) {

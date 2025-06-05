@@ -1,5 +1,6 @@
 package app.soundcheck.ingestion.internal.source.venues;
 
+import app.soundcheck.ingestion.internal.resolve.TitleParser;
 import app.soundcheck.ingestion.internal.source.SourceIssue;
 import app.soundcheck.ingestion.internal.source.TimePrecision;
 import java.time.LocalDate;
@@ -124,7 +125,13 @@ public class MothRssAdapter implements VenueAdapter {
             addNames(acts, head.substring(guests.end()));
         }
         if (!event.contains(":") && !event.isBlank()) {
-            acts.addFirst(event.strip());
+            // The headline part can still carry a promoter or "An Evening with …".
+            List<String> headliners = TitleParser.parse(event).acts();
+            for (int i = headliners.size() - 1; i >= 0; i--) {
+                if (!acts.contains(headliners.get(i))) {
+                    acts.addFirst(headliners.get(i));
+                }
+            }
         }
         Matcher with = WITH.matcher(description);
         if (with.find()) {

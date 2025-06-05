@@ -116,9 +116,11 @@ class VenueAdaptersTest {
         VenueSite site = site("moth", "moth-rss", "MOTH Club");
         VenueAdapter.Page page = new MothRssAdapter().read(site, fixture("moth.rss"), TODAY);
 
-        assertThat(page.listings()).hasSize(3);
+        assertThat(page.listings()).hasSize(4);
         assertThat(page.issues()).extracting(SourceIssue::kind).containsExactly("NO_DATE");
         assertThat(page.next()).isNull();
+        // A promoter and "An Evening with" in the description's headline part.
+        assertThat(acts(site, page.listings().get(3))).containsExactly("Groom of the Stools", "Freddie Merrion");
 
         Listing club = page.listings().get(0);
         assertThat(club.eventId()).isEqualTo("Femmes-Fatales-Fri-27-Nov-2026");
