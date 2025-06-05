@@ -16,3 +16,10 @@ soundcheck:
     # The affinity rollup runs every 10 minutes by default. Locally a minute, so that "like a few clips
     # of one artist, refresh, see that artist move up" can be shown without waiting.
     affinity-rollup-interval: ${AFFINITY_ROLLUP_INTERVAL:PT1M}
+  ingestion:
+    venues:
+      # Locally every venue that passed the compliance gate is read (live mode only). Override
+      # with INGESTION_VENUES_ENABLED=false or a shorter INGESTION_VENUE_SITES.
+      enabled: ${INGESTION_VENUES_ENABLED:true}
+      sites: ${INGESTION_VENUE_SITES:hope-and-anchor,amersham-arms,new-river-studios,moth-club}
+

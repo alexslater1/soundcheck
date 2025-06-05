@@ -95,6 +95,15 @@ public final class Listings {
         return html == null ? "" : Parser.unescapeEntities(html, false).strip();
     }
 
+    /**
+     * The date a day and month without a year mean on a listings page: the next such day from a few
+     * days ago (a page lists what is coming; "3 Jan" seen in October is next year's).
+     */
+    public static java.time.LocalDate nextOccurrence(java.time.MonthDay day, java.time.LocalDate today) {
+        java.time.LocalDate candidate = day.atYear(today.getYear());
+        return candidate.isBefore(today.minusDays(7)) ? day.atYear(today.getYear() + 1) : candidate;
+    }
+
     /** A URL only when it is http(s). */
     public static @Nullable String webUrl(@Nullable String url) {
         return url != null && url.matches("(?i)https?://.+") ? url : null;

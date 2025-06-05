@@ -2,6 +2,7 @@ package app.soundcheck.ingestion.internal.source.venues;
 
 import app.soundcheck.catalog.CatalogIngest;
 import app.soundcheck.ingestion.internal.IngestionProperties;
+import app.soundcheck.ingestion.internal.resolve.TitleParser;
 import app.soundcheck.ingestion.internal.source.CallBudget;
 import app.soundcheck.ingestion.internal.source.GigSource;
 import app.soundcheck.ingestion.internal.source.SourceGig;
@@ -22,6 +23,8 @@ import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**
@@ -36,6 +39,7 @@ import org.springframework.stereotype.Component;
  * (which URL, what answer, how many events), not the venue's page.
  */
 @Component
+@Order(Ordered.LOWEST_PRECEDENCE) // after Ticketmaster: venue listings then match the gigs it created that run
 @ConditionalOnExpression(
         "'${soundcheck.ingestion.mode:fixtures}' == 'live' and ${soundcheck.ingestion.venues.enabled:false}")
 public class VenueSiteSource implements GigSource {
@@ -109,6 +113,11 @@ public class VenueSiteSource implements GigSource {
             }
             List<SourceGig> gigs = new ArrayList<>();
             for (Listing listing : page.listings()) {
+                // Not music, or moved to another venue (which lists it itself).
+                if (site.skips(listing.title())
+                        || TitleParser.parse(listing.title()).flags().contains(TitleParser.Flag.MOVED)) {
+                    continue;
+                }
                 SourceGig gig = Listings.toSourceGig(site, listing);
                 if (!gig.startsAt().isBefore(from) && gig.startsAt().isBefore(to)) {
                     gigs.add(gig);

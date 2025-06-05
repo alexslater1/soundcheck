@@ -161,6 +161,101 @@ class VenueAdaptersTest {
     }
 
     @Test
+    void squarespaceEventsTakeTheTwentyFourHourTimeThenTheCalendarLinkAndSkipPastEvents() {
+        VenueSite site = site("lantern", "squarespace", "The Lantern Arms");
+        VenueAdapter.Page page = new SquarespaceAdapter().read(site, fixture("squarespace-eventlist.html"), TODAY);
+
+        assertThat(page.listings()).hasSize(3); // the past event is not read
+        assertThat(page.issues()).extracting(SourceIssue::kind).containsExactly("NO_DATE");
+        assertThat(page.next()).isNull();
+
+        Listing first = page.listings().get(0);
+        assertThat(first.start()).isEqualTo(LocalDateTime.of(2026, 10, 16, 19, 0));
+        assertThat(first.precision()).isEqualTo(TimePrecision.DOORS);
+        assertThat(first.url()).isEqualTo("https://lantern.example/events/2026/10/16/pale-kites");
+        assertThat(first.eventId()).isEqualTo("/events/2026/10/16/pale-kites");
+        assertThat(first.imageUrl()).isEqualTo("https://cdn.example/pk.jpg");
+        assertThat(acts(site, first)).containsExactly("PALE KITES", "NIGHT BUS", "GLASS LANTERNS");
+
+        // No 24-hour time: the Google Calendar link's UTC start, which in December is London time.
+        Listing calendar = page.listings().get(1);
+        assertThat(calendar.start()).isEqualTo(LocalDateTime.of(2026, 12, 4, 19, 30));
+        assertThat(calendar.precision()).isEqualTo(TimePrecision.DOORS);
+        assertThat(acts(site, calendar)).containsExactly("DUNE SISTERS");
+
+        Listing dateOnly = page.listings().get(2);
+        assertThat(dateOnly.start()).isEqualTo(LocalDateTime.of(2026, 11, 1, 19, 30));
+        assertThat(dateOnly.precision()).isEqualTo(TimePrecision.DATE_ONLY);
+    }
+
+    @Test
+    void squarespaceSummaryBlocksAreDateOnlyAndADayAndMonthIsTheNextOneToCome() {
+        VenueSite site = site("lantern", "squarespace", "The Lantern Arms");
+        VenueAdapter.Page page = new SquarespaceAdapter().read(site, fixture("squarespace-summary.html"), TODAY);
+
+        assertThat(page.listings()).hasSize(2);
+        assertThat(page.issues()).extracting(SourceIssue::kind).containsExactly("NO_DATE");
+
+        Listing full = page.listings().get(0);
+        assertThat(full.start()).isEqualTo(LocalDateTime.of(2026, 10, 23, 19, 30));
+        assertThat(full.precision()).isEqualTo(TimePrecision.DATE_ONLY);
+        assertThat(full.imageUrl()).isEqualTo("https://cdn.example/nm.jpg");
+        assertThat(acts(site, full)).containsExactly("Night Moths", "Rope Burns");
+
+        // "Jan 9" read on 2 October 2026 is next January.
+        Listing nextYear = page.listings().get(1);
+        assertThat(nextYear.start()).isEqualTo(LocalDateTime.of(2027, 1, 9, 19, 30));
+        assertThat(acts(site, nextYear)).containsExactly("KHOLLA");
+    }
+
+    @Test
+    void aSquarespaceListReadsTheDateLineAndLeavesOutRegulars() {
+        VenueSite site = site("lantern", "squarespace-list", "The Lantern Arms");
+        VenueAdapter.Page page = new SquarespaceListAdapter(JSON).read(site, fixture("squarespace-list.html"), TODAY);
+
+        assertThat(page.listings())
+                .extracting(Listing::title)
+                .containsExactly("New Lands: Ondine Owls + Pale Kites", "The George Moody Trio", "Velvet Static");
+        assertThat(page.issues()).isEmpty();
+
+        Listing gig = page.listings().get(0);
+        assertThat(gig.start()).isEqualTo(LocalDateTime.of(2026, 10, 16, 19, 30));
+        assertThat(gig.precision()).isEqualTo(TimePrecision.DOORS);
+        assertThat(gig.priceMin()).isEqualByComparingTo("7");
+        assertThat(gig.ticketUrl()).isEqualTo("https://tickets.example/882");
+        assertThat(gig.imageUrl()).isEqualTo("https://cdn.example/owls.png");
+        assertThat(acts(site, gig)).containsExactly("Ondine Owls", "Pale Kites");
+
+        assertThat(page.listings().get(1).priceMin()).isEqualByComparingTo(BigDecimal.ZERO); // "Free Entry"
+        Listing january = page.listings().get(2);
+        assertThat(january.start()).isEqualTo(LocalDateTime.of(2027, 1, 7, 20, 0)); // "20.00", next January
+        assertThat(january.priceMin()).isNull();
+    }
+
+    @Test
+    void nightsThatAreNotGigsAreLeftOutAndAVenueCanNameMore() {
+        VenueSite plain = site("lantern", "squarespace", "The Lantern Arms");
+        assertThat(plain.skips("The Lantern Open Mic Night")).isTrue();
+        assertThat(plain.skips("South East London Pub Quiz")).isTrue();
+        assertThat(plain.skips("Live Band Karaoke")).isTrue();
+        assertThat(plain.skips("Pale Kites + Night Bus")).isFalse();
+        assertThat(plain.skips("Piñata")).isFalse();
+
+        VenueSite picky = new VenueSite(
+                "lantern",
+                "squarespace",
+                "https://lantern.example/",
+                plain.venue(),
+                null,
+                TimePrecision.DOORS,
+                null,
+                "piñata|cyanotype");
+        assertThat(picky.skips("Piñata")).isTrue();
+        assertThat(picky.skips("Open mic")).isTrue();
+        assertThat(picky.skips("Pale Kites")).isFalse();
+    }
+
+    @Test
     void pricesReadEveryShapeVenuesWrite() {
         assertThat(Listings.prices("£8 + fees")).containsExactly(new BigDecimal("8"), new BigDecimal("8"));
         assertThat(Listings.prices("£12 – £12.5")).containsExactly(new BigDecimal("12"), new BigDecimal("12.5"));
