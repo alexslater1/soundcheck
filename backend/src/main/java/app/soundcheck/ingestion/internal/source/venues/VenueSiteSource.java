@@ -17,6 +17,8 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -46,6 +48,7 @@ public class VenueSiteSource implements GigSource {
 
     private static final Logger log = LoggerFactory.getLogger(VenueSiteSource.class);
     static final int MAX_PAGES_PER_VENUE = 10;
+    private static final String TICKETMASTER = "TICKETMASTER";
 
     private final VenueRegistry registry;
     private final Map<String, VenueAdapter> adapters;
@@ -136,14 +139,26 @@ public class VenueSiteSource implements GigSource {
         return pages;
     }
 
-    /** Links the venue's key to Ticketmaster's venue once, so both sources share one catalog venue. */
+    /**
+     * Links the venue's key to Ticketmaster's venue once, so both sources share one catalog venue, and
+     * Ticketmaster's other rows for the building to it as siblings (every run: idempotent, and a row
+     * Ticketmaster adds later is picked up).
+     */
     private void pin(VenueSite site) {
-        if (site.ticketmasterVenueId() == null
-                || catalog.venueByExternalId(Listings.SOURCE, site.key()).isPresent()) {
+        if (site.ticketmasterVenueId() == null) {
             return;
         }
-        catalog.venueByExternalId("TICKETMASTER", site.ticketmasterVenueId())
-                .ifPresent(venueId -> catalog.linkVenue(Listings.SOURCE, site.key(), venueId));
+        Optional<UUID> pinned = catalog.venueByExternalId(Listings.SOURCE, site.key());
+        if (pinned.isEmpty()) {
+            pinned = catalog.venueByExternalId(TICKETMASTER, site.ticketmasterVenueId());
+            pinned.ifPresent(venueId -> catalog.linkVenue(Listings.SOURCE, site.key(), venueId));
+        }
+        pinned.ifPresent(venueId -> {
+            for (String other : site.otherTicketmasterVenueIds()) {
+                catalog.venueByExternalId(TICKETMASTER, other)
+                        .ifPresent(sibling -> catalog.linkSiblings(venueId, sibling));
+            }
+        });
     }
 
     private SourcePage issueOnly(VenueSite site, URI url, String kind, String detail) {

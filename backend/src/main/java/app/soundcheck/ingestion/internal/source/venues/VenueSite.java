@@ -1,6 +1,7 @@
 package app.soundcheck.ingestion.internal.source.venues;
 
 import app.soundcheck.ingestion.internal.source.TimePrecision;
+import java.util.List;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
 
@@ -21,7 +22,17 @@ public record VenueSite(
         TimePrecision precision,
         @Nullable String notes,
         /** Titles matching this (case-insensitive) are not music and are left out: quizzes, karaoke… */
-        @Nullable String skipTitles) {
+        @Nullable String skipTitles,
+        /**
+         * Other Ticketmaster venues in the same building (rooms, or the venue listed twice): linked as
+         * siblings of the pinned one so the same show is found whichever row Ticketmaster used.
+         */
+        List<String> otherTicketmasterVenueIds) {
+
+    public VenueSite {
+        otherTicketmasterVenueIds =
+                otherTicketmasterVenueIds == null ? List.of() : List.copyOf(otherTicketmasterVenueIds);
+    }
 
     public VenueSite(
             String key,
@@ -31,7 +42,7 @@ public record VenueSite(
             @Nullable String ticketmasterVenueId,
             TimePrecision precision,
             @Nullable String notes) {
-        this(key, adapter, url, venue, ticketmasterVenueId, precision, notes, null);
+        this(key, adapter, url, venue, ticketmasterVenueId, precision, notes, null, List.of());
     }
 
     /**

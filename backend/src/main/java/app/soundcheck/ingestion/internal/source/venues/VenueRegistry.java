@@ -57,7 +57,11 @@ public class VenueRegistry {
                     v.path("ticketmasterVenueId").asText(null),
                     TimePrecision.valueOf(v.path("precision").asText("DOORS")),
                     v.path("notes").asText(null),
-                    v.path("skipTitles").asText(null)));
+                    v.path("skipTitles").asText(null),
+                    v.path("otherTicketmasterVenueIds")
+                            .valueStream()
+                            .map(value -> value.asText(""))
+                            .toList()));
         }
         return List.copyOf(out);
     }

@@ -4,9 +4,13 @@ import static app.soundcheck.shared.jooq.catalog.Tables.ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_EXTERNAL_ID;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_SIBLING;
 import static app.soundcheck.shared.jooq.ingestion.Tables.MATCH_REVIEW;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import app.soundcheck.catalog.CatalogIngest;
+import app.soundcheck.catalog.VenueDraft;
 import app.soundcheck.ingestion.internal.RunStats;
 import app.soundcheck.ingestion.internal.resolve.EntityResolver.Outcome;
 import app.soundcheck.ingestion.internal.source.SourceArtist;
@@ -37,6 +41,9 @@ class VenueListingMatchingIT extends IntegrationTest {
 
     @Autowired
     DSLContext dsl;
+
+    @Autowired
+    CatalogIngest catalog;
 
     String tag;
     SourceVenue tmVenue;
@@ -203,9 +210,80 @@ class VenueListingMatchingIT extends IntegrationTest {
         assertThat(stats.flaggedForReview).isZero();
     }
 
+    @Test
+    void aShowTicketmasterListsUnderAnotherRoomOfTheBuildingIsFoundOnceTheRoomsAreSiblings() {
+        // Ticketmaster's second row for the building ("Downstairs at …"), a kilometre off on the map.
+        SourceVenue downstairs = new SourceVenue(
+                "tmv-down-" + tag,
+                "Downstairs at The Lantern " + tag,
+                null,
+                "London",
+                null,
+                tmVenue.lat() + 0.01,
+                -0.5,
+                "Europe/London");
+        create(tm("tm-main", "Glass Owls " + tag, "2026-11-01T20:00:00Z", "Glass Owls " + tag));
+        UUID before =
+                create(tmAt(downstairs, "tm-d1", "Rope Burns " + tag, "2026-11-05T20:00:00Z", "Rope Burns " + tag));
+        UUID after =
+                create(tmAt(downstairs, "tm-d2", "Pale Kites " + tag, "2026-11-06T20:00:00Z", "Pale Kites " + tag));
+
+        // Not yet siblings: the venue's own listing of the downstairs show becomes a second gig.
+        assertThat(resolver.ingest(site("ev-d1", "Rope Burns " + tag, "2026-11-05T19:00:00Z"), new RunStats(), SEEN))
+                .isEqualTo(Outcome.CREATED);
+        assertThat(gigId("VENUE", "ev-d1")).isNotEqualTo(before);
+
+        catalog.linkSiblings(
+                venueOf("TICKETMASTER", tmVenue.externalId()), venueOf("TICKETMASTER", downstairs.externalId()));
+
+        // Siblings: the same kind of listing joins the downstairs gig, which stays downstairs.
+        assertThat(resolver.ingest(site("ev-d2", "Pale Kites " + tag, "2026-11-06T19:00:00Z"), new RunStats(), SEEN))
+                .isEqualTo(Outcome.MERGED);
+        assertThat(sources(after)).containsExactlyInAnyOrder("TICKETMASTER", "VENUE");
+        assertThat(dsl.fetchValue(dsl.select(GIG.VENUE_ID).from(GIG).where(GIG.ID.eq(after))))
+                .isEqualTo(venueOf("TICKETMASTER", downstairs.externalId()));
+    }
+
+    @Test
+    void siblingsOfASiblingAreSiblings() {
+        UUID a = catalogVenue("a");
+        UUID b = catalogVenue("b");
+        UUID c = catalogVenue("c");
+        catalog.linkSiblings(a, b);
+        catalog.linkSiblings(b, c);
+        catalog.linkSiblings(c, a); // already linked: nothing changes
+        assertThat(dsl.select(VENUE_SIBLING.SIBLING_ID)
+                        .from(VENUE_SIBLING)
+                        .where(VENUE_SIBLING.VENUE_ID.eq(a))
+                        .fetch(VENUE_SIBLING.SIBLING_ID))
+                .containsExactlyInAnyOrder(b, c);
+        assertThat(dsl.select(VENUE_SIBLING.SIBLING_ID)
+                        .from(VENUE_SIBLING)
+                        .where(VENUE_SIBLING.VENUE_ID.eq(c))
+                        .fetch(VENUE_SIBLING.SIBLING_ID))
+                .containsExactlyInAnyOrder(a, b);
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
+    private UUID venueOf(String source, String externalId) {
+        return dsl.select(VENUE_EXTERNAL_ID.VENUE_ID)
+                .from(VENUE_EXTERNAL_ID)
+                .where(VENUE_EXTERNAL_ID.SOURCE.eq(source))
+                .and(VENUE_EXTERNAL_ID.EXTERNAL_ID.eq(externalId))
+                .fetchSingle(VENUE_EXTERNAL_ID.VENUE_ID);
+    }
+
+    private UUID catalogVenue(String name) {
+        return catalog.createVenue(
+                new VenueDraft(name + " " + tag, null, "London", null, 61 + Math.random(), -0.5, "Europe/London"));
+    }
+
     private SourceGig tm(String id, String title, String startsAt, String... acts) {
+        return tmAt(tmVenue, id, title, startsAt, acts);
+    }
+
+    private SourceGig tmAt(SourceVenue venue, String id, String title, String startsAt, String... acts) {
         return new SourceGig(
                 "TICKETMASTER",
                 id + "-" + tag,
@@ -219,7 +297,7 @@ class VenueListingMatchingIT extends IntegrationTest {
                 null,
                 null,
                 null,
-                tmVenue,
+                venue,
                 Arrays.stream(acts)
                         .map(a -> new SourceArtist("tma-" + a, a, null, List.of(), null))
                         .toList());

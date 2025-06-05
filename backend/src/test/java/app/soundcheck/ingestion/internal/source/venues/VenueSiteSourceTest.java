@@ -144,6 +144,41 @@ class VenueSiteSourceTest {
     }
 
     @Test
+    void ticketmastersOtherRowsForTheBuildingBecomeSiblingsAndQuizzesAndMovedShowsAreLeftOut() {
+        web.stubFor(get("/robots.txt").willReturn(aResponse().withBody("User-agent: *\nAllow: /\n")));
+        web.stubFor(get(urlPathEqualTo("/api/v1/events"))
+                .willReturn(aResponse()
+                        .withBody("{\"data\":["
+                                + "{\"id\":1,\"title\":\"Harbour Hounds\",\"date\":\"2026-10-16\",\"doors_time\":\"19:30\",\"status\":\"upcoming\",\"bands\":[]},"
+                                + "{\"id\":2,\"title\":\"Big Pub Quiz\",\"date\":\"2026-10-17\",\"doors_time\":\"19:30\",\"status\":\"upcoming\",\"bands\":[]},"
+                                + "{\"id\":3,\"title\":\"[SHOW MOVED] Night Moths\",\"date\":\"2026-10-18\",\"doors_time\":\"19:30\",\"status\":\"upcoming\",\"bands\":[]}],"
+                                + "\"pagination\":{\"next\":null}}")));
+        UUID dome = UUID.randomUUID();
+        UUID downstairs = UUID.randomUUID();
+        when(catalog.venueByExternalId("VENUE", "dome")).thenReturn(Optional.of(dome)); // pinned on an earlier run
+        when(catalog.venueByExternalId("TICKETMASTER", "KovZDown")).thenReturn(Optional.of(downstairs));
+        when(catalog.venueByExternalId("TICKETMASTER", "KovZNotYet")).thenReturn(Optional.empty());
+        VenueSite site = new VenueSite(
+                "dome",
+                "hope-and-anchor-api",
+                web.baseUrl() + "/api/v1/events",
+                new VenueSite.Place("The Dome", "1 Test St", "London", "N1 1AA", 51.5, -0.1),
+                "KovZMain",
+                TimePrecision.DOORS,
+                null,
+                null,
+                List.of("KovZDown", "KovZNotYet"));
+
+        List<SourceGig> gigs = source(List.of("dome"), site).pages(FROM, TO, new CallBudget(100)).toList().stream()
+                .flatMap(p -> p.gigs().stream())
+                .toList();
+
+        assertThat(gigs).extracting(SourceGig::externalId).containsExactly("dome:1");
+        verify(catalog).linkSiblings(dome, downstairs);
+        verify(catalog, never()).linkVenue(anyString(), anyString(), org.mockito.ArgumentMatchers.any());
+    }
+
+    @Test
     void anExhaustedBudgetStopsFetching() {
         web.stubFor(get("/robots.txt").willReturn(aResponse().withBody("User-agent: *\nAllow: /\n")));
         web.stubFor(get("/rss").willReturn(aResponse().withBody(VenueAdaptersTest.fixture("moth.rss"))));

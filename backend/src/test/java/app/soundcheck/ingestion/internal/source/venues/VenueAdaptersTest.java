@@ -249,7 +249,8 @@ class VenueAdaptersTest {
                 null,
                 TimePrecision.DOORS,
                 null,
-                "piñata|cyanotype");
+                "piñata|cyanotype",
+                List.of());
         assertThat(picky.skips("Piñata")).isTrue();
         assertThat(picky.skips("Open mic")).isTrue();
         assertThat(picky.skips("Pale Kites")).isFalse();

@@ -36,6 +36,13 @@ public interface CatalogIngest {
     /** Records that {@code source} calls this venue {@code externalId} (idempotent). */
     void linkVenue(String source, String externalId, UUID venueId);
 
+    /**
+     * Records that two venues are the same building (rooms, or one venue a source lists twice), so the
+     * same-show search covers both. Every sibling of either becomes a sibling of the other
+     * (idempotent).
+     */
+    void linkSiblings(UUID venueId, UUID siblingId);
+
     // ── artists ─────────────────────────────────────────────────────────────
 
     Optional<UUID> artistByExternalId(String source, String externalId);
@@ -103,8 +110,9 @@ public interface CatalogIngest {
             UUID venueId, Instant startsAt, Duration window, UUID headlinerId, String title, double minTitleSimilarity);
 
     /**
-     * Gigs at the venue starting in {@code [from, to)}, with their bills (the matcher decides
-     * which, if any, is the same show; this only gathers them). Expected index: gig_venue.
+     * Gigs at the venue or one of its siblings starting in {@code [from, to)}, with their bills (the
+     * matcher decides which, if any, is the same show; this only gathers them). Expected indexes:
+     * venue_sibling_pkey, gig_venue.
      */
     List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to);
 

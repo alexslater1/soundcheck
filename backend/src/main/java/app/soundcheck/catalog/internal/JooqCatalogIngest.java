@@ -9,6 +9,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_EXTERNAL_ID;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_SIBLING;
 
 import app.soundcheck.catalog.ArtistDraft;
 import app.soundcheck.catalog.CatalogIngest;
@@ -25,10 +26,12 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -132,6 +135,30 @@ class JooqCatalogIngest implements CatalogIngest {
                 .set(VENUE_EXTERNAL_ID.VENUE_ID, venueId)
                 .onConflictDoNothing()
                 .execute();
+    }
+
+    @Override
+    public void linkSiblings(UUID venueId, UUID siblingId) {
+        if (venueId.equals(siblingId)) {
+            return;
+        }
+        // The whole group: both venues and everything already linked to either, every pair both ways.
+        Set<UUID> group = new LinkedHashSet<>(List.of(venueId, siblingId));
+        group.addAll(dsl.select(VENUE_SIBLING.SIBLING_ID)
+                .from(VENUE_SIBLING)
+                .where(VENUE_SIBLING.VENUE_ID.in(venueId, siblingId))
+                .fetch(VENUE_SIBLING.SIBLING_ID));
+        for (UUID a : group) {
+            for (UUID b : group) {
+                if (!a.equals(b)) {
+                    dsl.insertInto(VENUE_SIBLING)
+                            .set(VENUE_SIBLING.VENUE_ID, a)
+                            .set(VENUE_SIBLING.SIBLING_ID, b)
+                            .onConflictDoNothing()
+                            .execute();
+                }
+            }
+        }
     }
 
     // ── artists ─────────────────────────────────────────────────────────────
@@ -373,7 +400,11 @@ class JooqCatalogIngest implements CatalogIngest {
     public List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to) {
         List<UUID> ids = dsl.select(GIG.ID)
                 .from(GIG)
-                .where(GIG.VENUE_ID.eq(venueId))
+                .where(GIG.VENUE_ID
+                        .eq(venueId)
+                        .or(GIG.VENUE_ID.in(DSL.select(VENUE_SIBLING.SIBLING_ID)
+                                .from(VENUE_SIBLING)
+                                .where(VENUE_SIBLING.VENUE_ID.eq(venueId)))))
                 .and(GIG.STARTS_AT.ge(at(from)))
                 .and(GIG.STARTS_AT.lt(at(to)))
                 .orderBy(GIG.STARTS_AT, GIG.ID)
