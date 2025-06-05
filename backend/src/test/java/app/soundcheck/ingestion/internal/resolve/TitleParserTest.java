@@ -130,6 +130,58 @@ class TitleParserTest {
                 row("K2B Presents... An Evening with Groom of the Stool", "Groom of the Stool"),
                 row("Back With a Bang - The Satellights", "Back With a Bang - The Satellights"),
                 row("NIGHT BUS WITH PALE KITES", "NIGHT BUS|PALE KITES"),
+                // second live round (Squarespace venues, 2025-06-05), invented names
+                row(
+                        "Elephant Rooms: Beluga Owls, Moose Gang & Yasmin Nova",
+                        "Beluga Owls|Moose Gang & Yasmin Nova",
+                        Set.of(),
+                        "Elephant Rooms"),
+                row("Plans For Nigella + Diamond 24 + Guests", "Plans For Nigella|Diamond 24"),
+                row("MUDLARKS // A WASP'S NEST // ROULETTES", "MUDLARKS|A WASP'S NEST|ROULETTES"),
+                row("ZBUKOO LIVE IN LONDON!", "ZBUKOO"),
+                row("WITCHSORROWS (20 Years Of Sorrow)", "WITCHSORROWS", Set.of(), "20 Years Of Sorrow"),
+                row("Brokenchords (Live) + Rosie Amma", "Brokenchords|Rosie Amma"),
+                row(
+                        "Lenny Kayes and Friends \"RIOT ON OXFORD STREET\"",
+                        "Lenny Kayes",
+                        Set.of(),
+                        "RIOT ON OXFORD STREET"),
+                row("🎸 BRITALLICAS - LIVE IN LONDON 🎸", "BRITALLICAS"),
+                // third round (Squarespace venues and The Social, 2025-06-05 pages, names changed)
+                row("Dad’s Mood is Glad: Peri Ray Single Release Show", "Peri Ray", Set.of(), "Dad’s Mood is Glad"),
+                row(
+                        "Moody Promoter Presents: Samuel Virgil EP Release Show",
+                        "Samuel Virgil",
+                        Set.of(),
+                        "EP Release Show"),
+                row("Raw Milk Plot *Album Launch Show*", "Raw Milk Plot", Set.of(), "Album Launch Show"),
+                row("Kilnworks Studios: Amelie Jay", "Amelie Jay", Set.of(), "Kilnworks Studios"),
+                row("Festive Fling: Aisha Khan & the Rajahs", "Aisha Khan & the Rajahs", Set.of(), "Festive Fling"),
+                row(
+                        "[SHOW MOVED] DIMSCUO / HUNDRED YEAR OLD BOY / CAIRNES",
+                        "DIMSCUO|HUNDRED YEAR OLD BOY|CAIRNES",
+                        Set.of(Flag.MOVED)),
+                row(
+                        "HEAVY HALLOWEEN ft. INHUMAN NAT, PUPPO, AGNOSIA + MORE",
+                        "INHUMAN NAT|PUPPO|AGNOSIA",
+                        Set.of(),
+                        "HEAVY HALLOWEEN"),
+                row("MISSOURI TRADE - Halloween clubnight", "MISSOURI TRADE", Set.of(), "Halloween clubnight"),
+                row(
+                        "🎸 BRITALLICAS - LIVE IN LONDON | STRONGER THAN EVER FUNDRAISER 🎸",
+                        "BRITALLICAS",
+                        Set.of(),
+                        "STRONGER THAN EVER FUNDRAISER"),
+                row("CEDRY3K – “Improgramabil” – Featuring Pietonu", "CEDRY3K|Pietonu", Set.of(), "Improgramabil"),
+                row("Lost In Disco (2PM – 7PM)", "Lost In Disco"),
+                row("We Are So Old 44 – Nico & Linus + Shrank + Auntie + Bulbs", "Nico & Linus|Shrank|Auntie|Bulbs"),
+                row("SILO Presents: Small AF b2b Chess Dog + Dorleac", "Small AF|Chess Dog|Dorleac"),
+                row("MAREZINE: Lost Alicia, Le Lamb + Support Poets", "Lost Alicia|Le Lamb", Set.of(), "MAREZINE"),
+                row("Rodox Special Guests + DJ", "Rodox"),
+                row("POETRY JAM - ALL WELCOME (Copy)", "POETRY JAM"),
+                // ... and what those rules must leave alone
+                row("BREED 78 – Live", "BREED 78", Set.of(), "Live"),
+                row("Night Bus ft. Pale Kites", "Night Bus|Pale Kites"),
                 // unicode, whitespace, punctuation
                 row("  Sigur Rós  +  Björk  ", "Sigur Rós|Björk"),
                 row("Pale Kites + Night Bus", "Pale Kites|Night Bus"),
