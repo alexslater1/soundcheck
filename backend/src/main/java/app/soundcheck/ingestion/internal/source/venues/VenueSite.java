@@ -27,7 +27,9 @@ public record VenueSite(
          * Other Ticketmaster venues in the same building (rooms, or the venue listed twice): linked as
          * siblings of the pinned one so the same show is found whichever row Ticketmaster used.
          */
-        List<String> otherTicketmasterVenueIds) {
+        List<String> otherTicketmasterVenueIds,
+        /** Where things are on the page, for the {@code html-selectors} adapter only. */
+        @Nullable Selectors selectors) {
 
     public VenueSite {
         otherTicketmasterVenueIds =
@@ -41,8 +43,31 @@ public record VenueSite(
             Place venue,
             @Nullable String ticketmasterVenueId,
             TimePrecision precision,
+            @Nullable String notes,
+            @Nullable String skipTitles,
+            List<String> otherTicketmasterVenueIds) {
+        this(
+                key,
+                adapter,
+                url,
+                venue,
+                ticketmasterVenueId,
+                precision,
+                notes,
+                skipTitles,
+                otherTicketmasterVenueIds,
+                null);
+    }
+
+    public VenueSite(
+            String key,
+            String adapter,
+            String url,
+            Place venue,
+            @Nullable String ticketmasterVenueId,
+            TimePrecision precision,
             @Nullable String notes) {
-        this(key, adapter, url, venue, ticketmasterVenueId, precision, notes, null, List.of());
+        this(key, adapter, url, venue, ticketmasterVenueId, precision, notes, null, List.of(), null);
     }
 
     /**
@@ -51,7 +76,8 @@ public record VenueSite(
      */
     static final Pattern NOT_MUSIC = Pattern.compile(
             "open\\s*mic|\\bquiz\\b|karaoke|poetry|comedy|stand-?up|life\\s+drawing|workshop|wrestling"
-                    + "|book\\s+club|\\bmarket\\b|\\byoga\\b|\\bbingo\\b|film\\s+(?:club|screening|night)",
+                    + "|book\\s+club|\\bmarket\\b|\\byoga\\b|\\bbingo\\b|film\\s+(?:club|screening|night)"
+                    + "|movie\\s+night|rockeoke|tournament|dungeons\\s*(?:&|and)\\s*dragons|vintage\\s+sale|kilo\\s+sale",
             Pattern.CASE_INSENSITIVE);
 
     /** Whether a title is left out: not music in general, or what the venue's entry says to skip. */
@@ -62,6 +88,24 @@ public record VenueSite(
                                 .matcher(title)
                                 .find());
     }
+
+    /**
+     * CSS selectors for a page of repeated event blocks ({@link SelectorAdapter}): {@code item} finds each
+     * block; the others are read inside it, {@code "css@attr"} for an attribute. {@code dateFormats} are
+     * {@link java.time.format.DateTimeFormatter} patterns (UK English) or {@code "iso"}, tried in order.
+     * {@code titleLines}: the acts are on separate lines of the title.
+     */
+    public record Selectors(
+            String item,
+            String title,
+            @Nullable String link,
+            String date,
+            List<String> dateFormats,
+            @Nullable String time,
+            @Nullable String price,
+            @Nullable String ticket,
+            @Nullable String image,
+            boolean titleLines) {}
 
     /** Where the venue is: from its own site, coordinates from postcodes.io. */
     public record Place(String name, String address, String city, String postcode, double lat, double lng) {}

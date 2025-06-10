@@ -103,6 +103,8 @@ class VenueAdaptersTest {
         // 18:00 labelled "UTC+0" is 18:00 in London, i.e. 17:00 UTC in October (summer time).
         assertThat(Listings.toSourceGig(site, first).startsAt()).isEqualTo(Instant.parse("2026-10-10T17:00:00Z"));
         assertThat(first.imageUrl()).isEqualTo("https://lantern.example/a.jpg");
+        // ... but a venue's poster is never stored (facts only).
+        assertThat(Listings.toSourceGig(site, first).imageUrl()).isNull();
         assertThat(acts(site, first)).containsExactly("Kholla Moths take the helm");
 
         assertThat(acts(site, page.listings().get(1))).containsExactly("The Ondine Owls");
@@ -232,6 +234,111 @@ class VenueAdaptersTest {
         assertThat(january.priceMin()).isNull();
     }
 
+    static VenueSite selectorSite(VenueSite.Selectors selectors) {
+        VenueSite base = site("hall", "html-selectors", "The Lantern Arms");
+        return new VenueSite(
+                "hall",
+                "html-selectors",
+                "https://hall.example/whats-on",
+                base.venue(),
+                null,
+                TimePrecision.DOORS,
+                null,
+                null,
+                List.of(),
+                selectors);
+    }
+
+    @Test
+    void selectorsReadAGridWithTheTimeInTheDateAndAYearlessDateAsTheNextOne() {
+        VenueSite site = selectorSite(new VenueSite.Selectors(
+                ".grid-item",
+                ".event-title",
+                "a.link-box@href",
+                ".event-date",
+                List.of("EEE MMMM dd, HH:mm"),
+                null,
+                null,
+                "a.ticket-box@href",
+                null,
+                false));
+        VenueAdapter.Page page = new SelectorAdapter().read(site, fixture("selectors.html"), TODAY);
+
+        assertThat(page.listings())
+                .extracting(Listing::title)
+                .containsExactly(
+                        "Pale Kites, Night Bus, Glass Lanterns", "Dune Sisters"); // the club block is another class
+        assertThat(page.issues()).extracting(SourceIssue::kind).containsExactly("NO_DATE");
+        Listing first = page.listings().get(0);
+        assertThat(first.start()).isEqualTo(LocalDateTime.of(2026, 10, 16, 19, 30));
+        assertThat(first.precision()).isEqualTo(TimePrecision.DOORS);
+        assertThat(first.url()).isEqualTo("https://hall.example/event.php?id=101");
+        assertThat(first.eventId()).isEqualTo("/event.php?id=101");
+        assertThat(first.ticketUrl()).isEqualTo("https://tickets.example/pk");
+        assertThat(acts(site, first)).containsExactly("Pale Kites", "Night Bus", "Glass Lanterns");
+        assertThat(page.listings().get(1).start()).isEqualTo(LocalDateTime.of(2027, 1, 9, 20, 0)); // next January
+    }
+
+    @Test
+    void selectorsReadOneActPerLineDoorsFromThePriceCellAndKeyBlocksWithASharedLinkByTitleAndDate() {
+        VenueSite site = selectorSite(new VenueSite.Selectors(
+                ".listing_block1, .listing_block2",
+                ".listing_title",
+                ".listing_title a@href",
+                ".listing_date",
+                List.of("EEE, dd MMM yyyy"),
+                ".listing_price",
+                ".listing_price",
+                null,
+                null,
+                true));
+        VenueAdapter.Page page = new SelectorAdapter().read(site, fixture("selectors.html"), TODAY);
+
+        assertThat(page.listings()).hasSize(2);
+        Listing bill = page.listings().get(0);
+        assertThat(bill.title()).isEqualTo("Harbour Hounds + Rope Burns + DJs");
+        assertThat(acts(site, bill)).containsExactly("Harbour Hounds", "Rope Burns");
+        assertThat(bill.start()).isEqualTo(LocalDateTime.of(2026, 10, 17, 19, 15)); // "Doors 7.15"
+        assertThat(bill.priceMin()).isEqualByComparingTo("12"); // the £ amount, not the doors time
+        assertThat(bill.eventId()).isEqualTo("Harbour Hounds + Rope Burns + DJs@2026-10-17");
+        Listing free = page.listings().get(1);
+        assertThat(free.precision()).isEqualTo(TimePrecision.DATE_ONLY); // no time in "Free entry"
+        assertThat(free.priceMin()).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    void selectorsReadMicrodataWithAnIsoDateAndTheDoorsOfADoorsToCurfewRange() {
+        VenueSite site = selectorSite(new VenueSite.Selectors(
+                "li.list--events__item",
+                ".list--events__item__title",
+                ".list--events__item__image a@href",
+                "time[itemprop=startDate]@datetime",
+                List.of("iso"),
+                "time.time",
+                null,
+                null,
+                "img@src",
+                false));
+        VenueAdapter.Page page = new SelectorAdapter().read(site, fixture("selectors.html"), TODAY);
+
+        assertThat(page.listings()).hasSize(1);
+        Listing owls = page.listings().get(0);
+        assertThat(owls.start()).isEqualTo(LocalDateTime.of(2026, 10, 20, 18, 30));
+        assertThat(owls.eventId()).isEqualTo("/events/the-ondine-owls-20th-oct/");
+        assertThat(acts(site, owls)).containsExactly("The Ondine Owls");
+        assertThat(Listings.toSourceGig(site, owls).imageUrl()).isNull(); // read, never stored
+    }
+
+    @Test
+    void clockTimesAreReadTheWayVenuesWriteThem() {
+        assertThat(SelectorAdapter.time("19:00")).isEqualTo(java.time.LocalTime.of(19, 0));
+        assertThat(SelectorAdapter.time("7PM")).isEqualTo(java.time.LocalTime.of(19, 0));
+        assertThat(SelectorAdapter.time("Doors 7.15 £12")).isEqualTo(java.time.LocalTime.of(19, 15));
+        assertThat(SelectorAdapter.time("18:30 - 22:00")).isEqualTo(java.time.LocalTime.of(18, 30));
+        assertThat(SelectorAdapter.time("12pm")).isEqualTo(java.time.LocalTime.of(12, 0));
+        assertThat(SelectorAdapter.time("£12 on the door")).isNull();
+    }
+
     @Test
     void nightsThatAreNotGigsAreLeftOutAndAVenueCanNameMore() {
         VenueSite plain = site("lantern", "squarespace", "The Lantern Arms");
@@ -262,6 +369,8 @@ class VenueAdaptersTest {
         assertThat(Listings.prices("£12 – £12.5")).containsExactly(new BigDecimal("12"), new BigDecimal("12.5"));
         assertThat(Listings.prices("Free entry")).containsExactly(BigDecimal.ZERO, BigDecimal.ZERO);
         assertThat(Listings.prices("TBC")).isNull();
+        assertThat(Listings.prices("Doors 7.15 £12 on the door"))
+                .containsExactly(new BigDecimal("12"), new BigDecimal("12"));
         assertThat(Listings.prices(null)).isNull();
     }
 }

@@ -39,7 +39,8 @@ class VenueRegistryTest {
                 new MothRssAdapter().kind(),
                 new JsonLdAdapter(JSON).kind(),
                 new SquarespaceAdapter().kind(),
-                new SquarespaceListAdapter(JSON).kind());
+                new SquarespaceListAdapter(JSON).kind(),
+                new SelectorAdapter().kind());
 
         assertThat(sites).hasSizeGreaterThanOrEqualTo(11);
         assertThat(sites.stream().map(VenueSite::key).distinct()).hasSameSizeAs(sites);
@@ -49,6 +50,10 @@ class VenueRegistryTest {
             assertThat(site.venue().lat()).as(site.key()).isBetween(51.28, 51.70);
             assertThat(site.venue().lng()).as(site.key()).isBetween(-0.52, 0.34);
             assertThat(site.venue().postcode()).as(site.key()).isNotBlank();
+            if (site.adapter().equals("html-selectors")) {
+                assertThat(site.selectors()).as(site.key()).isNotNull();
+                assertThat(site.selectors().dateFormats()).as(site.key()).isNotEmpty();
+            }
             if (site.skipTitles() != null) {
                 Pattern.compile(site.skipTitles());
             }

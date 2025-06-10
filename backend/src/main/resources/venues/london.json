@@ -101,6 +101,110 @@
       "ticketmasterVenueId": "KovZ9177AWf",
       "precision": "DOORS",
       "notes": "schema.org Event JSON-LD on the events page; start times without an offset are London time."
+    },
+    {
+      "key": "the-lexington",
+      "adapter": "html-selectors",
+      "url": "https://www.thelexington.co.uk/events.php",
+      "venue": { "name": "The Lexington", "address": "96-98 Pentonville Road", "city": "London", "postcode": "N1 9JB", "lat": 51.531705, "lng": -0.11188 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "selectors": {
+        "item": ".grid-item",
+        "title": ".event-title",
+        "link": "a.link-box@href",
+        "date": ".event-date",
+        "dateFormats": ["EEE MMMM dd, HH:mm", "EEE MMMM d, HH:mm"],
+        "ticket": "a.ticket-box@href"
+      },
+      "notes": "Own PHP listing; no robots.txt (the path returns a page), no terms found. Club nights (.grid-item-club) are not read. Times are doors."
+    },
+    {
+      "key": "dublin-castle",
+      "adapter": "html-selectors",
+      "url": "https://thedublincastle.com/",
+      "venue": { "name": "The Dublin Castle", "address": "94 Parkway", "city": "London", "postcode": "NW1 7AN", "lat": 51.537415, "lng": -0.145674 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "selectors": {
+        "item": ".listing_block1, .listing_block2",
+        "title": ".listing_title",
+        "link": ".listing_title a@href",
+        "date": ".listing_date",
+        "dateFormats": ["EEE, dd MMM yyyy", "EEE, d MMM yyyy"],
+        "time": ".listing_price",
+        "price": ".listing_price",
+        "titleLines": true
+      },
+      "notes": "Home page listing (bookings by Bugbear); one act per line; 'Doors 7.15' read as 19:15."
+    },
+    {
+      "key": "earth",
+      "adapter": "html-selectors",
+      "url": "https://earthackney.co.uk/events/",
+      "venue": { "name": "EartH", "address": "11-17 Stoke Newington Road", "city": "London", "postcode": "N16 8BH", "lat": 51.550895, "lng": -0.075385 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "selectors": {
+        "item": "li.list--events__item",
+        "title": ".list--events__item__title",
+        "link": ".list--events__item__image a@href",
+        "date": "time[itemprop=startDate]@datetime",
+        "dateFormats": ["iso"],
+        "time": "time.time"
+      },
+      "notes": "WordPress list with schema.org microdata; the start date is a date (00:00), the time element gives doors and curfew."
+    },
+    {
+      "key": "village-underground",
+      "adapter": "html-selectors",
+      "url": "https://villageunderground.co.uk/events/",
+      "venue": { "name": "Village Underground", "address": "54 Holywell Lane", "city": "London", "postcode": "EC2A 3PQ", "lat": 51.523474, "lng": -0.077969 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "selectors": {
+        "item": "li.list--events__item",
+        "title": ".list--events__item__title",
+        "link": ".list--events__item__image a@href",
+        "date": "time[itemprop=startDate]@datetime",
+        "dateFormats": ["iso"],
+        "time": "time.time"
+      },
+      "notes": "Same site build as EartH. Well covered by Ticketmaster: keep only if make venue-coverage says so."
+    },
+    {
+      "key": "fighting-cocks",
+      "adapter": "html-selectors",
+      "url": "https://the-fighting-cocks.co.uk/gigs-events/",
+      "venue": { "name": "The Fighting Cocks", "address": "56 London Road", "city": "Kingston upon Thames", "postcode": "KT2 6QA", "lat": 51.410678, "lng": -0.297827 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "selectors": {
+        "item": "ul.eventinfo",
+        "title": "h4",
+        "link": "a.bttn@href",
+        "date": "li.eDate",
+        "dateFormats": ["dd/MM/yyyy"],
+        "time": "li.eTime"
+      },
+      "notes": "WordPress gigs page; '7PM' times."
+    },
+    {
+      "key": "paper-dress-vintage",
+      "adapter": "html-selectors",
+      "url": "https://paperdressvintage.co.uk/by-night",
+      "venue": { "name": "Paper Dress Vintage", "address": "352a Mare Street", "city": "London", "postcode": "E8 1HR", "lat": 51.548244, "lng": -0.0548 },
+      "ticketmasterVenueId": null,
+      "precision": "DATE_ONLY",
+      "skipTitles": "club night|disco|dj set|\\bparty\\b",
+      "selectors": {
+        "item": "a.events__event",
+        "title": "h4",
+        "link": "@href",
+        "date": "p.margin__bottom--1",
+        "dateFormats": ["EEE d MMM"]
+      },
+      "notes": "robots.txt Crawl-delay 10 (honoured by PoliteFetcher). The list gives no time (date-only); many nights are club nights, skipped."
     }
   ]
 }

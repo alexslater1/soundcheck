@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.List;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -61,9 +62,30 @@ public class VenueRegistry {
                     v.path("otherTicketmasterVenueIds")
                             .valueStream()
                             .map(value -> value.asText(""))
-                            .toList()));
+                            .toList(),
+                    selectors(v.path("selectors"))));
         }
         return List.copyOf(out);
+    }
+
+    private static VenueSite.@Nullable Selectors selectors(JsonNode node) {
+        if (node.isMissingNode() || node.isNull()) {
+            return null;
+        }
+        return new VenueSite.Selectors(
+                node.path("item").asText(""),
+                node.path("title").asText(""),
+                node.path("link").asText(null),
+                node.path("date").asText(""),
+                node.path("dateFormats")
+                        .valueStream()
+                        .map(value -> value.asText(""))
+                        .toList(),
+                node.path("time").asText(null),
+                node.path("price").asText(null),
+                node.path("ticket").asText(null),
+                node.path("image").asText(null),
+                node.path("titleLines").asBoolean(false));
     }
 
     public List<VenueSite> all() {
