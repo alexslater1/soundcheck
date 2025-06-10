@@ -19,6 +19,7 @@ public final class Listings {
     public static final String SOURCE = "VENUE";
     static final ZoneId UK = ZoneId.of("Europe/London");
     private static final Pattern MONEY = Pattern.compile("(\\d+(?:\\.\\d{1,2})?)");
+    private static final Pattern POUNDS = Pattern.compile("£\\s*(\\d+(?:\\.\\d{1,2})?)");
 
     private Listings() {}
 
@@ -57,7 +58,9 @@ public final class Listings {
                 listing.priceMin(),
                 listing.priceMax(),
                 listing.priceMin() == null ? null : "GBP",
-                listing.imageUrl(),
+                // Facts only. A venue's poster is its (or the artist's) artwork,
+                // not licensed to us, so it is never stored, even though the adapters can read it.
+                null,
                 new SourceVenue(
                         site.key(),
                         place.name(),
@@ -79,7 +82,8 @@ public final class Listings {
         if (text.strip().matches("(?i)free.*")) {
             return new BigDecimal[] {BigDecimal.ZERO, BigDecimal.ZERO};
         }
-        Matcher m = MONEY.matcher(text);
+        // "Doors 7.15 £12 on the door": when a pound sign is there, only amounts after one are prices.
+        Matcher m = (text.contains("£") ? POUNDS : MONEY).matcher(text);
         BigDecimal min = null;
         BigDecimal max = null;
         while (m.find()) {

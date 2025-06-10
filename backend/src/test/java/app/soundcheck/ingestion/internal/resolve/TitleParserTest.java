@@ -84,7 +84,8 @@ class TitleParserTest {
                 row("Pale Kites | Headline Show", "Pale Kites", Set.of(), "Headline Show"),
                 row("Pale Kites (Album Launch)", "Pale Kites", Set.of(), "Album Launch"),
                 row("Pale Kites (Acoustic)", "Pale Kites", Set.of(), "Acoustic"),
-                row("Pale Kites plays 'Dusk' in full", "Pale Kites plays 'Dusk' in full"),
+                // was kept whole until the fourth round; "X plays/performs Y" now names the act and the work
+                row("Pale Kites plays 'Dusk' in full", "Pale Kites", Set.of(), "'Dusk' in full"),
                 row("Night Bus - Glass Harbour", "Night Bus - Glass Harbour"), // no tour word: not cut
                 // everything at once
                 row(
@@ -179,6 +180,19 @@ class TitleParserTest {
                 row("MAREZINE: Lost Alicia, Le Lamb + Support Poets", "Lost Alicia|Le Lamb", Set.of(), "MAREZINE"),
                 row("Rodox Special Guests + DJ", "Rodox"),
                 row("POETRY JAM - ALL WELCOME (Copy)", "POETRY JAM"),
+                // fourth round (selector venues, 2025-06-05 pages, names changed)
+                row(
+                        "Outsider Art Presents + Polly Pickpockets + Neovenator + DJs + In Aid Of MIND Camden",
+                        "Polly Pickpockets|Neovenator"),
+                row(
+                        "The British Invaders + Special Guests + Healthy Junkies (Evening Show)",
+                        "The British Invaders|Healthy Junkies",
+                        Set.of(),
+                        "Evening Show"),
+                row("Twat Onion and Problem Patterns (co headliner)", "Twat Onion and Problem Patterns"),
+                row("?, Drive Your Plough, Redeye", "Drive Your Plough|Redeye"),
+                row("Mark Frye performs Dreaming with Alice", "Mark Frye", Set.of(), "Dreaming with Alice"),
+                row("Air.wave live", "Air.wave"),
                 // ... and what those rules must leave alone
                 row("BREED 78 – Live", "BREED 78", Set.of(), "Live"),
                 row("Night Bus ft. Pale Kites", "Night Bus|Pale Kites"),

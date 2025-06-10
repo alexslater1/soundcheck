@@ -117,6 +117,10 @@ public final class TitleParser {
             "\\s+(?:and|&|\\+|plus|w/|with)\\s+(?:very\\s+)?(?:special\\s+)?guests?(?:\\s+tb[ac])?\\s*$",
             Pattern.CASE_INSENSITIVE);
 
+    /** "Mark Fry performs Dreaming with Alice": the act, then what it plays. */
+    private static final Pattern PERFORMS = Pattern.compile(
+            "^(.{2,60}?)\\s+(?:performs|performing|plays|playing)\\s+(.{3,})$", Pattern.CASE_INSENSITIVE);
+
     /** "Subject A supporting Skaville UK": the headliner comes second. */
     private static final Pattern SUPPORTING =
             Pattern.compile("^(.+?)\\s+supporting\\s+(.+)$", Pattern.CASE_INSENSITIVE);
@@ -148,7 +152,9 @@ public final class TitleParser {
     /** Words that mean "more acts to come", not an act. */
     private static final Pattern PLACEHOLDER = Pattern.compile(
             "^(?:(?:very\\s+)?special\\s+guests?(?:\\s+tb[ac])?|guests?(?:\\s+tb[ac])?|support(?:\\s+(?:acts?|bands?|poets?|djs?))?(?:\\s+tb[ac])?|more(?:\\s+tb[ac])?|tb[ac]|friends"
-                    + "|plus\\s+support|plus\\s+guests|and\\s+more|\\.\\.\\.|djs?|resident\\s+djs?|full\\s+band)$",
+                    + "|plus\\s+support|plus\\s+guests|and\\s+more|\\.\\.\\.|djs?|resident\\s+djs?|full\\s+band"
+                    // a cause, not an act ("In Aid Of MIND"); punctuation left over ("?")
+                    + "|in\\s+aid\\s+of\\b.*|[^\\p{L}\\p{N}]+)$",
             Pattern.CASE_INSENSITIVE);
 
     /** The part after a colon or a spaced dash is a tour or event name when it says so. */
@@ -235,7 +241,8 @@ public final class TitleParser {
 
         Matcher promoter = PROMOTER.matcher(text);
         if (promoter.find()) {
-            text = text.substring(promoter.end());
+            // "Outsider Art Presents + A + B" (one line each on the site): the bill starts after the "+".
+            text = text.substring(promoter.end()).replaceFirst("^[+/,&]\\s+", "");
         }
         Matcher series = SERIES.matcher(text);
         if (series.find()) {
@@ -294,6 +301,11 @@ public final class TitleParser {
             tour = tidy(trailing.group(1));
             text = text.substring(0, trailing.start());
         }
+        Matcher performs = PERFORMS.matcher(tidy(text));
+        if (performs.matches() && !separates(performs.group(1))) {
+            tour = tour == null ? tidy(performs.group(2)) : tour;
+            text = performs.group(1);
+        }
         Matcher supporting = SUPPORTING.matcher(tidy(text));
         if (supporting.matches()) {
             text = supporting.group(2) + " + " + supporting.group(1);
@@ -312,7 +324,12 @@ public final class TitleParser {
             String act = tidy(part.replaceAll("^[(\\[](.*)[)\\]]$", "$1")
                     .replaceAll("(?i)\\s+dj\\s+set$", "")
                     .replaceAll("(?i)\\s+(?:very\\s+)?special\\s+guests?$", "")
-                    .replaceAll("(?i)\\s*[(\\[](?:live|dj\\s+set|acoustic|solo|full\\s+band|band)[)\\]]$", ""));
+                    .replaceAll(
+                            "(?i)\\s*[(\\[](?:live|dj\\s+set|acoustic|solo|full\\s+band|band|co[-\\s]?headliners?|headliners?"
+                                    + "|(?:evening|afternoon|matinee|early|late)(?:\\s+show)?)[)\\]]$",
+                            "")
+                    // "Air.wav live": the act, playing live
+                    .replaceAll("(?i)(?<=\\S)\\s+live$", ""));
             if (!act.isEmpty() && !PLACEHOLDER.matcher(act).matches() && !acts.contains(act)) {
                 acts.add(act);
             }
