@@ -13,6 +13,7 @@ soundcheck:
     auth:
       per-ip-per-minute: 10000
       per-email-per-minute: 10000
+    per-user-per-minute: 100000
   media:
     # Small enough that a test can exceed it with real bytes (three 8 MiB parts), and no hourly cap on
     # uploads (the shared test context makes many).

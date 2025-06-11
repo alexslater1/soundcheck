@@ -1,5 +1,7 @@
 # Profile `aws`: ECS Fargate tasks. Values come from task environment and Secrets Manager.
 soundcheck:
+  cors:
+    allowed-origins: ""   # same origin behind CloudFront: no CORS at all
   storage:
     endpoint: ""          # real S3 (task role, virtual-host style) — never the LocalStack default
     access-key: ""

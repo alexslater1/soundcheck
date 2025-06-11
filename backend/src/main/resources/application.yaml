@@ -48,6 +48,9 @@ soundcheck:
   roles: ${SOUNDCHECK_ROLES:api,scheduler,worker}
   public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}
   features: {}
+  cors:
+    # The Expo dev server and the local edge (SecurityConfig.LOCAL_DEV_ORIGINS); empty under the aws profile.
+    allowed-origins: http://localhost:8081,http://localhost:8088
   storage:
     # Blank on AWS (task role, virtual-host style); LocalStack locally (static creds, path-style).
     endpoint: ${S3_ENDPOINT:http://localhost:4566}
