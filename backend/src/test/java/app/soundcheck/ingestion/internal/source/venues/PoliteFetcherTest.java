@@ -1,6 +1,7 @@
 package app.soundcheck.ingestion.internal.source.venues;
 
 import static com.github.tomakehurst.wiremock.client.WireMock.aResponse;
+import static com.github.tomakehurst.wiremock.client.WireMock.absent;
 import static com.github.tomakehurst.wiremock.client.WireMock.equalTo;
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
 import static com.github.tomakehurst.wiremock.client.WireMock.getRequestedFor;
@@ -123,6 +124,31 @@ class PoliteFetcherTest {
         clock.advance(Duration.ofHours(13)); // the robots cache expires
         site.stubFor(get("/robots.txt").willReturn(aResponse().withStatus(503)));
         assertThat(fetcher.get(url("/events")).outcome()).isEqualTo(Outcome.DISALLOWED);
+    }
+
+    @Test
+    void anUnchangedPageIsAskedForConditionallyAndItsKeptBodyIsReused() {
+        site.stubFor(get("/robots.txt").willReturn(aResponse().withBody("User-agent: *\nAllow: /\n")));
+        site.stubFor(get("/events")
+                .withHeader("If-None-Match", absent())
+                .willReturn(aResponse()
+                        .withHeader("ETag", "\"v1\"")
+                        .withHeader("Last-Modified", "Fri, 02 Oct 2026 08:00:00 GMT")
+                        .withBody("<html>the list</html>")));
+        site.stubFor(get("/events")
+                .withHeader("If-None-Match", equalTo("\"v1\""))
+                .willReturn(aResponse().withStatus(304)));
+
+        PoliteFetcher.Result first = fetcher.get(url("/events"));
+        PoliteFetcher.Result second = fetcher.get(url("/events"));
+
+        assertThat(first.body()).isEqualTo("<html>the list</html>");
+        assertThat(second.outcome()).isEqualTo(Outcome.OK);
+        assertThat(second.status()).isEqualTo(304);
+        assertThat(second.body()).isEqualTo("<html>the list</html>");
+        site.verify(getRequestedFor(urlEqualTo("/events"))
+                .withHeader("If-None-Match", equalTo("\"v1\""))
+                .withHeader("If-Modified-Since", equalTo("Fri, 02 Oct 2026 08:00:00 GMT")));
     }
 
     @Test

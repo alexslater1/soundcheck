@@ -14,6 +14,7 @@ import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
@@ -24,7 +25,10 @@ import org.springframework.web.client.RestClient;
  * read first and obeyed (cached for 12 h, so a new {@code Disallow} takes effect by the next daily run),
  * requests to one host are at least {@code minSpacing} apart (more if {@code Crawl-delay} asks), the
  * user agent is our own short, stable one, a 403 or 429 makes us leave the host alone for a day, and
- * nothing is retried: a failure waits for tomorrow. Bodies are capped at 5 MB.
+ * nothing is retried: a failure waits for tomorrow. Bodies are capped at 5 MB. A page is asked for
+ * conditionally ({@code If-None-Match} / {@code If-Modified-Since}) when the site gave a validator last
+ * time; a 304 reuses the body kept from then, so an unchanged page costs the site almost nothing. The
+ * validators live in this process (the scheduler runs daily in the long-lived API process).
  */
 @Component
 public class PoliteFetcher {
@@ -52,6 +56,9 @@ public class PoliteFetcher {
 
     private record Robots(RobotsTxt rules, Instant at) {}
 
+    /** What a page answered last time, for a conditional request. */
+    private record Validated(@Nullable String etag, @Nullable String lastModified, String body) {}
+
     private final RestClient rest;
     private final IngestionProperties.Venues config;
     private final Clock clock;
@@ -60,6 +67,7 @@ public class PoliteFetcher {
     private final Map<String, Robots> robots = new HashMap<>();
     private final Map<String, Instant> lastRequest = new HashMap<>();
     private final Map<String, Instant> blockedUntil = new HashMap<>();
+    private final Map<URI, Validated> validated = new HashMap<>();
 
     @Autowired
     public PoliteFetcher(IngestionProperties properties, Clock clock, MeterRegistry meters) {
@@ -141,22 +149,42 @@ public class PoliteFetcher {
         }
         lastRequest.put(host, Instant.now(clock));
         try {
-            return rest.get().uri(url).exchange((request, response) -> {
-                int status = response.getStatusCode().value();
-                if (status == 403 || status == 429) {
-                    blockedUntil.put(host, Instant.now(clock).plus(config.backOff()));
-                    log.warn("{} answered {}: leaving it alone for {}", host, status, config.backOff());
-                    return new Result(Outcome.BLOCKED, status, null, host + " answered " + status);
-                }
-                if (status < 200 || status >= 300) {
-                    return new Result(Outcome.FAILED, status, null, host + " answered " + status);
-                }
-                byte[] bytes = response.getBody().readNBytes(MAX_BODY + 1);
-                if (bytes.length > MAX_BODY) {
-                    return new Result(Outcome.FAILED, status, null, "body over 5 MB");
-                }
-                return new Result(Outcome.OK, status, new String(bytes, StandardCharsets.UTF_8), "ok");
-            });
+            Validated previous = validated.get(url);
+            return rest.get()
+                    .uri(url)
+                    .headers(headers -> {
+                        if (previous != null && previous.etag() != null) {
+                            headers.set(HttpHeaders.IF_NONE_MATCH, previous.etag());
+                        }
+                        if (previous != null && previous.lastModified() != null) {
+                            headers.set(HttpHeaders.IF_MODIFIED_SINCE, previous.lastModified());
+                        }
+                    })
+                    .exchange((request, response) -> {
+                        int status = response.getStatusCode().value();
+                        if (status == 304 && previous != null) {
+                            return new Result(Outcome.OK, status, previous.body(), "not modified");
+                        }
+                        if (status == 403 || status == 429) {
+                            blockedUntil.put(host, Instant.now(clock).plus(config.backOff()));
+                            log.warn("{} answered {}: leaving it alone for {}", host, status, config.backOff());
+                            return new Result(Outcome.BLOCKED, status, null, host + " answered " + status);
+                        }
+                        if (status < 200 || status >= 300) {
+                            return new Result(Outcome.FAILED, status, null, host + " answered " + status);
+                        }
+                        byte[] bytes = response.getBody().readNBytes(MAX_BODY + 1);
+                        if (bytes.length > MAX_BODY) {
+                            return new Result(Outcome.FAILED, status, null, "body over 5 MB");
+                        }
+                        String body = new String(bytes, StandardCharsets.UTF_8);
+                        String etag = response.getHeaders().getFirst(HttpHeaders.ETAG);
+                        String lastModified = response.getHeaders().getFirst(HttpHeaders.LAST_MODIFIED);
+                        if (etag != null || lastModified != null) {
+                            validated.put(url, new Validated(etag, lastModified, body));
+                        }
+                        return new Result(Outcome.OK, status, body, "ok");
+                    });
         } catch (ResourceAccessException e) {
             return new Result(
                     Outcome.FAILED,
