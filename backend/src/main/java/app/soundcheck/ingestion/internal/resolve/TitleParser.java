@@ -110,7 +110,7 @@ public final class TitleParser {
 
     /** "An Evening with X": the act is X. */
     private static final Pattern EVENING_WITH =
-            Pattern.compile("^(?:an?\\s+)?evening\\s+with\\s+", Pattern.CASE_INSENSITIVE);
+            Pattern.compile("^(?:an?\\s+)?(?:evening|afternoon|night|audience)\\s+with\\s+", Pattern.CASE_INSENSITIVE);
 
     /** "… and guests TBA", "+ special guests": more acts to come, at the end. */
     private static final Pattern GUESTS_TAIL = Pattern.compile(
@@ -161,7 +161,8 @@ public final class TitleParser {
     private static final Pattern TOUR_WORDS = Pattern.compile(
             "\\b(?:tour|live|in\\s+concert|album|ep|single|launch|release|anniversary|headline|show|night|"
                     + "evening|plays|performs|celebrat\\w*|farewell|reunion|residency|session|special|years?|20\\d\\d|"
-                    + "club\\s*night|halloween|christmas|xmas|fundraiser|benefit|all-?dayer|weekender|matinee)\\b",
+                    + "club\\s*night|halloween|christmas|xmas|fundraiser|benefit|all-?dayer|weekender|matinee|"
+                    + "tribute|debut|day\\s+(?:one|two|three|four|five|\\d+))\\b",
             Pattern.CASE_INSENSITIVE);
 
     private static final String WEEKDAY =
@@ -328,8 +329,16 @@ public final class TitleParser {
                             "(?i)\\s*[(\\[](?:live|dj\\s+set|acoustic|solo|full\\s+band|band|co[-\\s]?headliners?|headliners?"
                                     + "|(?:evening|afternoon|matinee|early|late)(?:\\s+show)?)[)\\]]$",
                             "")
+                    // "Confyde (solo set)"
+                    .replaceAll("(?i)\\s*[(\\[](?:solo|acoustic|full\\s+band|dj)\\s+set[)\\]]$", "")
                     // "Air.wav live": the act, playing live
                     .replaceAll("(?i)(?<=\\S)\\s+live$", ""));
+            // "Modern Guilt (Album Launch)" on one act of a bill: the bracket is about the show, not a name.
+            Matcher actBracket =
+                    Pattern.compile("^(.+?)\\s*[(\\[]([^)\\]]*)[)\\]]$").matcher(act);
+            if (actBracket.matches() && TOUR_WORDS.matcher(actBracket.group(2)).find()) {
+                act = tidy(actBracket.group(1));
+            }
             if (!act.isEmpty() && !PLACEHOLDER.matcher(act).matches() && !acts.contains(act)) {
                 acts.add(act);
             }

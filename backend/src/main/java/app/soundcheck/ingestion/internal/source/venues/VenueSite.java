@@ -77,7 +77,8 @@ public record VenueSite(
     static final Pattern NOT_MUSIC = Pattern.compile(
             "open\\s*mic|\\bquiz\\b|karaoke|poetry|comedy|stand-?up|life\\s+drawing|workshop|wrestling"
                     + "|book\\s+club|\\bmarket\\b|\\byoga\\b|\\bbingo\\b|film\\s+(?:club|screening|night)"
-                    + "|movie\\s+night|rockeoke|tournament|dungeons\\s*(?:&|and)\\s*dragons|vintage\\s+sale|kilo\\s+sale",
+                    + "|movie\\s+night|rockeoke|tournament|dungeons\\s*(?:&|and)\\s*dragons|vintage\\s+sale|kilo\\s+sale"
+                    + "|in\\s+conversation",
             Pattern.CASE_INSENSITIVE);
 
     /** Whether a title is left out: not music in general, or what the venue's entry says to skip. */

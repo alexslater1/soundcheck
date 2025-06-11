@@ -72,7 +72,9 @@ public class PoliteFetcher {
                 .connectTimeout(Duration.ofSeconds(5))
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build());
-        requests.setReadTimeout(Duration.ofSeconds(15));
+        // Small venues' WordPress sites can take 10+ s to render a cold page (The Dublin Castle: 7.7 s on
+        // 2025-06-11, a timeout at 15 s minutes earlier). One request a day can afford to wait.
+        requests.setReadTimeout(Duration.ofSeconds(30));
         this.rest = RestClient.builder()
                 .requestFactory(requests)
                 .defaultHeader("User-Agent", config.userAgent())

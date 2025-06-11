@@ -193,6 +193,16 @@ class TitleParserTest {
                 row("?, Drive Your Plough, Redeye", "Drive Your Plough|Redeye"),
                 row("Mark Frye performs Dreaming with Alice", "Mark Frye", Set.of(), "Dreaming with Alice"),
                 row("Air.wave live", "Air.wave"),
+                row(
+                        "An AFTERNOON with Kristen Hersch - Day Three - Sunday",
+                        "Kristen Hersch",
+                        Set.of(),
+                        "Day Three - Sunday"),
+                row("A Night with Szoo", "Szoo"),
+                row("Modern Guile (Album Launch), Scarlet Sometime", "Modern Guile|Scarlet Sometime"),
+                row("Tiger, Mount Forel, Confide (solo set)", "Tiger|Mount Forel|Confide"),
+                row("Pola & Brysen Live (World Debut)", "Pola & Brysen", Set.of(), "World Debut"),
+                row("Tool Shedd [TOOL Tribute]", "Tool Shedd", Set.of(), "TOOL Tribute"),
                 // ... and what those rules must leave alone
                 row("BREED 78 – Live", "BREED 78", Set.of(), "Live"),
                 row("Night Bus ft. Pale Kites", "Night Bus|Pale Kites"),

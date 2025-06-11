@@ -196,7 +196,7 @@
       "venue": { "name": "Paper Dress Vintage", "address": "352a Mare Street", "city": "London", "postcode": "E8 1HR", "lat": 51.548244, "lng": -0.0548 },
       "ticketmasterVenueId": null,
       "precision": "DATE_ONLY",
-      "skipTitles": "club night|disco|dj set|\\bparty\\b",
+      "skipTitles": "club night|disco|dj set|\\bparty\\b|\\bclub\\b",
       "selectors": {
         "item": "a.events__event",
         "title": "h4",
