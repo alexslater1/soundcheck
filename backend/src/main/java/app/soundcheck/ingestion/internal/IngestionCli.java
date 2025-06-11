@@ -1,11 +1,18 @@
 package app.soundcheck.ingestion.internal;
 
 import app.soundcheck.ingestion.internal.source.GigSource;
+import app.soundcheck.ingestion.internal.source.SourceGig;
+import app.soundcheck.ingestion.internal.source.SourcePage;
 import app.soundcheck.ingestion.internal.source.venues.VenueCoverage;
+import app.soundcheck.ingestion.internal.source.venues.VenueSiteSource;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.SpringApplication;
@@ -31,6 +38,7 @@ class IngestionCli implements ApplicationRunner {
     private final IngestionService service;
     private final IngestionGuard guard;
     private final VenueCoverage coverage;
+    private final ObjectProvider<VenueSiteSource> venues;
     private final Clock clock;
 
     IngestionCli(
@@ -41,6 +49,7 @@ class IngestionCli implements ApplicationRunner {
             IngestionService service,
             IngestionGuard guard,
             VenueCoverage coverage,
+            ObjectProvider<VenueSiteSource> venues,
             Clock clock) {
         this.context = context;
         this.properties = properties;
@@ -49,6 +58,7 @@ class IngestionCli implements ApplicationRunner {
         this.service = service;
         this.guard = guard;
         this.coverage = coverage;
+        this.venues = venues;
         this.clock = clock;
     }
 
@@ -82,6 +92,8 @@ class IngestionCli implements ApplicationRunner {
                 }
                 // How many of each venue site's shows Ticketmaster misses (from the catalog, no fetching).
                 case "venue-coverage" -> System.out.println(VenueCoverage.report(coverage.measure(), clock.instant()));
+                // What a venue's site would give, without writing anything (checking a new entry).
+                case "venue-preview" -> System.out.println(preview());
                 default -> throw new IllegalArgumentException("Unknown soundcheck.ingestion.cli command: " + command);
             }
         } catch (RuntimeException e) {
@@ -90,5 +102,41 @@ class IngestionCli implements ApplicationRunner {
         }
         int code = exit;
         System.exit(SpringApplication.exit(context, () -> code));
+    }
+
+    private String preview() {
+        VenueSiteSource source = venues.getIfAvailable();
+        if (source == null) {
+            throw new IllegalStateException(
+                    "venue-preview needs INGESTION_MODE=live and soundcheck.ingestion.venues.enabled=true");
+        }
+        Instant now = clock.instant();
+        ZoneId uk = ZoneId.of("Europe/London");
+        StringBuilder out = new StringBuilder();
+        for (SourcePage page :
+                source.preview(now, now.plus(Duration.ofDays(90))).toList()) {
+            out.append("== ")
+                    .append(page.request())
+                    .append(" · ")
+                    .append(page.body())
+                    .append('\n');
+            page.issues().forEach(i -> out.append("   issue ")
+                    .append(i.kind())
+                    .append(": ")
+                    .append(i.detail())
+                    .append('\n'));
+            for (SourceGig gig : page.gigs()) {
+                out.append("   ")
+                        .append(gig.startsAt().atZone(uk).toLocalDateTime())
+                        .append(' ')
+                        .append(gig.timePrecision())
+                        .append(" | ")
+                        .append(gig.title())
+                        .append(" | ")
+                        .append(gig.artists().stream().map(a -> a.name()).toList())
+                        .append('\n');
+            }
+        }
+        return out.toString();
     }
 }

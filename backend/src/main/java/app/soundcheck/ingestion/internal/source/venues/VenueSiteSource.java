@@ -84,15 +84,30 @@ public class VenueSiteSource implements GigSource {
     public Stream<SourcePage> pages(Instant from, Instant to, CallBudget budget) {
         return registry.all().stream()
                 .filter(site -> config.sites().contains(site.key()))
-                .flatMap(site -> pagesOf(site, from, to, budget).stream());
+                .flatMap(site -> pagesOf(site, from, to, budget, true).stream());
     }
 
-    private List<SourcePage> pagesOf(VenueSite site, Instant from, Instant to, CallBudget budget) {
+    /**
+     * The same reading as a run, for {@code make venue-preview}: the enabled venues' pages fetched
+     * (politely, robots.txt included) and turned into gigs, with nothing written: no pinning, no
+     * resolving. For checking a new registry entry before it joins the runs.
+     */
+    public Stream<SourcePage> preview(Instant from, Instant to) {
+        CallBudget budget =
+                new CallBudget(MAX_PAGES_PER_VENUE * Math.max(1, config.sites().size()));
+        return registry.all().stream()
+                .filter(site -> config.sites().contains(site.key()))
+                .flatMap(site -> pagesOf(site, from, to, budget, false).stream());
+    }
+
+    private List<SourcePage> pagesOf(VenueSite site, Instant from, Instant to, CallBudget budget, boolean pin) {
         VenueAdapter adapter = adapters.get(site.adapter());
         if (adapter == null) {
             return List.of(issueOnly(site, null, "VENUE_NO_ADAPTER", "no adapter called " + site.adapter()));
         }
-        pin(site);
+        if (pin) {
+            pin(site);
+        }
         LocalDate today = LocalDate.now(clock.withZone(Listings.UK));
         List<SourcePage> pages = new ArrayList<>();
         URI next = adapter.firstPage(site, today);

@@ -179,6 +179,20 @@ class VenueSiteSourceTest {
     }
 
     @Test
+    void aPreviewReadsTheSameGigsAndWritesNothing() {
+        web.stubFor(get("/robots.txt").willReturn(aResponse().withBody("User-agent: *\nAllow: /\n")));
+        web.stubFor(get("/rss").willReturn(aResponse().withBody(VenueAdaptersTest.fixture("moth.rss"))));
+
+        List<SourceGig> gigs = source(List.of("moth"), site("moth", "moth-rss", "/rss", "KovZTM"))
+                .preview(FROM, TO)
+                .flatMap(p -> p.gigs().stream())
+                .toList();
+
+        assertThat(gigs).hasSize(4);
+        org.mockito.Mockito.verifyNoInteractions(catalog); // no pinning, no siblings, no lookups
+    }
+
+    @Test
     void anExhaustedBudgetStopsFetching() {
         web.stubFor(get("/robots.txt").willReturn(aResponse().withBody("User-agent: *\nAllow: /\n")));
         web.stubFor(get("/rss").willReturn(aResponse().withBody(VenueAdaptersTest.fixture("moth.rss"))));
