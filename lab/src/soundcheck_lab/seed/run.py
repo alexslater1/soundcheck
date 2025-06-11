@@ -404,11 +404,13 @@ def real_posts(
         for s in skipped
     ]
     plan: list[tuple[int, Gig, Clip, tuple[str, ...], Persona]] = []
+    rules: dict[str, str] = {}  # gig key → how its clips were tagged
     for gig in gigs:
         clips = matched.get(gig.key, [])
         if not clips or gig.key not in summaries:
             continue
         tags = realclips.act_tags(gig, clips)
+        rules[gig.key] = realclips.tag_rule(gig, clips)
         people = attendees(gig, indie)
         chosen = realclips.pick(clips, settings.clips_per_gig)
         for i, clip in enumerate(chosen):
@@ -439,6 +441,7 @@ def real_posts(
             "gig": gig.key,
             "gig_id": summary["id"],
             "acts": "; ".join(acts),
+            "tag_rule": rules[gig.key],
             "persona": poster.handle,
         }
         done = posts.get(clip.name)
@@ -446,6 +449,7 @@ def real_posts(
             manifest.append(row | {"status": "posted", "post_id": done["post_id"]})
             continue
         start, length = realclips.segment(clip.duration_s, settings.max_clip_s)
+        # kept after upload (~25 MB each): after `make reset`, a run uploads without re-encoding
         out = settings.work_dir / "encoded" / f"{clip.path.stem}.mp4"
         try:
             encode.encode(clip.path, out, start, length, log)
@@ -473,7 +477,6 @@ def real_posts(
         manifest.append(row | {"status": "posted", "post_id": post["id"]})
         what = ", ".join(acts) or gig.title
         log(f"  [{n}/{len(plan)}] @{poster.handle}: {gig.night} {what} ({length:.0f} s)")
-        out.unlink(missing_ok=True)  # the bucket has it now; keep the disk free
     write_manifest(settings.clips_dir / "manifest.csv", manifest)
 
 
@@ -487,7 +490,18 @@ def _post_exists(api: Api, persona: Persona, post_id: str) -> bool:
 
 
 def write_manifest(path: Path, rows: Iterable[dict[str, str]]) -> None:
-    fields = ["file", "night", "gig", "gig_id", "acts", "persona", "status", "post_id", "reason"]
+    fields = [
+        "file",
+        "night",
+        "gig",
+        "gig_id",
+        "acts",
+        "tag_rule",
+        "persona",
+        "status",
+        "post_id",
+        "reason",
+    ]
     with path.open("w", newline="", encoding="utf-8") as fh:
         writer = csv.DictWriter(fh, fieldnames=fields)
         writer.writeheader()

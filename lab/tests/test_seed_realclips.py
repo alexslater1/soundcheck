@@ -102,7 +102,30 @@ def test_sets_start_after_a_pause_longer_than_fifteen_minutes() -> None:
     ]
 
 
-def test_act_tags_are_certain_only_when_they_can_be() -> None:
+def test_two_clips_in_one_long_headline_set_are_not_read_as_support_and_headliner() -> None:
+    # an invented case: one headline set filmed twice, 30 minutes apart, both after 21:00
+    during_headline = [clip("h1.mp4", at(NIGHT, 21, 10)), clip("h2.mp4", at(NIGHT, 21, 40))]
+    bill = gig("night", NIGHT, "Support", "Headliner")
+    assert len(realclips.sets(during_headline)) == 2  # two groups of clips…
+    assert realclips.act_tags(bill, during_headline)["h1.mp4"] == ("Headliner", "Support")  # …1 act
+    # my real Pixies night (20:40 and 22:07): support, then headliner, as tagged
+    pixies = [clip("p1.mp4", at(NIGHT, 20, 40)), clip("p2.mp4", at(NIGHT, 22, 7))]
+    assert realclips.act_tags(gig("pixies", NIGHT, "BIG SPECIAL", "Pixies"), pixies) == {
+        "p1.mp4": ("BIG SPECIAL",),
+        "p2.mp4": ("Pixies",),
+    }
+    assert realclips.tag_rule(bill, during_headline) == "whole bill"
+    # a short pause is no changeover either
+    close = [clip("a.mp4", at(NIGHT, 20, 0)), clip("b.mp4", at(NIGHT, 20, 20))]
+    assert realclips.tag_rule(bill, close) == "whole bill"
+
+
+def test_evening_minutes_run_past_midnight() -> None:
+    assert realclips.evening_minutes(at(NIGHT, 21, 30)) == 1290
+    assert realclips.evening_minutes(at(date(2026, 3, 26), 0, 30)) == 1470
+
+
+def test_act_tags_one_act_only_on_strong_evidence() -> None:
     two_sets = [
         clip("s1.mp4", at(NIGHT, 20)),
         clip("h1.mp4", at(NIGHT, 21, 30)),
@@ -119,6 +142,8 @@ def test_act_tags_are_certain_only_when_they_can_be() -> None:
     assert realclips.act_tags(gig("keo", NIGHT, "Keo"), one_set)["h2.mp4"] == ("Keo",)
     festival = gig("truck", NIGHT, "The K's", "The Wombats", festival=True)
     assert realclips.act_tags(festival, two_sets)["s1.mp4"] == ()
+    assert realclips.tag_rule(bill, two_sets) == "sets matched to the bill (a guess)"
+    assert realclips.tag_rule(festival, two_sets) == "festival: no act"
 
 
 def test_pick_spreads_over_the_night_and_drops_tiny_clips() -> None:

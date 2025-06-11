@@ -22,7 +22,10 @@ from zoneinfo import ZoneInfo
 
 LONDON = ZoneInfo("Europe/London")
 NIGHT_SHIFT = timedelta(hours=6)  # a clip at 01:30 belongs to the evening before
-SET_GAP = timedelta(minutes=15)  # a longer pause between clips is a changeover between acts
+SET_GAP = timedelta(minutes=15)  # a longer pause between clips starts a new group of clips
+CHANGEOVER = timedelta(minutes=25)  # sets read as different acts only with a pause this long
+SUPPORT_STARTS_BEFORE = 21 * 60  # minutes: a support slot starts before 21:00
+HEADLINER_STARTS_FROM = 20 * 60 + 30  # minutes: a headliner starts at 20:30 or later
 MAX_KM = 60.0  # a phone clip this far from the gig's city is not from that gig (trips abroad)
 MIN_CLIP_S = 4.0
 EDIT = re.compile(r"^(?P<base>.+?)~(?P<n>\d+)\.mp4$")  # PXL_…~2.mp4: my edited copy (a trim)
@@ -260,17 +263,52 @@ def sets(clips: Sequence[Clip], gap: timedelta = SET_GAP) -> list[list[Clip]]:
     return groups
 
 
+def evening_minutes(t: datetime) -> int:
+    """Minutes since midnight of the night, local time: 21:30 is 1290, 00:30 after it is 1470."""
+    local = t.astimezone(LONDON)
+    minutes = local.hour * 60 + local.minute
+    return minutes + 1440 if local.hour < 6 else minutes
+
+
+def sets_fit_the_bill(gig: Gig, groups: Sequence[Sequence[Clip]]) -> bool:
+    """Whether the sets of clips look like the bill's acts one after another: as many sets as acts,
+    a real changeover between them (25 min or more), the first starting before 21:00 (a support
+    slot) and the last at 20:30 or later (a headliner's). Without these, two clips half an hour
+    apart in one long headline set would be read as support and headliner."""
+    if len(groups) < 2 or len(groups) != len(gig.acts):
+        return False
+    changeovers = all(
+        b[0].taken - a[-1].taken >= CHANGEOVER for a, b in zip(groups, groups[1:], strict=False)
+    )
+    return (
+        changeovers
+        and evening_minutes(groups[0][0].taken) < SUPPORT_STARTS_BEFORE
+        and evening_minutes(groups[-1][0].taken) >= HEADLINER_STARTS_FROM
+    )
+
+
+def tag_rule(gig: Gig, clips: Sequence[Clip]) -> str:
+    """How `act_tags` decided, for the manifest I review."""
+    if gig.festival:
+        return "festival: no act"
+    if len(gig.acts) == 1:
+        return "one act on the bill"
+    if sets_fit_the_bill(gig, sets(clips)):
+        return "sets matched to the bill (a guess)"
+    return "whole bill"
+
+
 def act_tags(gig: Gig, clips: Sequence[Clip]) -> dict[str, tuple[str, ...]]:
-    """Which acts to tag on each clip. Certain only when it can be: a one-act bill, or as many sets
-    of clips as acts on the bill (then set i is act i in stage order). Otherwise the whole bill,
-    since I often went for a support act. Festival clips get no act: there is no telling which
-    stage."""
+    """Which acts to tag on each clip. One act only on a one-act bill, or when the sets of clips
+    fit the bill (`sets_fit_the_bill`; still a guess: there are no set times); otherwise the whole
+    bill, since I often went for a support act. Festival clips get no act: there is no telling
+    which stage."""
     if gig.festival:
         return {c.name: () for c in clips}
     if len(gig.acts) == 1:
         return {c.name: (gig.headliner.name,) for c in clips}
     groups = sets(clips)
-    if len(groups) == len(gig.acts):
+    if sets_fit_the_bill(gig, groups):
         return {
             c.name: (act.name,) for act, group in zip(gig.acts, groups, strict=True) for c in group
         }
