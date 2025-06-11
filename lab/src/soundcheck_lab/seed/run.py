@@ -179,6 +179,8 @@ def follows(
 ) -> None:
     done = state.section("follows")
     for persona in people:
+        if done.get(persona.handle) is True:  # marked True before 304c402 kept ids
+            done[persona.handle] = api.ids[persona.handle]
         if done.get(persona.handle) == api.ids.get(persona.handle):
             continue
         others = [p for p in people if p is not persona]
@@ -399,6 +401,7 @@ def real_posts(
     log: Log,
 ) -> None:
     posts = state.section("posts")
+    by_handle = {p.handle: p for p in [*indie, DEMO]}  # who posted a remembered clip
     manifest: list[dict[str, str]] = [
         {"file": s.clip.name, "night": str(s.clip.night), "status": "skipped", "reason": s.reason}
         for s in skipped
@@ -445,7 +448,8 @@ def real_posts(
             "persona": poster.handle,
         }
         done = posts.get(clip.name)
-        if done and _post_exists(api, poster, done["post_id"]):
+        author = by_handle.get(done["persona"], poster) if done else poster
+        if done and _post_exists(api, author, done["post_id"]):
             manifest.append(row | {"status": "posted", "post_id": done["post_id"]})
             continue
         start, length = realclips.segment(clip.duration_s, settings.max_clip_s)
@@ -481,12 +485,19 @@ def real_posts(
 
 
 def _post_exists(api: Api, persona: Persona, post_id: str) -> bool:
+    """Whether a remembered post still stands. Gone (a reset database) or deleted: post again.
+    FAILED (its clip could not be transcoded, e.g. LocalStack refusing writes): delete it and post
+    again, since a failed post never recovers on its own."""
     try:
-        return str(api.get(persona, f"/api/v1/posts/{post_id}")["status"]) != "DELETED"
+        status = str(api.get(persona, f"/api/v1/posts/{post_id}")["status"])
     except ApiError as error:
         if error.status == 404:
             return False
         raise
+    if status == "FAILED":
+        api.request(persona, "DELETE", f"/api/v1/posts/{post_id}")
+        return False
+    return status != "DELETED"
 
 
 def write_manifest(path: Path, rows: Iterable[dict[str, str]]) -> None:
@@ -566,8 +577,10 @@ def social(api: Api, people: Sequence[Persona], state: State, log: Log) -> None:
     gigs = state.section("gigs")
     likes = comments = 0
     for persona in people:
+        if done.get(persona.handle) is True:  # marked True before 304c402 kept ids
+            done[persona.handle] = api.ids[persona.handle]
         if done.get(persona.handle) == api.ids.get(persona.handle):
-            continue
+            continue  # comments are not idempotent: never twice
         went = [
             g["id"] for g in gigs.values() if persona.handle in g["attendees"] or persona is DEMO
         ]

@@ -168,6 +168,31 @@ def test_multipart_upload_sends_each_part_and_completes_with_their_etags(tmp_pat
     assert completed == [{"parts": [{"partNumber": n, "etag": f'"e{n}"'} for n in (1, 2, 3)]}]
 
 
+def test_a_remembered_post_is_kept_only_while_it_stands() -> None:
+    from soundcheck_lab.seed.run import _post_exists
+
+    statuses = {"p-ok": "PUBLISHED", "p-failed": "FAILED", "p-deleted": "DELETED"}
+    deleted: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path.startswith("/api/v1/auth/"):
+            return auth_ok()
+        post_id = request.url.path.rsplit("/", 1)[-1]
+        if request.method == "DELETE":
+            deleted.append(post_id)
+            return httpx.Response(204)
+        if post_id not in statuses:
+            return httpx.Response(404, json={"code": "POST_NOT_FOUND", "detail": "gone"})
+        return httpx.Response(200, json={"id": post_id, "status": statuses[post_id]})
+
+    api = make(handler)
+    assert _post_exists(api, MAYA, "p-ok")
+    assert not _post_exists(api, MAYA, "p-gone")  # a reset database
+    assert not _post_exists(api, MAYA, "p-deleted")
+    assert not _post_exists(api, MAYA, "p-failed")  # deleted, so the clip is posted again
+    assert deleted == ["p-failed"]
+
+
 def test_pages_follows_the_cursor_to_the_end() -> None:
     def handler(request: httpx.Request) -> httpx.Response:
         if request.url.path.startswith("/api/v1/auth/"):
