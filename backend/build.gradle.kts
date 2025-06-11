@@ -67,6 +67,8 @@ dependencies {
     implementation(libs.springdoc.webmvc.ui)
     runtimeOnly(libs.bouncycastle.provider) // Argon2id
     implementation(libs.bucket4j.core) // rate limits
+    implementation(libs.jsoup) // venue websites' listings: HTML and embedded JSON-LD
+    implementation(libs.jspecify) // @NullMarked / @Nullable
 
     codegenImplementation(platform(SpringBootPlugin.BOM_COORDINATES))
     codegenImplementation(libs.jooq.codegen)

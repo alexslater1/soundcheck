@@ -2,6 +2,7 @@ package app.soundcheck.ingestion.internal.resolve;
 
 import app.soundcheck.catalog.ArtistDraft;
 import app.soundcheck.catalog.CatalogIngest;
+import app.soundcheck.catalog.GigCandidate;
 import app.soundcheck.catalog.GigDraft;
 import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.VenueDraft;
@@ -9,6 +10,7 @@ import app.soundcheck.ingestion.internal.RunStats;
 import app.soundcheck.ingestion.internal.source.SourceArtist;
 import app.soundcheck.ingestion.internal.source.SourceGig;
 import app.soundcheck.ingestion.internal.source.SourceVenue;
+import app.soundcheck.ingestion.internal.source.TimePrecision;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -43,8 +45,6 @@ public class EntityResolver {
     static final double VENUE_NEAR_SIMILARITY = 0.55;
     static final double VENUE_POSTCODE_SIMILARITY = 0.45;
     static final double ARTIST_SIMILARITY = 0.85;
-    static final Duration GIG_WINDOW = Duration.ofHours(3);
-    static final double GIG_TITLE_SIMILARITY = 0.6;
     /** A primary listing its source has not shown for this long is considered gone. */
     static final Duration PRIMARY_STALE_AFTER = Duration.ofDays(3);
 
@@ -52,8 +52,11 @@ public class EntityResolver {
             "\\b(vip|premium|packages?|hospitality|upgrades?|platinum|meet\\s*(&|and|n)?\\s*greet|early entry|priority entry)\\b",
             Pattern.CASE_INSENSITIVE);
 
-    /** When several listings point at one gig, a more trusted source's listing supplies its fields. Lower wins. */
-    static final List<String> SOURCE_PRIORITY = List.of("TICKETMASTER", "SKIDDLE");
+    /**
+     * When several listings point at one gig, a more trusted source's listing supplies its fields. Lower
+     * wins: ticketing sources, then a venue's own site, then fans and setlist.fm.
+     */
+    static final List<String> SOURCE_PRIORITY = List.of("TICKETMASTER", "SKIDDLE", "VENUE", "USER", "SETLISTFM");
 
     /** What happened to the gig. */
     public enum Outcome {
@@ -64,16 +67,18 @@ public class EntityResolver {
     }
 
     private final CatalogIngest catalog;
+    private final MatchReviews reviews;
 
-    public EntityResolver(CatalogIngest catalog) {
+    public EntityResolver(CatalogIngest catalog, MatchReviews reviews) {
         this.catalog = catalog;
+        this.reviews = reviews;
     }
 
     @Transactional
     public Outcome ingest(SourceGig gig, RunStats stats, Instant seenAt) {
         UUID venueId = resolveVenue(gig.source(), gig.venue(), stats);
         List<UUID> artistIds = new ArrayList<>();
-        for (SourceArtist artist : gig.artists()) {
+        for (SourceArtist artist : actsOf(gig)) {
             UUID artistId = resolveArtist(gig.source(), artist, venueId, stats);
             if (!artistIds.contains(artistId)) { // two source acts can resolve to one artist
                 artistIds.add(artistId);
@@ -93,6 +98,27 @@ public class EntityResolver {
                 contentHash(gig, venueId, artistIds),
                 artistIds);
         return resolveGig(gig, draft, stats, seenAt);
+    }
+
+    /**
+     * The acts to resolve. Acts read out of a title (sources without act ids) were split on
+     * {@code +} and commas, which breaks names like "Florence + The Machine": when the unsplit text is
+     * one artist the catalog already knows (and a source vouches for), that artist is the act.
+     */
+    private List<SourceArtist> actsOf(SourceGig gig) {
+        List<SourceArtist> acts = gig.artists();
+        boolean fromTitle =
+                acts.size() > 1 && acts.stream().allMatch(a -> a.externalId().isBlank());
+        if (fromTitle) {
+            String whole = TitleParser.parse(gig.title()).whole();
+            Optional<UUID> known = catalog.artistByName(whole, null);
+            // Only an artist something vouches for (MBID, a source's id) may undo the split: an artist
+            // created from an earlier, wrong parse of the same title must not confirm itself.
+            if (known.isPresent() && catalog.artistIsVouchedFor(known.get())) {
+                return List.of(new SourceArtist("", whole, null, List.of(), null));
+            }
+        }
+        return acts;
     }
 
     // ── venue: external id → within 150 m and similar name → same postcode and similar name → create ──
@@ -137,7 +163,9 @@ public class EntityResolver {
     // ── artist: external id → MBID → exact normalised name → very similar name + shared genre/venue → create ──
 
     private UUID resolveArtist(String source, SourceArtist artist, UUID venueId, RunStats stats) {
-        Optional<UUID> known = catalog.artistByExternalId(source, artist.externalId());
+        // A blank external id means the source has no ids for acts (a venue site): names only.
+        boolean hasId = !artist.externalId().isBlank();
+        Optional<UUID> known = hasId ? catalog.artistByExternalId(source, artist.externalId()) : Optional.empty();
         if (known.isPresent()) {
             stats.artists.matchedByExternalId++;
             return known.get();
@@ -159,7 +187,9 @@ public class EntityResolver {
             stats.artists.created++;
             id = catalog.createArtist(new ArtistDraft(artist.name(), artist.mbid(), artist.imageUrl(), genres));
         }
-        catalog.linkArtist(source, artist.externalId(), id);
+        if (hasId) {
+            catalog.linkArtist(source, artist.externalId(), id);
+        }
         return id;
     }
 
@@ -180,7 +210,7 @@ public class EntityResolver {
         return GenreWeights.topNormalised(raw, 3);
     }
 
-    // ── gig: this listing's id → same venue ± 3 h and same headliner or similar title (merge) → create ──
+    // ── gig: this listing's id → same venue and night, judged by GigMatcher (merge / log / create) → create ──
 
     private Outcome resolveGig(SourceGig gig, GigDraft draft, RunStats stats, Instant seenAt) {
         Optional<GigRef> known = catalog.gigBySource(gig.source(), gig.externalId());
@@ -205,22 +235,60 @@ public class EntityResolver {
             stats.updated++;
             return Outcome.UPDATED;
         }
-        for (GigRef candidate : catalog.gigsAtVenueAround(
-                draft.venueId(),
-                draft.startsAt(),
-                GIG_WINDOW,
-                draft.artistIds().getFirst(),
-                draft.title(),
-                GIG_TITLE_SIMILARITY)) {
-            if (!sameShow(gig, candidate)) {
-                continue;
+        // Same venue, same night: the matcher decides which candidate, if any, is this show.
+        Instant nightStart = GigMatcher.night(gig.startsAt())
+                .atTime(6, 0)
+                .atZone(GigMatcher.UK)
+                .toInstant();
+        GigMatcher.Side incoming = new GigMatcher.Side(
+                gig.source(),
+                gig.startsAt(),
+                gig.timePrecision(),
+                gig.title(),
+                draft.artistIds(),
+                gig.artists().stream().map(SourceArtist::name).toList(),
+                isPackage(gig.title()));
+        GigCandidate best = null;
+        GigMatcher.Decision bestDecision = null;
+        List<Map.Entry<GigCandidate, GigMatcher.Decision>> almost = new ArrayList<>();
+        for (GigCandidate candidate :
+                catalog.gigsAtVenueBetween(draft.venueId(), nightStart, nightStart.plus(Duration.ofDays(1)))) {
+            GigRef ref = candidate.gig();
+            GigMatcher.Side existing = new GigMatcher.Side(
+                    ref.primary().source(),
+                    ref.startsAt(),
+                    precisionOf(ref.primary().source()),
+                    ref.title(),
+                    candidate.artistIds(),
+                    candidate.artistNames(),
+                    isPackage(ref.title()));
+            GigMatcher.Decision decision = GigMatcher.decide(
+                    incoming,
+                    existing,
+                    ref.listings().stream().map(GigRef.Listing::source).toList(),
+                    candidate.venueId().equals(draft.venueId()));
+            switch (decision.verdict()) {
+                case SAME -> {
+                    if (best == null || closer(gig, ref, best.gig())) {
+                        best = candidate;
+                        bestDecision = decision;
+                    }
+                }
+                case MAYBE -> almost.add(Map.entry(candidate, decision));
+                case DIFFERENT -> {}
             }
+        }
+        if (best != null && bestDecision != null) {
+            GigRef candidate = best.gig();
             stats.gigs.matchedFuzzy++;
             stats.merged++;
             catalog.linkGig(gig.source(), gig.externalId(), candidate.id(), gig.url(), seenAt, false);
             if (takesOver(gig, candidate)) {
                 catalog.makePrimary(candidate.id(), gig.source(), gig.externalId());
                 catalog.updateGig(candidate.id(), draft);
+            } else if (catalog.fillGig(candidate.id(), draft)) {
+                // Not trusted enough to rewrite the gig, but it can say what the gig does not (support acts).
+                stats.filled++;
             }
             return Outcome.MERGED;
         }
@@ -228,24 +296,37 @@ public class EntityResolver {
         stats.created++;
         UUID id = catalog.createGig(draft);
         catalog.linkGig(gig.source(), gig.externalId(), id, gig.url(), seenAt, true);
+        for (Map.Entry<GigCandidate, GigMatcher.Decision> pair : almost) {
+            // Close but not convincing: kept apart, and asked about once in the console.
+            stats.flaggedForReview++;
+            reviews.record(
+                    gig.source(),
+                    gig.externalId(),
+                    id,
+                    pair.getKey().gig().id(),
+                    gig.title(),
+                    pair.getKey().gig().title(),
+                    pair.getValue());
+        }
         return Outcome.CREATED;
     }
 
-    /**
-     * Is the incoming listing the same show as this candidate (same venue, within ± 3 h, same headliner or
-     * a similar title)? Across sources, yes: two sources rarely agree on the minute, and one may give the
-     * doors time. Within one source the source's own ids mean something: an 18:00 and a 20:30 listing of the
-     * same act are an early and a late show. They are one show only when they start at the same instant,
-     * or when one of the two is a package listing ("… - VIP Package", "Venue Premium Tickets"), which
-     * sources often date at the doors time.
-     */
-    static boolean sameShow(SourceGig incoming, GigRef candidate) {
-        if (!candidate.listedBy(incoming.source())) {
-            return true;
-        }
-        return candidate.startsAt().equals(incoming.startsAt())
-                || isPackage(incoming.title())
-                || isPackage(candidate.title());
+    /** How far a gig's start can be trusted, from the source of its primary listing. */
+    static TimePrecision precisionOf(String source) {
+        return switch (source) {
+            case "VENUE" -> TimePrecision.DOORS;
+            case "USER", "SETLISTFM" -> TimePrecision.DATE_ONLY;
+            default -> TimePrecision.EXACT;
+        };
+    }
+
+    /** Of two matching gigs, the one starting nearer the listing. */
+    private static boolean closer(SourceGig gig, GigRef a, GigRef b) {
+        return Duration.between(gig.startsAt(), a.startsAt())
+                        .abs()
+                        .compareTo(
+                                Duration.between(gig.startsAt(), b.startsAt()).abs())
+                < 0;
     }
 
     /**

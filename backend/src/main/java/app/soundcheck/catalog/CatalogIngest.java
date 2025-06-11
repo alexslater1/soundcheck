@@ -36,6 +36,13 @@ public interface CatalogIngest {
     /** Records that {@code source} calls this venue {@code externalId} (idempotent). */
     void linkVenue(String source, String externalId, UUID venueId);
 
+    /**
+     * Records that two venues are the same building (rooms, or one venue a source lists twice), so the
+     * same-show search covers both. Every sibling of either becomes a sibling of the other
+     * (idempotent).
+     */
+    void linkSiblings(UUID venueId, UUID siblingId);
+
     // ── artists ─────────────────────────────────────────────────────────────
 
     Optional<UUID> artistByExternalId(String source, String externalId);
@@ -57,6 +64,12 @@ public interface CatalogIngest {
             String name, double minSimilarity, Collection<Short> genreIds, UUID venueId, @Nullable UUID mbid);
 
     UUID createArtist(ArtistDraft artist);
+
+    /**
+     * Whether something other than a parsed title vouches for this artist: a MusicBrainz id or an id at
+     * a source (only such artists may undo a title split, so a wrong parse cannot confirm itself).
+     */
+    boolean artistIsVouchedFor(UUID artistId);
 
     /** Records that {@code source} calls this artist {@code externalId} (idempotent). */
     void linkArtist(String source, String externalId, UUID artistId);
@@ -95,6 +108,27 @@ public interface CatalogIngest {
      */
     List<GigRef> gigsAtVenueAround(
             UUID venueId, Instant startsAt, Duration window, UUID headlinerId, String title, double minTitleSimilarity);
+
+    /**
+     * Gigs at the venue or one of its siblings starting in {@code [from, to)}, with their bills (the
+     * matcher decides which, if any, is the same show; this only gathers them). Expected indexes:
+     * venue_sibling_pkey, gig_venue.
+     */
+    List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to);
+
+    /**
+     * Every gig {@code source} lists that starts in {@code [from, to)} and is not cancelled, and whether
+     * {@code other} lists it too, by start time. Expected indexes: gig_source_pkey (source
+     * prefix), gig_pkey.
+     */
+    List<ListingOverlap> listingsAlsoListedBy(String source, String other, Instant from, Instant to);
+
+    /**
+     * Fills what the gig does not have from a listing that is not its primary one, never overwriting:
+     * empty doors time, ticket link, prices, image, and acts missing
+     * from the bill (added after the existing ones). Returns whether anything changed.
+     */
+    boolean fillGig(UUID gigId, GigDraft from);
 
     UUID createGig(GigDraft gig);
 

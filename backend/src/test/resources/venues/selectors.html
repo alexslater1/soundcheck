@@ -1,0 +1,48 @@
+<!doctype html>
+<html><head><title>What's on</title></head><body>
+<!-- Synthetic: three page shapes the html-selectors adapter reads (2026-10-02 samples); acts invented. -->
+
+<!-- Shape 1: a grid of blocks, the time inside the date text, one page per event, a ticket link. -->
+<div class="grid">
+  <div class="grid-item">
+    <a href="https://tickets.example/pk" class="ticket-box">Get Tickets</a>
+    <div class="event-title">Pale Kites, Night Bus, Glass Lanterns</div>
+    <div class="event-date">Fri October 16, 19:30</div>
+    <a href="./event.php?id=101" class="link-box">Read More</a>
+  </div>
+  <div class="grid-item-club">
+    <div class="event-title">A Club Night</div>
+    <div class="event-date">Fri October 16, 23:00</div>
+    <a href="./event.php?id=102" class="link-box">Read More</a>
+  </div>
+  <div class="grid-item">
+    <div class="event-title">Dune Sisters</div>
+    <div class="event-date">Sat January 09, 20:00</div>
+    <a href="./event.php?id=103" class="link-box">Read More</a>
+  </div>
+  <a class="next-page" href="?page=2">More events</a>
+  <div class="grid-item">
+    <div class="event-title">Undated Band</div>
+    <div class="event-date">Coming soon</div>
+  </div>
+</div>
+
+<!-- Shape 2: one act per line, every block linking to the same promoter page, doors and price in one cell. -->
+<div class="listing">
+  <div class="listing_block1"><div class="listing_date">Sat, 17 Oct 2026 </div>
+    <div class="listing_title"><a href="https://promoter.example/bookings/">Harbour Hounds <br /> Rope Burns <br /> DJs</a></div>
+    <div class="listing_price">Doors 7.15<br />&pound;12 on the door</div></div>
+  <div class="listing_block2"><div class="listing_date">Sun, 18 Oct 2026 </div>
+    <div class="listing_title"><a href="https://promoter.example/bookings/">Velvet Static</a></div>
+    <div class="listing_price">Free entry</div></div>
+</div>
+
+<!-- Shape 3: schema.org microdata, the date as an ISO attribute, "doors - curfew" times. -->
+<ul class="list--events">
+  <li class="list--events__item" itemscope itemtype="http://schema.org/Event">
+    <div class="list--events__item__dates"><time itemprop="startDate" datetime="2026-10-20T00:00:00+00:00">Tue 20 Oct</time> <time class="time"> 18:30 - 22:00 </time></div>
+    <div class="list--events__item__image"><a href="https://hall.example/events/the-ondine-owls-20th-oct/"><img src="https://img.example/owls.jpg" alt=""></a></div>
+    <h3 class="list--events__item__title" itemprop="name">The Ondine Owls</h3>
+  </li>
+</ul>
+</body></html>

@@ -1,0 +1,6 @@
+{"api_version":"1","data":[
+ {"id":901,"title":"Harbour Hounds + Night Moths + Glass Lanterns","slug":"x","date":"2026-10-16","doors_time":"19:30","status":"upcoming","description":"…","price":"£12 – £14.50","ticket_url":"https://tickets.example.com/hh","venue_notes":null,"genres":["Rock"],"poster_url":"https://hopeandanchor.example/posters/a.webp","images":[],"bands":[],"updated_at":"2026-09-07T17:29:21.522Z","web_url":"https://hopeandanchor.example/#event/901","api_url":"https://hopeandanchor.example/api/v1/events/901"},
+ {"id":902,"title":"Loud Lanterns 5th Birthday: Velvet Static + Dune Sisters","slug":"y","date":"2026-10-17","doors_time":"19:00","status":"upcoming","price":"£8 + fees","ticket_url":null,"poster_url":null,"bands":["Velvet Static",{"name":"Dune Sisters"}],"web_url":"https://hopeandanchor.example/#event/902"},
+ {"id":903,"title":"Brass Owls","date":"2026-10-18","doors_time":"","status":"cancelled","price":"Free","bands":[],"web_url":"https://hopeandanchor.example/#event/903"},
+ {"id":904,"title":"No Date Here","date":"tbc","doors_time":"19:30","status":"upcoming","bands":[]}
+],"pagination":{"total":4,"count":4,"limit":100,"offset":0,"next":"https://hopeandanchor.example/api/v1/events?offset=100"},"links":{}}

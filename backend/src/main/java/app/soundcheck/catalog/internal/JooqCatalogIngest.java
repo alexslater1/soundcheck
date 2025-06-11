@@ -9,11 +9,14 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_EXTERNAL_ID;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_SIBLING;
 
 import app.soundcheck.catalog.ArtistDraft;
 import app.soundcheck.catalog.CatalogIngest;
+import app.soundcheck.catalog.GigCandidate;
 import app.soundcheck.catalog.GigDraft;
 import app.soundcheck.catalog.GigRef;
+import app.soundcheck.catalog.ListingOverlap;
 import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.catalog.VenueDraft;
 import app.soundcheck.shared.Ids;
@@ -24,10 +27,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -133,6 +139,30 @@ class JooqCatalogIngest implements CatalogIngest {
                 .execute();
     }
 
+    @Override
+    public void linkSiblings(UUID venueId, UUID siblingId) {
+        if (venueId.equals(siblingId)) {
+            return;
+        }
+        // The whole group: both venues and everything already linked to either, every pair both ways.
+        Set<UUID> group = new LinkedHashSet<>(List.of(venueId, siblingId));
+        group.addAll(dsl.select(VENUE_SIBLING.SIBLING_ID)
+                .from(VENUE_SIBLING)
+                .where(VENUE_SIBLING.VENUE_ID.in(venueId, siblingId))
+                .fetch(VENUE_SIBLING.SIBLING_ID));
+        for (UUID a : group) {
+            for (UUID b : group) {
+                if (!a.equals(b)) {
+                    dsl.insertInto(VENUE_SIBLING)
+                            .set(VENUE_SIBLING.VENUE_ID, a)
+                            .set(VENUE_SIBLING.SIBLING_ID, b)
+                            .onConflictDoNothing()
+                            .execute();
+                }
+            }
+        }
+    }
+
     // ── artists ─────────────────────────────────────────────────────────────
 
     @Override
@@ -216,6 +246,12 @@ class JooqCatalogIngest implements CatalogIngest {
                 .set(ARTIST_GENRE.WEIGHT, weight)
                 .execute());
         return id;
+    }
+
+    @Override
+    public boolean artistIsVouchedFor(UUID artistId) {
+        return dsl.fetchExists(ARTIST, ARTIST.ID.eq(artistId).and(ARTIST.MBID.isNotNull()))
+                || dsl.fetchExists(ARTIST_EXTERNAL_ID, ARTIST_EXTERNAL_ID.ARTIST_ID.eq(artistId));
     }
 
     @Override
@@ -360,6 +396,112 @@ class JooqCatalogIngest implements CatalogIngest {
                 .stream()
                 .map(this::ref)
                 .toList();
+    }
+
+    @Override
+    public List<GigCandidate> gigsAtVenueBetween(UUID venueId, Instant from, Instant to) {
+        Map<UUID, UUID> venueOf = new LinkedHashMap<>();
+        dsl.select(GIG.ID, GIG.VENUE_ID)
+                .from(GIG)
+                .where(GIG.VENUE_ID
+                        .eq(venueId)
+                        .or(GIG.VENUE_ID.in(DSL.select(VENUE_SIBLING.SIBLING_ID)
+                                .from(VENUE_SIBLING)
+                                .where(VENUE_SIBLING.VENUE_ID.eq(venueId)))))
+                .and(GIG.STARTS_AT.ge(at(from)))
+                .and(GIG.STARTS_AT.lt(at(to)))
+                .orderBy(GIG.STARTS_AT, GIG.ID)
+                .limit(20)
+                .forEach(r -> venueOf.put(r.value1(), r.value2()));
+        List<UUID> ids = List.copyOf(venueOf.keySet());
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        Map<UUID, List<UUID>> artistIds = new java.util.HashMap<>();
+        Map<UUID, List<String>> artistNames = new java.util.HashMap<>();
+        dsl.select(GIG_ARTIST.GIG_ID, ARTIST.ID, ARTIST.NAME)
+                .from(GIG_ARTIST)
+                .join(ARTIST)
+                .on(ARTIST.ID.eq(GIG_ARTIST.ARTIST_ID))
+                .where(GIG_ARTIST.GIG_ID.in(ids))
+                .orderBy(GIG_ARTIST.GIG_ID, GIG_ARTIST.BILLING_ORDER)
+                .forEach(r -> {
+                    artistIds
+                            .computeIfAbsent(r.value1(), k -> new java.util.ArrayList<>())
+                            .add(r.value2());
+                    artistNames
+                            .computeIfAbsent(r.value1(), k -> new java.util.ArrayList<>())
+                            .add(r.value3());
+                });
+        return ids.stream()
+                .map(id -> new GigCandidate(
+                        ref(id),
+                        venueOf.get(id),
+                        artistIds.getOrDefault(id, List.of()),
+                        artistNames.getOrDefault(id, List.of())))
+                .toList();
+    }
+
+    @Override
+    public List<ListingOverlap> listingsAlsoListedBy(String source, String other, Instant from, Instant to) {
+        var otherListing = GIG_SOURCE.as("other_listing");
+        Field<Boolean> alsoListed = DSL.field(DSL.exists(DSL.selectOne()
+                .from(otherListing)
+                .where(otherListing.GIG_ID.eq(GIG_SOURCE.GIG_ID))
+                .and(otherListing.SOURCE.eq(other))));
+        return dsl.select(GIG_SOURCE.EXTERNAL_ID, GIG.ID, GIG.TITLE, GIG.STARTS_AT, alsoListed)
+                .from(GIG_SOURCE)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_SOURCE.GIG_ID))
+                .where(GIG_SOURCE.SOURCE.eq(source))
+                .and(GIG.STARTS_AT.ge(at(from)))
+                .and(GIG.STARTS_AT.lt(at(to)))
+                .and(GIG.STATUS.ne("CANCELLED"))
+                .orderBy(GIG.STARTS_AT, GIG.ID)
+                .fetch(r -> new ListingOverlap(
+                        r.value1(), r.value2(), r.value3(), r.value4().toInstant(), r.value5()));
+    }
+
+    @Override
+    public boolean fillGig(UUID gigId, GigDraft from) {
+        int fields = dsl.update(GIG)
+                .set(
+                        GIG.DOORS_AT,
+                        DSL.coalesce(GIG.DOORS_AT, DSL.val(from.doorsAt() == null ? null : at(from.doorsAt()))))
+                .set(GIG.TICKET_URL, DSL.coalesce(GIG.TICKET_URL, DSL.val(from.ticketUrl())))
+                .set(GIG.PRICE_MIN, DSL.coalesce(GIG.PRICE_MIN, DSL.val(from.priceMin())))
+                .set(GIG.PRICE_MAX, DSL.coalesce(GIG.PRICE_MAX, DSL.val(from.priceMax())))
+                .set(GIG.CURRENCY, DSL.coalesce(GIG.CURRENCY, DSL.val(from.currency())))
+                .set(GIG.IMAGE_URL, DSL.coalesce(GIG.IMAGE_URL, DSL.val(from.imageUrl())))
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.ID.eq(gigId))
+                .and(GIG.DOORS_AT
+                        .isNull()
+                        .and(DSL.val(from.doorsAt()).isNotNull())
+                        .or(GIG.TICKET_URL
+                                .isNull()
+                                .and(DSL.val(from.ticketUrl()).isNotNull()))
+                        .or(GIG.PRICE_MIN.isNull().and(DSL.val(from.priceMin()).isNotNull()))
+                        .or(GIG.PRICE_MAX.isNull().and(DSL.val(from.priceMax()).isNotNull()))
+                        .or(GIG.IMAGE_URL.isNull().and(DSL.val(from.imageUrl()).isNotNull())))
+                .execute();
+        List<UUID> bill = dsl.select(GIG_ARTIST.ARTIST_ID)
+                .from(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                .orderBy(GIG_ARTIST.BILLING_ORDER)
+                .fetch(GIG_ARTIST.ARTIST_ID);
+        int added = 0;
+        for (UUID artistId : from.artistIds()) {
+            if (!bill.contains(artistId)) {
+                dsl.insertInto(GIG_ARTIST)
+                        .set(GIG_ARTIST.GIG_ID, gigId)
+                        .set(GIG_ARTIST.ARTIST_ID, artistId)
+                        .set(GIG_ARTIST.BILLING_ORDER, (short) (bill.size() + added))
+                        .execute();
+                added++;
+            }
+        }
+        return fields > 0 || added > 0;
     }
 
     @Override
