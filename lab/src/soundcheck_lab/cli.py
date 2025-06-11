@@ -35,6 +35,59 @@ def schema() -> None:
         typer.echo(f"  {feature.index:>2}  {feature.name:<20} {feature.description}")
 
 
+@app.command("seed-demo")
+def seed_demo(
+    api_url: str = typer.Option("http://localhost:8088", envvar="SOUNDCHECK_API_URL"),
+    personas: int = typer.Option(30, min=1, max=30, help="How many of the 30 personas"),
+    real: bool = typer.Option(
+        True,
+        "--real/--no-real",
+        help="My real gigs and clips (fixtures/clips/mine/, local only)",
+    ),
+    gigs: int | None = typer.Option(None, help="Only the first N of my gigs (a small run)"),
+    clips_per_gig: int = typer.Option(4, min=0),
+    max_clip_seconds: float = typer.Option(45.0, min=5, max=60),
+    synthetic: int = typer.Option(
+        3, min=0, help="Synthetic clips for personas with fewer real ones"
+    ),
+    engage: bool = typer.Option(
+        True, "--engage/--no-engage", help="Run the synthetic engagement pass"
+    ),
+) -> None:
+    """Seed personas, my gigs and clips, likes and engagement through the API."""
+    from soundcheck_lab.seed import engage as engagement
+    from soundcheck_lab.seed import run as seeding
+    from soundcheck_lab.seed.api import Api
+    from soundcheck_lab.seed.personas import DEMO, PERSONAS
+
+    settings = seeding.Settings(
+        root=seeding.default_root(),
+        api_url=api_url,
+        personas=personas,
+        clips_per_gig=clips_per_gig,
+        max_clip_s=max_clip_seconds,
+        synthetic_per_persona=synthetic,
+        gig_limit=gigs,
+        real=real,
+    )
+    if real and not (settings.clips_dir / "bills.json").exists():
+        typer.echo(f"no {settings.clips_dir / 'bills.json'}: seeding without real clips", err=True)
+        settings.real = False
+
+    def log(line: str) -> None:
+        typer.echo(line)
+
+    seeding.run(settings, log)
+    people = [*PERSONAS[:personas], DEMO]
+    api = Api(api_url)
+    try:
+        if engage:
+            engagement.engage(api, people, log)
+        engagement.report(api, people, log)
+    finally:
+        api.close()
+
+
 @app.command("seed-scale")
 def seed_scale(profile: str = typer.Option("small", help="small | medium | large")) -> None:
     """Generate the performance dataset directly in Postgres."""

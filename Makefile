@@ -209,8 +209,12 @@ record-fixtures: ## Record external API responses into fixtures/ (live calls; ne
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures --logging.level.org.jooq.tools.LoggerListener=info'
 	$(CURDIR)/ops/scripts/check-fixture-secrets.sh
 
-seed-demo: ## Seed demo personas, clips and engagement (idempotent); TARGET=aws for the cloud
-	$(call not_yet,seed-demo)
+seed-demo: ## Seed personas, the owner's real gigs and clips (if fixtures/clips/mine/ exists), likes and engagement through the API (idempotent; needs `make up`, `make api`, `make worker`; options: SEED_ARGS="--personas 3 --gigs 2")
+	@curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make up', 'make api' and 'make worker'"; exit 1; }
+	@test -n "$$(ls $(CURDIR)/fixtures/clips/demo/demo-*.mp4 2>/dev/null)" || python3 $(CURDIR)/ops/scripts/make_clips.py --demo
+	@n=$$($(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -Atc "select count(*) from catalog.gig where starts_at > now()"); \
+	  [ "$$n" -gt 0 ] || { echo "No upcoming gigs in the catalog: run 'make ingest' first"; exit 1; }
+	$(UV_LAB) run soundcheck-lab seed-demo $(SEED_ARGS)
 
 seed-scale: ## Generate the performance dataset (PROFILE=small|medium|large) into DB_NAME=soundcheck_perf
 	$(call not_yet,seed-scale)
