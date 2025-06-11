@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from urllib.parse import urlparse
 
 EMAIL_DOMAIN = "seed.soundcheck.test"
 LOCAL_PASSWORD = "seed-demo-persona-2026"  # local stack only; set SEED_PASSWORD anywhere else
@@ -33,6 +34,16 @@ class Persona:
 
 def password() -> str:
     return os.environ.get("SEED_PASSWORD", LOCAL_PASSWORD)
+
+
+def check_password_for(api_url: str) -> None:
+    """The committed default password is for the local stack only: anywhere else, every persona
+    would have a password anyone can read on GitHub. Raises unless SEED_PASSWORD is set there."""
+    host = urlparse(api_url).hostname or ""
+    if host not in {"localhost", "127.0.0.1", "::1"} and password() == LOCAL_PASSWORD:
+        raise ValueError(
+            f"set SEED_PASSWORD to seed {host}: the default is for the local stack only"
+        )
 
 
 def _p(handle: str, name: str, city: str, genres: str, bio: str) -> Persona:

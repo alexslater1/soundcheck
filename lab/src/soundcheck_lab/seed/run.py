@@ -29,7 +29,7 @@ from typing import Any
 from soundcheck_lab.seed import encode, realclips
 from soundcheck_lab.seed.api import Api, ApiError
 from soundcheck_lab.seed.avatar import avatar_png
-from soundcheck_lab.seed.personas import DEMO, PERSONAS, Persona
+from soundcheck_lab.seed.personas import DEMO, PERSONAS, Persona, check_password_for
 from soundcheck_lab.seed.realclips import Clip, Gig
 
 Log = Callable[[str], None]
@@ -103,6 +103,13 @@ def norm(name: str) -> str:
     name = name.lower().replace("&", "and")
     name = re.sub(r"^the ", "", name)
     return re.sub(r"[^a-z0-9]", "", name)
+
+
+def words(name: str) -> list[str]:
+    """The name's words in lower case, without a leading "the" or apostrophes."""
+    text = re.sub(r"['’.]", "", name.lower().replace("&", " and "))
+    found = re.findall(r"[a-z0-9]+", text)
+    return found[1:] if found[:1] == ["the"] else found
 
 
 # ── 1. accounts ──────────────────────────────────────────────────────────────────────────────────
@@ -221,30 +228,42 @@ def centroid(clips: Sequence[Clip]) -> tuple[float, float] | None:
 def choose_venue(
     hits: Sequence[dict[str, Any]], name: str, city: str, filmed_at: tuple[float, float] | None
 ) -> str | None:
-    """Which of GET /venues' hits is the gig's venue, or None for a new one. In order: the hit
-    nearest to where the clips were filmed (within 400 m), an exact name in the city, a prefix
-    match of a distinctive name ("EartH" / "EartH Theatre"; not "O2" / "O2 Academy2 Islington")."""
+    """Which of GET /venues' hits is the gig's venue, or None for a new one.
 
-    def metres(hit: dict[str, Any]) -> float:
+    The name decides; GPS only confirms, rules out and ranks. A hit is the venue when its name is
+    ours ("The Old Blue Last" / "Old Blue Last"), or starts with all of our words ("EartH" / "EartH
+    Theatre", "The Dome" / "The Dome London"), never the reverse ("Finsbury Park" is not the pub
+    "The Finsbury" next to it). A short name (under five letters: "O2", "Dome") only counts that
+    way when the clips were filmed within 150 m of it ("O2" must not become "O2 Academy2
+    Islington"). With GPS, a hit more than 2 km away is not it. Exact names win, then the
+    nearest."""
+    want = norm(name)
+    want_words = words(name)
+
+    def metres(hit: dict[str, Any]) -> float | None:
         loc = hit.get("location")
         if not loc or filmed_at is None:
-            return float("inf")
+            return None  # unknown: neither near nor far
         return 1000 * realclips.km(filmed_at[0], filmed_at[1], loc["lat"], loc["lng"])
 
-    in_city = [h for h in hits if (h.get("city") or city) == city]
-    near = sorted((h for h in in_city if metres(h) <= 400), key=metres)
-    if near:
-        return str(near[0]["id"])
-    want = norm(name)
-    plausible = [h for h in in_city if filmed_at is None or metres(h) <= 2000]
-    for hit in plausible:
+    def related(hit: dict[str, Any]) -> bool:
         if norm(hit["name"]) == want:
-            return str(hit["id"])
-    for hit in plausible:
-        got = norm(hit["name"])
-        if min(len(got), len(want)) >= 5 and (got.startswith(want) or want.startswith(got)):
-            return str(hit["id"])
-    return None
+            return True
+        starts = words(hit["name"])[: len(want_words)] == want_words
+        distance = metres(hit)
+        return starts and (len(want) >= 5 or (distance is not None and distance <= 150))
+
+    candidates = [
+        h
+        for h in hits
+        if (h.get("city") or city) == city and related(h) and (metres(h) or 0) <= 2000
+    ]
+    if not candidates:
+        return None
+    best = min(
+        candidates, key=lambda h: (norm(h["name"]) != want, metres(h) is None, metres(h) or 0)
+    )
+    return str(best["id"])
 
 
 def venue_for(
@@ -303,11 +322,13 @@ def add_gigs(
         )
         body |= venue_for(api, creator, gig, matched.get(gig.key, []), venues)
         result = api.post(creator, "/api/v1/gigs", body)
+        summary = result["item"]
         if result["created"]:
             q = quota.setdefault(creator.handle, {"date": today, "count": 0})
             q.update(date=today, count=(q["count"] if q["date"] == today else 0) + 1)
-        summary = result["item"]
-        venues.setdefault(f"{norm(gig.venue)}|{gig.city}", summary["venue"]["id"])
+            # remembered only for gigs added here: a gig found already may sit at a venue someone
+            # else chose (or got wrong), and that must not spread to the other gigs there
+            venues.setdefault(f"{norm(gig.venue)}|{gig.city}", summary["venue"]["id"])
         summaries[gig.key] = summary
         for persona in [*people, DEMO]:
             api.put(persona, f"/api/v1/gigs/{summary['id']}/attendance", {"status": "WENT"})
@@ -558,6 +579,7 @@ def social(api: Api, people: Sequence[Persona], state: State, log: Log) -> None:
 
 # ── the whole run ────────────────────────────────────────────────────────────────────────────────
 def run(settings: Settings, log: Log) -> None:
+    check_password_for(settings.api_url)
     state = State.load(settings.work_dir / "state.json")
     api = Api(settings.api_url)
     people = [*PERSONAS[: settings.personas], DEMO]

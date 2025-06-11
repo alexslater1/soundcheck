@@ -10,7 +10,7 @@ from typer.testing import CliRunner
 from soundcheck_lab.cli import app
 from soundcheck_lab.seed import encode, engage, run
 from soundcheck_lab.seed.avatar import avatar_png
-from soundcheck_lab.seed.personas import DEMO, PERSONAS
+from soundcheck_lab.seed.personas import DEMO, PERSONAS, check_password_for
 from soundcheck_lab.seed.realclips import Act, Clip, Gig
 
 CANONICAL_GENRES = {
@@ -57,6 +57,17 @@ def test_personas_are_valid_accounts_with_known_genres() -> None:
     assert all(set(p.genres) <= CANONICAL_GENRES for p in (*PERSONAS, DEMO))
     assert len(INDIE) >= 18  # most personas go to the kind of gigs I filmed
     assert {p.city for p in PERSONAS} >= {"London", "Brighton", "Manchester", "Bristol"}
+
+
+def test_the_default_password_is_refused_off_the_local_stack(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("SEED_PASSWORD", raising=False)
+    check_password_for("http://localhost:8088")  # fine
+    with pytest.raises(ValueError, match="SEED_PASSWORD"):
+        check_password_for("https://soundcheck.example.com")
+    monkeypatch.setenv("SEED_PASSWORD", "a-real-secret-from-secrets-manager")
+    check_password_for("https://soundcheck.example.com")
 
 
 def test_encode_command_cuts_scales_and_drops_metadata() -> None:
@@ -170,16 +181,34 @@ VENUES: list[dict[str, Any]] = [  # GET /venues lists those near home first
 
 def test_choose_venue_never_takes_a_short_name_as_a_prefix() -> None:
     assert run.choose_venue(VENUES, "The O2", "London", None) == "o2"  # not O2 Academy2 Islington
-    assert run.choose_venue(VENUES, "EartH", "London", None) == "earth"  # distinctive prefix
+    assert run.choose_venue(VENUES, "EartH", "London", None) == "earth"  # EartH + " Theatre"
     assert run.choose_venue(VENUES, "The Dome", "London", None) is None  # "dome" is too short
     assert run.choose_venue(VENUES, "The O2", "Belfast", None) == "o2-belfast"
 
 
-def test_choose_venue_prefers_where_the_clips_were_filmed() -> None:
+def test_choose_venue_uses_gps_to_confirm_and_rule_out_not_to_decide() -> None:
     filmed = (51.5574, -0.1384)  # Tufnell Park, 72 m from the Dome
     assert run.choose_venue(VENUES, "The Dome", "London", filmed) == "dome"
     far_away = (51.4657, -0.1149)  # Brixton: no hit within 2 km, so not even the exact name
     assert run.choose_venue(VENUES, "The O2", "London", far_away) is None
+    # Kasabian at Finsbury Park, 2026-07-04: the pub next to the park is not the park
+    pub = [
+        {
+            "id": "pub",
+            "name": "The Finsbury",
+            "city": "London",
+            "location": {"lat": 51.5649, "lng": -0.1060},
+        }
+    ]
+    assert run.choose_venue(pub, "Finsbury Park", "London", (51.5675, -0.1028)) is None
+    # Wolf Alice at The O2, 2025-12-03: a hit without coordinates is not "far away"
+    unplaced = [{"id": "o2", "name": "The O2", "city": "London", "location": None}]
+    assert run.choose_venue(unplaced, "The O2", "London", (51.5028, 0.0029)) == "o2"
+
+
+def test_words_drop_the_and_apostrophes() -> None:
+    assert run.words("The Elephant's Head") == ["elephants", "head"]
+    assert run.words("Signature Brew - Haggerston") == ["signature", "brew", "haggerston"]
 
 
 def test_centroid_of_the_gps_tagged_clips_only() -> None:
