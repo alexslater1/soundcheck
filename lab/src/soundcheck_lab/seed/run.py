@@ -172,7 +172,7 @@ def follows(
 ) -> None:
     done = state.section("follows")
     for persona in people:
-        if done.get(persona.handle):
+        if done.get(persona.handle) == api.ids.get(persona.handle):
             continue
         others = [p for p in people if p is not persona]
         same = sorted(
@@ -189,7 +189,7 @@ def follows(
             "items"
         ]:
             api.put(persona, f"/api/v1/artists/{artist['id']}/follow")
-        done[persona.handle] = True
+        done[persona.handle] = api.ids[persona.handle]  # by id: a reset database is seeded again
         state.save()
     log(f"follows: {len(people)} accounts follow 9 people and 5 artists each")
 
@@ -531,7 +531,7 @@ def social(api: Api, people: Sequence[Persona], state: State, log: Log) -> None:
     gigs = state.section("gigs")
     likes = comments = 0
     for persona in people:
-        if done.get(persona.handle):
+        if done.get(persona.handle) == api.ids.get(persona.handle):
             continue
         went = [
             g["id"] for g in gigs.values() if persona.handle in g["attendees"] or persona is DEMO
@@ -551,7 +551,7 @@ def social(api: Api, people: Sequence[Persona], state: State, log: Log) -> None:
                         {"body": COMMENTS[roll % len(COMMENTS)]},
                     )
                     comments += 1
-        done[persona.handle] = True
+        done[persona.handle] = api.ids[persona.handle]
         state.save()
     log(f"social: {likes} likes, {comments} comments")
 
