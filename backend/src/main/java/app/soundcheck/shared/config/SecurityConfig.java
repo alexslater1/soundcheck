@@ -2,6 +2,7 @@ package app.soundcheck.shared.config;
 
 import app.soundcheck.shared.web.ProblemAuthHandlers;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -80,16 +81,31 @@ class SecurityConfig {
                 .build();
     }
 
+    /** {@code soundcheck.cors.allowed-origins}: the two local origins by default, empty under the aws profile. */
     @Bean
-    CorsConfigurationSource corsConfigurationSource() {
+    CorsConfigurationSource corsConfigurationSource(
+            @Value("${soundcheck.cors.allowed-origins}") List<String> allowedOrigins) {
+        return corsFor(allowedOrigins);
+    }
+
+    /**
+     * CORS for {@code /api/**}. With no origins (AWS: the app and the API share CloudFront's origin, so no
+     * cross-origin call is legitimate) nothing is registered and no browser is let in from elsewhere: the
+     * local list must not ride along into production, credentials allowed.
+     */
+    static CorsConfigurationSource corsFor(List<String> allowedOrigins) {
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        List<String> origins = allowedOrigins.stream().filter(o -> !o.isBlank()).toList();
+        if (origins.isEmpty()) {
+            return source;
+        }
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(LOCAL_DEV_ORIGINS);
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(
                 List.of("Authorization", "Content-Type", "X-Client", "X-Requested-With", "Idempotency-Key"));
         config.setAllowCredentials(true); // the web refresh cookie
         config.setMaxAge(3600L);
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/api/**", config);
         return source;
     }

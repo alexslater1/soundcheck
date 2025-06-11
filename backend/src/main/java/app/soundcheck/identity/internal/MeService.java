@@ -10,7 +10,10 @@ import app.soundcheck.identity.internal.auth.AuthService;
 import app.soundcheck.identity.internal.auth.RefreshTokenRepository;
 import app.soundcheck.shared.media.PublicImages;
 import app.soundcheck.shared.web.ApiException;
+import app.soundcheck.shared.web.RateLimitProperties;
+import app.soundcheck.shared.web.RateLimiter;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
@@ -43,6 +46,9 @@ public class MeService {
     /** Someone's public profile as a particular viewer sees it. */
     public record Profile(Me user, ProfileFacts.Relation relation) {}
 
+    /** As {@code PasswordPolicy.MAX_LENGTH} at sign-up and login. */
+    static final int MAX_PASSWORD_LENGTH = 128;
+
     private final UserRepository users;
     private final RefreshTokenRepository refreshTokens;
     private final ReferenceData referenceData;
@@ -52,6 +58,8 @@ public class MeService {
     private final Users summaries;
     private final PublicImages images;
     private final ProfileFacts facts;
+    private final RateLimiter rateLimiter;
+    private final RateLimitProperties.Auth authLimits;
 
     public MeService(
             Users summaries,
@@ -62,7 +70,11 @@ public class MeService {
             ReferenceData referenceData,
             PasswordEncoder passwordEncoder,
             ApplicationEventPublisher events,
-            Clock clock) {
+            Clock clock,
+            RateLimiter rateLimiter,
+            RateLimitProperties rateLimits) {
+        this.rateLimiter = rateLimiter;
+        this.authLimits = rateLimits.auth();
         this.summaries = summaries;
         this.images = images;
         this.facts = facts;
@@ -182,9 +194,17 @@ public class MeService {
         return me(userId);
     }
 
-    /** Soft delete + revoke every session + {@link UserDeleted}; purge after the 7-day grace period. */
+    /**
+     * Soft delete + revoke every session + {@link UserDeleted}; purge after the 7-day grace period.
+     * The password check shares login's per-email limit: without it, a stolen access token
+     * could be used to guess the account's password at Argon2 speed.
+     */
     public void delete(UUID userId, String password) {
         UserRecord user = current(userId);
+        rateLimiter.enforce("auth:email:" + user.email(), authLimits.perEmailPerMinute(), Duration.ofMinutes(1));
+        if (password.length() > MAX_PASSWORD_LENGTH) { // never Argon2-hash an unbounded string
+            throw ApiException.unauthorized("INVALID_CREDENTIALS", "Password is incorrect");
+        }
         if (!passwordEncoder.matches(password, user.passwordHash())) {
             throw ApiException.unauthorized("INVALID_CREDENTIALS", "Password is incorrect");
         }

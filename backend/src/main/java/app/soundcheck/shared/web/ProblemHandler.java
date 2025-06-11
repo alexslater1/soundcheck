@@ -1,11 +1,14 @@
 package app.soundcheck.shared.web;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
 import jakarta.validation.ConstraintViolationException;
 import java.net.URI;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -34,6 +37,7 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
     static final String PROBLEM_TYPE_BASE = "https://soundcheck.app/problems/";
     static final String CODE_PROPERTY = "code";
     static final String ERRORS_PROPERTY = "errors";
+    static final String TRACE_ID_PROPERTY = "traceId";
 
     /** RFC 9110's names for the two statuses Spring 6 still names after RFC 7231 and RFC 4918. */
     private static final Map<Integer, String> RFC_9110_TITLES =
@@ -180,6 +184,19 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
             problem.setTitle(title);
         }
         problem.setProperty(CODE_PROPERTY, code);
+        traceId().ifPresent(id -> problem.setProperty(TRACE_ID_PROPERTY, id));
+    }
+
+    /**
+     * The current trace's id (a correlation traceId is returned instead of internals): a user can quote
+     * it and the request is one search away in Tempo, while the response itself says nothing internal.
+     * Read from OpenTelemetry's context, where Micrometer Tracing keeps the current span, because the
+     * filter chain (401, 403, auth 429) builds its problems statically, outside any Spring bean. Empty
+     * when nothing is traced (tracing off, or a test without a span).
+     */
+    static Optional<String> traceId() {
+        SpanContext context = Span.current().getSpanContext();
+        return context.isValid() ? Optional.of(context.getTraceId()) : Optional.empty();
     }
 
     /** {@code HANDLE_TAKEN} → {@code handle-taken}. */

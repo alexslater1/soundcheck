@@ -3,6 +3,11 @@ package app.soundcheck.shared.web;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.soundcheck.shared.config.JacksonConfig;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.SpanContext;
+import io.opentelemetry.api.trace.TraceFlags;
+import io.opentelemetry.api.trace.TraceState;
+import io.opentelemetry.context.Scope;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.junit.jupiter.api.Test;
@@ -86,6 +91,25 @@ class ProblemHandlerTest {
                 .hasStatus(HttpStatus.BAD_REQUEST)
                 .bodyJson()
                 .satisfies(json -> assertThat(json).extractingPath("code").isEqualTo("BAD_REQUEST"));
+    }
+
+    @Test
+    void problemsQuoteTheCurrentTraceIdAndOnlyThat() {
+        String traceId = "0af7651916cd43dd8448eb211c80319c";
+        SpanContext context =
+                SpanContext.create(traceId, "b7ad6b7169203331", TraceFlags.getSampled(), TraceState.getDefault());
+        try (Scope ignored = Span.wrap(context).makeCurrent()) {
+            // a controller's exception, and the static builder the filter chain uses (401, 403, auth 429)
+            assertThat(mvc.get().uri("/test/boom")).bodyJson().satisfies(json -> assertThat(json)
+                    .extractingPath("traceId")
+                    .isEqualTo(traceId));
+            assertThat(ProblemHandler.problem(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required")
+                            .getProperties())
+                    .containsEntry("traceId", traceId);
+        }
+        assertThat(ProblemHandler.problem(HttpStatus.UNAUTHORIZED, "UNAUTHENTICATED", "Authentication required")
+                        .getProperties())
+                .doesNotContainKey("traceId");
     }
 
     @Test
