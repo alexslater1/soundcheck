@@ -205,6 +205,74 @@
         "dateFormats": ["EEE d MMM"]
       },
       "notes": "robots.txt Crawl-delay 10 (honoured by PoliteFetcher). The list gives no time (date-only); many nights are club nights, skipped."
+    },
+    {
+      "key": "spice-of-life",
+      "adapter": "html-selectors",
+      "url": "https://www.spiceoflifesoho.com/events/",
+      "venue": { "name": "The Spice of Life", "address": "6 Moor Street", "city": "London", "postcode": "W1D 5NA", "lat": 51.513421, "lng": -0.129758 },
+      "ticketmasterVenueId": null,
+      "precision": "DATE_ONLY",
+      "selectors": {
+        "item": "div.event-panel",
+        "title": "h3.event-panel__title",
+        "link": "a.button-primary--event@href",
+        "date": "p.event-panel__subtitle",
+        "dateFormats": ["EEEE d MMMM"],
+        "ticket": "a.button-primary--event@href"
+      },
+      "notes": "WordPress panels; regulars ('Every Tuesday …') have no date and are reported as NO_DATE; comedy and quizzes skipped."
+    },
+    {
+      "key": "cafe-oto",
+      "adapter": "html-selectors",
+      "url": "https://www.cafeoto.co.uk/events/",
+      "venue": { "name": "Cafe OTO", "address": "18-22 Ashwin Street", "city": "London", "postcode": "E8 3DL", "lat": 51.546913, "lng": -0.074947 },
+      "ticketmasterVenueId": null,
+      "precision": "EXACT",
+      "selectors": {
+        "item": "div.each-activity",
+        "title": "div.each-header p a",
+        "link": "div.each-header p a@href",
+        "date": "div.each-header p",
+        "dateFormats": ["EEEE d MMMM yyyy, h.mma", "EEEE d MMMM yyyy, ha"],
+        "time": "div.each-header p",
+        "price": "div.each-price",
+        "next": "#iscroll_other a@href"
+      },
+      "notes": "Own site and ticketing; robots.txt Crawl-delay 10; pages followed (\"?page=2\"), up to the source's 10-page limit. Times are start times. Address not on the listings page (well-known; check)."
+    },
+    {
+      "key": "dingwalls",
+      "adapter": "html-selectors",
+      "url": "https://dingwalls.com/whats-on/",
+      "venue": { "name": "Dingwalls", "address": "11 East Yard, Camden Lock", "city": "London", "postcode": "NW1 8AB", "lat": 51.541552, "lng": -0.145694 },
+      "ticketmasterVenueId": null,
+      "precision": "DATE_ONLY",
+      "selectors": {
+        "item": "div.e-loop-item.type-gig",
+        "title": "h1.elementor-heading-title a",
+        "link": "h1.elementor-heading-title a@href",
+        "date": "p.elementor-heading-title",
+        "dateFormats": ["EEEE, d MMMM yyyy", "EEEE d MMMM yyyy", "EEEE, d, MMMM"]
+      },
+      "notes": "WordPress/Elementor loop of 'gig' posts; dates only on the list. Thin Ticketmaster coverage (7). Address not on the listings page (well-known; check)."
+    },
+    {
+      "key": "elephants-head",
+      "adapter": "html-selectors",
+      "url": "https://www.elephantsheadcamden.com/whats-on",
+      "venue": { "name": "The Elephant's Head", "address": "224 Camden High Street", "city": "London", "postcode": "NW1 8QR", "lat": 51.540613, "lng": -0.143785 },
+      "ticketmasterVenueId": null,
+      "precision": "DOORS",
+      "skipTitles": "club night|\\bparty\\b|\\bdj\\b",
+      "selectors": {
+        "item": "header:has(h3)",
+        "title": "h3",
+        "date": "p",
+        "dateFormats": ["EEEE d MMMM, h:mma"]
+      },
+      "notes": "Star Pubs site (terms checked: no automated-access clause); free entry, RSVP via DICE. Club nights skipped."
     }
   ]
 }

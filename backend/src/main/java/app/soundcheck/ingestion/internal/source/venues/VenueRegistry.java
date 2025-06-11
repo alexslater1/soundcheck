@@ -85,7 +85,8 @@ public class VenueRegistry {
                 node.path("price").asText(null),
                 node.path("ticket").asText(null),
                 node.path("image").asText(null),
-                node.path("titleLines").asBoolean(false));
+                node.path("titleLines").asBoolean(false),
+                node.path("next").asText(null));
     }
 
     public List<VenueSite> all() {

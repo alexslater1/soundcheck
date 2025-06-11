@@ -261,7 +261,8 @@ class VenueAdaptersTest {
                 null,
                 "a.ticket-box@href",
                 null,
-                false));
+                false,
+                "a.next-page@href"));
         VenueAdapter.Page page = new SelectorAdapter().read(site, fixture("selectors.html"), TODAY);
 
         assertThat(page.listings())
@@ -277,6 +278,7 @@ class VenueAdaptersTest {
         assertThat(first.ticketUrl()).isEqualTo("https://tickets.example/pk");
         assertThat(acts(site, first)).containsExactly("Pale Kites", "Night Bus", "Glass Lanterns");
         assertThat(page.listings().get(1).start()).isEqualTo(LocalDateTime.of(2027, 1, 9, 20, 0)); // next January
+        assertThat(page.next()).hasToString("https://hall.example/whats-on?page=2");
     }
 
     @Test
@@ -291,7 +293,8 @@ class VenueAdaptersTest {
                 ".listing_price",
                 null,
                 null,
-                true));
+                true,
+                null));
         VenueAdapter.Page page = new SelectorAdapter().read(site, fixture("selectors.html"), TODAY);
 
         assertThat(page.listings()).hasSize(2);
@@ -318,7 +321,8 @@ class VenueAdaptersTest {
                 null,
                 null,
                 "img@src",
-                false));
+                false,
+                null));
         VenueAdapter.Page page = new SelectorAdapter().read(site, fixture("selectors.html"), TODAY);
 
         assertThat(page.listings()).hasSize(1);
@@ -337,6 +341,9 @@ class VenueAdaptersTest {
         assertThat(SelectorAdapter.time("18:30 - 22:00")).isEqualTo(java.time.LocalTime.of(18, 30));
         assertThat(SelectorAdapter.time("12pm")).isEqualTo(java.time.LocalTime.of(12, 0));
         assertThat(SelectorAdapter.time("£12 on the door")).isNull();
+        // A date pattern that carries the time, with an ordinal in the text.
+        assertThat(SelectorAdapter.timeInDate("Saturday 3rd October, 7:00PM", List.of("EEEE d MMMM, h:mma")))
+                .isEqualTo(java.time.LocalTime.of(19, 0));
     }
 
     @Test

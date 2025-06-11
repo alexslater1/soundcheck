@@ -3,6 +3,7 @@ package app.soundcheck.ingestion.internal.source.venues;
 import app.soundcheck.ingestion.internal.source.SourceIssue;
 import app.soundcheck.ingestion.internal.source.TimePrecision;
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.MonthDay;
@@ -105,7 +106,9 @@ public class SelectorAdapter implements VenueAdapter {
                     image,
                     false));
         }
-        return new Page(listings, issues, null);
+        // A paged list ("?page=2"): the next page's link, when the registry names where it is.
+        String next = config.next() == null ? null : value(page.body(), config.next());
+        return new Page(listings, issues, next == null ? null : URI.create(next));
     }
 
     /** The title, or the bill when each act is on its own line. */
@@ -153,8 +156,7 @@ public class SelectorAdapter implements VenueAdapter {
 
     /** The day, by the first pattern that reads the text; a pattern without a year means the next such day. */
     static @Nullable LocalDate date(String text, List<String> patterns, LocalDate today) {
-        String clean =
-                text.strip().replaceAll("(?i)(\\d)(st|nd|rd|th)\\b", "$1").replaceAll("\\s+", " ");
+        String clean = clean(text);
         for (String pattern : patterns) {
             if (pattern.equals("iso")) {
                 try {
@@ -188,7 +190,7 @@ public class SelectorAdapter implements VenueAdapter {
                 continue;
             }
             try {
-                return LocalTime.from(formatter(pattern).parse(text.strip().replaceAll("\\s+", " ")));
+                return LocalTime.from(formatter(pattern).parse(clean(text)));
             } catch (DateTimeParseException ignored) {
                 // try the next pattern
             }
@@ -222,6 +224,11 @@ public class SelectorAdapter implements VenueAdapter {
             return LocalTime.of(hour, minute);
         }
         return null;
+    }
+
+    /** "Saturday 3rd October" → "Saturday 3 October", spaces collapsed. */
+    private static String clean(String text) {
+        return text.strip().replaceAll("(?i)(\\d)(st|nd|rd|th)\\b", "$1").replaceAll("\\s+", " ");
     }
 
     private static DateTimeFormatter formatter(String pattern) {

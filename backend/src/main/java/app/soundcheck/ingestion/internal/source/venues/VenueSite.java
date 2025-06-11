@@ -94,7 +94,8 @@ public record VenueSite(
      * CSS selectors for a page of repeated event blocks ({@link SelectorAdapter}): {@code item} finds each
      * block; the others are read inside it, {@code "css@attr"} for an attribute. {@code dateFormats} are
      * {@link java.time.format.DateTimeFormatter} patterns (UK English) or {@code "iso"}, tried in order.
-     * {@code titleLines}: the acts are on separate lines of the title.
+     * {@code titleLines}: the acts are on separate lines of the title. {@code next}: where the next page's
+     * link is, for a paged list (read from the whole page, followed up to the source's page limit).
      */
     public record Selectors(
             String item,
@@ -106,7 +107,9 @@ public record VenueSite(
             @Nullable String price,
             @Nullable String ticket,
             @Nullable String image,
-            boolean titleLines) {}
+            boolean titleLines,
+            /** The next page's link in a paged list, e.g. {@code "a[rel=next]@href"}; null when one page. */
+            @Nullable String next) {}
 
     /** Where the venue is: from its own site, coordinates from postcodes.io. */
     public record Place(String name, String address, String city, String postcode, double lat, double lng) {}

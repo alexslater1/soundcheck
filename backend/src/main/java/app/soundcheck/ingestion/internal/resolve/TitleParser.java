@@ -73,7 +73,7 @@ public final class TitleParser {
             marker(
                     "last\\s+(?:few\\s+)?tickets|low\\s+tickets|final\\s+tickets|few\\s+tickets\\s+left|selling\\s+fast",
                     null),
-            marker("on\\s+sale\\s+now|tickets\\s+on\\s+sale|all\\s+welcome", null),
+            marker("(?:tickets\\s+)?on\\s+sale\\s+(?:now|soon)|tickets\\s+on\\s+sale|all\\s+welcome", null),
             marker("this\\s+show\\s+is\\s+\\w+", null));
 
     /** "Club Fandango presents:", "Eat Your Own Ears Present", "Civil War Presents..." at the start. */
@@ -121,6 +121,10 @@ public final class TitleParser {
     private static final Pattern PERFORMS = Pattern.compile(
             "^(.{2,60}?)\\s+(?:performs|performing|plays|playing)\\s+(.{3,})$", Pattern.CASE_INSENSITIVE);
 
+    /** "Pop-punk! On Brass – Performed by Old Dirty Brasstards": the show, then the act. */
+    private static final Pattern PERFORMED_BY =
+            Pattern.compile("^(.{3,}?)\\s*[–—-]?\\s+performed\\s+by\\s+(.{2,})$", Pattern.CASE_INSENSITIVE);
+
     /** "Subject A supporting Skaville UK": the headliner comes second. */
     private static final Pattern SUPPORTING =
             Pattern.compile("^(.+?)\\s+supporting\\s+(.+)$", Pattern.CASE_INSENSITIVE);
@@ -151,7 +155,7 @@ public final class TitleParser {
 
     /** Words that mean "more acts to come", not an act. */
     private static final Pattern PLACEHOLDER = Pattern.compile(
-            "^(?:(?:very\\s+)?special\\s+guests?(?:\\s+tb[ac])?|guests?(?:\\s+tb[ac])?|support(?:\\s+(?:acts?|bands?|poets?|djs?))?(?:\\s+tb[ac])?|more(?:\\s+tb[ac])?|tb[ac]|friends"
+            "^(?:(?:very\\s+)?special\\s+guests?(?:\\s+tb[ac])?|guests?(?:\\s+tb[ac])?|supports?(?:\\s+(?:acts?|bands?|poets?|djs?))?(?:\\s+tb[ac])?|more(?:\\s+tb[ac])?|tb[ac]|friends"
                     + "|plus\\s+support|plus\\s+guests|and\\s+more|\\.\\.\\.|djs?|resident\\s+djs?|full\\s+band"
                     // a cause, not an act ("In Aid Of MIND"); punctuation left over ("?")
                     + "|in\\s+aid\\s+of\\b.*|[^\\p{L}\\p{N}]+)$",
@@ -186,6 +190,9 @@ public final class TitleParser {
         String venue = venuePattern(venueName);
         // "Connor McBride | London, Hope & Anchor": a trailing "| <place>" naming the venue.
         String text = title.replaceAll("(?i)\\s*\\|\\s*(?:london,?\\s*)?(?:the\\s+)?" + venue + "\\b.*$", " ");
+        // "Substance at the Spice of Life: Mamoko": whoever is "at the venue" before a colon is the promoter
+        // (but "IDestroyer live @ Hope & Anchor: SOLD OUT" is the act, playing live there).
+        text = text.replaceAll("(?i)(?<!\\blive)\\s+(?:at|@)\\s+(?:the\\s+)?" + venue + "\\s*:\\s+", " presents: ");
         text = text.replaceAll("(?i)(?:\\blive\\s+)?(?:\\bat\\s+|@\\s*)(?:the\\s+)?" + venue + "\\b", " ");
         text = DATE_PHRASE.matcher(text).replaceAll(" ");
         boolean leadsWithHeadlining = title.strip().toLowerCase(Locale.ROOT).startsWith("headlin");
@@ -221,6 +228,8 @@ public final class TitleParser {
                 text = marker.pattern().matcher(text).replaceAll(" ");
             }
         }
+        // "Live Music - Papa Jupe's T.C": a pub's label for the kind of night, not part of a name.
+        text = text.replaceFirst("(?i)^(?:live\\s+music|live\\s+band|gig)\\s*[-–—:]\\s+", "");
         // Squarespace's "(Copy)" on a duplicated page; opening hours.
         text = TIME_RANGE.matcher(text.replaceAll("(?i)\\s*\\(copy\\)", " ")).replaceAll(" ");
         text = tidy(text.replaceAll("[(\\[]\\s*[)\\]]", " "));
@@ -302,6 +311,11 @@ public final class TitleParser {
             tour = tidy(trailing.group(1));
             text = text.substring(0, trailing.start());
         }
+        Matcher performedBy = PERFORMED_BY.matcher(tidy(text));
+        if (performedBy.matches()) {
+            tour = tour == null ? tidy(performedBy.group(1)) : tour;
+            text = performedBy.group(2);
+        }
         Matcher performs = PERFORMS.matcher(tidy(text));
         if (performs.matches() && !separates(performs.group(1))) {
             tour = tour == null ? tidy(performs.group(2)) : tour;
@@ -327,6 +341,7 @@ public final class TitleParser {
                     .replaceAll("(?i)\\s+(?:very\\s+)?special\\s+guests?$", "")
                     .replaceAll(
                             "(?i)\\s*[(\\[](?:live|dj\\s+set|acoustic|solo|full\\s+band|band|co[-\\s]?headliners?|headliners?"
+                                    + "|duo|trio|quartet|quintet|sextet|septet|octet"
                                     + "|(?:evening|afternoon|matinee|early|late)(?:\\s+show)?)[)\\]]$",
                             "")
                     // "Confyde (solo set)"
@@ -367,7 +382,7 @@ public final class TitleParser {
                 // Emoji and symbols around a title ("🎸 BRITALLICA 🎸") are decoration.
                 .replaceAll("^[\\p{So}\\p{Sk}\\x{FE0F}\\s]+|[\\p{So}\\p{Sk}\\x{FE0F}\\s]+$", "")
                 // A leading "!" goes only when a space follows ("Tickets! Pale Kites"), not in a name ("!!!").
-                .replaceAll("^(?:[\\s:|*.,–—-]|!(?=\\s))+|[\\s:|*!.,–—-]+$", "")
+                .replaceAll("^(?:[\\s:|*.,–—-]|[!+](?=\\s))+|[\\s:|*!.,–—-]+$", "")
                 .strip();
     }
 }

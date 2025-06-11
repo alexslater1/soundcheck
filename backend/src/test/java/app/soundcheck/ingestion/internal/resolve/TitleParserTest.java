@@ -199,6 +199,22 @@ class TitleParserTest {
                         Set.of(),
                         "Day Three - Sunday"),
                 row("A Night with Szoo", "Szoo"),
+                row("Live Music - Papa Jupes T.C + support", "Papa Jupes T.C"),
+                row("Live Music - O'Phantum + supports", "O'Phantum"),
+                row(
+                        "Substance presents Acoustica: Marky Dawsen + Idiotwins (Tickets on sale soon)",
+                        "Marky Dawsen|Idiotwins",
+                        Set.of(),
+                        "Acoustica"),
+                row("Hot Vox Presents: WILD HEARTED SONZ // THE Q // + MORE", "WILD HEARTED SONZ|THE Q"),
+                row(
+                        "Leila Bordrel / Chris Corsana / Michael Fester (trio)",
+                        "Leila Bordrel|Chris Corsana|Michael Fester"),
+                row(
+                        "Pop-punk! On Brass – Performed by Old Dirty Brasstarts",
+                        "Old Dirty Brasstarts",
+                        Set.of(),
+                        "Pop-punk! On Brass"),
                 row("Modern Guile (Album Launch), Scarlet Sometime", "Modern Guile|Scarlet Sometime"),
                 row("Tiger, Mount Forel, Confide (solo set)", "Tiger|Mount Forel|Confide"),
                 row("Pola & Brysen Live (World Debut)", "Pola & Brysen", Set.of(), "World Debut"),
@@ -228,6 +244,8 @@ class TitleParserTest {
                 Arguments.of("Keez headlines at The Lantern Arms on Thursday 29th October!", "Keez"),
                 Arguments.of("Pale Kites live at the Lantern Arms", "Pale Kites"),
                 Arguments.of("Pale Kites @ Lantern Arms Fri 27 Nov 2026", "Pale Kites"),
+                // a promoter "at the venue" before a colon: the acts follow the colon
+                Arguments.of("Substance at the Lantern Arms: Mamocko", "Mamocko"),
                 Arguments.of(
                         "Joe Clark, Ricardo Tarma, Father Levi, Lydia", "Joe Clark|Ricardo Tarma|Father Levi|Lydia"));
     }
