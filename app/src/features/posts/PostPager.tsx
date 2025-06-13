@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, View, type LayoutChangeEvent, type ViewToken } from 'react-native';
 
 import type { EventInSurface, Post, Reason } from '@/api/generated/model';
+import { usePlayback } from '@/features/player/PlaybackScope';
 import { usePlayerManager } from '@/features/player/playerManager';
 import { createImpressionTracker } from '@/features/telemetry/impressionTracker';
 import { telemetry } from '@/features/telemetry/telemetry';
 import { eventFor, TelemetryScope } from '@/features/telemetry/TelemetryScope';
 
 import { FeedPage } from './FeedPage';
+import { targetIndex } from './pagerKeys';
+import { usePagerKeys } from './usePagerKeys';
 
 /** A post in a feed: where it stands, and (in the ranked feed) why it is there and in which session. */
 export type PagerItem = {
@@ -38,12 +41,15 @@ const keyOf = (item: PagerItem) => item.post.id;
  * The feed pager: one post per screen, snapping from one to the next. Both feeds use it,
  * For You and Following. It tells the player manager which clip is in view (that one plays; its
  * neighbours hold a paused player; the rest show a poster), and it turns viewability into impressions:
- * an item at least half visible for a second is reported once.
+ * an item at least half visible for a second is reported once. On the web, ↑ / ↓ (or k / j) turn the
+ * page while the feed is on screen.
  */
 export function PostPager({ items, surface, onEndReached, onGone, onRefresh, refreshing }: Props) {
   const setOrder = usePlayerManager((state) => state.setOrder);
   const reset = usePlayerManager((state) => state.reset);
   const [size, setSize] = useState({ width: 0, height: 0 });
+  const list = useRef<FlatList<PagerItem>>(null);
+  const { onScreen } = usePlayback();
 
   // Created once per pager. FlatList does not allow its viewability callbacks to change, so they
   // cannot close over props; what they need comes with each viewable item.
@@ -104,6 +110,23 @@ export function PostPager({ items, surface, onEndReached, onGone, onRefresh, ref
     viewability.impressions.reset();
   }, [sessionId, viewability]);
 
+  // The page in view is the one the player manager calls current (set by viewability above).
+  const step = useCallback(
+    (by: 1 | -1) => {
+      const currentId = usePlayerManager.getState().currentId;
+      const index = targetIndex(
+        items.findIndex((item) => keyOf(item) === currentId),
+        by,
+        items.length,
+      );
+      if (index !== null) {
+        list.current?.scrollToIndex({ index, animated: true });
+      }
+    },
+    [items],
+  );
+  usePagerKeys(onScreen && items.length > 0, step);
+
   const onLayout = useCallback((event: LayoutChangeEvent) => {
     const { width, height } = event.nativeEvent.layout;
     setSize((current) =>
@@ -136,6 +159,7 @@ export function PostPager({ items, surface, onEndReached, onGone, onRefresh, ref
     <View style={styles.fill} onLayout={onLayout} testID="post-pager">
       {height > 0 ? (
         <FlatList
+          ref={list}
           data={items}
           keyExtractor={keyOf}
           renderItem={renderItem}

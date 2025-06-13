@@ -9,10 +9,14 @@ import { queryClient } from '@/api/queryClient';
 import { nextRoute } from '@/features/auth/nextRoute';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
+import { OfflineBanner } from '@/features/network/OfflineBanner';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { FONT_FILES } from '@/theme/typography';
 
-/** Root providers: QueryClient, Theme; redirects by auth/onboarding state. */
+/**
+ * Root providers: QueryClient, Theme; redirects by auth/onboarding state; the offline
+ * banner over every screen.
+ */
 export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
@@ -88,6 +92,7 @@ function RootStack() {
         <Stack.Screen name="settings" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" options={{ title: 'Not found' }} />
       </Stack>
+      <OfflineBanner />
     </>
   );
 }
