@@ -9,7 +9,8 @@ import { HealthBadge } from '@/features/health/HealthBadge';
 import { spacing, touchTarget } from '@/theme/tokens';
 
 /**
- * Settings hub: appearance, profile, account (delete), sign out, and the server's status.
+ * Settings hub: appearance, genres, privacy (who sees the gig stats), profile,
+ * account (delete), sign out, and the server's status.
  */
 export default function SettingsScreen() {
   const signOut = useAuthStore((s) => s.signOut);
@@ -21,6 +22,9 @@ export default function SettingsScreen() {
         </Link>
         <Link href="/settings/genres" style={styles.item}>
           <Text>Your genres: love or like →</Text>
+        </Link>
+        <Link href="/settings/privacy" style={styles.item}>
+          <Text>Privacy: who sees your gig stats →</Text>
         </Link>
         <Link href="/settings/profile" style={styles.item}>
           <Text>Edit profile →</Text>

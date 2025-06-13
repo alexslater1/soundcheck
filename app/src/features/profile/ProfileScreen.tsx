@@ -13,12 +13,16 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { PostGrid } from '@/features/posts/PostGrid';
+import { GigStatsSection } from '@/features/stats/GigStatsSection';
 import { spacing } from '@/theme/tokens';
 
 import { FollowUserButton } from './FollowUserButton';
 import { ProfileHeader } from './ProfileHeader';
 
-/** Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, and their clips. */
+/**
+ * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, their clips,
+ * and their gig stats when they share them.
+ */
 export function ProfileScreen({ handle }: { handle: string }) {
   const client = useQueryClient();
   const myId = useAuthStore((state) => state.me?.id);
@@ -101,7 +105,10 @@ export function ProfileScreen({ handle }: { handle: string }) {
             You have blocked this person. You do not see each other&apos;s clips or comments.
           </Text>
         ) : (
-          <UserPosts userId={user.id} />
+          <>
+            <UserPosts userId={user.id} />
+            {user.statsVisible ? <GigStatsSection userId={user.id} own={mine} /> : null}
+          </>
         )}
       </ScrollView>
     </Screen>

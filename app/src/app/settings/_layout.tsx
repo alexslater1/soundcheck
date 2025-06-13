@@ -17,6 +17,7 @@ export default function SettingsLayout() {
       <Stack.Screen name="account" options={{ title: 'Account' }} />
       <Stack.Screen name="appearance" options={{ title: 'Appearance' }} />
       <Stack.Screen name="genres" options={{ title: 'Your genres' }} />
+      <Stack.Screen name="privacy" options={{ title: 'Privacy' }} />
     </Stack>
   );
 }

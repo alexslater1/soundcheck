@@ -11,6 +11,7 @@ import { useAuthStore } from '@/features/auth/store';
 import { pollDelayForAge } from '@/features/player/mediaPolling';
 import { PostGrid } from '@/features/posts/PostGrid';
 import { postOnItsWay } from '@/features/upload/labels';
+import { GigStatsSection } from '@/features/stats/GigStatsSection';
 import { useUploadQueue } from '@/features/upload/uploadQueue';
 import { spacing } from '@/theme/tokens';
 
@@ -19,7 +20,8 @@ import { ProfileHeader } from './ProfileHeader';
 
 /**
  * Own profile (Me tab): header with counts, every post of one's own, including the ones still
- * processing or failed, each with a badge, then a calendar of the gigs the user marked.
+ * processing or failed, each with a badge, a calendar of the gigs the user marked, then
+ * their stats with who else can see them.
  */
 export function MeScreen() {
   const me = useAuthStore((state) => state.me);
@@ -113,6 +115,14 @@ export function MeScreen() {
           <PostGrid posts={posts.data.items} />
         )}
         <MyGigsCalendar />
+        <GigStatsSection userId={me.id} own />
+        <Link href="/settings/privacy" testID="me-stats-privacy">
+          <Text variant="caption" muted>
+            {me.showGigStats
+              ? 'Your stats are on your profile for everyone. Change →'
+              : 'Only you see your stats. Share them on your profile →'}
+          </Text>
+        </Link>
         <Link href="/settings" style={styles.link}>
           <Text muted>Settings →</Text>
         </Link>
