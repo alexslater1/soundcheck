@@ -7,6 +7,7 @@
  */
 
 export type ListGigPostsParams = {
+artistId?: string;
 cursor?: string;
 limit?: number;
 };

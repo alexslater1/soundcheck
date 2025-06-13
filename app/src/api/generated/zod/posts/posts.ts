@@ -100,7 +100,7 @@ export const listArtistPostsResponse = zod.object({
 })
 
 /**
- * @summary Published clips from a gig, newest first
+ * @summary Published clips from a gig, newest first; with artistId, only those tagged with that act
  */
 export const listGigPostsParams = zod.object({
   "id": zod.string().uuid()
@@ -110,6 +110,7 @@ export const listGigPostsQueryLimitMax = 50;
 
 
 export const listGigPostsQueryParams = zod.object({
+  "artistId": zod.string().uuid().optional(),
   "cursor": zod.string().optional(),
   "limit": zod.number().min(1).max(listGigPostsQueryLimitMax).optional()
 })

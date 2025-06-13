@@ -46,7 +46,7 @@ class CatalogLookup implements Catalog {
             List<GigFacts.Act> acts = lineup.stream()
                     .filter(artists::containsKey)
                     .map(id -> new GigFacts.Act(
-                            artists.get(id).name(), artists.get(id).mbid()))
+                            id, artists.get(id).name(), artists.get(id).mbid()))
                     .toList();
             return new GigFacts(
                     row.id(),

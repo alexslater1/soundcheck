@@ -288,12 +288,19 @@ public class PostService implements PostFeed {
         return publishedPage(viewerId, PostRepository.Scope.author(authorId), cursor, limit);
     }
 
+    /**
+     * A gig's clips; with an act, only the clips tagged with it (the gig page's act bar). An
+     * act that is not on the bill is not an error: fans may tag any act, so its clips are listed too.
+     */
     @Transactional(readOnly = true)
-    public Page<Post> byGig(UUID viewerId, UUID gigId, @Nullable String cursor, @Nullable Integer limit) {
+    public Page<Post> byGig(
+            UUID viewerId, UUID gigId, @Nullable UUID artistId, @Nullable String cursor, @Nullable Integer limit) {
         if (!catalog.gigExists(gigId)) {
             throw ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId);
         }
-        return publishedPage(viewerId, PostRepository.Scope.gig(gigId), cursor, limit);
+        PostRepository.Scope scope =
+                artistId == null ? PostRepository.Scope.gig(gigId) : PostRepository.Scope.gigAndArtist(gigId, artistId);
+        return publishedPage(viewerId, scope, cursor, limit);
     }
 
     @Transactional(readOnly = true)

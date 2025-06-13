@@ -153,7 +153,7 @@ export function useListArtistPosts<TData = Awaited<ReturnType<typeof listArtistP
 
 
 /**
- * @summary Published clips from a gig, newest first
+ * @summary Published clips from a gig, newest first; with artistId, only those tagged with that act
  */
 export const getListGigPostsUrl = (id: string,
     params?: ListGigPostsParams,) => {
@@ -242,7 +242,7 @@ export function useListGigPosts<TData = Awaited<ReturnType<typeof listGigPosts>>
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Published clips from a gig, newest first
+ * @summary Published clips from a gig, newest first; with artistId, only those tagged with that act
  */
 
 export function useListGigPosts<TData = Awaited<ReturnType<typeof listGigPosts>>, TError = unknown>(

@@ -14,22 +14,37 @@ import { radius, spacing } from '@/theme/tokens';
  * The songs played at a past gig, looked up on setlist.fm when the page opens (the API
  * caches it for an hour and never stores it). Upcoming gigs do not ask. setlist.fm's terms want
  * a link back wherever its data is shown. Without a setlist.fm key on the server the section is left out.
+ * With an act (the gig page's act bar), that act's own setlist; without, the headliner's
+ * or the first act's that setlist.fm has. The heading names whose setlist it is.
  */
-export function GigSetlist({ gigId, startsAt }: { gigId: string; startsAt: string }) {
+export function GigSetlist({
+  gigId,
+  startsAt,
+  artistId,
+  actName,
+}: {
+  gigId: string;
+  startsAt: string;
+  artistId?: string;
+  actName?: string;
+}) {
   const { colors } = useTheme();
   // "Now" as the page opened: a render must not read the clock.
   const [openedAt] = useState(() => Date.now());
   const past = Date.parse(startsAt) < openedAt;
-  const setlist = useGetGigSetlist<Awaited<ReturnType<typeof getGigSetlist>>, ApiError>(gigId, {
-    query: { enabled: past, retry: false, staleTime: 60 * 60 * 1000 },
-  });
+  const setlist = useGetGigSetlist<Awaited<ReturnType<typeof getGigSetlist>>, ApiError>(
+    gigId,
+    artistId ? { artistId } : undefined,
+    { query: { enabled: past, retry: false, staleTime: 60 * 60 * 1000 } },
+  );
   if (!past) {
     return null;
   }
 
+  const whose = setlist.data?.artist ?? actName;
   const heading = (
     <Text variant="label" muted style={styles.heading}>
-      SETLIST
+      {whose ? `SETLIST · ${whose.toUpperCase()}` : 'SETLIST'}
     </Text>
   );
   if (setlist.isPending) {
@@ -50,9 +65,11 @@ export function GigSetlist({ gigId, startsAt }: { gigId: string; startsAt: strin
       <View style={styles.gap} testID="setlist-none">
         {heading}
         <Text muted>
-          {setlist.error.code === 'SETLIST_NOT_FOUND'
-            ? 'No setlist on setlist.fm for this gig yet. Fans usually add one within a few days.'
-            : 'Could not reach setlist.fm just now.'}
+          {setlist.error.code !== 'SETLIST_NOT_FOUND'
+            ? 'Could not reach setlist.fm just now.'
+            : actName
+              ? `No setlist for ${actName} at this gig on setlist.fm yet. Fans usually add one within a few days.`
+              : 'No setlist on setlist.fm for this gig yet. Fans usually add one within a few days.'}
         </Text>
       </View>
     );

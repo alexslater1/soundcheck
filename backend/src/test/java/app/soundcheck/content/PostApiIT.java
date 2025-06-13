@@ -345,6 +345,49 @@ class PostApiIT extends IntegrationTest {
         return rest.exchange("/api/v1/posts", HttpMethod.POST, new HttpEntity<>(body, headers), JsonNode.class);
     }
 
+    @Test
+    void aGigsClipsCanBeNarrowedToOneActOnTheBill() {
+        UUID venue = data.venue("Scala " + UUID.randomUUID());
+        UUID headliner = data.artist("Keo " + UUID.randomUUID());
+        UUID support = data.artist("Cardinals " + UUID.randomUUID());
+        UUID gig = data.gig("Keo", venue, Instant.parse("2026-03-01T19:30:00Z"), headliner, support);
+        String supportSet = created(api.post(
+                        "/api/v1/posts",
+                        Map.of(
+                                "mediaId",
+                                data.video(author.id(), "READY"),
+                                "gigId",
+                                gig,
+                                "artistIds",
+                                List.of(support)),
+                        author))
+                .path("id")
+                .asText("");
+        String headlineSet = created(api.post(
+                        "/api/v1/posts",
+                        Map.of(
+                                "mediaId",
+                                data.video(author.id(), "READY"),
+                                "gigId",
+                                gig,
+                                "artistIds",
+                                List.of(headliner)),
+                        author))
+                .path("id")
+                .asText("");
+        // No artists given: tagged with the whole bill, so it is in both acts' lists.
+        String wholeNight = created(api.post(
+                        "/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY"), "gigId", gig), author))
+                .path("id")
+                .asText("");
+
+        String clips = "/api/v1/gigs/" + gig + "/posts";
+        assertThat(items(clips, viewer)).containsExactly(wholeNight, headlineSet, supportSet);
+        assertThat(items(clips + "?artistId=" + support, viewer)).containsExactly(wholeNight, supportSet);
+        assertThat(items(clips + "?artistId=" + headliner, viewer)).containsExactly(wholeNight, headlineSet);
+        assertThat(items(clips + "?artistId=" + UUID.randomUUID(), viewer)).isEmpty();
+    }
+
     private JsonNode pageOf(String path, TestApi.User user) {
         ResponseEntity<JsonNode> response = api.get(path, user);
         assertThat(response.getStatusCode()).as(path).isEqualTo(HttpStatus.OK);

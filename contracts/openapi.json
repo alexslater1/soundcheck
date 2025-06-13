@@ -2865,6 +2865,14 @@
           }
         }, {
           "in" : "query",
+          "name" : "artistId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "cursor",
           "required" : false,
           "schema" : {
@@ -2893,7 +2901,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Published clips from a gig, newest first",
+        "summary" : "Published clips from a gig, newest first; with artistId, only those tagged with that act",
         "tags" : [ "posts" ]
       }
     },
@@ -2904,6 +2912,15 @@
           "in" : "path",
           "name" : "id",
           "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "One act on the bill; without it, the headliner's or the first found",
+          "in" : "query",
+          "name" : "artistId",
+          "required" : false,
           "schema" : {
             "format" : "uuid",
             "type" : "string"

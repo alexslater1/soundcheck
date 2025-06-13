@@ -69,6 +69,7 @@ export * from './genreWeight';
 export * from './genresRequest';
 export * from './geoPoint';
 export * from './getFollowingFeedParams';
+export * from './getGigSetlistParams';
 export * from './getHomeFeedParams';
 export * from './getUserStatsParams';
 export * from './gigDay';

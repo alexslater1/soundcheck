@@ -111,7 +111,7 @@ public class PostRepository {
                 == 1;
     }
 
-    /** Which published posts a list shows; exactly one of the ids is set. */
+    /** Which published posts a list shows: one of the ids, or a gig and an act together. */
     public record Scope(
             @Nullable UUID authorId, @Nullable UUID gigId, @Nullable Collection<UUID> gigIds, @Nullable UUID artistId) {
 
@@ -130,13 +130,18 @@ public class PostRepository {
         public static Scope artist(UUID id) {
             return new Scope(null, null, null, id);
         }
+
+        /** A gig's posts tagged with one act. */
+        public static Scope gigAndArtist(UUID gigId, UUID artistId) {
+            return new Scope(null, gigId, null, artistId);
+        }
     }
 
     /**
      * One page of PUBLISHED posts, newest first, in {@code (published_at, id)} order; {@code limit + 1}
      * rows so the caller can tell whether a next page exists. Expected indexes: {@code post_author_pub}
-     * (author), {@code post_gig_pub} (gig and venue), {@code post_artist_artist} then the primary key
-     * (artist).
+     * (author), {@code post_gig_pub} (gig and venue; a gig and an act: the gig's posts, then the
+     * {@code post_artist} primary key per post), {@code post_artist_artist} then the primary key (artist).
      */
     public List<PostRow> published(Scope scope, @Nullable Cursor cursor, int limit) {
         List<Condition> where = new ArrayList<>();

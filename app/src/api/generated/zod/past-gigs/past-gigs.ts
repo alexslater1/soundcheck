@@ -17,6 +17,10 @@ export const getGigSetlistParams = zod.object({
   "id": zod.string().uuid()
 })
 
+export const getGigSetlistQueryParams = zod.object({
+  "artistId": zod.string().uuid().optional().describe('One act on the bill; without it, the headliner\'s or the first found')
+})
+
 export const getGigSetlistResponse = zod.object({
   "artist": zod.string(),
   "city": zod.string().nullish(),

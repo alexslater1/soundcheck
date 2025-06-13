@@ -99,13 +99,16 @@ public class PostController {
     }
 
     @GetMapping("/gigs/{id}/posts")
-    @Operation(operationId = "listGigPosts", summary = "Published clips from a gig, newest first")
+    @Operation(
+            operationId = "listGigPosts",
+            summary = "Published clips from a gig, newest first; with artistId, only those tagged with that act")
     public Page<Post> byGig(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
+            @RequestParam(required = false) UUID artistId,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
-        return posts.byGig(userId(jwt), id, cursor, limit);
+        return posts.byGig(userId(jwt), id, artistId, cursor, limit);
     }
 
     @GetMapping("/artists/{id}/posts")

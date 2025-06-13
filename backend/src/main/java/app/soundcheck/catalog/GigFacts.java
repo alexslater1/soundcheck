@@ -18,5 +18,5 @@ public record GigFacts(
         List<Act> acts,
         @Nullable String setlistFmId) {
 
-    public record Act(String name, @Nullable UUID mbid) {}
+    public record Act(UUID id, String name, @Nullable UUID mbid) {}
 }

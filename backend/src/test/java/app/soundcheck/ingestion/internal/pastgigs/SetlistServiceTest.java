@@ -33,6 +33,8 @@ class SetlistServiceTest {
     MutableClock clock = new MutableClock();
     UUID fan = UUID.randomUUID();
     UUID gigId = UUID.randomUUID();
+    UUID paleKites = UUID.randomUUID();
+    UUID nightBus = UUID.randomUUID();
     SetlistService service;
 
     @BeforeEach
@@ -50,17 +52,21 @@ class SetlistServiceTest {
                 startsAt,
                 "The Snug",
                 town,
-                List.of(new GigFacts.Act("Pale Kites", MBID), new GigFacts.Act("Night Bus", null)),
+                List.of(new GigFacts.Act(paleKites, "Pale Kites", MBID), new GigFacts.Act(nightBus, "Night Bus", null)),
                 setlistFmId);
         when(catalog.gigFacts(gigId)).thenReturn(Optional.of(facts));
         return facts;
     }
 
     private static Setlist setlist(String id, String city) {
+        return setlist(id, city, "Pale Kites");
+    }
+
+    private static Setlist setlist(String id, String city, String artist) {
         return new Setlist(
                 id,
                 "https://www.setlist.fm/setlist/" + id,
-                "Pale Kites",
+                artist,
                 "The Snug",
                 city,
                 LocalDate.of(2025, 10, 17),
@@ -115,6 +121,55 @@ class SetlistServiceTest {
         gig(Instant.now().plus(Duration.ofDays(1)), "Manchester", null);
 
         assertThatThrownBy(() -> service.forGig(fan, gigId))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_NOT_FOUND"));
+        verify(client, never()).setlistsOn(any(), any(), any());
+    }
+
+    @Test
+    void aSupportActsOwnSetlistIsLookedUpForThatActAloneAndCachedApartFromTheGigs() {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
+        LocalDate day = LocalDate.of(2025, 10, 17);
+        when(client.setlistsOn(MBID, "Pale Kites", day)).thenReturn(List.of(setlist("headline", "Manchester")));
+        when(client.setlistsOn(null, "Night Bus", day))
+                .thenReturn(List.of(setlist("support", "Manchester", "Night Bus")));
+
+        assertThat(service.forGig(fan, gigId).id()).isEqualTo("headline");
+        assertThat(service.forGig(fan, gigId, nightBus).id()).isEqualTo("support");
+        assertThat(service.forGig(fan, gigId, nightBus).id()).isEqualTo("support");
+        assertThat(service.forGig(fan, gigId).id()).isEqualTo("headline");
+        verify(client, times(1)).setlistsOn(MBID, "Pale Kites", day);
+        verify(client, times(1)).setlistsOn(null, "Night Bus", day);
+    }
+
+    @Test
+    void theHeadlinersSetlistAlreadyFoundForTheGigIsReusedWithoutAnotherCall() {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
+        when(client.setlistsOn(MBID, "Pale Kites", LocalDate.of(2025, 10, 17)))
+                .thenReturn(List.of(setlist("headline", "Manchester")));
+
+        service.forGig(fan, gigId);
+        assertThat(service.forGig(fan, gigId, paleKites).id()).isEqualTo("headline");
+        verify(client, times(1)).setlistsOn(any(), any(), any());
+    }
+
+    @Test
+    void aKnownSetlistIdIsUsedForAnActOnlyWhenItIsThatActs() {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", "7bd6a2a8");
+        when(client.setlist("7bd6a2a8")).thenReturn(Optional.of(setlist("7bd6a2a8", "Manchester")));
+        when(client.setlistsOn(null, "Night Bus", LocalDate.of(2025, 10, 17)))
+                .thenReturn(List.of(setlist("support", "Manchester", "Night Bus")));
+
+        assertThat(service.forGig(fan, gigId, paleKites).id()).isEqualTo("7bd6a2a8");
+        // The known setlist is the headliner's: the support act is searched for by name and date.
+        assertThat(service.forGig(fan, gigId, nightBus).id()).isEqualTo("support");
+    }
+
+    @Test
+    void anActNotOnTheBillHasNoSetlistAndCostsNoCall() {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
+
+        assertThatThrownBy(() -> service.forGig(fan, gigId, UUID.randomUUID()))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_NOT_FOUND"));
         verify(client, never()).setlistsOn(any(), any(), any());

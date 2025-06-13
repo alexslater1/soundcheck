@@ -1,4 +1,5 @@
 import { Link } from 'expo-router';
+import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PostGrid } from '@/features/posts/PostGrid';
@@ -15,18 +16,22 @@ import { isWebUrl, openWebLink } from '@/lib/openLink';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
+import { ActBar, billingLabel } from './ActBar';
 import { AttendanceButtons } from './AttendanceButtons';
 import { GigSetlist } from './GigSetlist';
 import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
 
 /**
  * Gig page: line-up, venue, local date and time, price, attendance, ticket link out, and
- * for a past gig its setlist from setlist.fm.
+ * for a past gig its setlist from setlist.fm. With more than one act, a bar of the acts
+ * stays at the top: picking one shows that act's setlist and clips; "Whole night" shows
+ * the line-up and every clip.
  */
 export function GigDetailScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
   const { data, isPending, refetch } = useGetGig(id);
+  const [actId, setActId] = useState<string | null>(null);
 
   if (isPending) {
     return (
@@ -59,9 +64,17 @@ export function GigDetailScreen({ id }: { id: string }) {
   const distance = formatDistance(gig.distanceKm);
   const ticketUrl = isWebUrl(gig.ticketUrl) ? gig.ticketUrl : null;
   const setlist = data.sources.find((source) => source.source === 'SETLISTFM');
+  const acts = data.lineup;
+  const showBar = acts.length > 1;
+  const actIndex = acts.findIndex((artist) => artist.id === actId);
+  const act = actIndex >= 0 ? acts[actIndex] : undefined;
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.gap}>
+      <ScrollView
+        contentContainerStyle={styles.gap}
+        stickyHeaderIndices={showBar ? [0] : undefined}
+      >
+        {showBar ? <ActBar acts={acts} selected={act?.id ?? null} onSelect={setActId} /> : null}
         {gig.imageUrl ? (
           <Image
             source={{ uri: gig.imageUrl }}
@@ -114,18 +127,33 @@ export function GigDetailScreen({ id }: { id: string }) {
           </Text>
         ) : null}
 
-        <GigSetlist gigId={id} startsAt={gig.startsAt} />
-
-        <Text variant="label" muted style={styles.heading}>
-          LINE-UP
-        </Text>
-        {data.lineup.map((artist) => (
-          <ArtistRow key={artist.id} artist={artist} genreNames={genreNames} />
-        ))}
-        <Text variant="label" muted style={styles.heading}>
-          CLIPS FROM THIS GIG
-        </Text>
-        <GigClips gigId={id} />
+        {act ? (
+          <>
+            <Text variant="label" muted style={styles.heading} testID="act-billing">
+              {billingLabel(actIndex).toUpperCase()}
+            </Text>
+            <ArtistRow artist={act} genreNames={genreNames} />
+            <GigSetlist gigId={id} startsAt={gig.startsAt} artistId={act.id} actName={act.name} />
+            <Text variant="label" muted style={styles.heading}>
+              {`CLIPS OF ${act.name.toUpperCase()}`}
+            </Text>
+            <GigClips gigId={id} artistId={act.id} actName={act.name} />
+          </>
+        ) : (
+          <>
+            <GigSetlist gigId={id} startsAt={gig.startsAt} />
+            <Text variant="label" muted style={styles.heading}>
+              LINE-UP
+            </Text>
+            {acts.map((artist) => (
+              <ArtistRow key={artist.id} artist={artist} genreNames={genreNames} />
+            ))}
+            <Text variant="label" muted style={styles.heading}>
+              CLIPS FROM THIS GIG
+            </Text>
+            <GigClips gigId={id} />
+          </>
+        )}
       </ScrollView>
     </Screen>
   );
@@ -137,9 +165,20 @@ const styles = StyleSheet.create({
   heading: { marginTop: spacing.md },
 });
 
-/** Clips people posted from this gig (the way to find someone to follow). */
-function GigClips({ gigId }: { gigId: string }) {
-  const posts = useListGigPosts(gigId, { limit: 12 });
+/**
+ * Clips people posted from this gig (the way to find someone to follow); with an act, only the clips
+ * tagged with it.
+ */
+function GigClips({
+  gigId,
+  artistId,
+  actName,
+}: {
+  gigId: string;
+  artistId?: string;
+  actName?: string;
+}) {
+  const posts = useListGigPosts(gigId, { limit: 12, ...(artistId ? { artistId } : {}) });
   if (posts.isPending) {
     return <Skeleton height={120} />;
   }
@@ -149,7 +188,9 @@ function GigClips({ gigId }: { gigId: string }) {
   if (posts.data.items.length === 0) {
     return (
       <Text muted testID="gig-no-clips">
-        No clips yet. Were you there? Share one from the Create tab.
+        {actName
+          ? `No clips of ${actName} from this gig yet. Were you there? Share one from the Create tab.`
+          : 'No clips yet. Were you there? Share one from the Create tab.'}
       </Text>
     );
   }
