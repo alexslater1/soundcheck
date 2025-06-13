@@ -650,6 +650,37 @@
         "required" : [ "attendanceCounts", "gig", "lineup", "postsCount", "sources" ],
         "type" : "object"
       },
+      "GigStats" : {
+        "properties" : {
+          "acts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StatsAct"
+            },
+            "type" : "array"
+          },
+          "currentYear" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "totals" : {
+            "$ref" : "#/components/schemas/StatsTotals"
+          },
+          "venues" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StatsVenue"
+            },
+            "type" : "array"
+          },
+          "years" : {
+            "items" : {
+              "$ref" : "#/components/schemas/StatsYear"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "acts", "currentYear", "totals", "venues", "years" ],
+        "type" : "object"
+      },
       "GigSummary" : {
         "properties" : {
           "currency" : {
@@ -856,9 +887,13 @@
           },
           "role" : {
             "type" : "string"
+          },
+          "showGigStats" : {
+            "description" : "Other users may see this user's gig stats",
+            "type" : "boolean"
           }
         },
-        "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role" ],
+        "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role", "showGigStats" ],
         "type" : "object"
       },
       "NamedArtist" : {
@@ -1263,9 +1298,12 @@
           },
           "isFollowing" : {
             "type" : "boolean"
+          },
+          "statsVisible" : {
+            "type" : "boolean"
           }
         },
-        "required" : [ "counts", "displayName", "handle", "id", "isBlocked", "isFollowing" ],
+        "required" : [ "counts", "displayName", "handle", "id", "isBlocked", "isFollowing", "statsVisible" ],
         "type" : "object"
       },
       "ReadRequest" : {
@@ -1520,6 +1558,106 @@
         "required" : [ "source" ],
         "type" : "object"
       },
+      "StatsAct" : {
+        "properties" : {
+          "first" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "imageUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "last" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "times" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "first", "id", "last", "name", "times" ],
+        "type" : "object"
+      },
+      "StatsTotals" : {
+        "properties" : {
+          "acts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "cities" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gigs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "venues" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "acts", "cities", "gigs", "venues" ],
+        "type" : "object"
+      },
+      "StatsVenue" : {
+        "properties" : {
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "first" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "last" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "times" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "first", "id", "last", "name", "times" ],
+        "type" : "object"
+      },
+      "StatsYear" : {
+        "properties" : {
+          "acts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gigs" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "venues" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "year" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "acts", "gigs", "venues", "year" ],
+        "type" : "object"
+      },
       "Suggestion" : {
         "properties" : {
           "city" : {
@@ -1582,6 +1720,9 @@
           "homeCityId" : {
             "format" : "int32",
             "type" : [ "integer", "null" ]
+          },
+          "showGigStats" : {
+            "type" : [ "boolean", "null" ]
           }
         },
         "type" : "object"
@@ -3917,6 +4058,105 @@
         "tags" : [ "posts" ]
       }
     },
+    "/api/v1/users/{id}/stats" : {
+      "get" : {
+        "operationId" : "getUserStats",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "top",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 100,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigStats"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Gig stats: totals, per year, most-seen acts and most-visited venues (top 10 by default)",
+        "tags" : [ "stats" ]
+      }
+    },
+    "/api/v1/users/{id}/stats/gigs" : {
+      "get" : {
+        "operationId" : "listUserStatsGigs",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "artistId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "venueId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The user's WENT gigs with an act on the bill, or at a venue, newest first",
+        "tags" : [ "stats" ]
+      }
+    },
     "/api/v1/venues" : {
       "get" : {
         "operationId" : "searchVenues",
@@ -4108,5 +4348,8 @@
   }, {
     "description" : "Follows and blocks",
     "name" : "social"
+  }, {
+    "description" : "Gig stats on profiles",
+    "name" : "stats"
   } ]
 }

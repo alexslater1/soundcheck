@@ -44,7 +44,8 @@ export const getMeResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string()
+  "role": zod.string(),
+  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
 })
 
 /**
@@ -64,7 +65,8 @@ export const updateMeBody = zod.object({
   "bio": zod.string().min(updateMeBodyBioMin).max(updateMeBodyBioMax).nullish(),
   "displayName": zod.string().min(1).max(updateMeBodyDisplayNameMax).nullish(),
   "handle": zod.string().min(updateMeBodyHandleMin).max(updateMeBodyHandleMax).nullish(),
-  "homeCityId": zod.number().nullish()
+  "homeCityId": zod.number().nullish(),
+  "showGigStats": zod.boolean().nullish()
 })
 
 export const updateMeResponse = zod.object({
@@ -91,7 +93,8 @@ export const updateMeResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string()
+  "role": zod.string(),
+  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
 })
 
 /**
@@ -137,7 +140,8 @@ export const setMyGenresResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string()
+  "role": zod.string(),
+  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
 })
 
 /**
@@ -167,7 +171,8 @@ export const completeOnboardingResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string()
+  "role": zod.string(),
+  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
 })
 
 /**
@@ -190,6 +195,7 @@ export const getUserByHandleResponse = zod.object({
   "homeCityName": zod.string().nullish(),
   "id": zod.string().uuid(),
   "isBlocked": zod.boolean(),
-  "isFollowing": zod.boolean()
+  "isFollowing": zod.boolean(),
+  "statsVisible": zod.boolean()
 })
 

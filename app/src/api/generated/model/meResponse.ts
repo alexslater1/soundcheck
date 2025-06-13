@@ -23,4 +23,6 @@ export interface MeResponse {
   id: string;
   onboarded: boolean;
   role: string;
+  /** Other users may see this user's gig stats */
+  showGigStats: boolean;
 }

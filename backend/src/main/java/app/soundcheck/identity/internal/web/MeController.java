@@ -53,7 +53,13 @@ public class MeController {
     @Operation(operationId = "updateMe", summary = "Edit profile fields (only the ones sent)")
     public MeResponse updateMe(@AuthenticationPrincipal Jwt jwt, @Valid @RequestBody UpdateMeRequest body) {
         return MeResponse.from(me.update(
-                userId(jwt), body.displayName(), body.bio(), body.handle(), body.homeCityId(), body.avatarMediaId()));
+                userId(jwt),
+                body.displayName(),
+                body.bio(),
+                body.handle(),
+                body.homeCityId(),
+                body.avatarMediaId(),
+                body.showGigStats()));
     }
 
     @PutMapping("/me/genres")
@@ -102,7 +108,10 @@ public class MeController {
             @Schema(nullable = true) Integer homeCityId,
 
             /** A READY image the caller uploaded; null leaves the avatar as it is. */
-            @Schema(nullable = true) UUID avatarMediaId) {}
+            @Schema(nullable = true) UUID avatarMediaId,
+
+            /** Let other users see the gig stats on this profile; null leaves it as it is. */
+            @Schema(nullable = true) Boolean showGigStats) {}
 
     public record GenreChoice(
             @NotNull @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(32767) Integer genreId,
@@ -138,7 +147,8 @@ public class MeController {
             List<GenreWeight> genres,
             String role,
             boolean onboarded,
-            Counts counts) {
+            Counts counts,
+            @Schema(description = "Other users may see this user's gig stats") boolean showGigStats) {
 
         static MeResponse from(MeService.Me m) {
             UserRecord u = m.user();
@@ -155,13 +165,15 @@ public class MeController {
                             .toList(),
                     u.role(),
                     u.onboardedAt() != null,
-                    Counts.from(m.counts()));
+                    Counts.from(m.counts()),
+                    m.showGigStats());
         }
     }
 
     /**
      * Public profile: no email, role or onboarding state. {@code isFollowing} and {@code isBlocked} are
      * the viewer's own relation to this user (a profile whose owner blocked the viewer is a 404).
+     * {@code statsVisible}: the viewer may load this user's gig stats (their own, or shared by the owner).
      */
     public record ProfileResponse(
             UUID id,
@@ -172,7 +184,8 @@ public class MeController {
             @Schema(nullable = true) String homeCityName,
             Counts counts,
             boolean isFollowing,
-            boolean isBlocked) {
+            boolean isBlocked,
+            boolean statsVisible) {
 
         static ProfileResponse from(MeService.Profile profile) {
             MeService.Me m = profile.user();
@@ -186,7 +199,8 @@ public class MeController {
                     m.homeCity() == null ? null : m.homeCity().name(),
                     Counts.from(m.counts()),
                     profile.relation().following(),
-                    profile.relation().blocked());
+                    profile.relation().blocked(),
+                    profile.statsVisible());
         }
     }
 }

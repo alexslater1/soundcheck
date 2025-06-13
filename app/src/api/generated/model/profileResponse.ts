@@ -20,4 +20,5 @@ export interface ProfileResponse {
   id: string;
   isBlocked: boolean;
   isFollowing: boolean;
+  statsVisible: boolean;
 }

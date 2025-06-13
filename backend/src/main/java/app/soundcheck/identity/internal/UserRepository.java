@@ -113,6 +113,23 @@ public class UserRepository {
                 .execute();
     }
 
+    /** Whether the user shares their gig stats with other users; false for unknown ids. */
+    public boolean showsGigStats(UUID id) {
+        return dsl.select(APP_USER.SHOW_GIG_STATS)
+                .from(APP_USER)
+                .where(APP_USER.ID.eq(id))
+                .fetchOptional(r -> r.value1())
+                .orElse(false);
+    }
+
+    public void setShowGigStats(UUID id, boolean show, Instant now) {
+        dsl.update(APP_USER)
+                .set(APP_USER.SHOW_GIG_STATS, show)
+                .set(APP_USER.UPDATED_AT, at(now))
+                .where(APP_USER.ID.eq(id))
+                .execute();
+    }
+
     public boolean emailExists(String email) {
         return dsl.fetchExists(APP_USER, APP_USER.EMAIL.eq(email));
     }

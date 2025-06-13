@@ -290,6 +290,36 @@ public class CatalogService {
                 origin);
     }
 
+    /**
+     * Someone's WENT gigs, newest first, narrowed to one act on the bill or one venue when given: the
+     * gigs behind a line of their stats. No origin, so no distances.
+     */
+    public Page<GigSummary> wentGigs(
+            UUID viewer,
+            UUID attendee,
+            @Nullable UUID artistId,
+            @Nullable UUID venueId,
+            @Nullable String cursor,
+            @Nullable Integer limit) {
+        return page(
+                viewer,
+                new GigFilter(
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        artistId == null ? null : Set.of(artistId),
+                        venueId == null ? null : Set.of(venueId),
+                        attendee,
+                        "WENT",
+                        true,
+                        Cursor.decode(cursor),
+                        Cursor.limit(limit)),
+                null);
+    }
+
     // ── artists ─────────────────────────────────────────────────────────────
 
     /** {@code ?q=} searches by name; {@code ?popular=true} (or no query) lists popular artists. */

@@ -35,16 +35,23 @@ public class MeService {
     static final int MIN_GENRES = 1;
     static final int MAX_GENRES = 8;
 
-    /** Everything {@code GET /me} shows; counts are zero until social/content exist. */
+    /**
+     * Everything {@code GET /me} shows; counts are zero until social/content exist.
+     * {@code showGigStats}: the user shares their gig stats with other users.
+     */
     public record Me(
             UserRecord user,
             @Nullable City homeCity,
             List<UserRepository.GenrePreference> genres,
             @Nullable String avatarUrl,
-            ProfileFacts.Counts counts) {}
+            ProfileFacts.Counts counts,
+            boolean showGigStats) {}
 
-    /** Someone's public profile as a particular viewer sees it. */
-    public record Profile(Me user, ProfileFacts.Relation relation) {}
+    /**
+     * Someone's public profile as a particular viewer sees it. {@code statsVisible}: the viewer may see
+     * the owner's gig stats (their own, or someone who shares them).
+     */
+    public record Profile(Me user, ProfileFacts.Relation relation, boolean statsVisible) {}
 
     /** As {@code PasswordPolicy.MAX_LENGTH} at sign-up and login. */
     static final int MAX_PASSWORD_LENGTH = 128;
@@ -97,7 +104,13 @@ public class MeService {
     @Transactional(readOnly = true)
     public Me me(UUID userId) {
         UserRecord user = current(userId);
-        return new Me(user, city(user.homeCityId()), users.genres(userId), avatarUrl(userId), facts.counts(userId));
+        return new Me(
+                user,
+                city(user.homeCityId()),
+                users.genres(userId),
+                avatarUrl(userId),
+                facts.counts(userId),
+                users.showsGigStats(userId));
     }
 
     private @Nullable String avatarUrl(UUID userId) {
@@ -112,10 +125,27 @@ public class MeService {
     public Optional<Profile> profile(UUID viewerId, String handle) {
         return users.findByHandle(handle.strip().toLowerCase(Locale.ROOT))
                 .filter(u -> !u.deleted())
-                .map(u -> new Profile(
-                        new Me(u, city(u.homeCityId()), users.genres(u.id()), avatarUrl(u.id()), facts.counts(u.id())),
-                        facts.relation(viewerId, u.id())))
+                .map(u -> {
+                    boolean shows = users.showsGigStats(u.id());
+                    Me user = new Me(
+                            u,
+                            city(u.homeCityId()),
+                            users.genres(u.id()),
+                            avatarUrl(u.id()),
+                            facts.counts(u.id()),
+                            shows);
+                    ProfileFacts.Relation relation = facts.relation(viewerId, u.id());
+                    return new Profile(user, relation, statsVisible(viewerId, u.id(), shows, relation));
+                })
                 .filter(p -> !p.relation().blockedBy());
+    }
+
+    /**
+     * Gig stats are shown to their owner, and to anyone else only when the owner shares them and neither
+     * has blocked the other: they tell where someone was on which nights.
+     */
+    static boolean statsVisible(UUID viewerId, UUID ownerId, boolean shared, ProfileFacts.Relation relation) {
+        return viewerId.equals(ownerId) || (shared && !relation.blocked() && !relation.blockedBy());
     }
 
     public Me update(
@@ -124,7 +154,8 @@ public class MeService {
             @Nullable String bio,
             @Nullable String handle,
             @Nullable Integer homeCityId,
-            @Nullable UUID avatarMediaId) {
+            @Nullable UUID avatarMediaId,
+            @Nullable Boolean showGigStats) {
         UserRecord user = current(userId);
         if (avatarMediaId != null && !images.readyImageOwnedBy(avatarMediaId, userId)) {
             // Not an image, not ready, or somebody else's: one answer for all three, so ids cannot be probed.
@@ -163,6 +194,9 @@ public class MeService {
                 Instant.now(clock));
         if (avatarMediaId != null) {
             users.setAvatar(userId, avatarMediaId, Instant.now(clock));
+        }
+        if (showGigStats != null) {
+            users.setShowGigStats(userId, showGigStats, Instant.now(clock));
         }
         return me(userId);
     }
