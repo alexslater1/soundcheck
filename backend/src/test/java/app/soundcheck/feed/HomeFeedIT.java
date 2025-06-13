@@ -309,28 +309,47 @@ class HomeFeedIT extends IntegrationTest {
         JsonNode first = home("?limit=5", viewer);
         String sessionId = first.path("sessionId").asText("");
         List<String> stored = sessionPostIds(sessionId);
-        String doomed = stored.get(6);
-        JsonNode doomedPost = api.get("/api/v1/posts/" + doomed, viewer).getBody();
-        TestApi.User itsAuthor = authors.stream()
-                .filter(a -> a.handle()
-                        .equals(doomedPost.path("author").path("handle").asText("")))
-                .findFirst()
-                .orElse(null);
-        org.junit.jupiter.api.Assumptions.assumeTrue(itsAuthor != null, "position 6 is one of this test's posts");
-        assertThat(api.delete("/api/v1/posts/" + doomed, itsAuthor).getStatusCode())
+        // The doomed post is the first of this test's own posts at positions 6 to 9 (position 5 stays).
+        // Other tests' posts can rank anywhere (exploration, trending), and only an author can delete a
+        // post, so a fixed position used to make this test skip itself when it held someone else's post.
+        int doomedAt = -1;
+        TestApi.User itsAuthor = null;
+        for (int position = 6; position <= 9 && itsAuthor == null; position++) {
+            String handle = api.get("/api/v1/posts/" + stored.get(position), viewer)
+                    .getBody()
+                    .path("author")
+                    .path("handle")
+                    .asText("");
+            itsAuthor = authors.stream()
+                    .filter(a -> a.handle().equals(handle))
+                    .findFirst()
+                    .orElse(null);
+            doomedAt = position;
+        }
+        assertThat(itsAuthor)
+                .as("one of positions 6 to 9 is one of this test's posts")
+                .isNotNull();
+        assertThat(api.delete("/api/v1/posts/" + stored.get(doomedAt), itsAuthor)
+                        .getStatusCode())
                 .isEqualTo(HttpStatus.NO_CONTENT);
 
         JsonNode second = home("?limit=5&cursor=" + first.path("nextCursor").asText(""), viewer);
 
         // Four of the five: positions keep their place in the session, and only what was sent is logged.
-        assertThat(postIds(second)).containsExactly(stored.get(5), stored.get(7), stored.get(8), stored.get(9));
-        assertThat(positions(second)).containsExactly(5, 7, 8, 9);
+        int gone = doomedAt;
+        List<Integer> kept = java.util.stream.IntStream.rangeClosed(5, 9)
+                .filter(p -> p != gone)
+                .boxed()
+                .toList();
+        assertThat(postIds(second))
+                .containsExactlyElementsOf(kept.stream().map(stored::get).toList());
+        assertThat(positions(second)).containsExactlyElementsOf(kept);
         assertThat(second.path("nextCursor").asText("")).isEqualTo(sessionId + ":10");
         assertThat(dsl.fetch(
                                 "select position from feed.served_item where session_id = ? and position >= 5 order by position",
                                 UUID.fromString(sessionId))
                         .getValues(0, Integer.class))
-                .containsExactly(5, 7, 8, 9);
+                .containsExactlyElementsOf(kept);
     }
 
     /** Building a session is expensive: thirty a minute per user, paging through one is not limited. */
