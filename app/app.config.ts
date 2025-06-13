@@ -19,7 +19,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
-      backgroundColor: '#0B0B10',
+      backgroundColor: '#09090B', // the Electric theme's background, as in the icon layers (ops/scripts/make_icons.py)
     },
   },
   web: {
