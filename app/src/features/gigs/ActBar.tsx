@@ -21,15 +21,30 @@ export function ActBar({
   acts,
   selected,
   onSelect,
+  stuck = false,
 }: {
   acts: readonly ArtistSummary[];
   /** The picked act's id, or null for the whole night. */
   selected: string | null;
   onSelect: (artistId: string | null) => void;
+  /**
+   * The page has scrolled under the bar: it gets the page's colour and a hairline so the content
+   * passes beneath it. At rest it is transparent, so the screen's glow shows through.
+   */
+  stuck?: boolean;
 }) {
   const { colors } = useTheme();
   return (
-    <View style={[styles.bar, { backgroundColor: colors.background }]} testID="act-bar">
+    <View
+      style={[
+        styles.bar,
+        {
+          backgroundColor: stuck ? colors.background : 'transparent',
+          borderBottomColor: stuck ? colors.border : 'transparent',
+        },
+      ]}
+      testID="act-bar"
+    >
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -121,7 +136,7 @@ function Tab({
 const AVATAR = 28;
 
 const styles = StyleSheet.create({
-  bar: { paddingVertical: spacing.sm },
+  bar: { paddingVertical: spacing.sm, borderBottomWidth: StyleSheet.hairlineWidth },
   row: { gap: spacing.sm },
   tab: {
     flexDirection: 'row',

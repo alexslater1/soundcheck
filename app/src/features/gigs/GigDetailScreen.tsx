@@ -32,6 +32,8 @@ export function GigDetailScreen({ id }: { id: string }) {
   const genreNames = useGenreNames();
   const { data, isPending, refetch } = useGetGig(id);
   const [actId, setActId] = useState<string | null>(null);
+  // Whether the page has scrolled under the act bar (it then needs a background).
+  const [stuck, setStuck] = useState(false);
 
   if (isPending) {
     return (
@@ -71,10 +73,18 @@ export function GigDetailScreen({ id }: { id: string }) {
   return (
     <Screen>
       <ScrollView
+        testID="gig-scroll"
         contentContainerStyle={styles.gap}
         stickyHeaderIndices={showBar ? [0] : undefined}
+        scrollEventThrottle={32}
+        onScroll={(event) => {
+          const under = event.nativeEvent.contentOffset.y > 4;
+          if (under !== stuck) setStuck(under);
+        }}
       >
-        {showBar ? <ActBar acts={acts} selected={act?.id ?? null} onSelect={setActId} /> : null}
+        {showBar ? (
+          <ActBar acts={acts} selected={act?.id ?? null} onSelect={setActId} stuck={stuck} />
+        ) : null}
         {gig.imageUrl ? (
           <Image
             source={{ uri: gig.imageUrl }}

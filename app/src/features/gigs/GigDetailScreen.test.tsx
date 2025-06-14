@@ -148,6 +148,22 @@ describe('GigDetailScreen act bar', () => {
     expect(screen.getByText('LINE-UP')).toBeOnTheScreen();
   });
 
+  it('lets the glow show through the bar until the page scrolls under it', async () => {
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    await waitFor(() => expect(screen.getByTestId('act-bar')).toBeOnTheScreen());
+    expect(screen.getByTestId('act-bar')).toHaveStyle({ backgroundColor: 'transparent' });
+
+    await fireEvent.scroll(screen.getByTestId('gig-scroll'), {
+      nativeEvent: { contentOffset: { x: 0, y: 300 } },
+    });
+    expect(screen.getByTestId('act-bar')).not.toHaveStyle({ backgroundColor: 'transparent' });
+
+    await fireEvent.scroll(screen.getByTestId('gig-scroll'), {
+      nativeEvent: { contentOffset: { x: 0, y: 0 } },
+    });
+    expect(screen.getByTestId('act-bar')).toHaveStyle({ backgroundColor: 'transparent' });
+  });
+
   it('has no bar for a gig with one act', async () => {
     fetchMock.mockImplementation(async (input) => {
       const url = String(input);
