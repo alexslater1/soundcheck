@@ -2,7 +2,7 @@
 
 Discover live music near you, share concert clips, and get a feed that learns what you care about.
 
-> **Status:** the local stack, backend skeleton, app shell, contract pipeline, lab and infra stubs and CI are built. Screenshots, the live URL and measured numbers come later.
+> **Status (2025-06-14):** the core is built and verified against the local stack, and demo data and polish are in progress: two rounds of phone feedback, gig stats and the act bar, demo seeding with real concert clips, and London venue listings. Measured numbers, screenshots and the live URL come later.
 
 Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Native client, S3 video storage), built to scale.
 
@@ -14,6 +14,52 @@ Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Nativ
 - **Measured performance** — million-row datasets, k6 load tests and an EXPLAIN-driven before/after report.
 - **Infrastructure as code** — AWS CDK, OIDC deploys, alarms, budgets.
 
+## What it does today
+- **Gigs** — real UK gigs from Ticketmaster (90 days ahead), enriched from MusicBrainz and Last.fm and merged across sources; fans add the gigs no source lists, including past ones found on setlist.fm. A calendar with ranked artist and venue suggestions, several picks at once, near home / UK-wide / another city, saved searches; gig pages with a bar of the bill's acts, each with its own setlist and clips.
+- **Clips** — record or pick, upload straight to S3 in resumable parts (compressed only on mobile data), transcoded by FFmpeg workers into an HLS ladder, played adaptively on Android and the web.
+- **Social** — posts tagged with the gig and acts, likes, comments, follows, blocks, an Activity inbox driven by domain events, account deletion with a 7-day purge.
+- **For You** — candidates from seven SQL generators, twelve features, a logistic score with “Why this post?” reasons, diversity re-ranking and exploration, sessions, and a serve-time feature log for the Python lab.
+- **Your stats** — the acts you have seen most and the venues you go back to, counted from the gigs you marked Went (support acts included); private until you share them.
+
+## Architecture
+One Spring Boot jar in three process roles (`api`, `scheduler`, `worker`) as a modular monolith (Spring Modulith: eleven modules, boundaries checked by a test), one PostgreSQL + PostGIS database, S3 for media, SQS for transcode jobs, and an Expo app for Android and the web. The deployed shape:
+
+```mermaid
+flowchart TB
+  subgraph Client
+    android[Expo app<br/>Android]
+    web[Expo app<br/>web build]
+  end
+  subgraph Edge
+    cf[CloudFront<br/>one HTTPS domain]
+  end
+  subgraph VPC
+    alb[Internal ALB]
+    api[API service<br/>Spring Boot · role api+scheduler<br/>ECS Fargate, 1..N]
+    worker[Transcode workers<br/>Spring Boot · role worker + FFmpeg<br/>ECS Fargate Spot, 0..N]
+    rds[(PostgreSQL 17 + PostGIS<br/>RDS)]
+  end
+  s3web[(S3 web bucket)]
+  s3media[(S3 media bucket<br/>uploads/ · media/)]
+  sqs[[SQS soundcheck-transcode<br/>+ DLQ]]
+  lab[Python ranking lab<br/>CLI / scheduled task]
+
+  android & web -->|HTTPS| cf
+  cf -->|/*| s3web
+  cf -->|/media/*| s3media
+  cf -->|/api/* via VPC origin| alb --> api
+  android & web -.->|presigned PUT| s3media
+  api --> rds
+  api -->|outbox relay| sqs
+  sqs --> worker
+  worker --> s3media
+  worker --> rds
+  lab -->|read features/outcomes| rds
+  lab -->|publish draft config| api
+```
+
+Locally the same shape runs in Docker Compose: **Caddy** plays CloudFront (the same path routing on `localhost:8088`), **LocalStack** plays S3 and SQS, **PostGIS** plays RDS, and **Grafana LGTM** collects the OpenTelemetry traces and metrics. AWS is not deployed yet.
+
 ## Repository guide
 | Path | Contents |
 |---|---|
@@ -23,8 +69,8 @@ Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Nativ
 | `lab/` | Python 3.13 ranking lab (uv, typer CLI `soundcheck-lab`) |
 | `infra/` | AWS CDK v2 (TypeScript) stacks with cdk-nag |
 | `contracts/` | `openapi.json` snapshot and `ranking/feature-schema.json`, shared by backend, app and lab |
-| `ops/` | Local stack: Caddy edge, LocalStack init hook, Grafana provisioning |
-| `load/` · `fixtures/` | k6 scenarios · recorded API pages and synthetic clips |
+| `ops/` | Local stack: Caddy edge, LocalStack init hook, Grafana provisioning; scripts (synthetic clips, icons, local status) |
+| `load/` · `fixtures/` | k6 scenarios · synthetic API pages and clips |
 | `.github/` | CI (path-filtered jobs, gitleaks), CodeQL, Dependabot |
 
 ## Quick start
@@ -52,7 +98,7 @@ make help           # every target with a one-line description
 
 That is all. The build daemons are why step 2 does more than `docker compose down`: Gradle keeps a background process after every build (backend and Android), and the Android build adds a Kotlin compile daemon. They hold up to ~2 GB each and only exit after ~3 hours idle. `make stop-daemons` stops just those, at any time. `make reset` is `make down` plus deleting the volumes (empty database, LocalStack and the saved clips). Stopping Docker any other way (a reboot, `docker compose down`) skips the copy: clips posted since the last `make down` or `make media-snapshot` are then lost, and their posts say "This clip could not be played". The adb server is left running: it is tiny and shared with Android Studio (`adb kill-server` stops it).
 
-Then: http://localhost:8088 shows the app with "API: UP"; http://localhost:8088/api/v1/health answers directly;
+Then: http://localhost:8088 shows the app (Settings → About shows the API's status); http://localhost:8088/api/v1/health answers directly;
 Grafana at http://localhost:3000 (Explore → Tempo → `{ resource.service.name = "soundcheck" }`) shows the trace.
 
 Checks: `make verify` (backend build + tests, app lint/typecheck/tests, orval drift, infra tests, lab checks) · `make test` · `make lab-check` · `make openapi` / `make openapi-check`.
