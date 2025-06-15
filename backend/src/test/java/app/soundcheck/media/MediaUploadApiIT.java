@@ -338,13 +338,20 @@ class MediaUploadApiIT extends IntegrationTest {
         assertThat(playback.path("posterUrl").asText("")).endsWith("/media/" + mediaId + "/v1/image.png");
         assertThat(playback.path("hlsUrl").isNull()).isTrue();
         assertThat(storage.head("media/" + mediaId + "/v1/image.png")).hasValueSatisfying(head -> {
-            assertThat(head.contentLength()).isEqualTo(png.length);
+            // Not the uploaded bytes: a re-encoded copy without the file's metadata (ImageScrub).
+            assertThat(head.contentLength()).isPositive();
             assertThat(head.contentType()).isEqualTo("image/png");
         });
         // Served under a versioned path, so it may be cached for good, like the video outputs.
         assertThat(s3.headObject(b -> b.bucket(IntegrationTest.BUCKET).key("media/" + mediaId + "/v1/image.png"))
                         .cacheControl())
                 .isEqualTo("public, max-age=31536000, immutable");
+        // The served copy is a PNG of the same size as the upload (small images are not scaled).
+        java.awt.image.BufferedImage served = javax.imageio.ImageIO.read(new java.io.ByteArrayInputStream(
+                s3.getObjectAsBytes(b -> b.bucket(IntegrationTest.BUCKET).key("media/" + mediaId + "/v1/image.png"))
+                        .asByteArray()));
+        assertThat(served.getWidth()).isEqualTo(64);
+        assertThat(served.getHeight()).isEqualTo(48);
     }
 
     @Test

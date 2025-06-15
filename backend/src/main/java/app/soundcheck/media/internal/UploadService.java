@@ -225,39 +225,59 @@ public class UploadService {
                     asset.id(), ownerId, now, traceparent.current().orElse(null)));
             return "UPLOADED";
         }
-        // Images (avatars) need no transcoding, but nothing is served unchecked: the bytes must be an
-        // image of the declared type.
-        String problem = imageProblem(asset);
+        // Images (avatars) need no transcoding, but nothing is served unchecked or as uploaded: the bytes
+        // must be an image of the declared type, and what is served is a copy without
+        // the file's metadata (a photo's EXIF holds the camera, the time and often the GPS position).
+        String prefix = "media/" + asset.id() + "/v1/";
+        String imageKey = prefix + "image." + IMAGE_TYPES.get(asset.contentType());
+        String problem = storeServedImage(asset, imageKey);
         if (problem != null) {
             storage.delete(asset.originalKey());
             assets.close(asset.id(), "UPLOADED", "REJECTED", problem, now);
             throw ApiException.badRequest("IMAGE_INVALID", "The uploaded file is not a valid image");
         }
-        // Copy to the served prefix and it is ready.
-        String prefix = "media/" + asset.id() + "/v1/";
-        String imageKey = prefix + "image." + IMAGE_TYPES.get(asset.contentType());
-        storage.copy(asset.originalKey(), imageKey, asset.contentType(), IMMUTABLE);
         assets.markImageReady(asset.id(), prefix, imageKey, now);
         return "READY";
     }
 
-    /** Downloads the (at most 10 MB) image to a temporary file and checks its header. */
-    private @Nullable String imageProblem(MediaAsset asset) {
-        Path temp = null;
+    /**
+     * Downloads the (at most 10 MB) image, checks its header, and stores the scrubbed copy
+     * ({@link ImageScrub}) at {@code imageKey}. Returns why the image was refused, or null.
+     */
+    private @Nullable String storeServedImage(MediaAsset asset, String imageKey) {
+        Path original = null;
+        Path served = null;
         try {
-            temp = Files.createTempFile("soundcheck-image-", ".bin");
-            Files.delete(temp); // the storage client writes the file itself and refuses an existing one
-            storage.getToFile(asset.originalKey(), temp);
-            return ImageCheck.problem(temp, asset.contentType());
+            original = Files.createTempFile("soundcheck-image-", ".bin");
+            Files.delete(original); // the storage client writes the file itself and refuses an existing one
+            storage.getToFile(asset.originalKey(), original);
+            String problem = ImageCheck.problem(original, asset.contentType());
+            if (problem != null) {
+                return problem;
+            }
+            served = Files.createTempFile("soundcheck-image-", ".out");
+            try {
+                ImageScrub.scrub(original, asset.contentType(), served);
+            } catch (IOException | RuntimeException e) {
+                // A header that reads well over pixels the JDK cannot decode (a CMYK JPEG, say).
+                return "not a decodable image";
+            }
+            storage.putFile(imageKey, served, asset.contentType(), IMMUTABLE);
+            return null;
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {
-            if (temp != null) {
-                try {
-                    Files.deleteIfExists(temp);
-                } catch (IOException e) {
-                    // A leftover temp file is not worth failing the request for.
-                }
+            deleteQuietly(original);
+            deleteQuietly(served);
+        }
+    }
+
+    private static void deleteQuietly(@Nullable Path temp) {
+        if (temp != null) {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException e) {
+                // A leftover temp file is not worth failing the request for.
             }
         }
     }
