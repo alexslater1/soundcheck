@@ -35,7 +35,16 @@ export function GigSetlist({
   const setlist = useGetGigSetlist<Awaited<ReturnType<typeof getGigSetlist>>, ApiError>(
     gigId,
     artistId ? { artistId } : undefined,
-    { query: { enabled: past, retry: false, staleTime: 60 * 60 * 1000 } },
+    {
+      query: {
+        enabled: past,
+        // setlist.fm sometimes refuses a call (its rate limit is per key, shared by every user of the
+        // API): one quiet retry before saying so. "Not found" and "no key" are answers, not failures.
+        retry: (failures, error) => failures < 1 && error.code === 'SETLIST_LOOKUP_FAILED',
+        retryDelay: RETRY_AFTER_MS,
+        staleTime: 60 * 60 * 1000,
+      },
+    },
   );
   if (!past) {
     return null;
@@ -61,16 +70,27 @@ export function GigSetlist({
     if (setlist.error.code === 'SETLISTS_UNAVAILABLE') {
       return null;
     }
+    const notFound = setlist.error.code === 'SETLIST_NOT_FOUND';
     return (
       <View style={styles.gap} testID="setlist-none">
         {heading}
         <Text muted>
-          {setlist.error.code !== 'SETLIST_NOT_FOUND'
+          {!notFound
             ? 'Could not reach setlist.fm just now.'
             : actName
               ? `No setlist for ${actName} at this gig on setlist.fm yet. Fans usually add one within a few days.`
               : 'No setlist on setlist.fm for this gig yet. Fans usually add one within a few days.'}
         </Text>
+        {!notFound ? (
+          <Text
+            accessibilityRole="button"
+            style={{ color: colors.accent }}
+            onPress={() => void setlist.refetch()}
+            testID="setlist-retry"
+          >
+            Try again
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -98,9 +118,7 @@ export function GigSetlist({
                     <Text muted={song.tape}>{song.name}</Text>
                     {song.coverOf || song.info ? (
                       <Text variant="caption" muted>
-                        {[song.coverOf ? `${song.coverOf} cover` : null, song.info]
-                          .filter(Boolean)
-                          .join(' · ')}
+                        {songNote(song)}
                       </Text>
                     ) : null}
                   </View>
@@ -123,6 +141,18 @@ export function GigSetlist({
       ) : null}
     </View>
   );
+}
+
+/** How long to wait before the one retry of a failed lookup. */
+const RETRY_AFTER_MS = 1500;
+
+/**
+ * The small line under a song: whose song it is when it was a cover, and the setlist's note. setlist.fm
+ * writes a bare ">" for a song that runs straight into the next one, which is spelled out here.
+ */
+export function songNote(song: { coverOf?: string | null; info?: string | null }): string {
+  const info = song.info?.trim() === '>' ? 'into the next song' : song.info;
+  return [song.coverOf ? `${song.coverOf} cover` : null, info].filter(Boolean).join(' · ');
 }
 
 /** Songs numbered through the whole show, encores included; tapes (intros) are not counted. */

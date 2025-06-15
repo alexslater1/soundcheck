@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { GigSetlist, numberSongs } from './GigSetlist';
+import { GigSetlist, numberSongs, songNote } from './GigSetlist';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 
@@ -72,6 +72,41 @@ describe('GigSetlist', () => {
     expect(screen.getByText('ENCORE')).toBeOnTheScreen();
     expect(screen.getByText('3.')).toBeOnTheScreen(); // Last Train
     expect(screen.getByTestId('setlist-source')).toHaveTextContent('Setlist from setlist.fm →');
+  });
+
+  it('spells out a segue and names the original artist of a cover', () => {
+    expect(songNote({ coverOf: 'Adrianne Lenker', info: '>' })).toBe(
+      'Adrianne Lenker cover · into the next song',
+    );
+    expect(songNote({ coverOf: null, info: 'acoustic' })).toBe('acoustic');
+    expect(songNote({ coverOf: null, info: null })).toBe('');
+  });
+
+  it('retries a failed lookup once by itself, then offers to try again', async () => {
+    const failed = () =>
+      new Response(JSON.stringify({ status: 502, code: 'SETLIST_LOOKUP_FAILED' }), {
+        status: 502,
+        headers: { 'content-type': 'application/problem+json' },
+      });
+    fetchMock
+      .mockResolvedValueOnce(failed())
+      .mockResolvedValueOnce(failed())
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(SETLIST), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      );
+    await render(<GigSetlist gigId="g1" startsAt={PAST} />, { wrapper: Providers });
+
+    expect(
+      await screen.findByText('Could not reach setlist.fm just now.', {}, { timeout: 4000 }),
+    ).toBeOnTheScreen();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    await fireEvent.press(screen.getByTestId('setlist-retry'));
+    expect(await screen.findByText('Harbour Lights')).toBeOnTheScreen();
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it('says when setlist.fm has none yet', async () => {
