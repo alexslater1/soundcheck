@@ -10,7 +10,9 @@ import app.soundcheck.catalog.GigStats.StatsAct;
 import app.soundcheck.catalog.GigStats.StatsTotals;
 import app.soundcheck.catalog.GigStats.StatsVenue;
 import app.soundcheck.catalog.GigStats.StatsYear;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -46,10 +48,10 @@ class AttendanceStatsRepository {
     /**
      * Totals and per-year counts. {@code GROUP BY ROLLUP (year)} returns a row per year and one more
      * for all years together (where {@code grouping(year)} is 1), so the distinct counts of the total are
-     * real distinct counts, not sums of the years'. The bill is a left join, so a gig without one still
-     * counts as a gig.
+     * real distinct counts, not sums of the years'. Only gigs with a bill count, like everywhere a gig is
+     * listed (a gig without one is never shown), so the totals agree with the gigs behind them.
      */
-    Counts counts(UUID userId) {
+    Counts counts(UUID userId, Instant now) {
         Field<Integer> total = DSL.grouping(YEAR);
         Field<Integer> gigs = DSL.countDistinct(GIG.ID);
         Field<Integer> acts = DSL.countDistinct(GIG_ARTIST.ARTIST_ID);
@@ -64,9 +66,9 @@ class AttendanceStatsRepository {
                 .on(GIG.ID.eq(GIG_ATTENDANCE.GIG_ID))
                 .join(VENUE)
                 .on(VENUE.ID.eq(GIG.VENUE_ID))
-                .leftJoin(GIG_ARTIST)
+                .join(GIG_ARTIST)
                 .on(GIG_ARTIST.GIG_ID.eq(GIG.ID))
-                .where(went(userId))
+                .where(went(userId, now))
                 .groupBy(DSL.rollup(YEAR))
                 .orderBy(YEAR.desc())
                 .fetch();
@@ -85,7 +87,7 @@ class AttendanceStatsRepository {
      * most once ({@code gig_artist}'s primary key); grouping by the artist's primary key lets the query
      * select its name and image.
      */
-    List<StatsAct> topActs(UUID userId, int limit) {
+    List<StatsAct> topActs(UUID userId, Instant now, int limit) {
         Field<Integer> times = DSL.count();
         Field<OffsetDateTime> first = DSL.min(GIG.STARTS_AT);
         Field<OffsetDateTime> last = DSL.max(GIG.STARTS_AT);
@@ -97,7 +99,7 @@ class AttendanceStatsRepository {
                 .on(GIG_ARTIST.GIG_ID.eq(GIG.ID))
                 .join(ARTIST)
                 .on(ARTIST.ID.eq(GIG_ARTIST.ARTIST_ID))
-                .where(went(userId))
+                .where(went(userId, now))
                 .groupBy(ARTIST.ID)
                 .orderBy(times.desc(), last.desc(), ARTIST.NAME.asc(), ARTIST.ID.asc())
                 .limit(limit)
@@ -111,7 +113,7 @@ class AttendanceStatsRepository {
     }
 
     /** The venues of the most of the user's gigs, in the same order as {@link #topActs}. */
-    List<StatsVenue> topVenues(UUID userId, int limit) {
+    List<StatsVenue> topVenues(UUID userId, Instant now, int limit) {
         Field<Integer> times = DSL.count();
         Field<OffsetDateTime> first = DSL.min(GIG.STARTS_AT);
         Field<OffsetDateTime> last = DSL.max(GIG.STARTS_AT);
@@ -121,7 +123,7 @@ class AttendanceStatsRepository {
                 .on(GIG.ID.eq(GIG_ATTENDANCE.GIG_ID))
                 .join(VENUE)
                 .on(VENUE.ID.eq(GIG.VENUE_ID))
-                .where(went(userId))
+                .where(went(userId, now))
                 .groupBy(VENUE.ID)
                 .orderBy(times.desc(), last.desc(), VENUE.NAME.asc(), VENUE.ID.asc())
                 .limit(limit)
@@ -134,7 +136,16 @@ class AttendanceStatsRepository {
                         r.value6().toInstant()));
     }
 
-    private static Condition went(UUID userId) {
-        return GIG_ATTENDANCE.USER_ID.eq(userId).and(GIG_ATTENDANCE.STATUS.eq("WENT"));
+    /**
+     * The gigs that count: marked WENT, started already, and not cancelled. The app offers Went on any
+     * gig, so a tap on next month's show, or on one cancelled later, must not count as a gig seen.
+     */
+    private static Condition went(UUID userId, Instant now) {
+        return GIG_ATTENDANCE
+                .USER_ID
+                .eq(userId)
+                .and(GIG_ATTENDANCE.STATUS.eq("WENT"))
+                .and(GIG.STARTS_AT.lt(now.atOffset(ZoneOffset.UTC)))
+                .and(GIG.STATUS.ne("CANCELLED"));
     }
 }

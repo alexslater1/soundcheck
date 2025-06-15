@@ -58,7 +58,42 @@ class CatalogReadRepository {
             @Nullable String attendanceStatus,
             boolean newestFirst,
             @Nullable Cursor cursor,
-            int limit) {}
+            int limit,
+            /** Leave out cancelled gigs (a fan's stats: a cancelled gig did not happen). */
+            boolean excludeCancelled) {
+
+        /** Every list but the stats': cancelled gigs are shown, with their badge. */
+        GigFilter(
+                @Nullable GeoPoint origin,
+                @Nullable Integer radiusKm,
+                @Nullable Instant from,
+                @Nullable Instant to,
+                @Nullable Set<Short> genreIds,
+                @Nullable String q,
+                @Nullable Set<UUID> artistIds,
+                @Nullable Set<UUID> venueIds,
+                @Nullable UUID attendeeId,
+                @Nullable String attendanceStatus,
+                boolean newestFirst,
+                @Nullable Cursor cursor,
+                int limit) {
+            this(
+                    origin,
+                    radiusKm,
+                    from,
+                    to,
+                    genreIds,
+                    q,
+                    artistIds,
+                    venueIds,
+                    attendeeId,
+                    attendanceStatus,
+                    newestFirst,
+                    cursor,
+                    limit,
+                    false);
+        }
+    }
 
     record GigRow(
             UUID id,
@@ -194,6 +229,9 @@ class CatalogReadRepository {
         }
         if (filter.venueIds() != null && !filter.venueIds().isEmpty()) {
             where.add(GIG.VENUE_ID.in(filter.venueIds()));
+        }
+        if (filter.excludeCancelled()) {
+            where.add(GIG.STATUS.ne("CANCELLED"));
         }
         if (filter.attendeeId() != null) {
             Condition mine = GIG_ATTENDANCE.GIG_ID.eq(GIG.ID).and(GIG_ATTENDANCE.USER_ID.eq(filter.attendeeId()));

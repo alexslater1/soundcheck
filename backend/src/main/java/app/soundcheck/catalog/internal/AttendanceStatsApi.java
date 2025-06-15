@@ -5,6 +5,7 @@ import app.soundcheck.catalog.GigStats;
 import app.soundcheck.catalog.GigSummary;
 import app.soundcheck.shared.web.Page;
 import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.UUID;
@@ -34,13 +35,14 @@ class AttendanceStatsApi implements AttendanceStats {
         if (top < 1 || top > MAX_TOP) {
             throw new IllegalArgumentException("top must be between 1 and " + MAX_TOP + ": " + top);
         }
-        AttendanceStatsRepository.Counts counts = repository.counts(userId);
+        Instant now = clock.instant();
+        AttendanceStatsRepository.Counts counts = repository.counts(userId, now);
         return new GigStats(
                 counts.totals(),
-                LocalDate.ofInstant(clock.instant(), UK).getYear(),
+                LocalDate.ofInstant(now, UK).getYear(),
                 counts.years(),
-                repository.topActs(userId, top),
-                repository.topVenues(userId, top));
+                repository.topActs(userId, now, top),
+                repository.topVenues(userId, now, top));
     }
 
     @Override

@@ -5,7 +5,7 @@ import type { PropsWithChildren } from 'react';
 import type { GigStats } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { GigStatsSection, statsGigsHref } from './GigStatsSection';
+import { everyYear, GigStatsSection, statsGigsHref } from './GigStatsSection';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
@@ -151,5 +151,22 @@ describe('GigStatsSection', () => {
     await render(<GigStatsSection userId="u2" own={false} />, { wrapper: Providers });
     await waitFor(() => expect(screen.getByText('Could not load the stats')).toBeOnTheScreen());
     expect(screen.getByText('STATS')).toBeOnTheScreen();
+  });
+});
+
+describe('everyYear', () => {
+  it('fills the years without gigs with 0, newest first', () => {
+    expect(
+      everyYear([
+        { year: 2022, gigs: 3 },
+        { year: 2019, gigs: 12 },
+      ]),
+    ).toEqual([
+      { year: 2022, gigs: 3 },
+      { year: 2021, gigs: 0 },
+      { year: 2020, gigs: 0 },
+      { year: 2019, gigs: 12 },
+    ]);
+    expect(everyYear([])).toEqual([]);
   });
 });

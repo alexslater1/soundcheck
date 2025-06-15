@@ -30,8 +30,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Gig stats over HTTP against real PostGIS: a fan's stats counted from the gigs they marked WENT, the
  * gigs behind each line, and who may see them. The fan's history is built by hand, so every number is
  * known: Cardinals play two bills on one night (two times seen), Keo is seen once as support, two venue
- * spellings of one city count as one city, and GOING / INTERESTED rows and other fans' rows count for
- * nothing.
+ * spellings of one city count as one city, and GOING / INTERESTED rows, other fans' rows, a Went show
+ * still to come and a Went show that was cancelled count for nothing.
  */
 class GigStatsIT extends IntegrationTest {
 
@@ -89,17 +89,22 @@ class GigStatsIT extends IntegrationTest {
         bandOnTheWall = tx.execute(status -> catalogIngest.createVenue(new VenueDraft(
                 "Band on the Wall " + tag, null, " manchester", null, 53.4855, -2.2369, "Europe/London")));
 
-        // Last year: Cardinals support Keo at Scala, then headline CHALK later the same night.
-        g1 = data.gig("Keo " + tag, scala, at(year - 1, 3, 1, 19), keo, cardinals);
-        g2 = data.gig("Cardinals " + tag, chalk, at(year - 1, 3, 1, 22), cardinals);
-        // This year: Keo headlines Scala with Westside Cowboy, then supports Westside Cowboy.
-        g3 = data.gig("Keo " + tag, scala, at(year, 1, 10, 20), keo, westside);
-        g4 = data.gig("Westside Cowboy " + tag, bandOnTheWall, at(year, 2, 10, 20), westside, keo);
-        UUID going = data.gig("Keo " + tag, scala, at(year, 2, 20, 20), keo);
-        UUID interested = data.gig("Stranger " + tag, chalk, at(year, 2, 21, 20), stranger);
-        UUID othersOnly = data.gig("Stranger " + tag, scala, at(year, 2, 22, 20), stranger);
+        // Fixed past years, so the year lines hold whatever the date: two years ago and last year.
+        // Two years ago: Cardinals support Keo at Scala, then headline CHALK later the same night.
+        g1 = data.gig("Keo " + tag, scala, at(year - 2, 3, 1, 19), keo, cardinals);
+        g2 = data.gig("Cardinals " + tag, chalk, at(year - 2, 3, 1, 22), cardinals);
+        // Last year: Keo headlines Scala with Westside Cowboy, then supports Westside Cowboy.
+        g3 = data.gig("Keo " + tag, scala, at(year - 1, 1, 10, 20), keo, westside);
+        g4 = data.gig("Westside Cowboy " + tag, bandOnTheWall, at(year - 1, 2, 10, 20), westside, keo);
+        UUID going = data.gig("Keo " + tag, scala, at(year - 1, 2, 20, 20), keo);
+        UUID interested = data.gig("Stranger " + tag, chalk, at(year - 1, 2, 21, 20), stranger);
+        UUID othersOnly = data.gig("Stranger " + tag, scala, at(year - 1, 2, 22, 20), stranger);
+        // Marked Went but never seen: a show still to come, and one that was cancelled.
+        UUID notYet = data.gig("Keo " + tag, chalk, Instant.now().plus(java.time.Duration.ofDays(30)), keo);
+        UUID cancelled = data.gig("Keo " + tag, chalk, at(year - 1, 3, 5, 20), keo, stranger);
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelled);
 
-        for (UUID gig : List.of(g1, g2, g3, g4)) {
+        for (UUID gig : List.of(g1, g2, g3, g4, notYet, cancelled)) {
             mark(fan, gig, "WENT");
         }
         mark(fan, going, "GOING");
@@ -119,9 +124,9 @@ class GigStatsIT extends IntegrationTest {
         assertThat(totals.path("cities").asInt()).isEqualTo(2);
         assertThat(stats.path("currentYear").asInt()).isEqualTo(year);
 
-        // Newest year first; distinct counts within each year.
+        // Newest year first; distinct counts within each year; nothing for the gig still to come.
         assertThat(lines(stats.path("years"), "year", "gigs", "acts", "venues"))
-                .containsExactly(year + " 2 2 2", (year - 1) + " 2 2 2");
+                .containsExactly((year - 1) + " 2 2 2", (year - 2) + " 2 2 2");
 
         // Keo three times (twice headlining, once supporting); Cardinals twice on one night; ties go to
         // the act seen most recently.
@@ -129,15 +134,16 @@ class GigStatsIT extends IntegrationTest {
                 .containsExactly("Keo " + tag + " 3", "Westside Cowboy " + tag + " 2", "Cardinals " + tag + " 2");
         JsonNode keoLine = stats.path("acts").path(0);
         assertThat(keoLine.path("id").asText("")).isEqualTo(keo.toString());
+        // The cancelled show (5 March) and the one still to come are not Keo's "last".
         assertThat(keoLine.path("first").asText(""))
-                .isEqualTo(at(year - 1, 3, 1, 19).toString());
+                .isEqualTo(at(year - 2, 3, 1, 19).toString());
         assertThat(keoLine.path("last").asText(""))
-                .isEqualTo(at(year, 2, 10, 20).toString());
+                .isEqualTo(at(year - 1, 2, 10, 20).toString());
         JsonNode cardinalsLine = stats.path("acts").path(2);
         assertThat(cardinalsLine.path("first").asText(""))
-                .isEqualTo(at(year - 1, 3, 1, 19).toString());
+                .isEqualTo(at(year - 2, 3, 1, 19).toString());
         assertThat(cardinalsLine.path("last").asText(""))
-                .isEqualTo(at(year - 1, 3, 1, 22).toString());
+                .isEqualTo(at(year - 2, 3, 1, 22).toString());
 
         assertThat(lines(stats.path("venues"), "name", "city", "times"))
                 .containsExactly(

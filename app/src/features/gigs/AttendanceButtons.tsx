@@ -16,7 +16,10 @@ import { spacing } from '@/theme/tokens';
 import { applyAttendance, ATTENDANCE_OPTIONS, type AttendanceStatus } from './attendance';
 
 /** Query keys of every gig list (`/gigs`, `/me/gigs`, an artist's or a venue's gigs). */
-const isGigList = (key: readonly unknown[]) => typeof key[0] === 'string' && /\/gigs$/.test(key[0]);
+// Gig lists, and the stats counted from Went gigs with the gigs behind them, which go stale
+// the moment a gig is marked or unmarked.
+export const isGigList = (key: readonly unknown[]) =>
+  typeof key[0] === 'string' && /\/gigs$|\/stats(\/gigs)?$/.test(key[0]);
 
 /**
  * Interested / Going / Went with an optimistic update: the button and the counts change

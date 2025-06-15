@@ -4,7 +4,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 import { getGetGigQueryKey } from '@/api/generated/catalog/catalog';
 import type { GigDetail } from '@/api/generated/model';
 
-import { AttendanceButtons } from './AttendanceButtons';
+import { AttendanceButtons, isGigList } from './AttendanceButtons';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 
@@ -104,5 +104,16 @@ describe('AttendanceButtons', () => {
     expect(screen.getByTestId('attendance-counts')).toHaveTextContent(/^2 going/);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     expect(fetchMock.mock.calls[1]![1]?.method).toBe('DELETE');
+  });
+});
+
+describe('isGigList (what a new mark refreshes)', () => {
+  it('matches gig lists and the stats counted from Went gigs, nothing else', () => {
+    expect(isGigList(['/api/v1/gigs', { limit: 20 }])).toBe(true);
+    expect(isGigList(['/api/v1/me/gigs'])).toBe(true);
+    expect(isGigList(['/api/v1/users/u1/stats', { top: 10 }])).toBe(true);
+    expect(isGigList(['/api/v1/users/u1/stats/gigs', { artistId: 'a' }])).toBe(true);
+    expect(isGigList(['/api/v1/gigs/g1'])).toBe(false);
+    expect(isGigList(['/api/v1/users/u1/posts'])).toBe(false);
   });
 });

@@ -167,6 +167,29 @@ class SetlistServiceTest {
     }
 
     @Test
+    void anActTheWholeGigsLookupAlreadySearchedCostsNoSecondCall() {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
+
+        assertThatThrownBy(() -> service.forGig(fan, gigId)).isInstanceOf(ApiException.class); // none for any act
+        assertThatThrownBy(() -> service.forGig(fan, gigId, nightBus))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_NOT_FOUND"));
+        verify(client, times(1)).setlistsOn(null, "Night Bus", LocalDate.of(2025, 10, 17));
+    }
+
+    @Test
+    void theKnownIdIsNotFetchedAgainForASupportActOnceTheGigsAnswerIsKnown() {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", "7bd6a2a8");
+        when(client.setlist("7bd6a2a8")).thenReturn(Optional.of(setlist("7bd6a2a8", "Manchester")));
+        when(client.setlistsOn(null, "Night Bus", LocalDate.of(2025, 10, 17)))
+                .thenReturn(List.of(setlist("support", "Manchester", "Night Bus")));
+
+        assertThat(service.forGig(fan, gigId).id()).isEqualTo("7bd6a2a8"); // the headliner's, by id
+        assertThat(service.forGig(fan, gigId, nightBus).id()).isEqualTo("support");
+        verify(client, times(1)).setlist("7bd6a2a8");
+    }
+
+    @Test
     void anActNotOnTheBillHasNoSetlistAndCostsNoCall() {
         gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
 

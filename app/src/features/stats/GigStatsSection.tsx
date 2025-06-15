@@ -1,3 +1,4 @@
+import { keepPreviousData } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
@@ -25,7 +26,12 @@ export const ALL = 100;
  */
 export function GigStatsSection({ userId, own }: { userId: string; own: boolean }) {
   const [showAll, setShowAll] = useState(false);
-  const stats = useGetUserStats(userId, { top: showAll ? ALL : TOP });
+  // "Show all" asks again with a larger top: the shorter lists stay up until the longer ones arrive.
+  const stats = useGetUserStats(
+    userId,
+    { top: showAll ? ALL : TOP },
+    { query: { placeholderData: keepPreviousData } },
+  );
   const heading = (
     <Text variant="label" muted>
       {own ? 'YOUR STATS' : 'STATS'}
@@ -173,14 +179,15 @@ function YearLine({ stats }: { stats: GigStats }) {
  */
 function YearBars({ stats }: { stats: GigStats }) {
   const { colors } = useTheme();
-  if (stats.years.length < 2) return null;
-  const busiest = Math.max(...stats.years.map((y) => y.gigs));
+  const years = everyYear(stats.years);
+  if (years.length < 2) return null;
+  const busiest = Math.max(...years.map((y) => y.gigs));
   return (
     <View style={styles.years}>
       <Text variant="label" muted style={styles.heading}>
         BY YEAR
       </Text>
-      {stats.years.map((y) => (
+      {years.map((y) => (
         <View
           key={y.year}
           style={styles.yearRow}
@@ -196,7 +203,9 @@ function YearBars({ stats }: { stats: GigStats }) {
               testID="stats-year-bar"
               style={[
                 styles.bar,
-                { width: `${(y.gigs / busiest) * 100}%`, backgroundColor: colors.accent },
+                y.gigs > 0
+                  ? { width: `${(y.gigs / busiest) * 100}%`, backgroundColor: colors.accent }
+                  : styles.noBar,
               ]}
             />
           </View>
@@ -207,6 +216,22 @@ function YearBars({ stats }: { stats: GigStats }) {
       ))}
     </View>
   );
+}
+
+/**
+ * The years from the newest with gigs to the oldest, a year without gigs included as 0: the server lists
+ * only years with gigs, and leaving the empty ones out would make a gap in going to gigs disappear.
+ */
+export function everyYear(years: readonly { year: number; gigs: number }[]) {
+  if (years.length === 0) return [];
+  const newest = Math.max(...years.map((y) => y.year));
+  const oldest = Math.min(...years.map((y) => y.year));
+  const gigsIn = new Map(years.map((y) => [y.year, y.gigs]));
+  const all: { year: number; gigs: number }[] = [];
+  for (let year = newest; year >= oldest; year--) {
+    all.push({ year, gigs: gigsIn.get(year) ?? 0 });
+  }
+  return all;
 }
 
 function StatRow({
@@ -293,6 +318,7 @@ const styles = StyleSheet.create({
   track: { flex: 1 },
   // A thin bar anchored at the left, its far end rounded (4 px).
   bar: { height: 10, minWidth: 4, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  noBar: { width: 0, minWidth: 0 },
   yearCount: { width: 32, textAlign: 'right' },
   avatar: {
     width: touchTarget,

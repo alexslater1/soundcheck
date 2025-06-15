@@ -79,7 +79,9 @@ final class ImageScrub {
             try {
                 reader.setInput(in, true, true);
                 int longEdge = Math.max(reader.getWidth(0), reader.getHeight(0));
-                int step = Math.max(1, longEdge / (2 * MAX_EDGE));
+                // Rounded up, so the decoded edge is at most 2 × MAX_EDGE (a 4095-pixel photo is read at
+                // 2048, not in full) and still at least MAX_EDGE, which the scaling then brings down.
+                int step = Math.max(1, Math.ceilDiv(longEdge, 2 * MAX_EDGE));
                 ImageReadParam param = reader.getDefaultReadParam();
                 param.setSourceSubsampling(step, step, 0, 0);
                 return reader.read(0, param);

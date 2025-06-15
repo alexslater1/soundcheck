@@ -100,15 +100,25 @@ public class SetlistService {
             throw notFound("This gig has not happened yet");
         }
         GigFacts.Act act = null;
+        boolean tryKnownId = true;
         if (artistId != null) {
             act = gig.acts().stream()
                     .filter(a -> a.id().equals(artistId))
                     .findFirst()
                     .orElseThrow(() -> notFound("That act is not on this gig's bill"));
-            // The whole gig's answer may already be this act's setlist (usually the headliner's).
-            Optional<Setlist> whole = cached(new Key(gigId, null), now).flatMap(c -> c.setlist());
-            if (whole.isPresent() && sameArtist(whole.get().artist(), act.name())) {
-                return whole.get();
+            Optional<Cached> whole = cached(new Key(gigId, null), now);
+            if (whole.isPresent()) {
+                Optional<Setlist> found = whole.get().setlist();
+                // The whole gig's answer may already be this act's setlist (usually the headliner's).
+                if (found.isPresent() && sameArtist(found.get().artist(), act.name())) {
+                    return found.get();
+                }
+                // "None" for the whole gig means each of the first MAX_ACTS acts was searched on this day.
+                if (found.isEmpty() && gig.acts().indexOf(act) < MAX_ACTS) {
+                    throw notFound("No setlist for this act at this gig on setlist.fm yet");
+                }
+                // Either way the gig's known setlist id was tried: it is another act's, or it led nowhere.
+                tryKnownId = false;
             }
         }
         Key key = new Key(gigId, artistId);
@@ -119,7 +129,7 @@ public class SetlistService {
         rateLimiter.enforce("setlists:" + userId, PER_USER_PER_HOUR, Duration.ofHours(1));
         Optional<Setlist> found;
         try {
-            found = act == null ? lookUp(gig, now) : lookUp(gig, act, now);
+            found = act == null ? lookUp(gig, now) : lookUp(gig, act, tryKnownId, now);
         } catch (SourceException e) {
             throw new ApiException(
                     HttpStatus.BAD_GATEWAY, "SETLIST_LOOKUP_FAILED", "setlist.fm could not be reached. Try again.");
@@ -140,11 +150,11 @@ public class SetlistService {
     }
 
     /**
-     * One act's setlist on the gig's day: the gig's known setlist.fm id when it is that act's, else a
-     * search by the act and the date.
+     * One act's setlist on the gig's day: the gig's known setlist.fm id when it is that act's (unless the
+     * gig's own lookup already tried it), else a search by the act and the date.
      */
-    private Optional<Setlist> lookUp(GigFacts gig, GigFacts.Act act, Instant now) {
-        if (gig.setlistFmId() != null) {
+    private Optional<Setlist> lookUp(GigFacts gig, GigFacts.Act act, boolean tryKnownId, Instant now) {
+        if (tryKnownId && gig.setlistFmId() != null) {
             budget.spend(now);
             Optional<Setlist> byId = client.setlist(gig.setlistFmId());
             if (byId.isPresent() && sameArtist(byId.get().artist(), act.name())) {

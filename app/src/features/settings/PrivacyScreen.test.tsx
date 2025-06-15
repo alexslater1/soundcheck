@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
 import { useAuthStore } from '@/features/auth/store';
+import { fireEvent } from '@/test/fireEvent';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { PrivacyScreen } from './PrivacyScreen';
@@ -70,6 +71,37 @@ describe('PrivacyScreen', () => {
     expect(notice).toHaveTextContent(/without the file’s metadata/);
     expect(notice).toHaveTextContent(/no advertising or third-party tracking tools/);
     expect(notice).toHaveTextContent(/Seven days later/);
+  });
+
+  it('keeps the newest choice when an older save finishes after it', async () => {
+    let finish: ((response: Response) => void)[] = [];
+    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => finish.push(resolve)));
+    let server = false;
+    reloadMe.mockImplementation(async () => {
+      useAuthStore.setState({ me: { ...me, showGigStats: server } as never });
+    });
+    const ok = (show: boolean) =>
+      new Response(JSON.stringify({ ...me, showGigStats: show }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    await render(<PrivacyScreen />, { wrapper: Providers });
+
+    await fireEvent.press(screen.getByText('Everyone'));
+    await fireEvent.press(screen.getByText('Only me'));
+    await waitFor(() => expect(finish).toHaveLength(2));
+
+    // The first save (Everyone) lands: the screen must still show the second choice (Only me).
+    server = true;
+    await act(async () => finish[0]!(ok(true)));
+    expect(detail()).toHaveTextContent(/for you only/);
+
+    server = false;
+    await act(async () => finish[1]!(ok(false)));
+    await waitFor(() => expect(reloadMe).toHaveBeenCalledTimes(2));
+    expect(detail()).toHaveTextContent(/for you only/);
+    finish = [];
+    reloadMe.mockReset();
   });
 
   it('puts the choice back and says so when saving fails', async () => {

@@ -6,9 +6,9 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * A fan's live-music stats, counted from the gigs they marked WENT. Every act on a gig's
- * bill counts, support acts too, and an act counts once per gig: two gigs on one night are two times
- * seen.
+ * A fan's live-music stats, counted from the gigs they marked WENT that have started and
+ * were not cancelled. Every act on a gig's bill counts, support acts too, and an act counts once per
+ * gig: two gigs on one night are two times seen.
  *
  * @param currentYear the year it is now (UK time), so a client can compare this year with last year
  *     even when one of them has no gigs and is missing from {@code years}

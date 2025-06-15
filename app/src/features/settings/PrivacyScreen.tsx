@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useUpdateMe } from '@/api/generated/me/me';
@@ -50,6 +50,9 @@ export function PrivacyScreen() {
   const { mutateAsync: updateMe } = useUpdateMe();
   const [choice, setChoice] = useState<boolean | null>(null);
   const [failed, setFailed] = useState(false);
+  // Only the newest save may settle the screen: with two taps in flight, the first to finish must not
+  // put back a value the second has already replaced.
+  const latest = useRef(0);
 
   if (!me) {
     return (
@@ -61,15 +64,16 @@ export function PrivacyScreen() {
   const shared = choice ?? me.showGigStats;
   const choose = async (show: boolean) => {
     if (show === shared) return;
+    const request = ++latest.current;
     setChoice(show);
     setFailed(false);
     try {
       await updateMe({ data: { showGigStats: show } });
       await reloadMe();
     } catch {
-      setFailed(true);
+      if (request === latest.current) setFailed(true);
     }
-    setChoice(null);
+    if (request === latest.current) setChoice(null);
   };
 
   return (
