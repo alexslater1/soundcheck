@@ -88,6 +88,13 @@ describe('GigStatsSection', () => {
       '3 gigs in 2026 so far · 2 more than 2025',
     );
 
+    // Gigs per year: the busiest year is a full bar, the other a third of it (3 vs 1).
+    expect(screen.getByLabelText('2026 so far: 3 gigs')).toBeOnTheScreen();
+    expect(screen.getByLabelText('2025: 1 gig')).toBeOnTheScreen();
+    const bars = screen.getAllByTestId('stats-year-bar');
+    expect(bars[0]).toHaveStyle({ width: '100%' });
+    expect(bars[1]).toHaveStyle({ width: `${(1 / 3) * 100}%` });
+
     const acts = screen.getAllByTestId('stats-act');
     expect(acts).toHaveLength(2);
     expect(acts[0]).toHaveTextContent(/Keo.*First 1 Mar 2025 · last 10 Feb 2026.*3×/);
@@ -135,6 +142,7 @@ describe('GigStatsSection', () => {
     await render(<GigStatsSection userId="u1" own />, { wrapper: Providers });
     await waitFor(() => expect(screen.getByTestId('stats-empty')).toBeOnTheScreen());
     expect(screen.getByTestId('stats-empty')).toHaveTextContent(/Mark the gigs you went to/);
+    expect(screen.queryByTestId('stats-year-row')).toBeNull();
     expect(screen.queryByText('Show all acts and venues')).toBeNull();
   });
 

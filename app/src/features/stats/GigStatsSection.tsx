@@ -68,6 +68,7 @@ export function GigStatsSection({ userId, own }: { userId: string; own: boolean 
       {heading}
       <Totals stats={data} />
       <YearLine stats={data} />
+      <YearBars stats={data} />
       <Text variant="label" muted style={styles.heading}>
         MOST SEEN
       </Text>
@@ -165,6 +166,49 @@ function YearLine({ stats }: { stats: GigStats }) {
   );
 }
 
+/**
+ * Gigs per year as thin horizontal bars, newest first, each as long as its share of the busiest year,
+ * with the count written beside it (the text is the value; the bar only shows the shape). Left out with
+ * a single year: there is nothing to compare.
+ */
+function YearBars({ stats }: { stats: GigStats }) {
+  const { colors } = useTheme();
+  if (stats.years.length < 2) return null;
+  const busiest = Math.max(...stats.years.map((y) => y.gigs));
+  return (
+    <View style={styles.years}>
+      <Text variant="label" muted style={styles.heading}>
+        BY YEAR
+      </Text>
+      {stats.years.map((y) => (
+        <View
+          key={y.year}
+          style={styles.yearRow}
+          accessible
+          accessibilityLabel={`${y.year}${y.year === stats.currentYear ? ' so far' : ''}: ${count(y.gigs, 'gig')}`}
+          testID="stats-year-row"
+        >
+          <Text variant="caption" muted style={styles.yearLabel}>
+            {y.year}
+          </Text>
+          <View style={styles.track}>
+            <View
+              testID="stats-year-bar"
+              style={[
+                styles.bar,
+                { width: `${(y.gigs / busiest) * 100}%`, backgroundColor: colors.accent },
+              ]}
+            />
+          </View>
+          <Text variant="caption" style={styles.yearCount}>
+            {y.gigs}
+          </Text>
+        </View>
+      ))}
+    </View>
+  );
+}
+
 function StatRow({
   rank,
   name,
@@ -243,6 +287,13 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   rank: { width: 20, textAlign: 'right' },
+  years: { gap: spacing.xs },
+  yearRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 24 },
+  yearLabel: { width: 40 },
+  track: { flex: 1 },
+  // A thin bar anchored at the left, its far end rounded (4 px).
+  bar: { height: 10, minWidth: 4, borderTopRightRadius: 4, borderBottomRightRadius: 4 },
+  yearCount: { width: 32, textAlign: 'right' },
   avatar: {
     width: touchTarget,
     height: touchTarget,
