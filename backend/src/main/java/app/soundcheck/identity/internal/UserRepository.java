@@ -113,15 +113,6 @@ public class UserRepository {
                 .execute();
     }
 
-    /** Whether the user shares their gig stats with other users; false for unknown ids. */
-    public boolean showsGigStats(UUID id) {
-        return dsl.select(APP_USER.SHOW_GIG_STATS)
-                .from(APP_USER)
-                .where(APP_USER.ID.eq(id))
-                .fetchOptional(r -> r.value1())
-                .orElse(false);
-    }
-
     public void setShowGigStats(UUID id, boolean show, Instant now) {
         dsl.update(APP_USER)
                 .set(APP_USER.SHOW_GIG_STATS, show)
@@ -261,7 +252,8 @@ public class UserRepository {
                 r.get(APP_USER.HOME_CITY_ID),
                 instant(r.get(APP_USER.ONBOARDED_AT)),
                 instant(r.get(APP_USER.CREATED_AT)),
-                instant(r.get(APP_USER.DELETED_AT)));
+                instant(r.get(APP_USER.DELETED_AT)),
+                r.get(APP_USER.SHOW_GIG_STATS));
     }
 
     static OffsetDateTime at(Instant instant) {

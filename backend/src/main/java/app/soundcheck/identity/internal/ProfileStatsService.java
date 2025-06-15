@@ -50,12 +50,12 @@ public class ProfileStatsService {
      * 403 {@code STATS_HIDDEN} when the profile is there but its stats are not shared with the viewer.
      */
     private void requireVisible(UUID viewerId, UUID userId) {
-        boolean live = users.findById(userId).filter(u -> !u.deleted()).isPresent();
+        UserRecord owner = users.findById(userId).filter(u -> !u.deleted()).orElse(null);
         ProfileFacts.Relation relation = facts.relation(viewerId, userId);
-        if (!live || relation.blockedBy()) {
+        if (owner == null || relation.blockedBy()) {
             throw ApiException.notFound("USER_NOT_FOUND", "No user " + userId);
         }
-        if (!MeService.statsVisible(viewerId, userId, users.showsGigStats(userId), relation)) {
+        if (!MeService.statsVisible(viewerId, userId, owner.showGigStats(), relation)) {
             throw ApiException.forbidden("STATS_HIDDEN", "This user does not share their gig stats");
         }
     }

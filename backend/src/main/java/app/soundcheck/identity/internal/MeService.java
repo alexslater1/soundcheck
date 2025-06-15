@@ -110,7 +110,7 @@ public class MeService {
                 users.genres(userId),
                 avatarUrl(userId),
                 facts.counts(userId),
-                users.showsGigStats(userId));
+                user.showGigStats());
     }
 
     private @Nullable String avatarUrl(UUID userId) {
@@ -126,7 +126,7 @@ public class MeService {
         return users.findByHandle(handle.strip().toLowerCase(Locale.ROOT))
                 .filter(u -> !u.deleted())
                 .map(u -> {
-                    boolean shows = users.showsGigStats(u.id());
+                    boolean shows = u.showGigStats();
                     Me user = new Me(
                             u,
                             city(u.homeCityId()),
