@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 
 import app.soundcheck.ingestion.internal.IngestionProperties;
 import app.soundcheck.shared.web.ApiException;
+import app.soundcheck.shared.web.RateLimitExceededException;
 import app.soundcheck.shared.web.RateLimiter;
 import app.soundcheck.support.MutableClock;
 import java.time.Duration;
@@ -79,5 +80,24 @@ class PastGigServiceTest {
         assertThatThrownBy(() -> service.search(fan, "Pale Kites", null, 1))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.code()).isEqualTo("PAST_GIGS_UNAVAILABLE"));
+    }
+
+    /** The per-user limit: thirty searches an hour by default. */
+    @Test
+    void aFanMayRunThirtySearchesAnHourAndAnswersFromTheCacheAreFree() {
+        IngestionProperties defaults = new Binder(new MapConfigurationPropertySource(
+                        java.util.Map.of("soundcheck.ingestion.setlistfm.daily-budget", "1000")))
+                .bindOrCreate("soundcheck.ingestion", IngestionProperties.class);
+        assertThat(defaults.setlistfm().perUserPerHour()).isEqualTo(30);
+        PastGigService limited =
+                new PastGigService(client, new RateLimiter(), defaults, new SetlistFmBudget(defaults, clock), clock);
+
+        for (int i = 0; i < 30; i++) {
+            limited.search(fan, "Act " + i, 2025, 1);
+        }
+        limited.search(fan, "act 0", 2025, 1); // the same search: from the cache, not counted
+        assertThatThrownBy(() -> limited.search(fan, "Act 30", 2025, 1)).isInstanceOf(RateLimitExceededException.class);
+        limited.search(UUID.randomUUID(), "Act 30", 2025, 1); // another fan has their own allowance
+        verify(client, times(31)).search(any(), any(), anyInt());
     }
 }

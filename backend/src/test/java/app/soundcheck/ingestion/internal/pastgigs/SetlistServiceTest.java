@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 import app.soundcheck.catalog.Catalog;
 import app.soundcheck.catalog.GigFacts;
 import app.soundcheck.shared.web.ApiException;
+import app.soundcheck.shared.web.RateLimitExceededException;
 import app.soundcheck.shared.web.RateLimiter;
 import app.soundcheck.support.MutableClock;
 import java.time.Duration;
@@ -186,5 +187,37 @@ class SetlistServiceTest {
         assertThatThrownBy(() -> service.forGig(fan, gigId))
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLISTS_UNAVAILABLE"));
+    }
+
+    /** {@link SetlistService#PER_USER_PER_HOUR} lookups an hour per fan; cached answers are free. */
+    @Test
+    void aFanMayCauseSixtyLookupsAnHourAndCachedAnswersAreFree() {
+        var properties = PastGigServiceTest.properties(1000);
+        service = new SetlistService(
+                catalog, client, new SetlistFmBudget(properties, clock), new RateLimiter(), properties, clock);
+        List<UUID> gigs = new java.util.ArrayList<>();
+        for (int i = 0; i <= SetlistService.PER_USER_PER_HOUR; i++) {
+            UUID id = UUID.randomUUID();
+            gigs.add(id);
+            when(catalog.gigFacts(id))
+                    .thenReturn(Optional.of(new GigFacts(
+                            id,
+                            Instant.parse("2025-10-17T19:30:00Z"),
+                            "The Snug",
+                            "Manchester",
+                            List.of(new GigFacts.Act(paleKites, "Pale Kites", MBID)),
+                            null)));
+        }
+        for (UUID id : gigs.subList(0, SetlistService.PER_USER_PER_HOUR)) {
+            assertThatThrownBy(() -> service.forGig(fan, id))
+                    .isInstanceOfSatisfying(
+                            ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_NOT_FOUND"));
+        }
+        assertThatThrownBy(() -> service.forGig(fan, gigs.getLast())).isInstanceOf(RateLimitExceededException.class);
+        // An answer already cached costs nothing, also over the limit.
+        assertThatThrownBy(() -> service.forGig(fan, gigs.getFirst()))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_NOT_FOUND"));
+        verify(client, times(SetlistService.PER_USER_PER_HOUR)).setlistsOn(any(), any(), any());
     }
 }
