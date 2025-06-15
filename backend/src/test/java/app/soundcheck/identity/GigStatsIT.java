@@ -30,8 +30,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Gig stats over HTTP against real PostGIS: a fan's stats counted from the gigs they marked WENT, the
  * gigs behind each line, and who may see them. The fan's history is built by hand, so every number is
  * known: Cardinals play two bills on one night (two times seen), Keo is seen once as support, two venue
- * spellings of one city count as one city, and GOING / INTERESTED rows, other fans' rows, a Went show
- * still to come and a Went show that was cancelled count for nothing.
+ * spellings of one city count as one city, and GOING / INTERESTED rows, other fans' rows and Went shows
+ * that did not happen (still to come, cancelled, postponed) or have no bill count for nothing.
  */
 class GigStatsIT extends IntegrationTest {
 
@@ -103,8 +103,12 @@ class GigStatsIT extends IntegrationTest {
         UUID notYet = data.gig("Keo " + tag, chalk, Instant.now().plus(java.time.Duration.ofDays(30)), keo);
         UUID cancelled = data.gig("Keo " + tag, chalk, at(year - 1, 3, 5, 20), keo, stranger);
         dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelled);
+        // Postponed (Ticketmaster keeps the old date until a new one is set), and a gig with no bill.
+        UUID postponed = data.gig("Keo " + tag, scala, at(year - 1, 4, 1, 20), keo);
+        dsl.execute("update catalog.gig set status = 'POSTPONED' where id = ?", postponed);
+        UUID noBill = data.gig("Mystery night " + tag, bandOnTheWall, at(year - 1, 4, 2, 20));
 
-        for (UUID gig : List.of(g1, g2, g3, g4, notYet, cancelled)) {
+        for (UUID gig : List.of(g1, g2, g3, g4, notYet, cancelled, postponed, noBill)) {
             mark(fan, gig, "WENT");
         }
         mark(fan, going, "GOING");

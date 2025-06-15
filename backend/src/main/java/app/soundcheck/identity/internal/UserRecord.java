@@ -20,34 +20,6 @@ public record UserRecord(
         /** Other users may see this user's gig stats. */
         boolean showGigStats) {
 
-    /** A new account: its stats are not shared until the user says so. */
-    public UserRecord(
-            UUID id,
-            String email,
-            String handle,
-            String displayName,
-            @Nullable String bio,
-            String role,
-            String passwordHash,
-            @Nullable Integer homeCityId,
-            @Nullable Instant onboardedAt,
-            Instant createdAt,
-            @Nullable Instant deletedAt) {
-        this(
-                id,
-                email,
-                handle,
-                displayName,
-                bio,
-                role,
-                passwordHash,
-                homeCityId,
-                onboardedAt,
-                createdAt,
-                deletedAt,
-                false);
-    }
-
     public boolean deleted() {
         return deletedAt != null;
     }

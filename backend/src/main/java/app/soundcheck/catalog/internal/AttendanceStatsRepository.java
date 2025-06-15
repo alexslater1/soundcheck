@@ -12,7 +12,6 @@ import app.soundcheck.catalog.GigStats.StatsVenue;
 import app.soundcheck.catalog.GigStats.StatsYear;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -48,8 +47,8 @@ class AttendanceStatsRepository {
     /**
      * Totals and per-year counts. {@code GROUP BY ROLLUP (year)} returns a row per year and one more
      * for all years together (where {@code grouping(year)} is 1), so the distinct counts of the total are
-     * real distinct counts, not sums of the years'. Only gigs with a bill count, like everywhere a gig is
-     * listed (a gig without one is never shown), so the totals agree with the gigs behind them.
+     * real distinct counts, not sums of the years'. Which gigs count is {@link #went}: the same rule as
+     * the gigs behind each line.
      */
     Counts counts(UUID userId, Instant now) {
         Field<Integer> total = DSL.grouping(YEAR);
@@ -136,16 +135,12 @@ class AttendanceStatsRepository {
                         r.value6().toInstant()));
     }
 
-    /**
-     * The gigs that count: marked WENT, started already, and not cancelled. The app offers Went on any
-     * gig, so a tap on next month's show, or on one cancelled later, must not count as a gig seen.
-     */
+    /** A fan's gigs: marked WENT, and happened ({@link CatalogReadRepository#happened}). */
     private static Condition went(UUID userId, Instant now) {
         return GIG_ATTENDANCE
                 .USER_ID
                 .eq(userId)
                 .and(GIG_ATTENDANCE.STATUS.eq("WENT"))
-                .and(GIG.STARTS_AT.lt(now.atOffset(ZoneOffset.UTC)))
-                .and(GIG.STATUS.ne("CANCELLED"));
+                .and(CatalogReadRepository.happened(now));
     }
 }

@@ -292,8 +292,8 @@ public class CatalogService {
 
     /**
      * Someone's WENT gigs, newest first, narrowed to one act on the bill or one venue when given: the
-     * gigs behind a line of their stats. Like the stats, only gigs that have started and were
-     * not cancelled. No origin, so no distances.
+     * gigs behind a line of their stats. The same gigs as the stats count
+     * ({@code CatalogReadRepository.happened}). No origin, so no distances.
      */
     public Page<GigSummary> wentGigs(
             UUID viewer,
@@ -308,7 +308,7 @@ public class CatalogService {
                         null,
                         null,
                         null,
-                        Instant.now(clock),
+                        null,
                         null,
                         null,
                         artistId == null ? null : Set.of(artistId),
@@ -318,7 +318,7 @@ public class CatalogService {
                         true,
                         Cursor.decode(cursor),
                         Cursor.limit(limit),
-                        true),
+                        Instant.now(clock)),
                 null);
     }
 

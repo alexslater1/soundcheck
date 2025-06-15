@@ -59,10 +59,10 @@ class CatalogReadRepository {
             boolean newestFirst,
             @Nullable Cursor cursor,
             int limit,
-            /** Leave out cancelled gigs (a fan's stats: a cancelled gig did not happen). */
-            boolean excludeCancelled) {
+            /** Only gigs that had happened by then ({@link #happened}); null: any gig. */
+            @Nullable Instant happenedBy) {
 
-        /** Every list but the stats': cancelled gigs are shown, with their badge. */
+        /** Every list but the stats': gigs to come and cancelled ones are shown too. */
         GigFilter(
                 @Nullable GeoPoint origin,
                 @Nullable Integer radiusKm,
@@ -91,7 +91,7 @@ class CatalogReadRepository {
                     newestFirst,
                     cursor,
                     limit,
-                    false);
+                    null);
         }
     }
 
@@ -184,6 +184,19 @@ class CatalogReadRepository {
                 .fetch(r -> new DayCount(r.value1(), r.value2()));
     }
 
+    /**
+     * A gig that had happened by {@code now}: it has started, it was neither cancelled nor postponed
+     * (Ticketmaster keeps a postponed gig's old date until a new one is set), and it has a bill (no list
+     * shows a gig without one). The one rule behind a fan's stats and the gigs behind each line
+     *, so the two always agree.
+     */
+    static Condition happened(Instant now) {
+        return GIG.STARTS_AT
+                .lt(at(now))
+                .and(GIG.STATUS.notIn("CANCELLED", "POSTPONED"))
+                .and(DSL.exists(DSL.selectOne().from(GIG_ARTIST).where(GIG_ARTIST.GIG_ID.eq(GIG.ID))));
+    }
+
     /** The WHERE clause of a gig filter (everything but the keyset cursor). */
     private List<Condition> conditions(GigFilter filter) {
         List<Condition> where = new ArrayList<>();
@@ -230,8 +243,8 @@ class CatalogReadRepository {
         if (filter.venueIds() != null && !filter.venueIds().isEmpty()) {
             where.add(GIG.VENUE_ID.in(filter.venueIds()));
         }
-        if (filter.excludeCancelled()) {
-            where.add(GIG.STATUS.ne("CANCELLED"));
+        if (filter.happenedBy() != null) {
+            where.add(happened(filter.happenedBy()));
         }
         if (filter.attendeeId() != null) {
             Condition mine = GIG_ATTENDANCE.GIG_ID.eq(GIG.ID).and(GIG_ATTENDANCE.USER_ID.eq(filter.attendeeId()));

@@ -5,7 +5,7 @@ import type { PropsWithChildren } from 'react';
 import type { GigStats } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { everyYear, GigStatsSection, statsGigsHref } from './GigStatsSection';
+import { GigStatsSection, statsGigsHref, yearRows } from './GigStatsSection';
 
 const mockPush = jest.fn();
 jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
@@ -146,6 +146,21 @@ describe('GigStatsSection', () => {
     expect(screen.queryByText('Show all acts and venues')).toBeNull();
   });
 
+  it('never shows one person’s stats while another person’s load', async () => {
+    let answer: (response: Response) => void = () => {};
+    fetchMock
+      .mockResolvedValueOnce(json(200, STATS))
+      .mockReturnValueOnce(new Promise<Response>((resolve) => (answer = resolve)));
+    const view = await render(<GigStatsSection userId="u1" own={false} />, { wrapper: Providers });
+    await waitFor(() => expect(screen.getByTestId('stats')).toBeOnTheScreen());
+
+    await view.rerender(<GigStatsSection userId="u2" own={false} />);
+
+    expect(screen.queryByTestId('stats')).toBeNull();
+    expect(screen.getByTestId('stats-loading')).toBeOnTheScreen();
+    answer(json(200, { ...STATS, acts: [], venues: [], years: [] }));
+  });
+
   it('offers a retry when the stats cannot be loaded', async () => {
     fetchMock.mockResolvedValue(json(500, { status: 500, code: 'INTERNAL' }));
     await render(<GigStatsSection userId="u2" own={false} />, { wrapper: Providers });
@@ -154,19 +169,24 @@ describe('GigStatsSection', () => {
   });
 });
 
-describe('everyYear', () => {
-  it('fills the years without gigs with 0, newest first', () => {
+describe('yearRows', () => {
+  it('runs from this year back, with the years without gigs as 0', () => {
     expect(
-      everyYear([
+      yearRows(2026, [
         { year: 2022, gigs: 3 },
         { year: 2019, gigs: 12 },
-      ]),
-    ).toEqual([
-      { year: 2022, gigs: 3 },
-      { year: 2021, gigs: 0 },
-      { year: 2020, gigs: 0 },
-      { year: 2019, gigs: 12 },
+      ]).map((r) => `${r.label}:${r.gigs}${r.current ? '*' : ''}`),
+    ).toEqual(['2026:0*', '2025:0', '2024:0', '2023:0', '2022:3', '2021:0', '2020:0', '2019:12']);
+    expect(yearRows(2026, [])).toEqual([]);
+  });
+
+  it('gives ten years a row each and sums anything older as Earlier', () => {
+    const rows = yearRows(2026, [
+      { year: 2025, gigs: 2 },
+      { year: 1979, gigs: 1 },
     ]);
-    expect(everyYear([])).toEqual([]);
+    expect(rows).toHaveLength(11);
+    expect(rows[9]!.label).toBe('2017');
+    expect(rows[10]).toEqual({ label: 'Earlier', gigs: 1, current: false });
   });
 });

@@ -81,7 +81,8 @@ public class AdminBootstrap {
                 null,
                 now,
                 now,
-                null));
+                null,
+                false));
         log.info("Bootstrapped ADMIN account {}", email);
         return true;
     }

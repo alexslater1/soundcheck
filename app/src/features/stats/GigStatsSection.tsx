@@ -1,11 +1,10 @@
-import { keepPreviousData } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { GigStats } from '@/api/generated/model';
-import { useGetUserStats } from '@/api/generated/stats/stats';
+import { getGetUserStatsUrl, useGetUserStats } from '@/api/generated/stats/stats';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -25,12 +24,21 @@ export const ALL = 100;
  * marked Went, every act on the bill included (support acts too).
  */
 export function GigStatsSection({ userId, own }: { userId: string; own: boolean }) {
-  const [showAll, setShowAll] = useState(false);
-  // "Show all" asks again with a larger top: the shorter lists stay up until the longer ones arrive.
+  // "Show all" belongs to the person whose stats these are: another profile starts short again.
+  const [allFor, setAllFor] = useState<string | null>(null);
+  const showAll = allFor === userId;
+  // "Show all" asks again with a larger top: the shorter lists stay up until the longer ones arrive,
+  // but never another person's stats while this person's load.
+  const url = getGetUserStatsUrl(userId);
   const stats = useGetUserStats(
     userId,
     { top: showAll ? ALL : TOP },
-    { query: { placeholderData: keepPreviousData } },
+    {
+      query: {
+        placeholderData: (previous, previousQuery) =>
+          previousQuery?.queryKey[0] === url.split('?')[0] ? previous : undefined,
+      },
+    },
   );
   const heading = (
     <Text variant="label" muted>
@@ -109,7 +117,7 @@ export function GigStatsSection({ userId, own }: { userId: string; own: boolean 
         <Button
           title="Show all acts and venues"
           variant="secondary"
-          onPress={() => setShowAll(true)}
+          onPress={() => setAllFor(userId)}
         />
       ) : null}
     </View>
@@ -179,24 +187,24 @@ function YearLine({ stats }: { stats: GigStats }) {
  */
 function YearBars({ stats }: { stats: GigStats }) {
   const { colors } = useTheme();
-  const years = everyYear(stats.years);
-  if (years.length < 2) return null;
-  const busiest = Math.max(...years.map((y) => y.gigs));
+  const rows = yearRows(stats.currentYear, stats.years);
+  if (rows.length < 2) return null;
+  const busiest = Math.max(...rows.map((y) => y.gigs));
   return (
     <View style={styles.years}>
       <Text variant="label" muted style={styles.heading}>
         BY YEAR
       </Text>
-      {years.map((y) => (
+      {rows.map((y) => (
         <View
-          key={y.year}
+          key={y.label}
           style={styles.yearRow}
           accessible
-          accessibilityLabel={`${y.year}${y.year === stats.currentYear ? ' so far' : ''}: ${count(y.gigs, 'gig')}`}
+          accessibilityLabel={`${y.label}${y.current ? ' so far' : ''}: ${count(y.gigs, 'gig')}`}
           testID="stats-year-row"
         >
           <Text variant="caption" muted style={styles.yearLabel}>
-            {y.year}
+            {y.label}
           </Text>
           <View style={styles.track}>
             <View
@@ -218,20 +226,31 @@ function YearBars({ stats }: { stats: GigStats }) {
   );
 }
 
+/** At most this many years get a row of their own; anything older is summed as "Earlier". */
+export const YEAR_ROWS = 10;
+
+export type YearRow = { label: string; gigs: number; current: boolean };
+
 /**
- * The years from the newest with gigs to the oldest, a year without gigs included as 0: the server lists
- * only years with gigs, and leaving the empty ones out would make a gap in going to gigs disappear.
+ * One row per year from this year back, a year without gigs included as 0 (the server lists only years
+ * with gigs; leaving the empty ones out would hide a gap in going to gigs), at most {@link YEAR_ROWS}
+ * of them; older years are summed into one "Earlier" row.
  */
-export function everyYear(years: readonly { year: number; gigs: number }[]) {
+export function yearRows(
+  currentYear: number,
+  years: readonly { year: number; gigs: number }[],
+): YearRow[] {
   if (years.length === 0) return [];
-  const newest = Math.max(...years.map((y) => y.year));
+  const newest = Math.max(currentYear, ...years.map((y) => y.year));
   const oldest = Math.min(...years.map((y) => y.year));
   const gigsIn = new Map(years.map((y) => [y.year, y.gigs]));
-  const all: { year: number; gigs: number }[] = [];
-  for (let year = newest; year >= oldest; year--) {
-    all.push({ year, gigs: gigsIn.get(year) ?? 0 });
+  const rows: YearRow[] = [];
+  for (let year = newest; year >= Math.max(oldest, newest - YEAR_ROWS + 1); year--) {
+    rows.push({ label: String(year), gigs: gigsIn.get(year) ?? 0, current: year === currentYear });
   }
-  return all;
+  const earlier = years.filter((y) => y.year <= newest - YEAR_ROWS).reduce((n, y) => n + y.gigs, 0);
+  if (earlier > 0) rows.push({ label: 'Earlier', gigs: earlier, current: false });
+  return rows;
 }
 
 function StatRow({
@@ -314,7 +333,7 @@ const styles = StyleSheet.create({
   rank: { width: 20, textAlign: 'right' },
   years: { gap: spacing.xs },
   yearRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minHeight: 24 },
-  yearLabel: { width: 40 },
+  yearLabel: { width: 52 },
   track: { flex: 1 },
   // A thin bar anchored at the left, its far end rounded (4 px).
   bar: { height: 10, minWidth: 4, borderTopRightRadius: 4, borderBottomRightRadius: 4 },

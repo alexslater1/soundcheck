@@ -110,6 +110,10 @@ describe('GigDetailScreen act bar', () => {
     routeRequests();
   });
 
+  afterEach(() => {
+    useAuthStore.setState({ me: null });
+  });
+
   it('labels the first act the headliner and the others support', () => {
     expect([0, 1, 2].map(billingLabel)).toEqual(['Headliner', 'Support', 'Support']);
   });
@@ -181,7 +185,6 @@ describe('GigDetailScreen act bar', () => {
     expect(requested('/users/me-1/stats/gigs')).toEqual([
       expect.stringContaining('artistId=cardinals'),
     ]);
-    useAuthStore.setState({ me: null });
   });
 
   it('has no bar for a gig with one act', async () => {

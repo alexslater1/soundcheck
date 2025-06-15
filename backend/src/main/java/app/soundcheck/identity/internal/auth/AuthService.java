@@ -132,7 +132,8 @@ public class AuthService {
                 null,
                 null,
                 now,
-                null);
+                null,
+                false); // a new account does not share its gig stats
         users.insert(user);
         return startSession(user, Ids.newId(), client, userAgent, now);
     }

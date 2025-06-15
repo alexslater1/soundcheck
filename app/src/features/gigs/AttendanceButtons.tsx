@@ -15,11 +15,13 @@ import { spacing } from '@/theme/tokens';
 
 import { applyAttendance, ATTENDANCE_OPTIONS, type AttendanceStatus } from './attendance';
 
-/** Query keys of every gig list (`/gigs`, `/me/gigs`, an artist's or a venue's gigs). */
-// Gig lists, and the stats counted from Went gigs with the gigs behind them, which go stale
-// the moment a gig is marked or unmarked.
+/**
+ * Query keys a new mark makes stale: every gig list (`/gigs`, `/me/gigs`, an artist's or a venue's gigs,
+ * the gigs behind a stats line `/users/{id}/stats/gigs`) and the stats counted from Went gigs
+ * (`/users/{id}/stats`).
+ */
 export const isGigList = (key: readonly unknown[]) =>
-  typeof key[0] === 'string' && /\/gigs$|\/stats(\/gigs)?$/.test(key[0]);
+  typeof key[0] === 'string' && /\/gigs$|\/stats$/.test(key[0]);
 
 /**
  * Interested / Going / Went with an optimistic update: the button and the counts change

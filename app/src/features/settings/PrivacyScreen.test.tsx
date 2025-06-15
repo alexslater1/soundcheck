@@ -33,6 +33,11 @@ const me = {
 const detail = () => screen.getByTestId('privacy-stats-detail');
 
 describe('PrivacyScreen', () => {
+  afterEach(() => {
+    reloadMe.mockReset();
+    useAuthStore.setState({ me: null });
+  });
+
   beforeEach(() => {
     fetchMock.mockReset();
     reloadMe.mockClear();
@@ -73,35 +78,25 @@ describe('PrivacyScreen', () => {
     expect(notice).toHaveTextContent(/Seven days later/);
   });
 
-  it('keeps the newest choice when an older save finishes after it', async () => {
-    let finish: ((response: Response) => void)[] = [];
-    fetchMock.mockImplementation(() => new Promise<Response>((resolve) => finish.push(resolve)));
-    let server = false;
-    reloadMe.mockImplementation(async () => {
-      useAuthStore.setState({ me: { ...me, showGigStats: server } as never });
-    });
-    const ok = (show: boolean) =>
-      new Response(JSON.stringify({ ...me, showGigStats: show }), {
-        status: 200,
-        headers: { 'content-type': 'application/json' },
-      });
+  it('saves one choice at a time: a tap while a save is on its way does nothing', async () => {
+    let finish: (response: Response) => void = () => {};
+    fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finish = resolve)));
     await render(<PrivacyScreen />, { wrapper: Providers });
 
     await fireEvent.press(screen.getByText('Everyone'));
     await fireEvent.press(screen.getByText('Only me'));
-    await waitFor(() => expect(finish).toHaveLength(2));
 
-    // The first save (Everyone) lands: the screen must still show the second choice (Only me).
-    server = true;
-    await act(async () => finish[0]!(ok(true)));
-    expect(detail()).toHaveTextContent(/for you only/);
-
-    server = false;
-    await act(async () => finish[1]!(ok(false)));
-    await waitFor(() => expect(reloadMe).toHaveBeenCalledTimes(2));
-    expect(detail()).toHaveTextContent(/for you only/);
-    finish = [];
-    reloadMe.mockReset();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(detail()).toHaveTextContent(/to anyone signed in/);
+    await act(async () =>
+      finish(
+        new Response(JSON.stringify({ ...me, showGigStats: true }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        }),
+      ),
+    );
+    await waitFor(() => expect(reloadMe).toHaveBeenCalledTimes(1));
   });
 
   it('puts the choice back and says so when saving fails', async () => {
