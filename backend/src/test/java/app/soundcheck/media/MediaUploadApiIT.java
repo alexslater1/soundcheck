@@ -90,6 +90,19 @@ class MediaUploadApiIT extends IntegrationTest {
         assertThat(ticket.has("expiresAt")).isTrue();
         String mediaId = ticket.path("mediaId").asText("");
 
+        // The server chooses the key (the owner's prefix and the new id; nothing in the request
+        // names it), signs the content type and the length, and the URL lives 60 minutes.
+        URI putUrl = URI.create(ticket.path("putUrl").asText(""));
+        assertThat(putUrl.getPath()).endsWith("/uploads/" + owner.id() + "/" + mediaId + "/original");
+        assertThat(putUrl.getRawQuery())
+                .contains("X-Amz-Expires=3600")
+                .containsPattern("X-Amz-SignedHeaders=[^&]*content-length")
+                .containsPattern("X-Amz-SignedHeaders=[^&]*content-type");
+        assertThat(Duration.between(
+                        java.time.Instant.now(),
+                        java.time.Instant.parse(ticket.path("expiresAt").asText(""))))
+                .isBetween(Duration.ofMinutes(59), Duration.ofMinutes(61));
+
         // Before any bytes arrive, complete is refused and the owner sees AWAITING_UPLOAD.
         assertThat(api.post("/api/v1/media/uploads/" + mediaId + "/complete", null, owner)
                         .getBody()
