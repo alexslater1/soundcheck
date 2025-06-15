@@ -12,6 +12,7 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { ArtistRow } from '@/features/artists/ArtistRow';
 import { useGenreNames } from '@/features/artists/useGenreNames';
+import { TimesSeen } from '@/features/stats/TimesSeen';
 import { isWebUrl, openWebLink } from '@/lib/openLink';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
@@ -143,6 +144,7 @@ export function GigDetailScreen({ id }: { id: string }) {
               {billingLabel(actIndex).toUpperCase()}
             </Text>
             <ArtistRow artist={act} genreNames={genreNames} />
+            <TimesSeen artistId={act.id} name={act.name} />
             <GigSetlist gigId={id} startsAt={gig.startsAt} artistId={act.id} actName={act.name} />
             <Text variant="label" muted style={styles.heading}>
               {`CLIPS OF ${act.name.toUpperCase()}`}

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
+import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { billingLabel } from './ActBar';
@@ -162,6 +163,25 @@ describe('GigDetailScreen act bar', () => {
       nativeEvent: { contentOffset: { x: 0, y: 0 } },
     });
     expect(screen.getByTestId('act-bar')).toHaveStyle({ backgroundColor: 'transparent' });
+  });
+
+  it('says how many times the viewer has seen the picked act, from their own Went gigs', async () => {
+    useAuthStore.setState({ me: { id: 'me-1' } as never });
+    const seen = { items: [DETAIL.gig, DETAIL.gig, DETAIL.gig], nextCursor: null };
+    const routed = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      String(input).includes('/users/me-1/stats/gigs') ? json(200, seen) : routed(input, init),
+    );
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    await waitFor(() => expect(screen.getByTestId('act-bar')).toBeOnTheScreen());
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Cardinals, support' }));
+
+    expect(await screen.findByText('You’ve seen Cardinals 3 times →')).toBeOnTheScreen();
+    expect(requested('/users/me-1/stats/gigs')).toEqual([
+      expect.stringContaining('artistId=cardinals'),
+    ]);
+    useAuthStore.setState({ me: null });
   });
 
   it('has no bar for a gig with one act', async () => {
