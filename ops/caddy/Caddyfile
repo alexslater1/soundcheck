@@ -8,6 +8,16 @@
 }
 
 :8088 {
+	# The security headers CloudFront's response headers policy adds on AWS, so the local
+	# app runs under the same rules: no MIME sniffing, no framing by other sites, the referrer cut to the
+	# origin for other sites. HSTS is left out here: this edge is plain HTTP, where browsers ignore it.
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Content-Security-Policy "frame-ancestors 'none'"
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+
 	# Used by the compose healthcheck.
 	handle /edge/health {
 		respond "edge ok" 200
