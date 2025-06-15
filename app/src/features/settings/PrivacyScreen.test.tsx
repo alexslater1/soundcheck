@@ -63,6 +63,15 @@ describe('PrivacyScreen', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ showGigStats: true });
   });
 
+  it('shows the privacy notice: city only, clips without metadata, no trackers, the 7-day purge', async () => {
+    await render(<PrivacyScreen />, { wrapper: Providers });
+    const notice = screen.getByTestId('privacy-notice');
+    expect(notice).toHaveTextContent(/never your phone’s location/);
+    expect(notice).toHaveTextContent(/without the file’s metadata/);
+    expect(notice).toHaveTextContent(/no advertising or third-party tracking tools/);
+    expect(notice).toHaveTextContent(/Seven days later/);
+  });
+
   it('puts the choice back and says so when saving fails', async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ status: 503, code: 'UNAVAILABLE' }), {
