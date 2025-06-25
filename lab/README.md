@@ -29,9 +29,19 @@ committed or deployed), it also adds his real gig history and posts his clips:
 | `manifest.csv` | Written by the run: which clip went to which gig, acts and persona, or why it was skipped |
 
 Each clip goes to the gig of its night (a clip at 01:30 belongs to the evening before), phone clips only
-if filmed within 60 km of the gig's city. A few clips per gig are posted, spread over the night, trimmed
-to 45 s and re-encoded at the pipeline's top rendition (FFmpeg memory-capped, nice 19). Acts are tagged
-only when certain (a one-act bill, or as many sets of clips as acts on the bill), else the whole bill.
+if filmed within 60 km of the gig's city. Up to four clips per gig (`--clips-per-gig`) are posted, spread
+over the night, trimmed to 45 s and re-encoded to at most 1280 px at ~5 Mbit/s, the pipeline's top
+rendition (FFmpeg memory-capped, nice 19); the encoded copies are kept in `.localdata/seed/encoded/`, so a
+later run only uploads. Act tags (`act_tags`, the rule per clip in the manifest's `tag_rule` column): one
+act on a one-act bill; one act per set only when the sets of clips fit the bill (as many sets as acts,
+changeovers of 25 min or more, the first set before 21:00, the last from 20:30; still a guess, there are
+no set times); otherwise the whole bill, since support acts matter; festival clips get no act. Posts are
+spread over each gig's attendee personas.
+
+The acceptance check ("`make reset && make up && make seed-demo` in under 15 minutes") holds only with
+`--no-real`: with the real clips the first run takes hours (every clip is encoded, then transcoded by the
+worker). The committed default persona password works only against a local API; seeding anywhere else
+needs `SEED_PASSWORD`.
 
 ```bash
 make seed-demo                                  # everything
@@ -41,4 +51,7 @@ uv run soundcheck-lab seed-demo --no-real --no-engage
 
 Re-running changes nothing: accounts log in when they exist, gigs resolve to the same gig (setlist.fm
 link or same night at the venue), and `.localdata/seed/state.json` remembers each posted clip (checked
-against the API, so a reset database is seeded again).
+against the API, so a reset database is seeded again). A clip whose post FAILED is deleted and posted again.
+
+Not done by the seed yet: the demo fan's gig stats (G23) are private by default, like everyone's; share
+them once after a run in the app (Settings → Privacy → Everyone) or with `PATCH /me {"showGigStats": true}`.
