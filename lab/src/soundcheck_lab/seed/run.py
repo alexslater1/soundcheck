@@ -2,11 +2,12 @@
 duplicating.
 
 1. accounts   — the 30 personas and the demo fan: profile, home city, genres, avatar, onboarding
-   done
+   done; the demo fan's gig stats shared
 2. follows    — personas follow each other and popular artists of their genres
 3. gigs       — my real gigs (bills.json) added through POST /gigs; their attendees marked
-   "Went"; the demo fan "Went" to all of them (his real history)
-4. real posts — his clips matched to those gigs, a few per gig, posted by the gig's attendees
+   "Went"; the demo fan "Went" to all of them (my real history), then follows the acts it has
+   seen most
+4. real posts — my clips matched to those gigs, a few per gig, posted by the gig's attendees
 5. filler     — synthetic clips (clearly labelled) for personas whose genres my gigs don't cover
 6. social     — likes and comments; engagement events are in `engage.py`"""
 
@@ -34,6 +35,7 @@ from soundcheck_lab.seed.realclips import Clip, Gig
 
 Log = Callable[[str], None]
 GIGS_PER_DAY = 20  # the API's limit on gigs one account adds per day (UserSubmissionService)
+DEMO_TOP_ACTS = 15  # the demo fan follows the acts it has seen most
 COMMENTS = (
     "What a night",
     "Unreal set",
@@ -121,6 +123,11 @@ def accounts(
     done = state.section("profiles")
     for persona in people:
         me = api.get(persona, "/api/v1/me")
+        if persona is DEMO and not me.get("showGigStats"):
+            # The demo profile shows its stats (everyone's are private until shared). Checked
+            # on every run, so an account seeded before this step, or after `make reset`, gets it
+            api.patch(persona, "/api/v1/me", {"showGigStats": True})
+            log("demo fan: gig stats shared")
         if done.get(persona.handle) == me["id"] and me["onboarded"] and me.get("avatarUrl"):
             continue
         if persona.city not in cities:
@@ -193,14 +200,61 @@ def follows(
         )
         for other in [*same[:7], *rest[:2]]:
             api.put(persona, f"/api/v1/users/{api.ids[other.handle]}/follow")
-        top = ",".join(str(genres[g]) for g in persona.genres[:2])
-        for artist in api.get(persona, "/api/v1/artists", popular="true", genreIds=top, limit=5)[
-            "items"
-        ]:
-            api.put(persona, f"/api/v1/artists/{artist['id']}/follow")
+        if persona is not DEMO:  # the demo fan follows the acts it has seen most (demo_follows)
+            for artist in popular_artists(api, persona, genres):
+                api.put(persona, f"/api/v1/artists/{artist['id']}/follow")
         done[persona.handle] = api.ids[persona.handle]  # by id: a reset database is seeded again
         state.save()
-    log(f"follows: {len(people)} accounts follow 9 people and 5 artists each")
+    log(f"follows: {len(people)} accounts follow 9 people; the personas 5 artists each")
+
+
+def popular_artists(
+    api: Api, persona: Persona, genres: dict[str, int], limit: int = 5
+) -> list[dict[str, Any]]:
+    """The most popular artists of the persona's first two genres (GET /artists?popular=true)."""
+    top = ",".join(str(genres[g]) for g in persona.genres[:2])
+    items = api.get(persona, "/api/v1/artists", popular="true", genreIds=top, limit=limit)["items"]
+    return list(items)
+
+
+def most_seen(acts: Sequence[dict[str, Any]], top: int = DEMO_TOP_ACTS) -> list[dict[str, Any]]:
+    """The acts seen at the most gigs (GigStats.acts: one row per act, `times`), ties by name."""
+    ranked = sorted(acts, key=lambda a: (-int(a["times"]), str(a["name"]).casefold(), str(a["id"])))
+    return ranked[:top]
+
+
+def demo_follows(api: Api, genres: dict[str, int], state: State, log: Log) -> None:
+    """The demo fan follows the acts it has seen most, read from its own stats (the gigs it
+    marked Went: my real history), instead of popular artists of its genres. Without any gigs
+    (`--no-real`) it follows those popular artists, as the personas do.
+
+    Runs again when the number of its gigs changes. On a database seeded earlier (the demo fan
+    followed five popular artists in the follows step) those follows are undone once, best effort:
+    the popular list may have moved since, and an artist that is also among the most seen stays."""
+    done = state.section("demo_follows")
+    user = str(api.get(DEMO, "/api/v1/me")["id"])
+    stats = api.get(DEMO, f"/api/v1/users/{user}/stats", top=100)
+    gigs = int(stats["totals"]["gigs"])
+    if done.get("user") == user and done.get("gigs") == gigs:
+        return
+    acts = most_seen(stats["acts"])
+    chosen = acts or popular_artists(api, DEMO, genres)
+    keep = {str(a["id"]) for a in chosen}
+    undone: list[str] = []
+    if acts and done.get("user") != user and state.section("follows").get(DEMO.handle) == user:
+        for artist in popular_artists(api, DEMO, genres):
+            if artist.get("isFollowing") and str(artist["id"]) not in keep:
+                api.request(DEMO, "DELETE", f"/api/v1/artists/{artist['id']}/follow")
+                undone.append(str(artist["name"]))
+    for artist in chosen:
+        api.put(DEMO, f"/api/v1/artists/{artist['id']}/follow")
+    done.update(user=user, gigs=gigs, artists=sorted(keep))
+    state.save()
+    what = "acts it has seen most" if acts else "popular artists of its genres (no gigs yet)"
+    log(
+        f"demo fan follows {len(chosen)} {what}"
+        + (f"; unfollowed the earlier {', '.join(undone)}" if undone else "")
+    )
 
 
 # ── 3. real gigs ─────────────────────────────────────────────────────────────────────────────────
@@ -629,7 +683,10 @@ def run(settings: Settings, log: Log) -> None:
                 + ", ".join(f"{n} {r}" for r, n in reasons.most_common())
             )
             summaries = add_gigs(api, gigs, indie, matched, state, log)
+            demo_follows(api, genres, state, log)
             real_posts(api, settings, gigs, indie, summaries, matched, skipped, state, log)
+        else:
+            demo_follows(api, genres, state, log)
         filler(api, settings, people, genres, state, log)
         social(api, people, state, log)
     finally:
