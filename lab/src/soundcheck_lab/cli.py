@@ -45,13 +45,21 @@ def seed_demo(
         help="My real gigs and clips (fixtures/clips/mine/, local only)",
     ),
     gigs: int | None = typer.Option(None, help="Only the first N of my gigs (a small run)"),
-    clips_per_gig: int = typer.Option(4, min=0),
+    clips_per_gig: int = typer.Option(
+        4, min=0, help="Real clips posted per gig, at most (up to 4 to exercise the UI)"
+    ),
     max_clip_seconds: float = typer.Option(45.0, min=5, max=60),
     synthetic: int = typer.Option(
         3, min=0, help="Synthetic clips for personas with fewer real ones"
     ),
     engage: bool = typer.Option(
         True, "--engage/--no-engage", help="Run the synthetic engagement pass"
+    ),
+    require_feed: int = typer.Option(
+        0,
+        min=0,
+        help="Exit 1 unless every persona's For You has at least this many items "
+        "(the acceptance check passes 30)",
     ),
 ) -> None:
     """Seed personas, my gigs and clips, likes and engagement through the API."""
@@ -83,9 +91,17 @@ def seed_demo(
     try:
         if engage:
             engagement.engage(api, people, log)
-        engagement.report(api, people, log)
+        report = engagement.report(api, people, log)
     finally:
         api.close()
+    short = {h: n for h, n in report.feed_sizes.items() if n < require_feed}
+    if short:
+        typer.echo(
+            f"FAILED: {len(short)} of {len(report.feed_sizes)} personas have fewer than "
+            f"{require_feed} For You items ({', '.join(f'{h} {n}' for h, n in short.items())})",
+            err=True,
+        )
+        raise typer.Exit(1)
 
 
 @app.command("seed-scale")

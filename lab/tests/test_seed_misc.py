@@ -235,3 +235,4 @@ def test_cli_offers_seed_demo() -> None:
     result = CliRunner().invoke(app, ["seed-demo", "--help"])
     assert result.exit_code == 0
     assert "--real" in result.output and "--gigs" in result.output
+    assert "--require-feed" in result.output and "--clips-per-gig" in result.output

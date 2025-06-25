@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
-	openapi openapi-check ingest venue-coverage venue-preview record-fixtures purge-fixtures prune-local seed-demo seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage venue-preview record-fixtures purge-fixtures prune-local seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -215,6 +215,15 @@ seed-demo: ## Seed personas, the owner's real gigs and clips (if fixtures/clips/
 	@n=$$($(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -Atc "select count(*) from catalog.gig where starts_at > now()"); \
 	  [ "$$n" -gt 0 ] || { echo "No upcoming gigs in the catalog: run 'make ingest' first"; exit 1; }
 	$(UV_LAB) run soundcheck-lab seed-demo $(SEED_ARGS)
+
+seed-acceptance: ## The from-empty seed check, safely: make backup, then reset → up → fixtures ingest → seed-demo --no-real in < 15 min, every For You >= 30 (stop make dev first; asks before the reset unless YES=1; restore with make restore)
+	$(CURDIR)/ops/scripts/seed-acceptance.sh
+
+backup: ## Save the local database, every clip and the seed's progress to .localdata/backups/<stamp> (needs make up)
+	$(CURDIR)/ops/scripts/backup.sh
+
+restore: ## Put a backup back: make restore BACKUP=.localdata/backups/<stamp> (stop make dev first; asks unless YES=1)
+	$(CURDIR)/ops/scripts/restore.sh "$(BACKUP)"
 
 seed-scale: ## Generate the performance dataset (PROFILE=small|medium|large) into DB_NAME=soundcheck_perf
 	$(call not_yet,seed-scale)
