@@ -61,6 +61,11 @@ wait_for() { # wait_for <name> <url> <seconds>
 }
 
 say "2/3 API and worker (logs: .localdata/logs/api.log, worker.log)…"
+# Compile once first: the API and the worker share one Gradle build directory, and two builds compiling
+# changed sources at the same moment break each other ("NoSuchFileException … .class", 2025-06-25).
+say "    compiling the backend…"
+"$ROOT/backend/gradlew" -p "$ROOT/backend" -q classes >"$LOGS/compile.log" 2>&1 \
+  || { say "    the backend did not compile; see $LOGS/compile.log"; exit 1; }
 start api api
 start worker worker
 wait_for api http://localhost:8080/actuator/health 240
