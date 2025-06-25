@@ -113,6 +113,9 @@ make venue-coverage                      # after an ingest: per venue, its shows
 make seed-demo                           # personas, the demo fan's gigs and clips, likes, engagement (idempotent; SEED_ARGS="--personas 3 --gigs 2")
 make media-snapshot                      # copy the clips out of LocalStack now (make down does it too)
 make prune-local                         # mark posts whose clip files LocalStack lost as deleted
+make backup                              # database, every clip and the seed's state → .localdata/backups/<stamp>/
+make restore BACKUP=.localdata/backups/<stamp>   # put a backup back (stop make dev first; asks unless YES=1)
+make seed-acceptance                     # backup, then seed from an empty stack in < 15 min and check every For You
 ```
 
 ## Stopping
