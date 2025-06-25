@@ -10,8 +10,12 @@ import { nextRoute } from '@/features/auth/nextRoute';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
 import { OfflineBanner } from '@/features/network/OfflineBanner';
+import { holdSplash, useSplashGate } from '@/features/splash/splash';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
 import { FONT_FILES } from '@/theme/typography';
+
+// The native splash stays up until the app is ready; this must run before the first render.
+holdSplash();
 
 /**
  * Root providers: QueryClient, Theme; redirects by auth/onboarding state; the offline
@@ -50,7 +54,12 @@ function RootStack() {
     if (target) router.replace(target);
   }, [status, me, segments, router]);
 
-  if (status === 'unknown' || (!fontsLoaded && !fontError)) {
+  // Ready = the session check has answered and the fonts are settled. Until then the native splash
+  // covers the screen (at most SPLASH_MAX_MS); the view below is what the web, or a slow start, shows.
+  const ready = status !== 'unknown' && (fontsLoaded || !!fontError);
+  useSplashGate(ready);
+
+  if (!ready) {
     return (
       <View
         style={{

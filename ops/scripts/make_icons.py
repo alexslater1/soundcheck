@@ -96,7 +96,7 @@ def main() -> None:
         "android-icon-foreground.png": draw(1024, 420, accents, None),
         "android-icon-background.png": draw(1024, 0, accents, opaque),
         "android-icon-monochrome.png": draw(1024, 420, [WHITE], None),
-        # For a splash screen (expo-splash-screen is not set up yet): the mark alone on transparency.
+        # The splash screen (expo-splash-screen in app/app.config.ts): the mark alone on transparency.
         "splash-icon.png": draw(1024, 600, accents, None),
         "favicon.png": draw(48, 30, accents, opaque),
     }
