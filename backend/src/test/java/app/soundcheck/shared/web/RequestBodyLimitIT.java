@@ -57,7 +57,9 @@ class RequestBodyLimitIT extends IntegrationTest {
                 .hasValueSatisfying(type -> assertThat(type).startsWith("application/problem+json"));
         assertThat(response.body())
                 .contains("\"code\":\"REQUEST_TOO_LARGE\"")
-                .contains("https://soundcheck.app/problems/request-too-large");
+                .contains("https://soundcheck.app/problems/request-too-large")
+                // The filter runs inside the request's trace, so the answer quotes it.
+                .containsPattern("\"traceId\":\"[0-9a-f]{32}\"");
     }
 
     /** A login for an unknown email, padded with an ignored field to exactly {@code size} bytes. */
