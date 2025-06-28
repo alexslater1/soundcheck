@@ -8,6 +8,7 @@
 
 /**
  * @minLength 1
+ * @maxLength 20
  */
 export type AttendanceRequestStatus = typeof AttendanceRequestStatus[keyof typeof AttendanceRequestStatus];
 

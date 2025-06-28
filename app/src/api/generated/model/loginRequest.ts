@@ -7,7 +7,10 @@
  */
 
 export interface LoginRequest {
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 254
+   */
   email: string;
   /**
    * @minLength 0

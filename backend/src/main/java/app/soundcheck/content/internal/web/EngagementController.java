@@ -112,7 +112,9 @@ public class EngagementController {
     public record CommentRequest(@NotBlank @Size(max = 500) String body) {}
 
     public record ReportRequest(
-            @NotBlank @Schema(allowableValues = {"SPAM", "ABUSE", "NUDITY", "VIOLENCE", "COPYRIGHT", "OTHER"})
+            @NotBlank
+                    @Size(min = 1, max = 20)
+                    @Schema(allowableValues = {"SPAM", "ABUSE", "NUDITY", "VIOLENCE", "COPYRIGHT", "OTHER"})
                     String reason,
             @Schema(nullable = true) @Size(max = 500) String details) {}
 }

@@ -8,6 +8,7 @@
 
 /**
  * @minLength 1
+ * @maxLength 20
  */
 export type CreateUploadRequestKind = typeof CreateUploadRequestKind[keyof typeof CreateUploadRequestKind];
 

@@ -16,6 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -155,6 +156,25 @@ public class ProblemHandler extends ResponseEntityExceptionHandler {
         ProblemDetail problem = problem(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", "Request validation failed");
         problem.setProperty(ERRORS_PROPERTY, errors);
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).headers(headers).body(problem);
+    }
+
+    /**
+     * A chunked body that passed the size limit while being read (see {@link RequestBodyLimitFilter})
+     * surfaces here wrapped by the JSON converter: answer 413 like a declared oversize body, not 400.
+     */
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
+        for (Throwable cause = ex; cause != null; cause = cause.getCause()) {
+            if (cause instanceof RequestBodyTooLargeException tooLarge) {
+                return ResponseEntity.status(HttpStatus.PAYLOAD_TOO_LARGE)
+                        .body(RequestBodyLimitFilter.tooLarge(tooLarge.limit()));
+            }
+            if (cause.getCause() == cause) {
+                break;
+            }
+        }
+        return super.handleHttpMessageNotReadable(ex, headers, status, request);
     }
 
     /** Gives the framework-produced problems (404, 405, 400 on bad JSON…) a stable code and type. */

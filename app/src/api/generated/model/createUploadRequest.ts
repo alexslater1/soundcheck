@@ -24,7 +24,10 @@ export interface CreateUploadRequest {
   durationMs?: CreateUploadRequestDurationMs;
   /** @minimum 1 */
   height?: CreateUploadRequestHeight;
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
   kind: CreateUploadRequestKind;
   /** @minimum 1 */
   width?: CreateUploadRequestWidth;

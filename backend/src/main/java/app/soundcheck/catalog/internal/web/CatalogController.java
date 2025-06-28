@@ -342,7 +342,7 @@ public class CatalogController {
 
     /** Where the fan found the gig: today only {@code SETLISTFM}. */
     public record FoundOnRequest(
-            @NotBlank @Schema(allowableValues = {"SETLISTFM"}) String source,
+            @NotBlank @Size(min = 1, max = 20) @Schema(allowableValues = {"SETLISTFM"}) String source,
             @NotBlank @Size(max = 64) String externalId,
             @Size(max = 300) @Schema(nullable = true) String url,
             @Schema(nullable = true) UUID artistMbid) {}
@@ -350,7 +350,8 @@ public class CatalogController {
     public record AddArtistRequest(@NotBlank @Size(max = 120) String name) {}
 
     public record AttendanceRequest(
-            @NotBlank @Schema(allowableValues = {"INTERESTED", "GOING", "WENT"}) String status) {}
+            @NotBlank @Size(min = 1, max = 20) @Schema(allowableValues = {"INTERESTED", "GOING", "WENT"})
+                    String status) {}
 
     static UUID userId(Jwt jwt) {
         return UUID.fromString(jwt.getSubject());

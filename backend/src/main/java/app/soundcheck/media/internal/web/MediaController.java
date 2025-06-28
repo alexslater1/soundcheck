@@ -99,7 +99,7 @@ public class MediaController {
     }
 
     public record CreateUploadRequest(
-            @NotBlank @Schema(allowableValues = {"VIDEO", "IMAGE"}) String kind,
+            @NotBlank @Size(min = 1, max = 20) @Schema(allowableValues = {"VIDEO", "IMAGE"}) String kind,
             @NotBlank @Size(max = 100) String contentType,
             @NotNull @Min(1) Long bytes,
             @Schema(nullable = true) @Min(0) Integer durationMs,
@@ -107,7 +107,7 @@ public class MediaController {
             @Schema(nullable = true) @Min(1) Integer height,
             @Schema(nullable = true) @Size(max = 20) Map<String, Object> clientMeta) {}
 
-    public record PartRequest(@NotNull @Min(1) Integer partNumber, @NotBlank String etag) {}
+    public record PartRequest(@NotNull @Min(1) Integer partNumber, @NotBlank @Size(min = 1, max = 128) String etag) {}
 
     public record CompleteRequest(@Schema(nullable = true) @Size(max = 10_000) List<@Valid PartRequest> parts) {}
 

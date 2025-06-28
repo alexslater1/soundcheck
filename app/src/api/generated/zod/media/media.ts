@@ -60,6 +60,7 @@ export const completeUploadParams = zod.object({
   "mediaId": zod.string().uuid()
 })
 
+export const completeUploadBodyPartsItemEtagMax = 128;
 export const completeUploadBodyPartsMin = 0;
 
 export const completeUploadBodyPartsMax = 10000;
@@ -67,7 +68,7 @@ export const completeUploadBodyPartsMax = 10000;
 
 export const completeUploadBody = zod.object({
   "parts": zod.array(zod.object({
-  "etag": zod.string().min(1),
+  "etag": zod.string().min(1).max(completeUploadBodyPartsItemEtagMax),
   "partNumber": zod.number().min(1)
 })).min(completeUploadBodyPartsMin).max(completeUploadBodyPartsMax).nullish()
 })

@@ -72,7 +72,7 @@ public class AuthController {
     @PostMapping("/refresh")
     @Operation(operationId = "refresh", summary = "Rotate the refresh token and get a new access token")
     public ResponseEntity<AuthResponse> refresh(
-            @RequestBody(required = false) @Nullable RefreshRequest body,
+            @RequestBody(required = false) @Valid @Nullable RefreshRequest body,
             @CookieValue(name = REFRESH_COOKIE, required = false) @Nullable String cookie,
             @RequestHeader(name = "X-Client", defaultValue = "web") String client,
             @RequestHeader(name = "X-Requested-With", required = false) @Nullable String requestedWith,
@@ -95,7 +95,7 @@ public class AuthController {
     @PostMapping("/logout")
     @Operation(operationId = "logout", summary = "Revoke the session's refresh-token family")
     public ResponseEntity<Void> logout(
-            @RequestBody(required = false) @Nullable RefreshRequest body,
+            @RequestBody(required = false) @Valid @Nullable RefreshRequest body,
             @CookieValue(name = REFRESH_COOKIE, required = false) @Nullable String cookie,
             @RequestHeader(name = "X-Client", defaultValue = "web") String client) {
         auth.logout(client.equals("web") ? cookie : body == null ? null : body.refreshToken());
@@ -145,9 +145,11 @@ public class AuthController {
             @NotBlank @Size(min = 3, max = 30) String handle,
             @NotBlank @Size(min = 1, max = 50) String displayName) {}
 
-    public record LoginRequest(@NotBlank @Email String email, @NotBlank @Size(max = 128) String password) {}
+    public record LoginRequest(
+            @NotBlank @Email @Size(min = 1, max = 254) String email, @NotBlank @Size(max = 128) String password) {}
 
-    public record RefreshRequest(@Schema(nullable = true) String refreshToken) {}
+    /** The Android refresh token (43 characters, base64url of 256 bits); bounded so nothing large is hashed. */
+    public record RefreshRequest(@Schema(nullable = true) @Size(max = 128) String refreshToken) {}
 
     /** Session response: {@code refreshToken} is present for Android only. */
     public record AuthResponse(

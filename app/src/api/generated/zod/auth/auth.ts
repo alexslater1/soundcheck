@@ -20,13 +20,14 @@ export const loginHeader = zod.object({
   "User-Agent": zod.string().optional()
 })
 
+export const loginBodyEmailMax = 254;
 export const loginBodyPasswordMin = 0;
 
 export const loginBodyPasswordMax = 128;
 
 
 export const loginBody = zod.object({
-  "email": zod.string().email().min(1),
+  "email": zod.string().email().min(1).max(loginBodyEmailMax),
   "password": zod.string().min(loginBodyPasswordMin).max(loginBodyPasswordMax)
 })
 
@@ -52,8 +53,13 @@ export const logoutHeader = zod.object({
   "X-Client": zod.string().default(logoutHeaderXClientDefault)
 })
 
+export const logoutBodyRefreshTokenMin = 0;
+
+export const logoutBodyRefreshTokenMax = 128;
+
+
 export const logoutBody = zod.object({
-  "refreshToken": zod.string().nullish()
+  "refreshToken": zod.string().min(logoutBodyRefreshTokenMin).max(logoutBodyRefreshTokenMax).nullish()
 })
 
 /**
@@ -67,8 +73,13 @@ export const refreshHeader = zod.object({
   "User-Agent": zod.string().optional()
 })
 
+export const refreshBodyRefreshTokenMin = 0;
+
+export const refreshBodyRefreshTokenMax = 128;
+
+
 export const refreshBody = zod.object({
-  "refreshToken": zod.string().nullish()
+  "refreshToken": zod.string().min(refreshBodyRefreshTokenMin).max(refreshBodyRefreshTokenMax).nullish()
 })
 
 export const refreshResponse = zod.object({

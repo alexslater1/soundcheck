@@ -8,5 +8,9 @@
 import type { RefreshRequestRefreshToken } from './refreshRequestRefreshToken';
 
 export interface RefreshRequest {
+  /**
+   * @minLength 0
+   * @maxLength 128
+   */
   refreshToken?: RefreshRequestRefreshToken;
 }

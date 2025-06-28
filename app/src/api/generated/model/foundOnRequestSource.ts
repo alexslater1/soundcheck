@@ -8,6 +8,7 @@
 
 /**
  * @minLength 1
+ * @maxLength 20
  */
 export type FoundOnRequestSource = typeof FoundOnRequestSource[keyof typeof FoundOnRequestSource];
 

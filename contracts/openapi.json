@@ -173,6 +173,7 @@
         "properties" : {
           "status" : {
             "enum" : [ "INTERESTED", "GOING", "WENT" ],
+            "maxLength" : 20,
             "minLength" : 1,
             "type" : "string"
           }
@@ -379,6 +380,7 @@
           },
           "kind" : {
             "enum" : [ "VIDEO", "IMAGE" ],
+            "maxLength" : 20,
             "minLength" : 1,
             "type" : "string"
           },
@@ -510,6 +512,7 @@
           },
           "source" : {
             "enum" : [ "SETLISTFM" ],
+            "maxLength" : 20,
             "minLength" : 1,
             "type" : "string"
           },
@@ -836,6 +839,7 @@
         "properties" : {
           "email" : {
             "format" : "email",
+            "maxLength" : 254,
             "minLength" : 1,
             "type" : "string"
           },
@@ -1071,6 +1075,7 @@
       "PartRequest" : {
         "properties" : {
           "etag" : {
+            "maxLength" : 128,
             "minLength" : 1,
             "type" : "string"
           },
@@ -1332,6 +1337,8 @@
       "RefreshRequest" : {
         "properties" : {
           "refreshToken" : {
+            "maxLength" : 128,
+            "minLength" : 0,
             "type" : [ "string", "null" ]
           }
         },
@@ -1373,6 +1380,7 @@
           },
           "reason" : {
             "enum" : [ "SPAM", "ABUSE", "NUDITY", "VIOLENCE", "COPYRIGHT", "OTHER" ],
+            "maxLength" : 20,
             "minLength" : 1,
             "type" : "string"
           }
