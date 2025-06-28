@@ -2,7 +2,9 @@
 logging:
   level:
     app.soundcheck: debug
-    org.jooq.tools.LoggerListener: debug
+    # Every SQL statement with its bind values (emails, token hashes, payloads) is opt-in: set
+    # JOOQ_SQL_LOG=debug for one run. Off by default so a log shared from a local run holds no data.
+    org.jooq.tools.LoggerListener: ${JOOQ_SQL_LOG:info}
 
 soundcheck:
   rate-limit:

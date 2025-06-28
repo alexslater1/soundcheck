@@ -8,6 +8,9 @@
 import type { AttendanceRequestStatus } from './attendanceRequestStatus';
 
 export interface AttendanceRequest {
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
   status: AttendanceRequestStatus;
 }

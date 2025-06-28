@@ -6,4 +6,8 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * @minLength 0
+ * @maxLength 128
+ */
 export type RefreshRequestRefreshToken = string | null;

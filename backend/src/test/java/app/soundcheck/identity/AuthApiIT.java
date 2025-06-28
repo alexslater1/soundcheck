@@ -3,6 +3,7 @@ package app.soundcheck.identity;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import app.soundcheck.support.IntegrationTest;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -215,6 +216,68 @@ class AuthApiIT extends IntegrationTest {
         assertThat(invalid.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(invalid.getBody().get("code")).isEqualTo("VALIDATION_FAILED");
         assertThat((List<?>) invalid.getBody().get("errors")).isNotEmpty();
+    }
+
+    /**
+     * Sign-in must not tell an attacker which emails have accounts. An unknown
+     * email gets exactly what a wrong password gets: the same status, code, type and detail; only the
+     * trace id differs, since each request is its own trace.
+     */
+    @Test
+    void anUnknownEmailGetsTheSameAnswerAsAWrongPassword() {
+        String email = "known-" + UUID.randomUUID() + "@example.com";
+        String handle = "kn_" + UUID.randomUUID().toString().substring(0, 8);
+        assertThat(post(
+                                "/api/v1/auth/register",
+                                Map.of(
+                                        "email",
+                                        email,
+                                        "password",
+                                        "correct horse battery",
+                                        "handle",
+                                        handle,
+                                        "displayName",
+                                        "Known"),
+                                "android",
+                                null)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.CREATED);
+
+        ResponseEntity<Map<String, Object>> wrongPassword =
+                post("/api/v1/auth/login", Map.of("email", email, "password", "not the password"), "android", null);
+        ResponseEntity<Map<String, Object>> unknownEmail = post(
+                "/api/v1/auth/login",
+                Map.of("email", "nobody-" + UUID.randomUUID() + "@example.com", "password", "not the password"),
+                "android",
+                null);
+
+        assertThat(unknownEmail.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
+        assertThat(unknownEmail.getStatusCode()).isEqualTo(wrongPassword.getStatusCode());
+        Map<String, Object> unknown = new HashMap<>(unknownEmail.getBody());
+        Map<String, Object> wrong = new HashMap<>(wrongPassword.getBody());
+        unknown.remove("traceId");
+        wrong.remove("traceId");
+        assertThat(unknown).isEqualTo(wrong);
+        assertThat(unknownEmail.getBody()).containsEntry("code", "INVALID_CREDENTIALS");
+    }
+
+    /**
+     * An email longer than the 254 characters an address can have is refused before any lookup.
+     * Every part of this one is valid on its own (a 60-character local part, 60-character domain
+     * labels), so only the length cap can refuse it.
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void anOverlongEmailIsAValidationError() {
+        String email = "a".repeat(60) + "@" + ("b".repeat(60) + ".").repeat(3) + "example.com";
+        assertThat(email).hasSize(255);
+        ResponseEntity<Map<String, Object>> login =
+                post("/api/v1/auth/login", Map.of("email", email, "password", "not the password"), "android", null);
+        assertThat(login.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(login.getBody()).containsEntry("code", "VALIDATION_FAILED");
+        assertThat((List<Map<String, String>>) login.getBody().get("errors"))
+                .extracting(e -> e.get("field"))
+                .containsExactly("email");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

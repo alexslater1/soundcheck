@@ -1,6 +1,7 @@
 package app.soundcheck.identity.internal;
 
 import app.soundcheck.shared.Ids;
+import app.soundcheck.shared.Redacted;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import java.time.Clock;
@@ -26,7 +27,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminBootstrap {
 
     @ConfigurationProperties(prefix = "soundcheck.admin")
-    public record AdminProperties(String email, String password) {}
+    public record AdminProperties(String email, String password) {
+
+        /** Never prints the password. */
+        @Override
+        public String toString() {
+            return "AdminProperties[email=" + email + ", password=" + Redacted.of(password) + "]";
+        }
+    }
 
     static final String ADMIN_HANDLE = "admin";
 

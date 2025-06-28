@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.micrometer.tracing.otel)
     implementation(libs.opentelemetry.exporter.otlp)
     implementation(libs.micrometer.registry.otlp)
+    implementation(libs.otel.logback.appender) // log events → OTLP → Loki
     implementation(libs.spring.boot.starter.jooq)
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)
@@ -67,6 +68,7 @@ dependencies {
     implementation(libs.springdoc.webmvc.ui)
     runtimeOnly(libs.bouncycastle.provider) // Argon2id
     implementation(libs.bucket4j.core) // rate limits
+    implementation(libs.bucket4j.postgresql) // the buckets in PostgreSQL, shared by every API task
     implementation(libs.jsoup) // venue websites' listings: HTML and embedded JSON-LD
     implementation(libs.jspecify) // @NullMarked / @Nullable
 

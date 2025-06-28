@@ -7,7 +7,10 @@
  */
 
 export interface PartRequest {
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 128
+   */
   etag: string;
   /** @minimum 1 */
   partNumber: number;

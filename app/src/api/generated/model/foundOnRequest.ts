@@ -16,7 +16,10 @@ export interface FoundOnRequest {
    * @maxLength 64
    */
   externalId: string;
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
   source: FoundOnRequestSource;
   /**
    * @minLength 0

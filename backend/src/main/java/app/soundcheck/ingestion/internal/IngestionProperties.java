@@ -1,5 +1,6 @@
 package app.soundcheck.ingestion.internal;
 
+import app.soundcheck.shared.Redacted;
 import java.time.Duration;
 import java.util.List;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -36,7 +37,14 @@ public record IngestionProperties(
     public record Lastfm(
             @DefaultValue("https://ws.audioscrobbler.com") String baseUrl,
             @DefaultValue("") String apiKey,
-            @DefaultValue("4") int requestsPerSecond) {}
+            @DefaultValue("4") int requestsPerSecond) {
+
+        @Override
+        public String toString() {
+            return "Lastfm[baseUrl=" + baseUrl + ", apiKey=" + Redacted.of(apiKey) + ", requestsPerSecond="
+                    + requestsPerSecond + "]";
+        }
+    }
 
     /**
      * Venues' own websites. Off unless {@code enabled} and the venue's key is in {@code sites}:
@@ -69,6 +77,13 @@ public record IngestionProperties(
 
         public boolean configured() {
             return !apiKey.isBlank();
+        }
+
+        @Override
+        public String toString() {
+            return "Setlistfm[baseUrl=" + baseUrl + ", apiKey=" + Redacted.of(apiKey) + ", requestsPerSecond="
+                    + requestsPerSecond + ", dailyBudget=" + dailyBudget + ", cacheFor=" + cacheFor
+                    + ", perUserPerHour=" + perUserPerHour + "]";
         }
     }
 
@@ -103,5 +118,13 @@ public record IngestionProperties(
              */
             @DefaultValue({"202", "203", "204", "205", "206", "207", "208", "209"}) List<String> marketIds,
             /** Longest we will sleep for a {@code Retry-After} header before retrying. */
-            @DefaultValue("30s") Duration maxRetryAfter) {}
+            @DefaultValue("30s") Duration maxRetryAfter) {
+
+        @Override
+        public String toString() {
+            return "Ticketmaster[baseUrl=" + baseUrl + ", apiKey=" + Redacted.of(apiKey) + ", requestsPerSecond="
+                    + requestsPerSecond + ", pageSize=" + pageSize + ", marketIds=" + marketIds
+                    + ", maxRetryAfter=" + maxRetryAfter + "]";
+        }
+    }
 }

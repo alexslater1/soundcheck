@@ -6,6 +6,12 @@ logging:
   level:
     app.soundcheck: info
     org.testcontainers: info
+# No collector in tests or CI: log events are not exported (the appender still runs, so it is tested).
+management:
+  otlp:
+    logging:
+      export:
+        enabled: false
 # The shared test context makes many auth calls from one IP; the limits themselves are tested in
 # AuthRateLimitIT, which lowers these with @TestPropertySource (which outranks this file).
 soundcheck:

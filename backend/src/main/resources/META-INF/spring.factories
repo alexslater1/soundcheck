@@ -1,0 +1,3 @@
+# Runs right after Spring Boot sets logging up, in the application and in every test context.
+org.springframework.context.ApplicationListener=\
+app.soundcheck.shared.observability.OpenTelemetryLogAppender

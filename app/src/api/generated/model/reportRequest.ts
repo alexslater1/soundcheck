@@ -14,6 +14,9 @@ export interface ReportRequest {
    * @maxLength 500
    */
   details?: ReportRequestDetails;
-  /** @minLength 1 */
+  /**
+   * @minLength 1
+   * @maxLength 20
+   */
   reason: ReportRequestReason;
 }

@@ -1,5 +1,6 @@
 package app.soundcheck.identity.internal.auth;
 
+import app.soundcheck.shared.Redacted;
 import java.time.Duration;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -19,5 +20,14 @@ public record AuthProperties(Jwt jwt) {
             @DefaultValue("soundcheck") String issuer,
             @DefaultValue("soundcheck-app") String audience,
             @DefaultValue("15m") Duration accessTtl,
-            @DefaultValue("30d") Duration refreshTtl) {}
+            @DefaultValue("30d") Duration refreshTtl) {
+
+        /** Never prints the private key. */
+        @Override
+        public String toString() {
+            return "Jwt[privateKeyPem=" + Redacted.of(privateKeyPem) + ", privateKeyPath=" + privateKeyPath
+                    + ", issuer=" + issuer + ", audience=" + audience + ", accessTtl=" + accessTtl
+                    + ", refreshTtl=" + refreshTtl + "]";
+        }
+    }
 }
