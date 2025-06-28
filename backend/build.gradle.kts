@@ -67,6 +67,7 @@ dependencies {
     implementation(libs.springdoc.webmvc.ui)
     runtimeOnly(libs.bouncycastle.provider) // Argon2id
     implementation(libs.bucket4j.core) // rate limits
+    implementation(libs.bucket4j.postgresql) // the buckets in PostgreSQL, shared by every API task
     implementation(libs.jsoup) // venue websites' listings: HTML and embedded JSON-LD
     implementation(libs.jspecify) // @NullMarked / @Nullable
 
