@@ -44,6 +44,7 @@ dependencies {
     implementation(libs.micrometer.tracing.otel)
     implementation(libs.opentelemetry.exporter.otlp)
     implementation(libs.micrometer.registry.otlp)
+    implementation(libs.otel.logback.appender) // log events → OTLP → Loki
     implementation(libs.spring.boot.starter.jooq)
     implementation(libs.flyway.core)
     implementation(libs.flyway.postgresql)

@@ -3,6 +3,12 @@ logging:
   structured:
     format:
       console: ""
+# No collector in tests or CI: log events are not exported (the appender still runs, so it is tested).
+management:
+  otlp:
+    logging:
+      export:
+        enabled: false
   level:
     app.soundcheck: info
     org.testcontainers: info
