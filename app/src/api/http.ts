@@ -23,14 +23,39 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
   readonly problem: Problem | undefined;
+  /** How long the server asked us to wait (its `Retry-After`, e.g. on a 429), when it said. */
+  readonly retryAfterSeconds: number | undefined;
 
-  constructor(status: number, code: string, message: string, problem?: Problem) {
+  constructor(
+    status: number,
+    code: string,
+    message: string,
+    problem?: Problem,
+    retryAfterSeconds?: number,
+  ) {
     super(message);
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
     this.problem = problem;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
+}
+
+/** `Retry-After` is whole seconds or an HTTP date (RFC 9110 §10.2.3); undefined when absent or unreadable. */
+export function parseRetryAfter(
+  value: string | null,
+  now: number = Date.now(),
+): number | undefined {
+  if (!value) {
+    return undefined;
+  }
+  const trimmed = value.trim();
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed);
+  }
+  const at = Date.parse(trimmed);
+  return Number.isNaN(at) ? undefined : Math.max(0, Math.ceil((at - now) / 1000));
 }
 
 export type ClientKind = 'android' | 'web';
@@ -128,6 +153,7 @@ async function send(url: string, init: RequestInit, token: string | null): Promi
 
 async function toApiError(response: Response): Promise<ApiError> {
   const contentType = response.headers.get('content-type') ?? '';
+  const retryAfter = parseRetryAfter(response.headers.get('retry-after'));
   if (contentType.includes('json')) {
     try {
       const problem = (await response.json()) as Problem;
@@ -136,6 +162,7 @@ async function toApiError(response: Response): Promise<ApiError> {
         problem.code ?? `HTTP_${response.status}`,
         problem.detail ?? problem.title ?? response.statusText,
         problem,
+        retryAfter,
       );
     } catch {
       // fall through to the generic error
@@ -145,5 +172,7 @@ async function toApiError(response: Response): Promise<ApiError> {
     response.status,
     `HTTP_${response.status}`,
     response.statusText || 'Request failed',
+    undefined,
+    retryAfter,
   );
 }

@@ -4,6 +4,7 @@ import { login, logout, refresh, register } from '@/api/generated/auth/auth';
 import { getMe } from '@/api/generated/me/me';
 import type { AuthResponse, MeResponse, RefreshRequest } from '@/api/generated/model';
 import {
+  ApiError,
   clientKind,
   type FetchOptions,
   setAccessTokenProvider,
@@ -119,23 +120,49 @@ function requestedWith(): Record<string, string> {
   return clientKind() === 'web' ? { 'X-Requested-With': 'soundcheck' } : {};
 }
 
-/** One refresh round trip; returns the new access token or null (and clears state) when it fails. */
+/**
+ * A rate-limited refresh (429: `/auth/refresh` allows a few a minute per address) is not a lost
+ * session: wait what the server's `Retry-After` asks, between 1 and this many seconds, and try
+ * again, up to {@link REFRESH_ATTEMPTS} attempts in all.
+ */
+export const REFRESH_MAX_WAIT_S = 30;
+export const REFRESH_ATTEMPTS = 3;
+const REFRESH_DEFAULT_WAIT_S = 2;
+
+function waitBeforeRetry(error: ApiError): Promise<void> {
+  const seconds = Math.min(
+    REFRESH_MAX_WAIT_S,
+    Math.max(1, error.retryAfterSeconds ?? REFRESH_DEFAULT_WAIT_S),
+  );
+  return new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+}
+
+/**
+ * One refresh round trip; returns the new access token, or null (and clears state) when the session is
+ * gone. A 429 is waited out and retried; anything else ends the session as before.
+ */
 export async function refreshSession(): Promise<string | null> {
   const stored = await refreshTokenStore.get();
   if (clientKind() === 'android' && !stored) {
     return null;
   }
-  try {
-    const session = await refreshSessionToken(refreshBody(stored), {
-      skipRefresh: true,
-      headers: requestedWith(),
-    });
-    useAuthStore.setState({ accessToken: session.accessToken, status: 'signedIn' });
-    await refreshTokenStore.set(session.refreshToken ?? null);
-    return session.accessToken;
-  } catch {
-    useAuthStore.getState().clear();
-    return null;
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const session = await refreshSessionToken(refreshBody(stored), {
+        skipRefresh: true,
+        headers: requestedWith(),
+      });
+      useAuthStore.setState({ accessToken: session.accessToken, status: 'signedIn' });
+      await refreshTokenStore.set(session.refreshToken ?? null);
+      return session.accessToken;
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 429 && attempt < REFRESH_ATTEMPTS) {
+        await waitBeforeRetry(error);
+        continue;
+      }
+      useAuthStore.getState().clear();
+      return null;
+    }
   }
 }
 
