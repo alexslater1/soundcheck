@@ -6,6 +6,8 @@ import app.soundcheck.catalog.AttendanceStats;
 import app.soundcheck.catalog.GigStats;
 import app.soundcheck.catalog.GigSummary;
 import app.soundcheck.identity.internal.ProfileStatsService;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -26,6 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
  * marked WENT, and the gigs behind each line. Visible to the owner, and to others when the owner shares
  * them ({@code PATCH /me {showGigStats}}).
  */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/users/{id}/stats")
 @Validated

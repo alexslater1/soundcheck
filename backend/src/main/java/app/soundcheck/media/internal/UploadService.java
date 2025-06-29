@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -31,6 +32,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Upload sessions. The API never sees the bytes: it creates the asset row, signs
@@ -81,6 +83,7 @@ public class UploadService {
     private final MediaProperties properties;
     private final JsonMapper json;
     private final Traceparent traceparent;
+    private final TransactionTemplate tx;
     private final Clock clock;
 
     public UploadService(
@@ -92,6 +95,7 @@ public class UploadService {
             MediaProperties properties,
             JsonMapper json,
             Traceparent traceparent,
+            TransactionTemplate tx,
             Clock clock) {
         this.assets = assets;
         this.traceparent = traceparent;
@@ -101,6 +105,7 @@ public class UploadService {
         this.events = events;
         this.properties = properties;
         this.json = json;
+        this.tx = tx;
         this.clock = clock;
     }
 
@@ -173,71 +178,159 @@ public class UploadService {
     /**
      * Accepts the uploaded bytes. Idempotent: once the asset is UPLOADED (or further), calling again
      * returns its status and publishes nothing. The size check uses what object storage reports, not what
-     * the client declared; an oversized object is deleted and the asset REJECTED, which must survive the
-     * 413 this method answers with (hence {@code noRollbackFor}).
+     * the client declared; an oversized object is deleted and the asset REJECTED, and that must survive the
+     * 413 this method answers with, so the locked step returns the error and it is thrown after the commit.
+     *
+     * <p>An image (an avatar) is checked and stripped of its metadata <em>before</em> the asset's row is
+     * locked: that work downloads, decodes and re-encodes up to 10 MB, and doing it inside
+     * the transaction held the row lock and a database connection for all of it.
      */
-    @Transactional(noRollbackFor = ApiException.class)
     public String complete(UUID ownerId, UUID mediaId, List<CompletedPart> parts) {
+        MediaAsset seen = owned(ownerId, mediaId);
+        PreparedImage image =
+                !seen.video() && seen.status().equals("AWAITING_UPLOAD") ? prepareImage(seen, parts) : null;
+        Outcome outcome;
+        try {
+            outcome = Objects.requireNonNull(tx.execute(status -> completeLocked(ownerId, mediaId, parts, image)));
+        } catch (RuntimeException e) {
+            // The asset went away or changed state while its image was prepared: nothing will serve the copy.
+            discardServedCopy(image);
+            throw e;
+        }
+        if (outcome.error() != null) {
+            throw outcome.error();
+        }
+        return outcome.status();
+    }
+
+    /** What the locked step decided: a status to answer with, or an error to throw once its writes are committed. */
+    private record Outcome(String status, @Nullable ApiException error) {
+        static Outcome answer(String status) {
+            return new Outcome(status, null);
+        }
+
+        static Outcome refuse(String status, ApiException error) {
+            return new Outcome(status, error);
+        }
+    }
+
+    /**
+     * An image checked and cleaned before the lock: its size in storage, and either the key its served
+     * copy was stored at or why it was refused ({@code tooLarge} or {@code problem}).
+     */
+    private record PreparedImage(
+            long bytes, boolean tooLarge, String prefix, String imageKey, @Nullable String problem) {
+        boolean stored() {
+            return !tooLarge && problem == null;
+        }
+    }
+
+    private PreparedImage prepareImage(MediaAsset asset, List<CompletedPart> parts) {
+        if (asset.uploadStrategy().equals("MULTIPART")) {
+            assembleMultipart(asset, parts); // only with a singleUploadMax below maxImageSize
+        }
+        ObjectStorage.ObjectHead head = storage.head(asset.originalKey())
+                .orElseThrow(() -> ApiException.badRequest("UPLOAD_INCOMPLETE", "Nothing has been uploaded yet"));
+        String prefix = "media/" + asset.id() + "/v1/";
+        String imageKey = prefix + "image." + IMAGE_TYPES.get(asset.contentType());
+        if (head.contentLength() > properties.maxImageSize().toBytes()) {
+            return new PreparedImage(head.contentLength(), true, prefix, imageKey, null);
+        }
+        // Images (avatars) need no transcoding, but nothing is served unchecked or as uploaded: the bytes
+        // must be an image of the declared type, and what is served is a copy without
+        // the file's metadata (a photo's EXIF holds the camera, the time and often the GPS position).
+        return new PreparedImage(head.contentLength(), false, prefix, imageKey, storeServedImage(asset, imageKey));
+    }
+
+    private void discardServedCopy(@Nullable PreparedImage image) {
+        if (image != null && image.stored()) {
+            try {
+                storage.delete(image.imageKey());
+            } catch (RuntimeException e) {
+                // An orphaned copy under media/ is harmless; the original error matters more.
+            }
+        }
+    }
+
+    /** The part of {@link #complete} that runs in one transaction, with the asset's row locked. */
+    private Outcome completeLocked(
+            UUID ownerId, UUID mediaId, List<CompletedPart> parts, @Nullable PreparedImage image) {
         // Row lock: two concurrent completes take turns, and the second sees the first one's result.
         MediaAsset asset = assets.findForUpdate(mediaId)
                 .filter(a -> a.ownerId().equals(ownerId) && !a.status().equals("DELETED"))
                 .orElseThrow(UploadService::notFound);
         if (asset.uploaded()) {
-            return asset.status();
+            // Another complete got here first; for an image it stored the same cleaned bytes at the same key.
+            return Outcome.answer(asset.status());
         }
         if (!asset.status().equals("AWAITING_UPLOAD")) {
             throw ApiException.conflict("MEDIA_NOT_UPLOADABLE", "This upload was " + asset.status());
         }
+        Instant now = Instant.now(clock);
+        if (!asset.video()) {
+            return completeImage(asset, Objects.requireNonNull(image, "an image is prepared before the lock"), now);
+        }
         if (asset.uploadStrategy().equals("MULTIPART")) {
-            if (parts.isEmpty()) {
-                throw ApiException.badRequest(
-                        "PARTS_REQUIRED", "A multipart upload is completed with its parts' ETags");
-            }
-            List<ObjectStorage.CompletedPart> ordered = parts.stream()
-                    .sorted(Comparator.comparingInt(CompletedPart::partNumber))
-                    .map(p -> new ObjectStorage.CompletedPart(p.partNumber(), p.etag()))
-                    .toList();
-            try {
-                storage.completeMultipart(asset.originalKey(), asset.multipartUploadId(), ordered);
-            } catch (ObjectStorage.InvalidUploadException e) {
-                // Wrong parts, or an earlier complete assembled the object and then failed to commit
-                // (storage no longer knows the upload id). Only a finished multipart upload can have put
-                // an object at this key, so if one is there the second case it is; carry on.
-                if (storage.head(asset.originalKey()).isEmpty()) {
-                    throw ApiException.badRequest("UPLOAD_INCOMPLETE", "The parts do not match what was uploaded");
-                }
-            }
+            assembleMultipart(asset, parts);
         }
         ObjectStorage.ObjectHead head = storage.head(asset.originalKey())
                 .orElseThrow(() -> ApiException.badRequest("UPLOAD_INCOMPLETE", "Nothing has been uploaded yet"));
-        Instant now = Instant.now(clock);
-        long limit = (asset.video() ? properties.maxVideoSize() : properties.maxImageSize()).toBytes();
+        long limit = properties.maxVideoSize().toBytes();
         if (head.contentLength() > limit) {
-            storage.delete(asset.originalKey());
-            assets.close(asset.id(), "AWAITING_UPLOAD", "REJECTED", "larger than the " + limit + " byte limit", now);
-            throw new ApiException(
-                    HttpStatus.valueOf(413), "MEDIA_TOO_LARGE", "The uploaded file is larger than allowed");
+            return reject(asset, "AWAITING_UPLOAD", limit, now);
         }
         assets.markUploaded(asset.id(), "UPLOADED", head.contentLength(), now);
-        if (asset.video()) {
-            // Recorded in the outbox by this transaction; relayed to the transcode queue after the commit.
-            events.publishEvent(new MediaUploaded(
-                    asset.id(), ownerId, now, traceparent.current().orElse(null)));
-            return "UPLOADED";
+        // Recorded in the outbox by this transaction; relayed to the transcode queue after the commit.
+        events.publishEvent(new MediaUploaded(
+                asset.id(), ownerId, now, traceparent.current().orElse(null)));
+        return Outcome.answer("UPLOADED");
+    }
+
+    private Outcome completeImage(MediaAsset asset, PreparedImage image, Instant now) {
+        if (image.tooLarge()) {
+            return reject(asset, "AWAITING_UPLOAD", properties.maxImageSize().toBytes(), now);
         }
-        // Images (avatars) need no transcoding, but nothing is served unchecked or as uploaded: the bytes
-        // must be an image of the declared type, and what is served is a copy without
-        // the file's metadata (a photo's EXIF holds the camera, the time and often the GPS position).
-        String prefix = "media/" + asset.id() + "/v1/";
-        String imageKey = prefix + "image." + IMAGE_TYPES.get(asset.contentType());
-        String problem = storeServedImage(asset, imageKey);
-        if (problem != null) {
+        assets.markUploaded(asset.id(), "UPLOADED", image.bytes(), now);
+        if (image.problem() != null) {
             storage.delete(asset.originalKey());
-            assets.close(asset.id(), "UPLOADED", "REJECTED", problem, now);
-            throw ApiException.badRequest("IMAGE_INVALID", "The uploaded file is not a valid image");
+            assets.close(asset.id(), "UPLOADED", "REJECTED", image.problem(), now);
+            return Outcome.refuse(
+                    "REJECTED", ApiException.badRequest("IMAGE_INVALID", "The uploaded file is not a valid image"));
         }
-        assets.markImageReady(asset.id(), prefix, imageKey, now);
-        return "READY";
+        assets.markImageReady(asset.id(), image.prefix(), image.imageKey(), now);
+        return Outcome.answer("READY");
+    }
+
+    /** Deletes an oversized upload and marks it REJECTED; the 413 is thrown after the commit. */
+    private Outcome reject(MediaAsset asset, String fromStatus, long limit, Instant now) {
+        storage.delete(asset.originalKey());
+        assets.close(asset.id(), fromStatus, "REJECTED", "larger than the " + limit + " byte limit", now);
+        return Outcome.refuse(
+                "REJECTED",
+                new ApiException(
+                        HttpStatus.valueOf(413), "MEDIA_TOO_LARGE", "The uploaded file is larger than allowed"));
+    }
+
+    /**
+     * Completes a multipart upload in storage. Wrong parts, or an earlier complete that assembled the
+     * object and then failed to commit (storage no longer knows the upload id): only a finished multipart
+     * upload can have put an object at this key, so if one is there it is the second case; carry on.
+     */
+    private void assembleMultipart(MediaAsset asset, List<CompletedPart> parts) {
+        if (parts.isEmpty()) {
+            throw ApiException.badRequest("PARTS_REQUIRED", "A multipart upload is completed with its parts' ETags");
+        }
+        List<ObjectStorage.CompletedPart> ordered = parts.stream()
+                .sorted(Comparator.comparingInt(CompletedPart::partNumber))
+                .map(p -> new ObjectStorage.CompletedPart(p.partNumber(), p.etag()))
+                .toList();
+        try {
+            storage.completeMultipart(asset.originalKey(), asset.multipartUploadId(), ordered);
+        } catch (ObjectStorage.InvalidUploadException e) {
+            if (storage.head(asset.originalKey()).isEmpty()) {
+                throw ApiException.badRequest("UPLOAD_INCOMPLETE", "The parts do not match what was uploaded");
+            }
+        }
     }
 
     /**

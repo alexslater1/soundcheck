@@ -4,6 +4,8 @@ import app.soundcheck.content.Post;
 import app.soundcheck.feed.HomeFeed;
 import app.soundcheck.feed.internal.FollowingFeedService;
 import app.soundcheck.feed.internal.HomeFeedService;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Page;
 import app.soundcheck.shared.web.RateLimitProperties;
 import app.soundcheck.shared.web.RateLimiter;
@@ -23,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Feeds: the ranked home feed and the chronological Following feed. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/feed")
 @Validated

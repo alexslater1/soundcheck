@@ -17,6 +17,8 @@ import app.soundcheck.catalog.internal.UserSubmissionService.AddGig;
 import app.soundcheck.catalog.internal.UserSubmissionService.Added;
 import app.soundcheck.catalog.internal.UserSubmissionService.FoundOn;
 import app.soundcheck.catalog.internal.UserSubmissionService.NewVenue;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -56,6 +58,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Catalog endpoints: gigs, attendance, artists, venues and search. Thin: validate, call the service. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Validated

@@ -2,6 +2,8 @@ package app.soundcheck.notifications.internal.web;
 
 import app.soundcheck.notifications.internal.NotificationService;
 import app.soundcheck.notifications.internal.NotificationService.Inbox;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** The notification inbox. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/notifications")
 @Validated

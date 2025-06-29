@@ -1,6 +1,6 @@
 import { queryClient } from '@/api/queryClient';
 
-import { refreshSession, useAuthStore } from './store';
+import { REFRESH_ATTEMPTS, refreshSession, useAuthStore } from './store';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 
@@ -102,6 +102,90 @@ describe('auth store', () => {
 
     expect(queryClient.getQueryData(['/api/v1/gigs/g1'])).toBeUndefined();
     expect(queryClient.getQueryCache().getAll()).toHaveLength(0);
+    expect(useAuthStore.getState().status).toBe('signedOut');
+  });
+});
+
+describe('a rate-limited refresh', () => {
+  function limited(retryAfter: string): Response {
+    return new Response(JSON.stringify({ status: 429, code: 'RATE_LIMITED' }), {
+      status: 429,
+      headers: { 'content-type': 'application/problem+json', 'Retry-After': retryAfter },
+    });
+  }
+
+  /** Answers /auth/refresh from the list in order and everything else (/me) with the profile. */
+  function serve(refreshAnswers: Response[]): void {
+    fetchMock.mockImplementation(async (url) =>
+      String(url).endsWith('/auth/refresh') ? refreshAnswers.shift()! : json(200, me),
+    );
+  }
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    const { refreshTokenStore } =
+      jest.requireActual<typeof import('@/lib/secureStore')>('@/lib/secureStore');
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('waits the Retry-After the server gave, retries, and stays signed in', async () => {
+    serve([limited('3'), json(200, session)]);
+
+    const result = refreshSession();
+    await jest.advanceTimersByTimeAsync(2_999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(1);
+
+    await expect(result).resolves.toBe('access-1');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(useAuthStore.getState().status).toBe('signedIn');
+  });
+
+  it('waits at most 30 seconds, however long the server asks', async () => {
+    serve([limited('600'), json(200, session)]);
+
+    const result = refreshSession();
+    await jest.advanceTimersByTimeAsync(29_999);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(1);
+
+    await expect(result).resolves.toBe('access-1');
+  });
+
+  it('lets the app start signed in instead of on the sign-in screen', async () => {
+    serve([limited('1'), json(200, session)]);
+
+    const started = useAuthStore.getState().bootstrap();
+    await jest.advanceTimersByTimeAsync(1_000);
+    await started;
+
+    expect(useAuthStore.getState().status).toBe('signedIn');
+    expect(useAuthStore.getState().me?.handle).toBe('fan');
+  });
+
+  it(`gives up after ${REFRESH_ATTEMPTS} rate-limited attempts`, async () => {
+    serve([limited('1'), limited('1'), limited('1')]);
+    useAuthStore.setState({ status: 'signedIn', accessToken: 'stale', me: me as never });
+
+    const result = refreshSession();
+    await jest.advanceTimersByTimeAsync(2_000);
+
+    await expect(result).resolves.toBeNull();
+    expect(fetchMock).toHaveBeenCalledTimes(REFRESH_ATTEMPTS);
+    expect(useAuthStore.getState().status).toBe('signedOut');
+  });
+
+  it('still ends the session at once on a 401', async () => {
+    serve([json(401, { status: 401, code: 'REFRESH_INVALID' })]);
+    useAuthStore.setState({ status: 'signedIn', accessToken: 'stale', me: me as never });
+
+    await expect(refreshSession()).resolves.toBeNull();
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(useAuthStore.getState().status).toBe('signedOut');
   });
 });

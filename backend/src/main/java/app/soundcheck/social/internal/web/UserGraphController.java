@@ -1,6 +1,8 @@
 package app.soundcheck.social.internal.web;
 
 import app.soundcheck.identity.UserSummary;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Page;
 import app.soundcheck.social.internal.UserGraphService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** User follows, follower lists and blocks. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/users/{id}")
 @Validated

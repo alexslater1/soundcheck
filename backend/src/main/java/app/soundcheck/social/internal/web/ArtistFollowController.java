@@ -1,5 +1,7 @@
 package app.soundcheck.social.internal.web;
 
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.social.internal.ArtistFollowService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** {@code PUT/DELETE /artists/{id}/follow}: owned by social, which owns the follow table. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "social", description = "Follows")

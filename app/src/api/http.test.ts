@@ -1,4 +1,4 @@
-import { ApiError, customFetch, resolveUrl, setAccessTokenProvider } from './http';
+import { ApiError, customFetch, parseRetryAfter, resolveUrl, setAccessTokenProvider } from './http';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 
@@ -85,5 +85,34 @@ describe('customFetch', () => {
 
     fetchMock.mockRejectedValue(new TypeError('Failed to fetch'));
     await expect(customFetch('/x')).rejects.toMatchObject({ status: 0, code: 'NETWORK_ERROR' });
+  });
+});
+
+describe('Retry-After', () => {
+  it('reads whole seconds and HTTP dates, and ignores what it cannot read', () => {
+    const now = Date.parse('2026-10-03T01:00:00Z');
+    expect(parseRetryAfter('7', now)).toBe(7);
+    expect(parseRetryAfter(' 12 ', now)).toBe(12);
+    expect(parseRetryAfter('Sat, 03 Oct 2026 01:00:30 GMT', now)).toBe(30);
+    expect(parseRetryAfter('Sat, 03 Oct 2026 00:59:00 GMT', now)).toBe(0);
+    expect(parseRetryAfter(null, now)).toBeUndefined();
+    expect(parseRetryAfter('soon', now)).toBeUndefined();
+  });
+
+  it('is carried on the ApiError of a 429', async () => {
+    fetchMock.mockResolvedValue(
+      new Response(JSON.stringify({ status: 429, code: 'RATE_LIMITED' }), {
+        status: 429,
+        headers: { 'content-type': 'application/problem+json', 'Retry-After': '5' },
+      }),
+    );
+
+    const error = await customFetch('/api/v1/auth/refresh', { skipRefresh: true }).catch(
+      (e: unknown) => e,
+    );
+
+    expect(error).toBeInstanceOf(ApiError);
+    expect((error as ApiError).code).toBe('RATE_LIMITED');
+    expect((error as ApiError).retryAfterSeconds).toBe(5);
   });
 });
