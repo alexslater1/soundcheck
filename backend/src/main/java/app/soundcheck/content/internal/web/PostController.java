@@ -2,6 +2,8 @@ package app.soundcheck.content.internal.web;
 
 import app.soundcheck.content.Post;
 import app.soundcheck.content.internal.PostService;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Posts and the lists of posts (the {@code …/posts} lists). */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Validated

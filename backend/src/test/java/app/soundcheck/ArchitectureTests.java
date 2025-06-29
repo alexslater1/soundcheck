@@ -1,7 +1,12 @@
 package app.soundcheck;
 
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
+import com.tngtech.archunit.base.DescribedPredicate;
+import com.tngtech.archunit.core.domain.JavaAnnotation;
 import com.tngtech.archunit.core.domain.JavaClass;
 import com.tngtech.archunit.core.domain.JavaClasses;
 import com.tngtech.archunit.core.importer.ClassFileImporter;
@@ -14,11 +19,13 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.web.bind.annotation.RestController;
 
 /**
  * Architecture rules beyond what Spring Modulith checks: no cross-module {@code internal}
- * access, controllers never touch jOOQ directly, no {@code java.util.Date}, and each module only uses
- * the jOOQ classes generated for its own schema (plus {@code shared}).
+ * access, controllers never touch jOOQ directly and exist only in the {@code api} role, no
+ * {@code java.util.Date}, and each module only uses the jOOQ classes generated for its own schema (plus
+ * {@code shared}).
  */
 class ArchitectureTests {
 
@@ -68,6 +75,22 @@ class ArchitectureTests {
                 .dependOnClassesThat()
                 .resideInAnyPackage("org.jooq..", BASE + ".shared.jooq..")
                 .as("controllers are thin: validate, call a service, map the response")
+                .check(classes);
+    }
+
+    @Test
+    void controllersExistOnlyInTheApiRole() {
+        // A worker or cli process serves health checks only, never the API.
+        DescribedPredicate<JavaAnnotation<?>> apiRole = DescribedPredicate.describe(
+                "@ConditionalOnRole(Roles.API)",
+                a -> a.getRawType().isEquivalentTo(ConditionalOnRole.class)
+                        && Roles.API.equals(a.get("value").orElse(null)));
+        classes()
+                .that()
+                .areAnnotatedWith(RestController.class)
+                .should()
+                .beAnnotatedWith(apiRole)
+                .as("every @RestController is registered only in the api role")
                 .check(classes);
     }
 

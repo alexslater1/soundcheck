@@ -3,6 +3,8 @@ package app.soundcheck.identity.internal.web;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.identity.internal.auth.AuthService;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RestController;
  * {@code soundcheck_rt} cookie — HttpOnly, Secure, SameSite=Strict, scoped to {@code /api/v1/auth} — and
  * must send {@code X-Requested-With: soundcheck} on refresh (CSRF belt and braces).
  */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/auth")
 @Tag(name = "auth", description = "Register, login, refresh, logout")

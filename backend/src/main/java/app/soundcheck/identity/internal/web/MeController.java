@@ -5,6 +5,8 @@ import app.soundcheck.identity.ProfileFacts;
 import app.soundcheck.identity.internal.MeService;
 import app.soundcheck.identity.internal.UserRecord;
 import app.soundcheck.identity.internal.UserRepository;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -32,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** {@code /me} and {@code /users/{handle}}. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "me", description = "Own account, onboarding, profiles")

@@ -4,6 +4,8 @@ import app.soundcheck.catalog.internal.SavedFilterService;
 import app.soundcheck.catalog.internal.SavedFilterService.NewFilter;
 import app.soundcheck.catalog.internal.SavedFilterService.PlaceKind;
 import app.soundcheck.catalog.internal.SavedFilterService.SavedGigFilter;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -28,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** The viewer's saved Gigs-tab searches. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/me/gig-filters")
 @Validated

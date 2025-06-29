@@ -5,6 +5,8 @@ import app.soundcheck.media.internal.UploadService;
 import app.soundcheck.media.internal.UploadService.CompletedPart;
 import app.soundcheck.media.internal.UploadService.CreateUpload;
 import app.soundcheck.media.internal.UploadService.UploadTicket;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Media: open an upload, complete it, abort it, read playback info. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/media")
 @Tag(name = "media", description = "Direct-to-storage uploads and playback")

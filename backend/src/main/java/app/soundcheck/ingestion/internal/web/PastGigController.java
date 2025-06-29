@@ -2,6 +2,8 @@ package app.soundcheck.ingestion.internal.web;
 
 import app.soundcheck.ingestion.internal.pastgigs.PastGigPage;
 import app.soundcheck.ingestion.internal.pastgigs.PastGigService;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** {@code GET /past-gigs}: an artist's past UK concerts from setlist.fm, for adding a gig. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Validated

@@ -1,5 +1,7 @@
 package app.soundcheck.signals.internal.web;
 
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.signals.internal.EventIntakeService;
 import app.soundcheck.signals.internal.EventIntakeService.IncomingEvent;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Client telemetry intake; rate limited by {@link EventRateLimit}. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "signals", description = "Interaction events from the clients")

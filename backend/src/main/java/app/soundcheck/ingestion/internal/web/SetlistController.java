@@ -2,6 +2,8 @@ package app.soundcheck.ingestion.internal.web;
 
 import app.soundcheck.ingestion.internal.pastgigs.Setlist;
 import app.soundcheck.ingestion.internal.pastgigs.SetlistService;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -15,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** {@code GET /gigs/{id}/setlist}: the songs of a past gig, from setlist.fm, not stored. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Tag(name = "past-gigs", description = "Past concerts from setlist.fm, looked up live and not stored")

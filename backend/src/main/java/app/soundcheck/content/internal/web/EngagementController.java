@@ -3,6 +3,8 @@ package app.soundcheck.content.internal.web;
 import app.soundcheck.content.internal.EngagementService;
 import app.soundcheck.content.internal.EngagementService.CommentView;
 import app.soundcheck.content.internal.EngagementService.LikeState;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -31,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Likes, comments, hide and report. */
+@ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1")
 @Validated
