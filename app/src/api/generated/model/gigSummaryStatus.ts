@@ -6,6 +6,9 @@
  * OpenAPI spec version: v1
  */
 
+/**
+ * UNLISTED: only a venue's own site listed it, and it has stopped
+ */
 export type GigSummaryStatus = typeof GigSummaryStatus[keyof typeof GigSummaryStatus];
 
 
@@ -15,4 +18,5 @@ export const GigSummaryStatus = {
   POSTPONED: 'POSTPONED',
   RESCHEDULED: 'RESCHEDULED',
   CANCELLED: 'CANCELLED',
+  UNLISTED: 'UNLISTED',
 } as const;

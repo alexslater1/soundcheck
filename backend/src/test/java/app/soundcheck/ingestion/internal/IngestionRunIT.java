@@ -1,5 +1,7 @@
 package app.soundcheck.ingestion.internal;
 
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.ingestion.Tables.INGESTION_RUN;
 import static app.soundcheck.shared.jooq.ingestion.Tables.RAW_PAYLOAD;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -15,10 +17,12 @@ import app.soundcheck.ingestion.internal.source.SourceArtist;
 import app.soundcheck.ingestion.internal.source.SourceGig;
 import app.soundcheck.ingestion.internal.source.SourcePage;
 import app.soundcheck.ingestion.internal.source.SourceVenue;
+import app.soundcheck.ingestion.internal.source.TimePrecision;
 import app.soundcheck.ingestion.internal.source.TransientSourceException;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.support.IntegrationTest;
 import app.soundcheck.support.MutableClock;
+import app.soundcheck.support.TestApi;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -32,6 +36,7 @@ import org.jooq.DSLContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.test.context.event.ApplicationEvents;
 import org.springframework.test.context.event.RecordApplicationEvents;
 
@@ -75,6 +80,9 @@ class IngestionRunIT extends IntegrationTest {
 
     @Autowired
     ApplicationEvents events;
+
+    @Autowired
+    TestRestTemplate rest;
 
     @AfterEach
     void backToRealTime() {
@@ -281,6 +289,96 @@ class IngestionRunIT extends IntegrationTest {
                         .run("SKIDDLE", "TEST")
                         .status())
                 .isEqualTo("SUCCEEDED");
+    }
+
+    @Test
+    void aGigOnlyAVenueSiteListedIsUnlistedAfterTwoFullReadsWithoutItAndComesBackWhenListedAgain() {
+        String tag = UUID.randomUUID().toString().substring(0, 8);
+        String site = "lantern-" + tag;
+        Instant base = Instant.now(clock);
+        SourceGig a = venueGig(site, "a", "Harbour Hounds " + tag, base.plus(Duration.ofDays(9)));
+        SourceGig b = venueGig(site, "b", "Night Moths " + tag, base.plus(Duration.ofDays(10)));
+        SourceGig c = venueGig(site, "c", "Pale Kites " + tag, base.plus(Duration.ofDays(11)));
+
+        assertThat(venueRun(fullRead(site, a, b, c))).isEqualTo("SUCCEEDED");
+        UUID gigB = gigOf(site + ":b");
+        UUID gigC = gigOf(site + ":c");
+        // A fan added C as well: a gig someone else vouches for is never unlisted by the site's silence.
+        dsl.insertInto(GIG_SOURCE)
+                .set(GIG_SOURCE.SOURCE, "USER")
+                .set(GIG_SOURCE.EXTERNAL_ID, "fan-" + tag)
+                .set(GIG_SOURCE.GIG_ID, gigC)
+                .set(GIG_SOURCE.LAST_SEEN_AT, base.atOffset(java.time.ZoneOffset.UTC))
+                .set(GIG_SOURCE.PRIMARY_LISTING, false)
+                .execute();
+
+        // The site fails one day: not a read in full, so it says nothing about B.
+        clock.advance(Duration.ofDays(1));
+        venueRun(page("VENUE", site + "-failed"));
+        // Two full reads without B or C.
+        clock.advance(Duration.ofDays(1));
+        venueRun(fullRead(site, a));
+        assertThat(status(gigB)).as("one full read without it").isEqualTo("SCHEDULED");
+        clock.advance(Duration.ofDays(1));
+        venueRun(fullRead(site, a));
+
+        assertThat(status(gigB)).isEqualTo("UNLISTED");
+        assertThat(status(gigC)).isEqualTo("SCHEDULED");
+        assertThat(status(gigOf(site + ":a"))).isEqualTo("SCHEDULED");
+        // Gone from the lists that help people find gigs, here the venue's page.
+        TestApi api = new TestApi(rest);
+        TestApi.User fan = api.register("fan");
+        UUID venueId = dsl.fetchValue(dsl.select(GIG.VENUE_ID).from(GIG).where(GIG.ID.eq(gigB)));
+        JsonNode listed = api.get("/api/v1/venues/" + venueId + "/gigs", fan).getBody();
+        assertThat(listed.path("items").findValuesAsText("id"))
+                .contains(gigOf(site + ":a").toString(), gigC.toString())
+                .doesNotContain(gigB.toString());
+
+        // The site lists B again: it is back.
+        clock.advance(Duration.ofDays(1));
+        venueRun(fullRead(site, a, b));
+        assertThat(status(gigB)).isEqualTo("SCHEDULED");
+    }
+
+    private String venueRun(SourcePage... pages) {
+        return serviceWith("VENUE", List.of(pages), budget -> {})
+                .run("VENUE", "TEST")
+                .status();
+    }
+
+    /** One page of the site's listings, marked as completing a read of the whole site. */
+    private SourcePage fullRead(String site, SourceGig... gigs) {
+        return page("VENUE", site, gigs).completing(site);
+    }
+
+    private SourceGig venueGig(String site, String id, String title, Instant startsAt) {
+        return new SourceGig(
+                "VENUE",
+                site + ":" + id,
+                "https://" + site + ".example.com/events/" + id,
+                title,
+                startsAt,
+                null,
+                "SCHEDULED",
+                null,
+                null,
+                null,
+                null,
+                null,
+                new SourceVenue(site, "The Lantern " + site, null, "Testville", null, 57.3, -6.1, "Europe/London"),
+                List.of(new SourceArtist("", title, null, List.of(), null)),
+                TimePrecision.DOORS);
+    }
+
+    private UUID gigOf(String externalId) {
+        return dsl.fetchValue(dsl.select(GIG_SOURCE.GIG_ID)
+                .from(GIG_SOURCE)
+                .where(GIG_SOURCE.SOURCE.eq("VENUE"))
+                .and(GIG_SOURCE.EXTERNAL_ID.eq(externalId)));
+    }
+
+    private String status(UUID gigId) {
+        return dsl.fetchValue(dsl.select(GIG.STATUS).from(GIG).where(GIG.ID.eq(gigId)));
     }
 
     @Test

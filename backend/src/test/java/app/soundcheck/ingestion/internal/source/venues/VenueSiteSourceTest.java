@@ -108,6 +108,8 @@ class VenueSiteSourceTest {
                 .toList();
 
         assertThat(pages).hasSize(2);
+        // Each venue was read without a failure and listed events: its last page says so.
+        assertThat(pages).extracting(SourcePage::readInFull).containsExactly("hope", "moth");
         List<SourceGig> gigs = pages.stream().flatMap(p -> p.gigs().stream()).toList();
         assertThat(gigs)
                 .extracting(SourceGig::externalId)
@@ -139,6 +141,8 @@ class VenueSiteSourceTest {
 
         assertThat(pages.stream().flatMap(p -> p.issues().stream()).map(SourceIssue::kind))
                 .containsExactly("VENUE_DISALLOWED", "VENUE_EMPTY");
+        // Neither is a read in full, so neither can make a missing listing count as gone.
+        assertThat(pages).extracting(SourcePage::readInFull).containsOnlyNulls();
         web.verify(0, getRequestedFor(urlPathEqualTo("/private/rss")));
         verify(catalog, never()).linkVenue(anyString(), anyString(), org.mockito.ArgumentMatchers.any());
     }

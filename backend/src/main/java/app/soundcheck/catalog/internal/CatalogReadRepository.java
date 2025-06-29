@@ -246,6 +246,10 @@ class CatalogReadRepository {
         if (filter.happenedBy() != null) {
             where.add(happened(filter.happenedBy()));
         }
+        if (filter.attendeeId() == null) {
+            // Finding gigs: one its only site stopped listing is left out. A person's own gigs keep it.
+            where.add(GIG.STATUS.ne("UNLISTED"));
+        }
         if (filter.attendeeId() != null) {
             Condition mine = GIG_ATTENDANCE.GIG_ID.eq(GIG.ID).and(GIG_ATTENDANCE.USER_ID.eq(filter.attendeeId()));
             if (filter.attendanceStatus() != null) {

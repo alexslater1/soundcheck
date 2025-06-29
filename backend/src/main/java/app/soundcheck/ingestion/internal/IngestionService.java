@@ -112,6 +112,8 @@ public class IngestionService {
                 status = "SUCCEEDED";
                 flagGigsNoLongerListed(sourceName, runId, stats);
             }
+            // Per group, not per run: a group read in full counts even when the run as a whole stopped early.
+            unlistGigsDroppedByTheirSite(sourceName, runId, stats);
             error = null;
         } catch (RuntimeException e) {
             // The source gave up (after its retries) or something unexpected broke: keep what was ingested.
@@ -171,6 +173,9 @@ public class IngestionService {
             for (Iterator<SourcePage> it = pages.iterator(); it.hasNext(); ) {
                 SourcePage page = it.next();
                 stats.pages++;
+                if (page.readInFull() != null) {
+                    stats.groupsReadInFull.add(page.readInFull());
+                }
                 runs.savePayload(runId, source.name(), page.request(), page.body(), Instant.now(clock));
                 for (SourceIssue issue : page.issues()) {
                     stats.issue(issue);
@@ -224,6 +229,22 @@ public class IngestionService {
      * deleted. "Two runs" = it was last seen before the previous successful run started, and this run
      * (which just completed) did not see it either.
      */
+    /**
+     * An upcoming gig whose only listings come from one group of this source (a venue's own site),
+     * and which that group's last two reads in full both left out, is marked UNLISTED: renamed and vanished
+     * listings stop showing as gigs. "Two reads": its listing was last seen before the group's previous read
+     * in full, and this run's read in full did not see it either.
+     */
+    private void unlistGigsDroppedByTheirSite(String source, UUID runId, RunStats stats) {
+        Instant now = Instant.now(clock);
+        for (String group : stats.groupsReadInFull) {
+            Optional<Instant> previous = runs.previousReadInFull(source, group, runId);
+            if (previous.isPresent()) {
+                stats.unlisted += catalog.unlistNotSeenSince(source, group + ":", previous.get(), now);
+            }
+        }
+    }
+
     private void flagGigsNoLongerListed(String source, UUID runId, RunStats stats) {
         Optional<Instant> previous = runs.previousSuccessStart(source, runId);
         if (previous.isEmpty()) {

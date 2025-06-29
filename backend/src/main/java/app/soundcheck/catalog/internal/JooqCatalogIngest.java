@@ -51,6 +51,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 class JooqCatalogIngest implements CatalogIngest {
 
+    /** A gig its only site stopped listing (V045). */
+    static final String UNLISTED = "UNLISTED";
+
     private final DSLContext dsl;
     private final Clock clock;
 
@@ -566,6 +569,13 @@ class JooqCatalogIngest implements CatalogIngest {
                 .set(GIG_SOURCE.URL, url)
                 .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
                 .execute();
+        // Listed again: a gig marked UNLISTED comes back.
+        dsl.update(GIG)
+                .set(GIG.STATUS, "SCHEDULED")
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.ID.eq(gigId))
+                .and(GIG.STATUS.eq(UNLISTED))
+                .execute();
     }
 
     @Override
@@ -612,6 +622,27 @@ class JooqCatalogIngest implements CatalogIngest {
             where = where.and(GIG_SOURCE.EXTERNAL_ID.like(DSL.escape(externalIdPrefix, '!') + "%", '!'));
         }
         return dsl.fetchCount(GIG_SOURCE, where);
+    }
+
+    @Override
+    public int unlistNotSeenSince(String source, String externalIdPrefix, Instant before, Instant now) {
+        var listing = GIG_SOURCE.as("listing");
+        // Once per venue site per run; gig_source is scanned by source (no dedicated index, as above).
+        return dsl.update(GIG)
+                .set(GIG.STATUS, UNLISTED)
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.STATUS.eq("SCHEDULED"))
+                .and(GIG.STARTS_AT.gt(at(now)))
+                .and(DSL.exists(DSL.selectOne()
+                        .from(listing)
+                        .where(listing.GIG_ID.eq(GIG.ID))
+                        .and(listing.SOURCE.eq(source))
+                        .and(listing.EXTERNAL_ID.like(DSL.escape(externalIdPrefix, '!') + "%", '!'))))
+                .and(DSL.notExists(DSL.selectOne()
+                        .from(listing)
+                        .where(listing.GIG_ID.eq(GIG.ID))
+                        .and(listing.SOURCE.ne(source).or(listing.LAST_SEEN_AT.ge(at(before))))))
+                .execute();
     }
 
     @Override

@@ -718,7 +718,8 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "SCHEDULED", "POSTPONED", "RESCHEDULED", "CANCELLED" ],
+            "description" : "UNLISTED: only a venue's own site listed it, and it has stopped",
+            "enum" : [ "SCHEDULED", "POSTPONED", "RESCHEDULED", "CANCELLED", "UNLISTED" ],
             "type" : "string"
           },
           "support" : {

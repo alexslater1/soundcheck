@@ -15,7 +15,10 @@ public record GigSummary(
         UUID id,
         String title,
         Instant startsAt,
-        @Schema(allowableValues = {"SCHEDULED", "POSTPONED", "RESCHEDULED", "CANCELLED"}) String status,
+        @Schema(
+                        allowableValues = {"SCHEDULED", "POSTPONED", "RESCHEDULED", "CANCELLED", "UNLISTED"},
+                        description = "UNLISTED: only a venue's own site listed it, and it has stopped")
+                String status,
         VenueSummary venue,
         ArtistSummary headliner,
         List<ArtistSummary> support,

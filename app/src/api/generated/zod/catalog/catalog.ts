@@ -95,7 +95,7 @@ export const getArtistResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -147,7 +147,7 @@ export const listArtistGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -228,7 +228,7 @@ export const listGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -321,7 +321,7 @@ export const addGigResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -416,7 +416,7 @@ export const getGigResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -594,7 +594,7 @@ export const listMyGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -655,7 +655,7 @@ export const searchResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -772,7 +772,7 @@ export const listVenueGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
