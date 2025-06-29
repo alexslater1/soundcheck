@@ -53,8 +53,15 @@ public class UserSubmissionService {
     static final int MAX_ACTS = 10;
     static final int GIGS_PER_DAY = 20;
     static final int ARTISTS_PER_DAY = 60;
-    /** A venue with a name at least this similar within this distance of the city is the same venue. */
-    static final double VENUE_SIMILARITY = 0.6;
+    /**
+     * A venue with a name at least this similar within this distance of the city is the same venue. A
+     * fan's new venue sits at its city's centre, so the distance only rules out other towns and the name
+     * has to do the work: only near-identical names join. Measured with pg_trgm on
+     * normalised names: "finsbury park" / "finsbury" 0.64 (a park and a pub) and "o2 academy islington" /
+     * "o2 academy2 islington" 0.87 (two rooms) stay apart; "the lexington" / "lexington" and "hope &
+     * anchor" / "hope and anchor" normalise to the same name (1.0). 0.6 merged the park into the pub.
+     */
+    static final double VENUE_SIMILARITY = 0.9;
 
     static final int VENUE_RADIUS_M = 30_000;
     /** Same venue, within this of the start, same headliner or a title at least this similar: same gig. */
