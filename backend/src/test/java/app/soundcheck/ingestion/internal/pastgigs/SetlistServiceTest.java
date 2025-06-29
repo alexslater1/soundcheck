@@ -21,6 +21,10 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -242,5 +246,59 @@ class SetlistServiceTest {
                 .isInstanceOfSatisfying(
                         ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_NOT_FOUND"));
         verify(client, times(SetlistService.PER_USER_PER_HOUR)).setlistsOn(any(), any(), any());
+    }
+
+    @Test
+    void twoPeopleOpeningTheSameUncachedGigAtOnceCauseOneCallAndGetTheSameAnswer() throws Exception {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
+        LocalDate day = LocalDate.of(2025, 10, 17);
+        AtomicInteger calls = new AtomicInteger();
+        CountDownLatch inCall = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        when(client.setlistsOn(MBID, "Pale Kites", day)).thenAnswer(invocation -> {
+            calls.incrementAndGet();
+            inCall.countDown();
+            assertThat(release.await(5, TimeUnit.SECONDS)).isTrue();
+            return List.of(setlist("here", "Manchester"));
+        });
+
+        CompletableFuture<String> first =
+                CompletableFuture.supplyAsync(() -> service.forGig(fan, gigId).id());
+        assertThat(inCall.await(5, TimeUnit.SECONDS)).isTrue();
+        Thread[] secondThread = new Thread[1];
+        CompletableFuture<String> second = new CompletableFuture<>();
+        secondThread[0] = Thread.ofVirtual().start(() -> {
+            try {
+                second.complete(service.forGig(UUID.randomUUID(), gigId).id());
+            } catch (RuntimeException e) {
+                second.completeExceptionally(e);
+            }
+        });
+        // The second caller is parked (waiting for the first lookup, or, without single-flight, inside a
+        // second call to setlist.fm, which `calls` would count) before the first answer is released.
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (secondThread[0].getState() != Thread.State.WAITING && System.nanoTime() < deadline) {
+            Thread.sleep(5);
+        }
+        release.countDown();
+
+        assertThat(first.get(5, TimeUnit.SECONDS)).isEqualTo("here");
+        assertThat(second.get(5, TimeUnit.SECONDS)).isEqualTo("here");
+        assertThat(calls).hasValue(1);
+    }
+
+    @Test
+    void aFailedLookupIsSharedWithTheCallersWaitingForItAndNotCached() throws Exception {
+        gig(Instant.parse("2025-10-17T19:30:00Z"), "Manchester", null);
+        LocalDate day = LocalDate.of(2025, 10, 17);
+        when(client.setlistsOn(MBID, "Pale Kites", day))
+                .thenThrow(new app.soundcheck.ingestion.internal.source.SourceException("setlist.fm 503"))
+                .thenReturn(List.of(setlist("here", "Manchester")));
+
+        assertThatThrownBy(() -> service.forGig(fan, gigId))
+                .isInstanceOfSatisfying(
+                        ApiException.class, e -> assertThat(e.code()).isEqualTo("SETLIST_LOOKUP_FAILED"));
+        // Not remembered as "no setlist": the next opening asks again.
+        assertThat(service.forGig(fan, gigId).id()).isEqualTo("here");
     }
 }

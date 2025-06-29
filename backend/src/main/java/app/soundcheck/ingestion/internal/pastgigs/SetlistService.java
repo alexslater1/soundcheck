@@ -18,6 +18,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import org.jspecify.annotations.Nullable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -30,7 +33,8 @@ import org.springframework.stereotype.Service;
  * can be asked for too (the gig page's act bar): support acts have setlists of their own.
  * Answers, found or not, are cached for an hour per gig and act, so a busy gig page costs one call an
  * hour; the calls come out of the same daily budget as the past-gig search, and each user may cause
- * {@link #PER_USER_PER_HOUR} an hour.
+ * {@link #PER_USER_PER_HOUR} an hour. Lookups are single-flight: when several people open the same
+ * uncached page at once, the first asks setlist.fm and the others wait for its answer.
  */
 @Service
 public class SetlistService {
@@ -61,6 +65,9 @@ public class SetlistService {
             return size() > MAX_CACHED;
         }
     };
+
+    /** Lookups in progress, by cache key: a second caller for the same key waits for the first. */
+    private final Map<Key, CompletableFuture<Optional<Setlist>>> inFlight = new ConcurrentHashMap<>();
 
     public SetlistService(
             Catalog catalog,
@@ -127,17 +134,52 @@ public class SetlistService {
             return hit.get().setlist().orElseThrow(() -> notFound("No setlist for this gig on setlist.fm yet"));
         }
         rateLimiter.enforce("setlists:" + userId, PER_USER_PER_HOUR, Duration.ofHours(1));
-        Optional<Setlist> found;
-        try {
-            found = act == null ? lookUp(gig, now) : lookUp(gig, act, tryKnownId, now);
-        } catch (SourceException e) {
-            throw new ApiException(
-                    HttpStatus.BAD_GATEWAY, "SETLIST_LOOKUP_FAILED", "setlist.fm could not be reached. Try again.");
-        }
-        synchronized (cache) {
-            cache.put(key, new Cached(found, now));
-        }
+        GigFacts.Act forAct = act;
+        boolean knownId = tryKnownId;
+        Optional<Setlist> found =
+                singleFlight(key, now, () -> forAct == null ? lookUp(gig, now) : lookUp(gig, forAct, knownId, now));
         return found.orElseThrow(() -> notFound("No setlist for this gig on setlist.fm yet"));
+    }
+
+    /**
+     * Runs {@code lookUp} once per key at a time: the first caller looks up and caches the answer, and any
+     * caller arriving meanwhile waits for that answer (or that failure) instead of calling setlist.fm again.
+     */
+    private Optional<Setlist> singleFlight(Key key, Instant now, LookUp lookUp) {
+        CompletableFuture<Optional<Setlist>> mine = new CompletableFuture<>();
+        CompletableFuture<Optional<Setlist>> running = inFlight.putIfAbsent(key, mine);
+        if (running != null) {
+            try {
+                return running.join();
+            } catch (CompletionException e) {
+                throw e.getCause() instanceof RuntimeException cause ? cause : e;
+            }
+        }
+        try {
+            // Another lookup for this key may have finished between our cache check and claiming the key.
+            Optional<Cached> again = cached(key, now);
+            Optional<Setlist> found = again.isPresent() ? again.get().setlist() : lookUp.run();
+            synchronized (cache) {
+                cache.put(key, new Cached(found, now));
+            }
+            mine.complete(found);
+            return found;
+        } catch (SourceException e) {
+            ApiException failed = new ApiException(
+                    HttpStatus.BAD_GATEWAY, "SETLIST_LOOKUP_FAILED", "setlist.fm could not be reached. Try again.");
+            mine.completeExceptionally(failed);
+            throw failed;
+        } catch (RuntimeException e) {
+            mine.completeExceptionally(e);
+            throw e;
+        } finally {
+            inFlight.remove(key, mine);
+        }
+    }
+
+    @FunctionalInterface
+    private interface LookUp {
+        Optional<Setlist> run();
     }
 
     private Optional<Cached> cached(Key key, Instant now) {
