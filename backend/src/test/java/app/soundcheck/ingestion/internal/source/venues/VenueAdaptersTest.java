@@ -143,6 +143,49 @@ class VenueAdaptersTest {
     }
 
     @Test
+    void mothsAllEventsPageGivesItsOwnShowPagesWithTheFeedsIdsAndDropsACutOffSentence() {
+        VenueSite site = new VenueSite(
+                "moth",
+                "moth-page",
+                "https://moth.example/All-Events",
+                new VenueSite.Place("MOTH Club", "1 Test Street", "London", "N1 1AA", 51.5, -0.1),
+                null,
+                TimePrecision.DOORS,
+                null);
+        VenueAdapter.Page page = new MothPageAdapter(JSON).read(site, fixture("moth-page.html"), TODAY);
+
+        assertThat(page.listings())
+                .extracting(Listing::eventId)
+                .containsExactly( // the show page's path: the same ids the RSS gave, so known gigs stay matched
+                        "Harbour-Hounds-Fri-16-Oct-2026",
+                        "Quiet-Engines-Sat-17-Oct-2026",
+                        "Gutter-Saints-Sun-18-Oct-2026");
+        assertThat(page.issues()).extracting(SourceIssue::kind).containsExactly("NO_DATE"); // the gift cards page
+        assertThat(page.next()).isNull();
+
+        Listing full = page.listings().get(0);
+        assertThat(full.url()).isEqualTo("https://moth.example/Harbour-Hounds-Fri-16-Oct-2026");
+        assertThat(full.start()).isEqualTo(LocalDateTime.of(2026, 10, 16, 19, 30));
+        assertThat(full.precision()).isEqualTo(TimePrecision.DOORS);
+        assertThat(acts(site, full)).containsExactly("Harbour Hounds", "Night Moths", "Pale Kites");
+
+        // Cut off mid-list ("With Lantern.head,..."): the doors time stays, the unfinished list goes.
+        Listing cut = page.listings().get(1);
+        assertThat(cut.start()).isEqualTo(LocalDateTime.of(2026, 10, 17, 19, 0));
+        assertThat(acts(site, cut)).containsExactly("Quiet Engines");
+
+        Listing bare = page.listings().get(2);
+        assertThat(bare.precision()).isEqualTo(TimePrecision.DATE_ONLY);
+        assertThat(acts(site, bare)).containsExactly("Gutter Saints");
+
+        // A page without the embedded show list reads as empty (the source reports VENUE_EMPTY).
+        assertThat(new MothPageAdapter(JSON)
+                        .read(site, "<html><body>No shows here</body></html>", TODAY)
+                        .listings())
+                .isEmpty();
+    }
+
+    @Test
     void jsonLdTakesPerformersOffersAndDoorsAndIgnoresStaleTemplateEvents() {
         VenueSite site = site("social", "json-ld", "The Social");
         VenueAdapter.Page page = new JsonLdAdapter(JSON).read(site, fixture("json-ld.html"), TODAY);

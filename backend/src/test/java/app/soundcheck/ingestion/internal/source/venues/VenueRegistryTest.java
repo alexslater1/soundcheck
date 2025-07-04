@@ -37,6 +37,7 @@ class VenueRegistryTest {
                 new HopeAndAnchorAdapter(JSON).kind(),
                 new TribeEventsAdapter(JSON).kind(),
                 new MothRssAdapter().kind(),
+                new MothPageAdapter(JSON).kind(),
                 new JsonLdAdapter(JSON).kind(),
                 new SquarespaceAdapter().kind(),
                 new SquarespaceListAdapter(JSON).kind(),

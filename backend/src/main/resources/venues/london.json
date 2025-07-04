@@ -30,12 +30,12 @@
     },
     {
       "key": "moth-club",
-      "adapter": "moth-rss",
-      "url": "https://mothclub.co.uk/rss",
+      "adapter": "moth-page",
+      "url": "https://mothclub.co.uk/All-Events",
       "venue": { "name": "MOTH Club", "address": "Old Trades Hall, Valette Street", "city": "London", "postcode": "E9 6NU", "lat": 51.545639, "lng": -0.05442 },
       "ticketmasterVenueId": "KovZ91776m0",
       "precision": "DOORS",
-      "notes": "RSS of the most recently added events only (about 10); robots.txt Crawl-delay 2."
+      "notes": "The All Events page's own show pages, embedded as JSON (the first 50; Cargo loads the rest by script, not read). Switched from the RSS (about 10 most recently added) on 2025-07-04; moth-rss still reads the feed. robots.txt Crawl-delay 2."
     },
     {
       "key": "black-heart",
