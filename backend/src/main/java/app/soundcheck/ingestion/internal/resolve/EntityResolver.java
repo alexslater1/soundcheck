@@ -119,14 +119,48 @@ public class EntityResolver {
                 acts.size() > 1 && acts.stream().allMatch(a -> a.externalId().isBlank());
         if (fromTitle) {
             String whole = TitleParser.parse(gig.title()).whole();
-            Optional<UUID> known = catalog.artistByName(whole, null);
             // Only an artist something vouches for (MBID, a source's id) may undo the split: an artist
             // created from an earlier, wrong parse of the same title must not confirm itself.
-            if (known.isPresent() && catalog.artistIsVouchedFor(known.get())) {
+            if (vouchedArtist(whole)) {
                 return List.of(new SourceArtist("", whole, null, List.of(), null));
             }
         }
-        return acts;
+        if (!"VENUE".equals(gig.source())) {
+            return acts;
+        }
+        List<SourceArtist> split = new ArrayList<>();
+        for (SourceArtist act : acts) {
+            split.addAll(splitPair(act));
+        }
+        return split;
+    }
+
+    /**
+     * A venue site's "A & B": two acts when "A & B" is not itself an artist that
+     * something vouches for and both halves are ("HED PE & COLD"), one act otherwise ("Jesse & Joy").
+     * "A & the B" is always one act ("Echo & the Bunnymen", "Geraint Watkins & the Mosquitoes").
+     */
+    List<SourceArtist> splitPair(SourceArtist act) {
+        String[] halves = act.name().split("\\s+&\\s+");
+        if (!act.externalId().isBlank()
+                || halves.length != 2
+                || halves[0].isBlank()
+                || halves[1].isBlank()
+                || halves[1].strip().regionMatches(true, 0, "the ", 0, 4)
+                || vouchedArtist(act.name())
+                || !vouchedArtist(halves[0])
+                || !vouchedArtist(halves[1])) {
+            return List.of(act);
+        }
+        return List.of(
+                new SourceArtist("", halves[0].strip(), null, List.of(), null),
+                new SourceArtist("", halves[1].strip(), null, List.of(), null));
+    }
+
+    /** An artist the catalog knows by this exact (normalised) name, and that a source or MBID vouches for. */
+    private boolean vouchedArtist(String name) {
+        Optional<UUID> known = catalog.artistByName(name.strip(), null);
+        return known.isPresent() && catalog.artistIsVouchedFor(known.get());
     }
 
     // ── venue: external id → within 150 m and similar name → same postcode and similar name → create ──
