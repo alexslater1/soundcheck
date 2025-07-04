@@ -1,5 +1,5 @@
 {
-  "about": "Venues whose own websites Soundcheck may read. An entry is added only after the venue passed the compliance gate (own data, robots.txt allows, terms do not forbid); reading it also needs its key in soundcheck.ingestion.venues.sites. Coordinates: postcodes.io for the postcode (2025-06-05). ticketmasterVenueId pins the venue to the one Ticketmaster created.",
+  "about": "Venues whose own websites Soundcheck may read. An entry is added only after the venue passed the compliance gate (own data, robots.txt allows, terms do not forbid); reading it also needs its key in soundcheck.ingestion.venues.sites. Coordinates: postcodes.io for the postcode (2025-06-05). ticketmasterVenueId pins the venue to the one Ticketmaster created. notRead: venues whose own listings are deliberately not read: the six held back (The Water Rats, the Music Glue sites, Signature Brew) and every venue the London venue research marked 'ask'; the app shows the reason wherever such a venue appears. postcodePrefix pins a common name to one place; without it a name matches only within 25 km of central London.",
   "venues": [
     {
       "key": "hope-and-anchor",
@@ -274,5 +274,34 @@
       },
       "notes": "Star Pubs site (terms checked: no automated-access clause); free entry, RSVP via DICE. Club nights skipped."
     }
+  ],
+  "notRead": [
+    {"name": "The Water Rats", "reason": "its list is copied in from Facebook and Eventbrite, so it isn't the venue's own"},
+    {"name": "The Windmill", "postcodePrefix": "SW2", "reason": "its listings are on Music Glue, a ticketing platform whose terms we have not cleared"},
+    {"name": "The Half Moon", "postcodePrefix": "SW15", "reason": "its listings are on Music Glue, a ticketing platform whose terms we have not cleared"},
+    {"name": "The Waiting Room", "postcodePrefix": "N16", "reason": "its listings are on Music Glue, a ticketing platform whose terms we have not cleared"},
+    {"name": "The 100 Club", "aliases": ["100 Club"], "reason": "its listings are on Music Glue, a ticketing platform whose terms we have not cleared"},
+    {"name": "Signature Brew Haggerston", "aliases": ["Signature Brew"], "reason": "its listings come from Tixr, a ticketing platform we don't read"},
+    {"name": "Signature Brew Blackhorse Road", "reason": "its listings come from Tixr, a ticketing platform we don't read"},
+    {"name": "229 The Venue", "aliases": ["229", "The 229", "229 Venue"], "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "Bush Hall", "reason": "its full list sits inside a See Tickets frame, which we don't read"},
+    {"name": "Colours Hoxton", "aliases": ["Colours"], "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "Folklore", "postcodePrefix": "E2", "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "Lafayette", "reason": "its own website shows no listings at the moment"},
+    {"name": "Nambucca", "reason": "its own website could not be read"},
+    {"name": "Notting Hill Arts Club", "reason": "its listings are a booked.it ticketing frame, which we don't read"},
+    {"name": "Omeara", "reason": "its own website shows no listings at the moment"},
+    {"name": "Pin Ups", "aliases": ["Pin Ups (formerly The Islington)", "The Islington"], "reason": "its own website shows no listings at the moment"},
+    {"name": "Sebright Arms", "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "Strongroom Bar", "aliases": ["Strongroom"], "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "The Lower Third", "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "The Old Blue Last", "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "The Shacklewell Arms", "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "The Sound Lounge", "postcodePrefix": "SM1", "reason": "its own website has no listings page"},
+    {"name": "The Victoria", "postcodePrefix": "E8", "reason": "its listings come through another shop's website, which we don't read"},
+    {"name": "The Blue Basement", "aliases": ["Third Man Records London", "Third Man Records"], "reason": "its listings are a DICE ticketing widget, which we don't read"},
+    {"name": "Rough Trade East", "reason": "its events load in the browser from a part of the site that robots.txt closes, and its terms forbid scraping"},
+    {"name": "Rough Trade West", "reason": "its events load in the browser from a part of the site that robots.txt closes, and its terms forbid scraping"},
+    {"name": "Rough Trade Denmark Street", "reason": "its events load in the browser from a part of the site that robots.txt closes, and its terms forbid scraping"}
   ]
 }

@@ -108,6 +108,7 @@ export const getArtistResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -160,6 +161,7 @@ export const listArtistGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -241,6 +243,7 @@ export const listGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -334,6 +337,7 @@ export const addGigResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -429,6 +433,7 @@ export const getGigResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -607,6 +612,7 @@ export const listMyGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -668,6 +674,7 @@ export const searchResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -733,6 +740,7 @@ export const getVenueParams = zod.object({
 export const getVenueResponse = zod.object({
   "address": zod.string().nullish(),
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -785,6 +793,7 @@ export const listVenueGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),

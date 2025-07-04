@@ -103,6 +103,7 @@ export const listUserStatsGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),

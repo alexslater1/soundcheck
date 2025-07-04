@@ -19,6 +19,7 @@ import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.ListingOverlap;
 import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.catalog.VenueDraft;
+import app.soundcheck.catalog.VenueNote;
 import app.soundcheck.catalog.VenueToLocate;
 import app.soundcheck.shared.Ids;
 import java.time.Clock;
@@ -613,6 +614,47 @@ class JooqCatalogIngest implements CatalogIngest {
                     .and(GIG.LOCATION.isNull())
                     .execute();
         }
+    }
+
+    /** Central London (Charing Cross), for notes on venues with uncommon names. */
+    private static final double LONDON_LAT = 51.5074;
+
+    private static final double LONDON_LNG = -0.1278;
+
+    @Override
+    @Transactional
+    public int applyCoverageNotes(List<VenueNote> notes) {
+        dsl.update(VENUE)
+                .setNull(VENUE.COVERAGE_NOTE)
+                .where(VENUE.COVERAGE_NOTE.isNotNull())
+                .execute();
+        int noted = 0;
+        for (VenueNote note : notes) {
+            List<String> names = java.util.stream.Stream.concat(
+                            java.util.stream.Stream.of(note.name()), note.aliases().stream())
+                    .map(NameNormaliser::normalise)
+                    .distinct()
+                    .toList();
+            Condition where;
+            if (note.postcodePrefix() != null) {
+                // A common name ("The Half Moon"): only the one at that postcode district.
+                where = DSL.upper(DSL.replace(VENUE.POSTCODE, " ", ""))
+                        .startsWith(note.postcodePrefix().replace(" ", "").toUpperCase(java.util.Locale.ROOT));
+            } else {
+                where = DSL.condition(
+                                "ST_DWithin({0}, {1}, {2})",
+                                VENUE.LOCATION, point(LONDON_LAT, LONDON_LNG), DSL.val(25_000.0))
+                        .or(VENUE.LOCATION.isNull().and(VENUE.CITY.likeIgnoreCase("%london%")));
+            }
+            // Expected index: venue_name_norm_trgm (pg_trgm GIN serves equality since PostgreSQL 14); runs at
+            // start-up and before the daily ingestion, for a few dozen notes.
+            noted += dsl.update(VENUE)
+                    .set(VENUE.COVERAGE_NOTE, note.note())
+                    .where(VENUE.NAME_NORM.in(names))
+                    .and(where)
+                    .execute();
+        }
+        return noted;
     }
 
     @Override

@@ -22,13 +22,22 @@ import org.springframework.stereotype.Component;
 @Component
 public class VenueRegistry {
 
+    /**
+     * A venue whose own listings are deliberately not read: a ticketing widget, a list copied
+     * from elsewhere, or no readable page. {@code postcodePrefix} pins a common name to one place.
+     */
+    public record NotRead(String name, List<String> aliases, @Nullable String postcodePrefix, String reason) {}
+
     private final List<VenueSite> sites;
+    private final List<NotRead> notRead;
 
     @Autowired
     public VenueRegistry(IngestionProperties properties, ResourceLoader resources, JsonMapper json) {
         try (InputStream in =
                 resources.getResource(properties.venues().registry()).getInputStream()) {
-            this.sites = parse(json.readTree(in));
+            JsonNode root = json.readTree(in);
+            this.sites = parse(root);
+            this.notRead = parseNotRead(root);
         } catch (IOException e) {
             throw new UncheckedIOException(
                     "Cannot read the venue registry " + properties.venues().registry(), e);
@@ -37,7 +46,28 @@ public class VenueRegistry {
 
     /** For tests: a registry of the given sites. */
     VenueRegistry(List<VenueSite> sites) {
+        this(sites, List.of());
+    }
+
+    /** For tests: a registry of the given sites and venues not read. */
+    VenueRegistry(List<VenueSite> sites, List<NotRead> notRead) {
         this.sites = List.copyOf(sites);
+        this.notRead = List.copyOf(notRead);
+    }
+
+    static List<NotRead> parseNotRead(JsonNode root) {
+        List<NotRead> out = new ArrayList<>();
+        for (JsonNode v : root.path("notRead")) {
+            out.add(new NotRead(
+                    v.path("name").asText(""),
+                    v.path("aliases")
+                            .valueStream()
+                            .map(value -> value.asText(""))
+                            .toList(),
+                    v.path("postcodePrefix").asText(null),
+                    v.path("reason").asText("")));
+        }
+        return List.copyOf(out);
     }
 
     static List<VenueSite> parse(JsonNode root) {
@@ -91,5 +121,10 @@ public class VenueRegistry {
 
     public List<VenueSite> all() {
         return sites;
+    }
+
+    /** The venues whose own listings are not read, with why. */
+    public List<NotRead> notRead() {
+        return notRead;
     }
 }

@@ -149,6 +149,12 @@ public interface CatalogIngest {
     void completeVenue(UUID venueId, @Nullable Double lat, @Nullable Double lng);
 
     /**
+     * Sets the "we don't read this venue's own listings" notes to exactly {@code notes}: a venue
+     * no longer listed loses its note. Returns how many venues carry one.
+     */
+    int applyCoverageNotes(List<VenueNote> notes);
+
+    /**
      * Venues without coordinates, those with gigs still to come first: a venue no list can place is
      * invisible to anyone searching near home.
      */

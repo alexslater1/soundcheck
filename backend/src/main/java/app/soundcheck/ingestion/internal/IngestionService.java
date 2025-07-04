@@ -240,11 +240,6 @@ public class IngestionService {
     }
 
     /**
-     * A future gig the source has not listed for two consecutive complete runs is flagged, not
-     * deleted. "Two runs" = it was last seen before the previous successful run started, and this run
-     * (which just completed) did not see it either.
-     */
-    /**
      * An upcoming gig whose only listings come from one group of this source (a venue's own site),
      * and which that group's last two reads in full both left out, is marked UNLISTED: renamed and vanished
      * listings stop showing as gigs. "Two reads": its listing was last seen before the group's previous read
@@ -260,6 +255,11 @@ public class IngestionService {
         }
     }
 
+    /**
+     * A future gig the source has not listed for two consecutive complete runs is flagged, not
+     * deleted. "Two runs" = it was last seen before the previous successful run started, and this run
+     * (which just completed) did not see it either.
+     */
     private void flagGigsNoLongerListed(String source, UUID runId, RunStats stats) {
         Optional<Instant> previous = runs.previousSuccessStart(source, runId);
         if (previous.isEmpty()) {

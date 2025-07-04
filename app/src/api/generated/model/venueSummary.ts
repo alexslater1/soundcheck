@@ -6,10 +6,12 @@
  * OpenAPI spec version: v1
  */
 import type { VenueSummaryCity } from './venueSummaryCity';
+import type { VenueSummaryCoverageNote } from './venueSummaryCoverageNote';
 import type { GeoPoint } from './geoPoint';
 
 export interface VenueSummary {
   city?: VenueSummaryCity;
+  coverageNote?: VenueSummaryCoverageNote;
   id: string;
   location?: GeoPoint;
   name: string;

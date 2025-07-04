@@ -110,6 +110,7 @@ class CatalogReadRepository {
             @Nullable String venueCity,
             @Nullable Double venueLat,
             @Nullable Double venueLng,
+            @Nullable String venueCoverageNote,
             @Nullable Double distanceKm,
             boolean userAdded) {}
 
@@ -125,7 +126,8 @@ class CatalogReadRepository {
             @Nullable String postcode,
             @Nullable Double lat,
             @Nullable Double lng,
-            String timezone) {}
+            String timezone,
+            @Nullable String coverageNote) {}
 
     record SourceLink(String source, @Nullable String url) {}
 
@@ -297,6 +299,7 @@ class CatalogReadRepository {
                 VENUE.CITY,
                 VENUE_LAT,
                 VENUE_LNG,
+                VENUE.COVERAGE_NOTE,
                 distanceKm,
                 GIG.CREATED_BY);
     }
@@ -690,7 +693,8 @@ class CatalogReadRepository {
                         VENUE.POSTCODE,
                         VENUE_LAT,
                         VENUE_LNG,
-                        VENUE.TIMEZONE)
+                        VENUE.TIMEZONE,
+                        VENUE.COVERAGE_NOTE)
                 .from(VENUE)
                 .where(VENUE.ID.eq(id))
                 .fetchOptional(r -> new VenueRow(
@@ -701,7 +705,8 @@ class CatalogReadRepository {
                         r.value5(),
                         r.value6(),
                         r.value7(),
-                        r.value8()));
+                        r.value8(),
+                        r.value9()));
     }
 
     /** A venue in a search result: where it is and how far from the viewer's home (when known). */
@@ -766,6 +771,7 @@ class CatalogReadRepository {
                 r.get(VENUE.CITY),
                 r.get(VENUE_LAT),
                 r.get(VENUE_LNG),
+                r.get(VENUE.COVERAGE_NOTE),
                 r.get(distanceKm),
                 r.get(GIG.CREATED_BY) != null);
     }

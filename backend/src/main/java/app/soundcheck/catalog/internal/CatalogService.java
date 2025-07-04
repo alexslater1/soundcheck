@@ -113,7 +113,9 @@ public class CatalogService {
             @Schema(nullable = true) String city,
             @Schema(nullable = true) String postcode,
             @Schema(nullable = true) GeoPoint location,
-            String timezone) {}
+            String timezone,
+            /** Why this venue's gigs here may be incomplete; null when its listings are read or listed. */
+            @Schema(nullable = true) String coverageNote) {}
 
     /** {@code GET /search}: top results per requested type. */
     public record SearchResults(List<ArtistSummary> artists, List<GigSummary> gigs) {}
@@ -398,7 +400,8 @@ public class CatalogService {
                 v.city(),
                 v.postcode(),
                 v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng()),
-                v.timezone());
+                v.timezone(),
+                v.coverageNote());
     }
 
     /** {@code GET /venues?q=}: venues by name, the ones near the viewer's home first. */
@@ -555,7 +558,8 @@ public class CatalogService {
                             row.venueCity(),
                             row.venueLat() == null || row.venueLng() == null
                                     ? null
-                                    : new GeoPoint(row.venueLat(), row.venueLng())),
+                                    : new GeoPoint(row.venueLat(), row.venueLng()),
+                            row.venueCoverageNote()),
                     bill.getFirst(),
                     bill.subList(1, bill.size()),
                     row.imageUrl(),

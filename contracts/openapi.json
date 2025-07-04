@@ -1813,6 +1813,9 @@
           "city" : {
             "type" : [ "string", "null" ]
           },
+          "coverageNote" : {
+            "type" : [ "string", "null" ]
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -1857,6 +1860,9 @@
       "VenueSummary" : {
         "properties" : {
           "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "coverageNote" : {
             "type" : [ "string", "null" ]
           },
           "id" : {

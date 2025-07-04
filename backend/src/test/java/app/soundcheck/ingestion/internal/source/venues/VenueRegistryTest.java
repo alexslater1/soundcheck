@@ -79,4 +79,31 @@ class VenueRegistryTest {
         assertThat(Arrays.asList(m.group(1).split(","))).isNotEmpty().allSatisfy(k -> assertThat(keys)
                 .contains(k));
     }
+
+    @Test
+    void theVenuesNotReadAreListedWithAReasonAndCommonNamesArePinnedToOnePlace() throws IOException {
+        List<VenueRegistry.NotRead> notRead;
+        try (InputStream in = VenueRegistryTest.class.getResourceAsStream("/venues/london.json")) {
+            notRead = VenueRegistry.parseNotRead(JSON.readTree(in));
+        }
+        // The six venues held back and every "ask" venue.
+        assertThat(notRead)
+                .extracting(VenueRegistry.NotRead::name)
+                .contains("The Water Rats", "The Windmill", "The Half Moon", "The Waiting Room", "The 100 Club")
+                .contains("Signature Brew Haggerston", "Bush Hall", "Sebright Arms", "Rough Trade East");
+        assertThat(notRead).allSatisfy(v -> {
+            assertThat(v.reason()).as(v.name()).isNotBlank().doesNotEndWith(".");
+            assertThat(VenueCoverageNotes.note(v.reason())).as(v.name()).startsWith("We don't read this venue's");
+        });
+        assertThat(notRead.stream().map(VenueRegistry.NotRead::name).distinct()).hasSameSizeAs(notRead);
+        // A common pub name only where that venue is.
+        assertThat(notRead)
+                .filteredOn(v -> v.name().equals("The Half Moon"))
+                .singleElement()
+                .extracting(VenueRegistry.NotRead::postcodePrefix)
+                .isEqualTo("SW15");
+        // No venue is both read and not read.
+        Set<String> read = shipped().stream().map(site -> site.venue().name()).collect(Collectors.toSet());
+        assertThat(notRead).extracting(VenueRegistry.NotRead::name).doesNotContainAnyElementsOf(read);
+    }
 }
