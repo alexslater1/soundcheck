@@ -3,6 +3,7 @@ package app.soundcheck.ingestion.internal;
 import app.soundcheck.catalog.CatalogIngest;
 import app.soundcheck.ingestion.internal.enrich.ArtistEnricher;
 import app.soundcheck.ingestion.internal.enrich.PayloadSink;
+import app.soundcheck.ingestion.internal.enrich.VenueGeocoder;
 import app.soundcheck.ingestion.internal.resolve.EntityResolver;
 import app.soundcheck.ingestion.internal.source.CallBudget;
 import app.soundcheck.ingestion.internal.source.GigSource;
@@ -57,6 +58,7 @@ public class IngestionService {
     private final IngestionRuns runs;
     private final EntityResolver resolver;
     private final ArtistEnricher enricher;
+    private final VenueGeocoder geocoder;
     private final CatalogIngest catalog;
     private final IngestionProperties properties;
     private final MeterRegistry meters;
@@ -67,6 +69,7 @@ public class IngestionService {
             IngestionRuns runs,
             EntityResolver resolver,
             ArtistEnricher enricher,
+            VenueGeocoder geocoder,
             CatalogIngest catalog,
             IngestionProperties properties,
             MeterRegistry meters,
@@ -75,6 +78,7 @@ public class IngestionService {
         this.runs = runs;
         this.resolver = resolver;
         this.enricher = enricher;
+        this.geocoder = geocoder;
         this.catalog = catalog;
         this.properties = properties;
         this.meters = meters;
@@ -105,6 +109,7 @@ public class IngestionService {
         try {
             fetchAndResolve(source, runId, startedAt, budget, stats, heartbeat);
             enrich(runId, stats, heartbeat);
+            locateVenues(runId, stats);
             if (budget.exhausted()) {
                 status = "PARTIAL";
                 stats.issue("BUDGET_EXHAUSTED", null, "stopped after " + budget.used() + " API calls");
@@ -143,6 +148,16 @@ public class IngestionService {
         } catch (RuntimeException e) {
             stats.issue("ENRICHMENT_ABORTED", null, e.getClass().getSimpleName() + ": " + e.getMessage());
             log.warn("Enrichment stopped early in run {}: {}", runId, e.toString());
+        }
+    }
+
+    /** Venues still without coordinates get them (postcode, else town); a failure here never fails the run. */
+    private void locateVenues(UUID runId, RunStats stats) {
+        try {
+            stats.geocoding = geocoder.locateVenues().toMap();
+        } catch (RuntimeException e) {
+            stats.issue("GEOCODING_ABORTED", null, e.getClass().getSimpleName() + ": " + e.getMessage());
+            log.warn("Locating venues stopped early in run {}: {}", runId, e.toString());
         }
     }
 

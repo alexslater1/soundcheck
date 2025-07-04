@@ -10,6 +10,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import app.soundcheck.catalog.CatalogIngest;
 import app.soundcheck.ingestion.GigsIngested;
 import app.soundcheck.ingestion.internal.enrich.ArtistEnricher;
+import app.soundcheck.ingestion.internal.enrich.VenueGeocoder;
 import app.soundcheck.ingestion.internal.resolve.EntityResolver;
 import app.soundcheck.ingestion.internal.source.CallBudget;
 import app.soundcheck.ingestion.internal.source.GigSource;
@@ -59,6 +60,9 @@ class IngestionRunIT extends IntegrationTest {
 
     @Autowired
     ArtistEnricher enricher;
+
+    @Autowired
+    VenueGeocoder geocoder;
 
     @Autowired
     CatalogIngest catalog;
@@ -121,6 +125,7 @@ class IngestionRunIT extends IntegrationTest {
         assertThat(stats.path("issueCounts").path("MISSING_COORDINATES").asInt())
                 .isPositive();
         assertThat(stats.path("enrichment").has("artists")).isTrue();
+        assertThat(stats.path("geocoding").has("venues")).isTrue(); // every run locates what it can
 
         // Across the two runs every fixture gig was created or merged exactly once.
         @SuppressWarnings("unchecked")
@@ -197,7 +202,8 @@ class IngestionRunIT extends IntegrationTest {
                         .takeWhile(java.util.Objects::nonNull);
             }
         };
-        return new IngestionService(List.of(stub), runs, resolver, enricher, catalog, properties, meters, clock);
+        return new IngestionService(
+                List.of(stub), runs, resolver, enricher, geocoder, catalog, properties, meters, clock);
     }
 
     private SourcePage page(String source, String key, SourceGig... gigs) {

@@ -60,6 +60,8 @@ public final class RunStats {
     public final Resolution gigs = new Resolution();
     /** What the enrichment pass did (see {@code ArtistEnricher.Result}); empty until it has run. */
     public Map<String, Object> enrichment = Map.of();
+    /** How venues without coordinates were located (see {@code VenueGeocoder.Result}); empty until it has run. */
+    public Map<String, Object> geocoding = Map.of();
 
     private final Map<String, Integer> issueCounts = new TreeMap<>();
     private final List<SourceIssue> issueSample = new ArrayList<>();
@@ -128,6 +130,7 @@ public final class RunStats {
         map.put("artists", artists.toMap());
         map.put("gigs", gigs.toMap());
         map.put("enrichment", enrichment);
+        map.put("geocoding", geocoding);
         map.put("issueCounts", issueCounts);
         return map;
     }

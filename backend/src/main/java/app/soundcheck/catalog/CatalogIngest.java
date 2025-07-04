@@ -148,6 +148,12 @@ public interface CatalogIngest {
     /** Fills in a venue's coordinates when it had none, and copies them to its gigs that have none. */
     void completeVenue(UUID venueId, @Nullable Double lat, @Nullable Double lng);
 
+    /**
+     * Venues without coordinates, those with gigs still to come first: a venue no list can place is
+     * invisible to anyone searching near home.
+     */
+    List<VenueToLocate> venuesWithoutLocation(Instant now, int limit);
+
     /** How many listings {@code source} has, optionally only those whose external id starts with a prefix. */
     long countListings(String source, @Nullable String externalIdPrefix);
 

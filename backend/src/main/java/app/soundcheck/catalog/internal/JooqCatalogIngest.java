@@ -19,6 +19,7 @@ import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.ListingOverlap;
 import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.catalog.VenueDraft;
+import app.soundcheck.catalog.VenueToLocate;
 import app.soundcheck.shared.Ids;
 import java.time.Clock;
 import java.time.Duration;
@@ -612,6 +613,20 @@ class JooqCatalogIngest implements CatalogIngest {
                     .and(GIG.LOCATION.isNull())
                     .execute();
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VenueToLocate> venuesWithoutLocation(Instant now, int limit) {
+        Field<Boolean> upcoming = DSL.field(DSL.exists(
+                DSL.selectOne().from(GIG).where(GIG.VENUE_ID.eq(VENUE.ID)).and(GIG.STARTS_AT.ge(at(now)))));
+        // Runs once per ingestion run over a few thousand venues; no dedicated index.
+        return dsl.select(VENUE.ID, VENUE.NAME, VENUE.POSTCODE, VENUE.CITY)
+                .from(VENUE)
+                .where(VENUE.LOCATION.isNull())
+                .orderBy(upcoming.desc(), VENUE.NAME, VENUE.ID)
+                .limit(limit)
+                .fetch(r -> new VenueToLocate(r.value1(), r.value2(), r.value3(), r.value4()));
     }
 
     @Override
