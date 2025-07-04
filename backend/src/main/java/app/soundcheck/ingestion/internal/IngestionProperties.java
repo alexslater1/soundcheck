@@ -20,7 +20,7 @@ public record IngestionProperties(
          */
         @DefaultValue("true") boolean fixturesShiftToToday,
         /** How far ahead gigs are fetched. */
-        @DefaultValue("90") int horizonDays,
+        @DefaultValue("365") int horizonDays,
         /** Maximum API calls per run before it stops and is recorded as PARTIAL. */
         @DefaultValue("1500") int callBudget,
         /**
