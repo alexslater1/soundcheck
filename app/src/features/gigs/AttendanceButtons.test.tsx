@@ -112,6 +112,7 @@ describe('isGigList (what a new mark refreshes)', () => {
     expect(isGigList(['/api/v1/gigs', { limit: 20 }])).toBe(true);
     expect(isGigList(['/api/v1/me/gigs'])).toBe(true);
     expect(isGigList(['/api/v1/users/u1/stats', { top: 10 }])).toBe(true);
+    expect(isGigList(['/api/v1/users/u1/stats/gigs/count', { artistId: 'a1' }])).toBe(true);
     expect(isGigList(['/api/v1/users/u1/stats/gigs', { artistId: 'a' }])).toBe(true);
     expect(isGigList(['/api/v1/gigs/g1'])).toBe(false);
     expect(isGigList(['/api/v1/users/u1/posts'])).toBe(false);

@@ -611,6 +611,16 @@
         "required" : [ "lat", "lng" ],
         "type" : "object"
       },
+      "GigCount" : {
+        "properties" : {
+          "gigs" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "gigs" ],
+        "type" : "object"
+      },
       "GigDay" : {
         "properties" : {
           "count" : {
@@ -4180,6 +4190,50 @@
           }
         },
         "summary" : "The user's WENT gigs with an act on the bill, or at a venue, newest first",
+        "tags" : [ "stats" ]
+      }
+    },
+    "/api/v1/users/{id}/stats/gigs/count" : {
+      "get" : {
+        "operationId" : "countUserStatsGigs",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "artistId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "venueId",
+          "required" : false,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigCount"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "How many WENT gigs the user has with an act on the bill, or at a venue (all pages)",
         "tags" : [ "stats" ]
       }
     },

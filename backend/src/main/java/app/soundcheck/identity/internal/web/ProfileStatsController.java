@@ -67,4 +67,19 @@ public class ProfileStatsController {
             @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
         return stats.gigs(userId(jwt), id, artistId, venueId, cursor, limit);
     }
+
+    /** How many gigs a line of the stats stands for, across every page. */
+    public record GigCount(int gigs) {}
+
+    @GetMapping("/gigs/count")
+    @Operation(
+            operationId = "countUserStatsGigs",
+            summary = "How many WENT gigs the user has with an act on the bill, or at a venue (all pages)")
+    public GigCount count(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam(required = false) UUID artistId,
+            @RequestParam(required = false) UUID venueId) {
+        return new GigCount(stats.count(userId(jwt), id, artistId, venueId));
+    }
 }

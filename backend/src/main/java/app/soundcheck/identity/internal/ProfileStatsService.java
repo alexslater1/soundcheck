@@ -45,6 +45,12 @@ public class ProfileStatsService {
         return stats.wentGigs(viewerId, userId, artistId, venueId, cursor, limit);
     }
 
+    /** How many gigs {@link #gigs} lists in all; the same visibility rules. */
+    public int count(UUID viewerId, UUID userId, @Nullable UUID artistId, @Nullable UUID venueId) {
+        requireVisible(viewerId, userId);
+        return stats.wentCount(userId, artistId, venueId);
+    }
+
     /**
      * 404 when there is no such live user or they blocked the viewer (as for the profile itself);
      * 403 {@code STATS_HIDDEN} when the profile is there but its stats are not shared with the viewer.

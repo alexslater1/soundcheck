@@ -114,3 +114,19 @@ export const listUserStatsGigsResponse = zod.object({
   "nextCursor": zod.string().nullish()
 })
 
+/**
+ * @summary How many WENT gigs the user has with an act on the bill, or at a venue (all pages)
+ */
+export const countUserStatsGigsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const countUserStatsGigsQueryParams = zod.object({
+  "artistId": zod.string().uuid().optional(),
+  "venueId": zod.string().uuid().optional()
+})
+
+export const countUserStatsGigsResponse = zod.object({
+  "gigs": zod.number()
+})
+

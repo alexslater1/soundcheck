@@ -21,7 +21,9 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  CountUserStatsGigsParams,
   GetUserStatsParams,
+  GigCount,
   GigStats,
   ListUserStatsGigsParams,
   PageGigSummary
@@ -244,6 +246,116 @@ export function useListUserStatsGigs<TData = Awaited<ReturnType<typeof listUserS
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListUserStatsGigsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary How many WENT gigs the user has with an act on the bill, or at a venue (all pages)
+ */
+export const getCountUserStatsGigsUrl = (id: string,
+    params?: CountUserStatsGigsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/users/${id}/stats/gigs/count?${stringifiedParams}` : `/api/v1/users/${id}/stats/gigs/count`
+}
+
+export const countUserStatsGigs = async (id: string,
+    params?: CountUserStatsGigsParams, options?: RequestInit): Promise<GigCount> => {
+  
+  return customFetch<GigCount>(getCountUserStatsGigsUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getCountUserStatsGigsQueryKey = (id: string,
+    params?: CountUserStatsGigsParams,) => {
+    return [`/api/v1/users/${id}/stats/gigs/count`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getCountUserStatsGigsQueryOptions = <TData = Awaited<ReturnType<typeof countUserStatsGigs>>, TError = unknown>(id: string,
+    params?: CountUserStatsGigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof countUserStatsGigs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCountUserStatsGigsQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof countUserStatsGigs>>> = ({ signal }) => countUserStatsGigs(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof countUserStatsGigs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CountUserStatsGigsQueryResult = NonNullable<Awaited<ReturnType<typeof countUserStatsGigs>>>
+export type CountUserStatsGigsQueryError = unknown
+
+
+export function useCountUserStatsGigs<TData = Awaited<ReturnType<typeof countUserStatsGigs>>, TError = unknown>(
+ id: string,
+    params: undefined |  CountUserStatsGigsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof countUserStatsGigs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof countUserStatsGigs>>,
+          TError,
+          Awaited<ReturnType<typeof countUserStatsGigs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCountUserStatsGigs<TData = Awaited<ReturnType<typeof countUserStatsGigs>>, TError = unknown>(
+ id: string,
+    params?: CountUserStatsGigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof countUserStatsGigs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof countUserStatsGigs>>,
+          TError,
+          Awaited<ReturnType<typeof countUserStatsGigs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCountUserStatsGigs<TData = Awaited<ReturnType<typeof countUserStatsGigs>>, TError = unknown>(
+ id: string,
+    params?: CountUserStatsGigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof countUserStatsGigs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary How many WENT gigs the user has with an act on the bill, or at a venue (all pages)
+ */
+
+export function useCountUserStatsGigs<TData = Awaited<ReturnType<typeof countUserStatsGigs>>, TError = unknown>(
+ id: string,
+    params?: CountUserStatsGigsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof countUserStatsGigs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCountUserStatsGigsQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

@@ -302,24 +302,31 @@ public class CatalogService {
             @Nullable UUID venueId,
             @Nullable String cursor,
             @Nullable Integer limit) {
-        return page(
-                viewer,
-                new GigFilter(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        artistId == null ? null : Set.of(artistId),
-                        venueId == null ? null : Set.of(venueId),
-                        attendee,
-                        "WENT",
-                        true,
-                        Cursor.decode(cursor),
-                        Cursor.limit(limit),
-                        Instant.now(clock)),
-                null);
+        return page(viewer, wentFilter(attendee, artistId, venueId, Cursor.decode(cursor), Cursor.limit(limit)), null);
+    }
+
+    /** How many gigs {@link #wentGigs} would list in all, across every page. */
+    public int wentCount(UUID attendee, @Nullable UUID artistId, @Nullable UUID venueId) {
+        return repository.countGigs(wentFilter(attendee, artistId, venueId, null, Cursor.limit(null)));
+    }
+
+    private GigFilter wentFilter(
+            UUID attendee, @Nullable UUID artistId, @Nullable UUID venueId, @Nullable Cursor cursor, int limit) {
+        return new GigFilter(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                artistId == null ? null : Set.of(artistId),
+                venueId == null ? null : Set.of(venueId),
+                attendee,
+                "WENT",
+                true,
+                cursor,
+                limit,
+                Instant.now(clock));
     }
 
     // ── artists ─────────────────────────────────────────────────────────────

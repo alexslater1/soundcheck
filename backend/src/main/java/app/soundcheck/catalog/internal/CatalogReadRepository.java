@@ -163,6 +163,19 @@ class CatalogReadRepository {
                 .fetch(r -> toGigRow(r, distanceKm));
     }
 
+    /**
+     * How many gigs match the filter: the same conditions as {@link #gigs}, without the cursor and the page
+     * size ("You've seen Keo 5 times" counts them all, not one page). Expected indexes: as for
+     * {@link #gigs}; with an attendee, {@code gig_attendance}'s primary key bounds it to their gigs.
+     */
+    int countGigs(GigFilter filter) {
+        return dsl.fetchCount(dsl.selectOne()
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(conditions(filter)));
+    }
+
     /** One calendar day (UK time) and how many gigs matching a filter start on it. */
     record DayCount(LocalDate date, int count) {}
 
