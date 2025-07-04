@@ -12,9 +12,11 @@ public record GigRef(UUID id, byte[] contentHash, String title, Instant startsAt
 
     /**
      * One {@code catalog.gig_source} row: a source and the id it uses for this gig. Exactly one listing per
-     * gig is {@code primary}: the only one allowed to rewrite the gig's fields.
+     * gig is {@code primary}: the only one allowed to rewrite the gig's fields. {@code packageListing}: the
+     * listing sells a package (VIP, premium, hospitality) rather than the plain ticket.
      */
-    public record Listing(String source, String externalId, boolean primary, Instant lastSeenAt) {}
+    public record Listing(
+            String source, String externalId, boolean primary, Instant lastSeenAt, boolean packageListing) {}
 
     public Listing primary() {
         return listings.stream().filter(Listing::primary).findFirst().orElseThrow();

@@ -137,10 +137,18 @@ public interface CatalogIngest {
 
     /**
      * Records that {@code source} lists this gig as {@code externalId} and saw it at {@code seenAt} (upsert).
-     * {@code primary} applies only when the row is new; use {@link #makePrimary} to move ownership. A gig
-     * marked UNLISTED ({@link #unlistNotSeenSince}) is SCHEDULED again: it is listed once more.
+     * {@code primary} applies only when the row is new; use {@link #makePrimary} to move ownership.
+     * {@code packageListing} (a VIP or premium listing) is refreshed on every call. A gig marked UNLISTED
+     * ({@link #unlistNotSeenSince}) is SCHEDULED again: it is listed once more.
      */
-    void linkGig(String source, String externalId, UUID gigId, @Nullable String url, Instant seenAt, boolean primary);
+    void linkGig(
+            String source,
+            String externalId,
+            UUID gigId,
+            @Nullable String url,
+            Instant seenAt,
+            boolean primary,
+            boolean packageListing);
 
     /** Makes this listing the gig's primary one (and every other listing of the gig non-primary). */
     void makePrimary(UUID gigId, String source, String externalId);

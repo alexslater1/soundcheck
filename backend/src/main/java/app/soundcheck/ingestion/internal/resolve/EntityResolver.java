@@ -25,6 +25,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,6 +52,12 @@ public class EntityResolver {
     private static final Pattern PACKAGE = Pattern.compile(
             "\\b(vip|premium|packages?|hospitality|upgrades?|platinum|meet\\s*(&|and|n)?\\s*greet|early entry|priority entry)\\b",
             Pattern.CASE_INSENSITIVE);
+
+    /** Where a title is cut into parts for {@link #plainTitle}: " - ", " – ", " — ", " | ", ": " and " : ". */
+    private static final Pattern TITLE_SEPARATOR = Pattern.compile("\\s+[-–—|]\\s+|\\s*:\\s+");
+
+    /** A bracketed aside, e.g. "(VIP Package)", dropped by {@link #plainTitle} when it names a package. */
+    private static final Pattern BRACKETED = Pattern.compile("\\s*[(\\[][^)\\]]*[)\\]]");
 
     /**
      * When several listings point at one gig, a more trusted source's listing supplies its fields. Lower
@@ -84,8 +91,9 @@ public class EntityResolver {
                 artistIds.add(artistId);
             }
         }
+        String title = storedTitle(gig);
         GigDraft draft = new GigDraft(
-                gig.title(),
+                title,
                 venueId,
                 gig.startsAt(),
                 gig.doorsAt(),
@@ -95,7 +103,7 @@ public class EntityResolver {
                 gig.priceMax(),
                 gig.currency(),
                 gig.imageUrl(),
-                contentHash(gig, venueId, artistIds),
+                contentHash(gig, title, venueId, artistIds),
                 artistIds);
         return resolveGig(gig, draft, stats, seenAt);
     }
@@ -217,7 +225,8 @@ public class EntityResolver {
         if (known.isPresent()) {
             stats.gigs.matchedByExternalId++;
             GigRef ref = known.get();
-            catalog.linkGig(gig.source(), gig.externalId(), ref.id(), gig.url(), seenAt, false); // refresh last_seen_at
+            catalog.linkGig(gig.source(), gig.externalId(), ref.id(), gig.url(), seenAt, false, isPackage(gig.title()));
+            // (refreshes last_seen_at and the package flag)
             GigRef.Listing primary = ref.primary();
             boolean mine = primary.source().equals(gig.source())
                     && primary.externalId().equals(gig.externalId());
@@ -261,7 +270,7 @@ public class EntityResolver {
                     ref.title(),
                     candidate.artistIds(),
                     candidate.artistNames(),
-                    isPackage(ref.title()));
+                    ref.primary().packageListing());
             GigMatcher.Decision decision = GigMatcher.decide(
                     incoming,
                     existing,
@@ -282,7 +291,8 @@ public class EntityResolver {
             GigRef candidate = best.gig();
             stats.gigs.matchedFuzzy++;
             stats.merged++;
-            catalog.linkGig(gig.source(), gig.externalId(), candidate.id(), gig.url(), seenAt, false);
+            catalog.linkGig(
+                    gig.source(), gig.externalId(), candidate.id(), gig.url(), seenAt, false, isPackage(gig.title()));
             if (takesOver(gig, candidate)) {
                 catalog.makePrimary(candidate.id(), gig.source(), gig.externalId());
                 catalog.updateGig(candidate.id(), draft);
@@ -295,7 +305,7 @@ public class EntityResolver {
         stats.gigs.created++;
         stats.created++;
         UUID id = catalog.createGig(draft);
-        catalog.linkGig(gig.source(), gig.externalId(), id, gig.url(), seenAt, true);
+        catalog.linkGig(gig.source(), gig.externalId(), id, gig.url(), seenAt, true, isPackage(gig.title()));
         for (Map.Entry<GigCandidate, GigMatcher.Decision> pair : almost) {
             // Close but not convincing: kept apart, and asked about once in the console.
             stats.flaggedForReview++;
@@ -331,20 +341,66 @@ public class EntityResolver {
 
     /**
      * Should the incoming listing become the gig's primary one (and so supply its fields)? Yes when it comes
-     * from a more trusted source than the current primary, or when the gig currently carries a package
-     * listing's title and this is the plain listing of the same source.
+     * from a more trusted source than the current primary, or when the gig currently follows a package
+     * listing and this is the plain listing of the same source.
      */
     static boolean takesOver(SourceGig incoming, GigRef existing) {
         GigRef.Listing primary = existing.primary();
         if (priority(incoming.source()) != priority(primary.source())) {
             return priority(incoming.source()) < priority(primary.source());
         }
-        return isPackage(existing.title()) && !isPackage(incoming.title());
+        return primary.packageListing() && !isPackage(incoming.title());
     }
 
     /** Titles of hospitality and upgrade listings that duplicate a show. */
     static boolean isPackage(String title) {
         return PACKAGE.matcher(title).find();
+    }
+
+    /**
+     * The title a gig is stored under. A Ticketmaster package listing ("Westlife: Venue Premium Tickets")
+     * is often the only listing of a show in the data; its gig keeps the show's own title ("Westlife"), and
+     * the listing keeps its package flag, so the plain listing still merges and takes over when it appears.
+     * Venue sites' titles are left alone: there a word like "Hospitality" is as
+     * likely to be a band.
+     */
+    static String storedTitle(SourceGig gig) {
+        return "TICKETMASTER".equals(gig.source()) && isPackage(gig.title()) ? plainTitle(gig.title()) : gig.title();
+    }
+
+    /**
+     * {@code title} without the parts that name a package: the title is cut at " - ", " – ", " | " and
+     * ": ", and every part (or bracketed aside) that matches {@link #isPackage} is dropped; the rest keeps
+     * its own separators. A title that is nothing but a package ("VIP Package") stays as it is.
+     */
+    static String plainTitle(String title) {
+        String text = title.strip().replaceAll("\\s{2,}", " ");
+        text = BRACKETED.matcher(text).replaceAll(m -> isPackage(m.group()) ? "" : Matcher.quoteReplacement(m.group()));
+        var parts = new ArrayList<String>();
+        var separators = new ArrayList<String>();
+        var cut = TITLE_SEPARATOR.matcher(text);
+        int from = 0;
+        String separator = "";
+        while (cut.find()) {
+            parts.add(text.substring(from, cut.start()));
+            separators.add(separator);
+            separator = cut.group();
+            from = cut.end();
+        }
+        parts.add(text.substring(from));
+        separators.add(separator);
+        StringBuilder kept = new StringBuilder();
+        for (int i = 0; i < parts.size(); i++) {
+            String part = parts.get(i).strip();
+            if (part.isEmpty() || isPackage(part)) {
+                continue;
+            }
+            if (!kept.isEmpty()) {
+                kept.append(separators.get(i).strip().equals(":") ? ": " : separators.get(i));
+            }
+            kept.append(part);
+        }
+        return kept.isEmpty() ? title.strip() : kept.toString();
     }
 
     private static int priority(String source) {
@@ -353,10 +409,10 @@ public class EntityResolver {
     }
 
     /** SHA-256 over every stored field, so "did anything change?" is one comparison. */
-    static byte[] contentHash(SourceGig gig, UUID venueId, List<UUID> artistIds) {
+    static byte[] contentHash(SourceGig gig, String title, UUID venueId, List<UUID> artistIds) {
         String canonical = String.join(
                 "\u001f",
-                gig.title(),
+                title,
                 venueId.toString(),
                 gig.startsAt().toString(),
                 String.valueOf(gig.doorsAt()),

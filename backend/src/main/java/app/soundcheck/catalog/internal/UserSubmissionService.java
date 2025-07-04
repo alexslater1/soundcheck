@@ -209,14 +209,14 @@ public class UserSubmissionService {
                     null,
                     hash(gigTitle, venueId, startsAt, acts),
                     acts));
-            catalog.linkGig(SOURCE, gigId.toString(), gigId, null, Instant.now(clock), true);
+            catalog.linkGig(SOURCE, gigId.toString(), gigId, null, Instant.now(clock), true, false);
             submissions.markGigAddedBy(gigId, userId);
         } else {
             gigId = sameNight.getFirst().id();
         }
         if (found != null) {
             // Not primary: the fan's listing owns the fields; this one is the link back to setlist.fm.
-            catalog.linkGig(found.source(), found.externalId(), gigId, found.url(), Instant.now(clock), false);
+            catalog.linkGig(found.source(), found.externalId(), gigId, found.url(), Instant.now(clock), false, false);
         }
         return attendAndReturn(userId, gigId, request.date(), today, created);
     }

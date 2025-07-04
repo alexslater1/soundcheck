@@ -558,7 +558,13 @@ class JooqCatalogIngest implements CatalogIngest {
 
     @Override
     public void linkGig(
-            String source, String externalId, UUID gigId, @Nullable String url, Instant seenAt, boolean primary) {
+            String source,
+            String externalId,
+            UUID gigId,
+            @Nullable String url,
+            Instant seenAt,
+            boolean primary,
+            boolean packageListing) {
         dsl.insertInto(GIG_SOURCE)
                 .set(GIG_SOURCE.SOURCE, source)
                 .set(GIG_SOURCE.EXTERNAL_ID, externalId)
@@ -566,10 +572,12 @@ class JooqCatalogIngest implements CatalogIngest {
                 .set(GIG_SOURCE.URL, url)
                 .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
                 .set(GIG_SOURCE.PRIMARY_LISTING, primary)
+                .set(GIG_SOURCE.PACKAGE_LISTING, packageListing)
                 .onConflict(GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID)
                 .doUpdate()
                 .set(GIG_SOURCE.URL, url)
                 .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
+                .set(GIG_SOURCE.PACKAGE_LISTING, packageListing)
                 .execute();
         // Listed again: a gig marked UNLISTED comes back.
         dsl.update(GIG)
@@ -724,11 +732,15 @@ class JooqCatalogIngest implements CatalogIngest {
                 .where(GIG.ID.eq(gigId))
                 .fetchSingle();
         List<GigRef.Listing> listings = dsl.select(
-                        GIG_SOURCE.SOURCE, GIG_SOURCE.EXTERNAL_ID, GIG_SOURCE.PRIMARY_LISTING, GIG_SOURCE.LAST_SEEN_AT)
+                        GIG_SOURCE.SOURCE,
+                        GIG_SOURCE.EXTERNAL_ID,
+                        GIG_SOURCE.PRIMARY_LISTING,
+                        GIG_SOURCE.LAST_SEEN_AT,
+                        GIG_SOURCE.PACKAGE_LISTING)
                 .from(GIG_SOURCE)
                 .where(GIG_SOURCE.GIG_ID.eq(gigId))
                 .fetch(r -> new GigRef.Listing(
-                        r.value1(), r.value2(), r.value3(), r.value4().toInstant()));
+                        r.value1(), r.value2(), r.value3(), r.value4().toInstant(), r.value5()));
         return new GigRef(gigId, gig.value1(), gig.value2(), gig.value3().toInstant(), listings);
     }
 

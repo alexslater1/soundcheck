@@ -230,6 +230,50 @@ class EntityResolutionIT extends IntegrationTest {
     }
 
     @Test
+    void aShowOnlyAPackageListingAnnouncesKeepsItsTitleAndThePlainListingStillTakesOver() {
+        // Ticketmaster sometimes has only the premium listing of a show, dated at the doors time.
+        SourceVenue venue = venue("tm-v-premium", "Granite Arena", "AB23 8BL", 57.1955, -2.0768);
+        SourceArtist act = artist("tm-a-premium", "Glass Harbour", "Pop");
+        assertThat(resolver.ingest(
+                        gig(
+                                "TICKETMASTER",
+                                "tm-premium-only",
+                                "Glass Harbour: Venue Premium Tickets",
+                                "2026-11-21T18:30:00Z",
+                                venue,
+                                act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.CREATED);
+        UUID gigId = gigId("TICKETMASTER", "tm-premium-only");
+        assertThat(dsl.select(GIG.TITLE).from(GIG).where(GIG.ID.eq(gigId)).fetchOne(GIG.TITLE))
+                .isEqualTo("Glass Harbour");
+        assertThat(dsl.select(GIG_SOURCE.PACKAGE_LISTING)
+                        .from(GIG_SOURCE)
+                        .where(GIG_SOURCE.EXTERNAL_ID.eq("tm-premium-only"))
+                        .fetchOne(GIG_SOURCE.PACKAGE_LISTING))
+                .isTrue();
+
+        // The plain listing appears later, half an hour after the doors time: still the same show (the
+        // listing, not the stored title, says the gig follows a package), and it takes over the gig.
+        assertThat(resolver.ingest(
+                        gig("TICKETMASTER", "tm-premium-plain", "Glass Harbour", "2026-11-21T19:00:00Z", venue, act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.MERGED);
+        assertThat(gigId("TICKETMASTER", "tm-premium-plain")).isEqualTo(gigId);
+        var row = dsl.selectFrom(GIG).where(GIG.ID.eq(gigId)).fetchSingle();
+        assertThat(row.getTitle()).isEqualTo("Glass Harbour");
+        assertThat(row.getStartsAt().toInstant()).isEqualTo(Instant.parse("2026-11-21T19:00:00Z"));
+        assertThat(dsl.select(GIG_SOURCE.EXTERNAL_ID)
+                        .from(GIG_SOURCE)
+                        .where(GIG_SOURCE.GIG_ID.eq(gigId))
+                        .and(GIG_SOURCE.PRIMARY_LISTING.isTrue())
+                        .fetch(GIG_SOURCE.EXTERNAL_ID))
+                .containsExactly("tm-premium-plain");
+    }
+
+    @Test
     void whenThePrimaryListingDisappearsAnotherListingTakesOver() {
         SourceVenue venue = venue("tm-v-gone", "Harbour Cellar", "CF10 1AA", 51.4790, -3.1790);
         SourceArtist act = artist("tm-a-gone", "Slow Embers", "Folk");
