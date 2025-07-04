@@ -88,7 +88,7 @@ soundcheck:
     # fixtures (recorded JSON under fixtures/, no network) or live (real APIs, needs the keys below).
     mode: ${INGESTION_MODE:fixtures}
     fixtures-dir: ${INGESTION_FIXTURES_DIR:../fixtures}
-    horizon-days: ${INGESTION_HORIZON_DAYS:90}
+    horizon-days: ${INGESTION_HORIZON_DAYS:365}
     call-budget: ${INGESTION_CALL_BUDGET:1500}
     # Raw responses are kept this long (7 days); the gigs taken from them are kept for good.
     payload-retention: ${INGESTION_PAYLOAD_RETENTION:7d}

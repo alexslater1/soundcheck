@@ -196,7 +196,6 @@
       "venue": { "name": "Paper Dress Vintage", "address": "352a Mare Street", "city": "London", "postcode": "E8 1HR", "lat": 51.548244, "lng": -0.0548 },
       "ticketmasterVenueId": null,
       "precision": "DATE_ONLY",
-      "skipTitles": "club night|disco|dj set|\\bparty\\b|\\bclub\\b",
       "selectors": {
         "item": "a.events__event",
         "title": "h4",
@@ -204,7 +203,7 @@
         "date": "p.margin__bottom--1",
         "dateFormats": ["EEE d MMM"]
       },
-      "notes": "robots.txt Crawl-delay 10 (honoured by PoliteFetcher). The list gives no time (date-only); many nights are club nights, skipped."
+      "notes": "robots.txt Crawl-delay 10 (honoured by PoliteFetcher). The list gives no time (date-only). Many nights are club nights: left out by the general club/DJ rule, not by words of its own, so a band called The Party and an album launch party stay."
     },
     {
       "key": "spice-of-life",
@@ -221,7 +220,7 @@
         "dateFormats": ["EEEE d MMMM"],
         "ticket": "a.button-primary--event@href"
       },
-      "notes": "WordPress panels; regulars ('Every Tuesday …') have no date and are reported as NO_DATE; comedy and quizzes skipped."
+      "notes": "WordPress panels; regulars ('Every Tuesday …') have no date and are reported as NO_DATE; comedy and quizzes skipped. Its /events/page/2/ repeats page 1 (checked 2025-07-04), so no next page is followed."
     },
     {
       "key": "cafe-oto",
@@ -254,9 +253,10 @@
         "title": "h1.elementor-heading-title a",
         "link": "h1.elementor-heading-title a@href",
         "date": "p.elementor-heading-title",
-        "dateFormats": ["EEEE, d MMMM yyyy", "EEEE d MMMM yyyy", "EEEE, d, MMMM"]
+        "dateFormats": ["EEEE, d MMMM yyyy", "EEEE d MMMM yyyy", "EEEE, d, MMMM"],
+        "next": ".e-load-more-anchor@data-next-page"
       },
-      "notes": "WordPress/Elementor loop of 'gig' posts; dates only on the list. Thin Ticketmaster coverage (7). Address not on the listings page (well-known; check)."
+      "notes": "WordPress/Elementor loop of 'gig' posts; dates only on the list. Its 'load more' pages are followed (/whats-on/2/: 24 + 12 gigs on 2025-07-04) and stop at the anchor's own data-max-page. Thin Ticketmaster coverage (7). Address not on the listings page (well-known; check)."
     },
     {
       "key": "elephants-head",
@@ -265,14 +265,13 @@
       "venue": { "name": "The Elephant's Head", "address": "224 Camden High Street", "city": "London", "postcode": "NW1 8QR", "lat": 51.540613, "lng": -0.143785 },
       "ticketmasterVenueId": null,
       "precision": "DOORS",
-      "skipTitles": "club night|\\bparty\\b|\\bdj\\b",
       "selectors": {
         "item": "header:has(h3)",
         "title": "h3",
         "date": "p",
         "dateFormats": ["EEEE d MMMM, h:mma"]
       },
-      "notes": "Star Pubs site (terms checked: no automated-access clause); free entry, RSVP via DICE. Club nights skipped."
+      "notes": "Star Pubs site (terms checked: no automated-access clause); free entry, RSVP via DICE. Titles carry the site's own kind ('Live Music - …', 'club night - …'); club nights are left out by the general club/DJ rule."
     }
   ],
   "notRead": [

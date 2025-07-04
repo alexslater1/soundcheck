@@ -390,6 +390,64 @@ class VenueAdaptersTest {
     }
 
     @Test
+    void clubAndDjOnlyNightsAreLeftOutButAGigWithALateDjSetStays() {
+        // With real titles of 2025-07-04 (Paper Dress Vintage, The Elephant's Head, EartH, Village
+        // Underground, The Social, The Dome, Dublin Castle, Cafe OTO, Brixton Jamm).
+        VenueSite site = site("lantern", "html-selectors", "The Lantern Arms");
+        assertThat(List.of(
+                        "Weird Disco Club Night",
+                        "Paper Dress 80’s Club",
+                        "Djrum: All Night Long",
+                        "Batu (All Night Long)",
+                        "MISSOURI BUSINESS - Halloween clubnight",
+                        "club night - FOOL ME ONCE",
+                        "Lost In Disco (2PM – 7PM)",
+                        "ABBA v Fleetwood Mac Disco Party",
+                        "Kit Sebastian DJs present Club L’internationale + Beats Kebab (DJ set)"))
+                .allMatch(site::skips);
+        assertThat(List.of(
+                        "EMOM + Palindrones + DJs",
+                        "The Trial + The New Routine + Shelters + Sam George + DJ Sue",
+                        "Raise The Bar and RLD Records presents: Leaf Dog + Bva with DJ Jazz T",
+                        "Carl Stone + Excel DJ + Silvia Kastel (DJ)",
+                        "Live Music - The Glowworms + Camber",
+                        // Words the old per-venue lists skipped on, which can be a band or a gig:
+                        "Kaktus Einarsson (Album Launch) + The Party",
+                        "Jodie Howl: Album Launch Party",
+                        "Bloc Party",
+                        "Two Door Cinema Club",
+                        "Panic! At The Disco"))
+                .noneMatch(site::skips);
+    }
+
+    @Test
+    void anElementorLoadMoreAnchorIsFollowedUntilItsOwnLastPage() {
+        // Dingwalls: the anchor still names a next page on the last one.
+        VenueSite site = selectorSite(new VenueSite.Selectors(
+                "div.gig",
+                "h1",
+                null,
+                "p",
+                List.of("EEEE, d MMMM yyyy"),
+                null,
+                null,
+                null,
+                null,
+                false,
+                ".e-load-more-anchor@data-next-page"));
+        String first =
+                """
+                <div class="gig"><h1>Pale Kites</h1><p>Friday, 16 October 2026</p></div>
+                <div class="e-load-more-anchor" data-page="1" data-max-page="2"
+                     data-next-page="https://hall.example/whats-on/2/"></div>""";
+        String last = first.replace("data-page=\"1\"", "data-page=\"2\"")
+                .replace("https://hall.example/whats-on/2/", "https://hall.example/whats-on/3/");
+        assertThat(new SelectorAdapter().read(site, first, TODAY).next())
+                .hasToString("https://hall.example/whats-on/2/");
+        assertThat(new SelectorAdapter().read(site, last, TODAY).next()).isNull();
+    }
+
+    @Test
     void nightsThatAreNotGigsAreLeftOutAndAVenueCanNameMore() {
         VenueSite plain = site("lantern", "squarespace", "The Lantern Arms");
         assertThat(plain.skips("The Lantern Open Mic Night")).isTrue();

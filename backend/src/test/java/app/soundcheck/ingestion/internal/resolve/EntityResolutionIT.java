@@ -230,6 +230,122 @@ class EntityResolutionIT extends IntegrationTest {
     }
 
     @Test
+    void aShowOnlyAPackageListingAnnouncesKeepsItsTitleAndThePlainListingStillTakesOver() {
+        // Ticketmaster sometimes has only the premium listing of a show, dated at the doors time.
+        SourceVenue venue = venue("tm-v-premium", "Granite Arena", "AB23 8BL", 57.1955, -2.0768);
+        SourceArtist act = artist("tm-a-premium", "Glass Harbour", "Pop");
+        assertThat(resolver.ingest(
+                        gig(
+                                "TICKETMASTER",
+                                "tm-premium-only",
+                                "Glass Harbour: Venue Premium Tickets",
+                                "2026-11-21T18:30:00Z",
+                                venue,
+                                act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.CREATED);
+        UUID gigId = gigId("TICKETMASTER", "tm-premium-only");
+        assertThat(dsl.select(GIG.TITLE).from(GIG).where(GIG.ID.eq(gigId)).fetchOne(GIG.TITLE))
+                .isEqualTo("Glass Harbour");
+        assertThat(dsl.select(GIG_SOURCE.PACKAGE_LISTING)
+                        .from(GIG_SOURCE)
+                        .where(GIG_SOURCE.EXTERNAL_ID.eq("tm-premium-only"))
+                        .fetchOne(GIG_SOURCE.PACKAGE_LISTING))
+                .isTrue();
+
+        // The plain listing appears later, half an hour after the doors time: still the same show (the
+        // listing, not the stored title, says the gig follows a package), and it takes over the gig.
+        assertThat(resolver.ingest(
+                        gig("TICKETMASTER", "tm-premium-plain", "Glass Harbour", "2026-11-21T19:00:00Z", venue, act),
+                        new RunStats(),
+                        SEEN))
+                .isEqualTo(Outcome.MERGED);
+        assertThat(gigId("TICKETMASTER", "tm-premium-plain")).isEqualTo(gigId);
+        var row = dsl.selectFrom(GIG).where(GIG.ID.eq(gigId)).fetchSingle();
+        assertThat(row.getTitle()).isEqualTo("Glass Harbour");
+        assertThat(row.getStartsAt().toInstant()).isEqualTo(Instant.parse("2026-11-21T19:00:00Z"));
+        assertThat(dsl.select(GIG_SOURCE.EXTERNAL_ID)
+                        .from(GIG_SOURCE)
+                        .where(GIG_SOURCE.GIG_ID.eq(gigId))
+                        .and(GIG_SOURCE.PRIMARY_LISTING.isTrue())
+                        .fetch(GIG_SOURCE.EXTERNAL_ID))
+                .containsExactly("tm-premium-plain");
+    }
+
+    @Test
+    void aVenueSitesAndActIsSplitOnlyWhenBothHalvesAreKnownArtistsAndTheWholeIsNot() {
+        // The halves exist as Ticketmaster artists (vouched for); "Jesse" only from a venue title.
+        SourceVenue arena = venue("tm-v-amp", "Amp Hall", "N7 6AA", 51.5530, -0.1180);
+        String[][] known = {
+            {"tm-a-hedpe", "(Hed) P.E."},
+            {"tm-a-cold", "Cold"},
+            {"tm-a-skids", "The Skids"},
+            {"tm-a-toh", "Theatre of Hate"},
+            {"tm-a-joy", "The Joy"},
+            {"tm-a-echo", "Echo & the Bunnymen"}
+        };
+        for (int i = 0; i < known.length; i++) {
+            resolver.ingest(
+                    gig(
+                            "TICKETMASTER",
+                            "tm-amp-" + i,
+                            known[i][1],
+                            "2026-12-0" + (i + 1) + "T19:30:00Z",
+                            arena,
+                            artist(known[i][0], known[i][1], "Rock")),
+                    new RunStats(),
+                    SEEN);
+        }
+        SourceVenue site = venue("site-amp", "Sound Shed", "N1 9AA", 51.5390, -0.1030);
+        resolver.ingest(
+                venueGig("site-amp-jesse", "Jesse", "2026-12-10T19:00:00Z", site, "Jesse"), new RunStats(), SEEN);
+
+        assertThat(actsOf(venueGig("site-amp-1", "HED PE & COLD", "2026-12-11T19:00:00Z", site, "HED PE & COLD")))
+                .containsExactly("(Hed) P.E.", "Cold");
+        assertThat(actsOf(venueGig(
+                        "site-amp-2",
+                        "SKIDS & THEATRE OF HATE",
+                        "2026-12-12T19:00:00Z",
+                        site,
+                        "SKIDS & THEATRE OF HATE")))
+                .containsExactly("The Skids", "Theatre of Hate");
+        // Only one half is vouched for ("Jesse" came from a venue title): one act.
+        assertThat(actsOf(venueGig("site-amp-3", "Jesse & Joy", "2026-12-13T19:00:00Z", site, "Jesse & Joy")))
+                .containsExactly("Jesse & Joy");
+        // "& the" is always one act, even when the whole is a known artist.
+        assertThat(actsOf(venueGig(
+                        "site-amp-4", "Echo & the Bunnymen", "2026-12-14T19:00:00Z", site, "Echo & the Bunnymen")))
+                .containsExactly("Echo & the Bunnymen");
+        assertThat(actsOf(venueGig(
+                        "site-amp-5",
+                        "Geraint Watkins & the Mosquitoes",
+                        "2026-12-15T19:00:00Z",
+                        site,
+                        "Geraint Watkins & the Mosquitoes")))
+                .containsExactly("Geraint Watkins & the Mosquitoes");
+        assertThat(actsOf(venueGig(
+                        "site-amp-6", "THE FIERCE & THE DEAD", "2026-12-16T19:00:00Z", site, "THE FIERCE & THE DEAD")))
+                .containsExactly("THE FIERCE & THE DEAD");
+    }
+
+    /** Ingests a venue-site listing and returns its gig's line-up, headliner first. */
+    private List<String> actsOf(SourceGig gig) {
+        resolver.ingest(gig, new RunStats(), SEEN);
+        return dsl.select(ARTIST.NAME)
+                .from(GIG_ARTIST)
+                .join(ARTIST)
+                .on(ARTIST.ID.eq(GIG_ARTIST.ARTIST_ID))
+                .where(GIG_ARTIST.GIG_ID.eq(gigId("VENUE", gig.externalId())))
+                .orderBy(GIG_ARTIST.BILLING_ORDER)
+                .fetch(ARTIST.NAME);
+    }
+
+    private static SourceGig venueGig(String externalId, String title, String startsAt, SourceVenue venue, String act) {
+        return gig("VENUE", externalId, title, startsAt, venue, new SourceArtist("", act, null, List.of(), null));
+    }
+
+    @Test
     void whenThePrimaryListingDisappearsAnotherListingTakesOver() {
         SourceVenue venue = venue("tm-v-gone", "Harbour Cellar", "CF10 1AA", 51.4790, -3.1790);
         SourceArtist act = artist("tm-a-gone", "Slow Embers", "Folk");
