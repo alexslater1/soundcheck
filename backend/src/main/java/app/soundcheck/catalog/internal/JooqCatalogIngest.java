@@ -19,6 +19,8 @@ import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.ListingOverlap;
 import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.catalog.VenueDraft;
+import app.soundcheck.catalog.VenueNote;
+import app.soundcheck.catalog.VenueToLocate;
 import app.soundcheck.shared.Ids;
 import java.time.Clock;
 import java.time.Duration;
@@ -50,6 +52,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 @Transactional
 class JooqCatalogIngest implements CatalogIngest {
+
+    /** A gig its only site stopped listing (V045). */
+    static final String UNLISTED = "UNLISTED";
 
     private final DSLContext dsl;
     private final Clock clock;
@@ -566,6 +571,13 @@ class JooqCatalogIngest implements CatalogIngest {
                 .set(GIG_SOURCE.URL, url)
                 .set(GIG_SOURCE.LAST_SEEN_AT, at(seenAt))
                 .execute();
+        // Listed again: a gig marked UNLISTED comes back.
+        dsl.update(GIG)
+                .set(GIG.STATUS, "SCHEDULED")
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.ID.eq(gigId))
+                .and(GIG.STATUS.eq(UNLISTED))
+                .execute();
     }
 
     @Override
@@ -604,6 +616,61 @@ class JooqCatalogIngest implements CatalogIngest {
         }
     }
 
+    /** Central London (Charing Cross), for notes on venues with uncommon names. */
+    private static final double LONDON_LAT = 51.5074;
+
+    private static final double LONDON_LNG = -0.1278;
+
+    @Override
+    @Transactional
+    public int applyCoverageNotes(List<VenueNote> notes) {
+        dsl.update(VENUE)
+                .setNull(VENUE.COVERAGE_NOTE)
+                .where(VENUE.COVERAGE_NOTE.isNotNull())
+                .execute();
+        int noted = 0;
+        for (VenueNote note : notes) {
+            List<String> names = java.util.stream.Stream.concat(
+                            java.util.stream.Stream.of(note.name()), note.aliases().stream())
+                    .map(NameNormaliser::normalise)
+                    .distinct()
+                    .toList();
+            Condition where;
+            if (note.postcodePrefix() != null) {
+                // A common name ("The Half Moon"): only the one at that postcode district.
+                where = DSL.upper(DSL.replace(VENUE.POSTCODE, " ", ""))
+                        .startsWith(note.postcodePrefix().replace(" ", "").toUpperCase(java.util.Locale.ROOT));
+            } else {
+                where = DSL.condition(
+                                "ST_DWithin({0}, {1}, {2})",
+                                VENUE.LOCATION, point(LONDON_LAT, LONDON_LNG), DSL.val(25_000.0))
+                        .or(VENUE.LOCATION.isNull().and(VENUE.CITY.likeIgnoreCase("%london%")));
+            }
+            // Expected index: venue_name_norm_trgm (pg_trgm GIN serves equality since PostgreSQL 14); runs at
+            // start-up and before the daily ingestion, for a few dozen notes.
+            noted += dsl.update(VENUE)
+                    .set(VENUE.COVERAGE_NOTE, note.note())
+                    .where(VENUE.NAME_NORM.in(names))
+                    .and(where)
+                    .execute();
+        }
+        return noted;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VenueToLocate> venuesWithoutLocation(Instant now, int limit) {
+        Field<Boolean> upcoming = DSL.field(DSL.exists(
+                DSL.selectOne().from(GIG).where(GIG.VENUE_ID.eq(VENUE.ID)).and(GIG.STARTS_AT.ge(at(now)))));
+        // Runs once per ingestion run over a few thousand venues; no dedicated index.
+        return dsl.select(VENUE.ID, VENUE.NAME, VENUE.POSTCODE, VENUE.CITY)
+                .from(VENUE)
+                .where(VENUE.LOCATION.isNull())
+                .orderBy(upcoming.desc(), VENUE.NAME, VENUE.ID)
+                .limit(limit)
+                .fetch(r -> new VenueToLocate(r.value1(), r.value2(), r.value3(), r.value4()));
+    }
+
     @Override
     @Transactional(readOnly = true)
     public long countListings(String source, @Nullable String externalIdPrefix) {
@@ -612,6 +679,27 @@ class JooqCatalogIngest implements CatalogIngest {
             where = where.and(GIG_SOURCE.EXTERNAL_ID.like(DSL.escape(externalIdPrefix, '!') + "%", '!'));
         }
         return dsl.fetchCount(GIG_SOURCE, where);
+    }
+
+    @Override
+    public int unlistNotSeenSince(String source, String externalIdPrefix, Instant before, Instant now) {
+        var listing = GIG_SOURCE.as("listing");
+        // Once per venue site per run; gig_source is scanned by source (no dedicated index, as above).
+        return dsl.update(GIG)
+                .set(GIG.STATUS, UNLISTED)
+                .set(GIG.UPDATED_AT, now())
+                .where(GIG.STATUS.eq("SCHEDULED"))
+                .and(GIG.STARTS_AT.gt(at(now)))
+                .and(DSL.exists(DSL.selectOne()
+                        .from(listing)
+                        .where(listing.GIG_ID.eq(GIG.ID))
+                        .and(listing.SOURCE.eq(source))
+                        .and(listing.EXTERNAL_ID.like(DSL.escape(externalIdPrefix, '!') + "%", '!'))))
+                .and(DSL.notExists(DSL.selectOne()
+                        .from(listing)
+                        .where(listing.GIG_ID.eq(GIG.ID))
+                        .and(listing.SOURCE.ne(source).or(listing.LAST_SEEN_AT.ge(at(before))))))
+                .execute();
     }
 
     @Override

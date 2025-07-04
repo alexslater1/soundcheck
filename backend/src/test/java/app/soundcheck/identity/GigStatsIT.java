@@ -188,6 +188,37 @@ class GigStatsIT extends IntegrationTest {
     }
 
     @Test
+    void eachLineCountsAllItsGigsNotOnePage() {
+        String count = "/api/v1/users/" + fan.id() + "/stats/gigs/count";
+
+        // The same gigs as the lists above (the ones that happened), whatever the page size.
+        assertThat(ok(api.get(count + "?artistId=" + keo, fan)).path("gigs").asInt())
+                .isEqualTo(3);
+        assertThat(ok(api.get(count + "?artistId=" + cardinals, fan))
+                        .path("gigs")
+                        .asInt())
+                .isEqualTo(2);
+        assertThat(ok(api.get(count + "?venueId=" + scala, fan)).path("gigs").asInt())
+                .isEqualTo(2);
+        assertThat(ok(api.get(count, fan)).path("gigs").asInt()).isEqualTo(4);
+
+        // More than a page (50) of Went gigs with one act: every one is counted.
+        UUID busy = data.artist("Busy " + tag);
+        for (int i = 0; i < 52; i++) {
+            mark(fan, data.gig("Busy " + tag, scala, at(year - 1, 6, 1, 0).plusSeconds(3600L * i), busy), "WENT");
+        }
+        assertThat(ok(api.get(count + "?artistId=" + busy, fan)).path("gigs").asInt())
+                .isEqualTo(52);
+        assertThat(ok(api.get("/api/v1/users/" + fan.id() + "/stats/gigs?artistId=" + busy + "&limit=50", fan))
+                        .path("nextCursor")
+                        .isNull())
+                .isFalse();
+
+        // Hidden like the rest of the stats until shared.
+        assertProblem(api.get(count, other), HttpStatus.FORBIDDEN, "STATS_HIDDEN");
+    }
+
+    @Test
     void statsAreHiddenFromOthersUntilTheOwnerSharesThemAndFromBlockedPeople() {
         String stats = "/api/v1/users/" + fan.id() + "/stats";
 

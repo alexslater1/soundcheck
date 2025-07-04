@@ -14,6 +14,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -127,6 +129,25 @@ public class IngestionRuns {
                 .where(INGESTION_RUN.SOURCE.eq(source))
                 .and(INGESTION_RUN.STATUS.eq("SUCCEEDED"))
                 .and(INGESTION_RUN.ID.ne(runId))
+                .orderBy(INGESTION_RUN.STARTED_AT.desc())
+                .limit(1)
+                .fetchOptional(INGESTION_RUN.STARTED_AT)
+                .map(OffsetDateTime::toInstant);
+    }
+
+    /**
+     * When the latest earlier run of this source that read {@code group} in full started: its stats
+     * list the group under {@link RunStats#GROUPS_READ_IN_FULL}. A few runs a day; no index needed.
+     */
+    @Transactional(readOnly = true)
+    public Optional<Instant> previousReadInFull(String source, String group, UUID runId) {
+        String containsGroup = toJson(Map.of(RunStats.GROUPS_READ_IN_FULL, List.of(group)));
+        return dsl.select(INGESTION_RUN.STARTED_AT)
+                .from(INGESTION_RUN)
+                .where(INGESTION_RUN.SOURCE.eq(source))
+                .and(INGESTION_RUN.STATUS.in("SUCCEEDED", "PARTIAL"))
+                .and(INGESTION_RUN.ID.ne(runId))
+                .and(DSL.condition("{0} @> {1}::jsonb", INGESTION_RUN.STATS, DSL.val(containsGroup)))
                 .orderBy(INGESTION_RUN.STARTED_AT.desc())
                 .limit(1)
                 .fetchOptional(INGESTION_RUN.STARTED_AT)

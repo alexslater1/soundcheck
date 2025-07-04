@@ -55,4 +55,9 @@ class AttendanceStatsApi implements AttendanceStats {
             @Nullable Integer limit) {
         return catalog.wentGigs(viewerId, userId, artistId, venueId, cursor, limit);
     }
+
+    @Override
+    public int wentCount(UUID userId, @Nullable UUID artistId, @Nullable UUID venueId) {
+        return catalog.wentCount(userId, artistId, venueId);
+    }
 }

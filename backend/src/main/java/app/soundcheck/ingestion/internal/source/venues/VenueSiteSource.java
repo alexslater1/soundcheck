@@ -111,14 +111,20 @@ public class VenueSiteSource implements GigSource {
         LocalDate today = LocalDate.now(clock.withZone(Listings.UK));
         List<SourcePage> pages = new ArrayList<>();
         URI next = adapter.firstPage(site, today);
+        // A read in full: every page fetched and read, the list ended, and events found (a site listing
+        // nothing has usually changed its layout). Only then can a missing listing mean a gone gig.
+        boolean failed = false;
+        int listingsRead = 0;
         for (int n = 0; next != null && n < MAX_PAGES_PER_VENUE; n++) {
             if (!budget.allowsAnotherCall()) {
+                failed = true;
                 break;
             }
             budget.record();
             PoliteFetcher.Result result = fetcher.get(next);
             if (result.outcome() != PoliteFetcher.Outcome.OK || result.body() == null) {
                 pages.add(issueOnly(site, next, "VENUE_" + result.outcome(), result.detail()));
+                failed = true;
                 break;
             }
             VenueAdapter.Page page;
@@ -127,8 +133,10 @@ public class VenueSiteSource implements GigSource {
             } catch (RuntimeException e) {
                 pages.add(issueOnly(
                         site, next, "VENUE_UNREADABLE", e.getClass().getSimpleName() + ": " + e.getMessage()));
+                failed = true;
                 break;
             }
+            listingsRead += page.listings().size();
             List<SourceGig> gigs = new ArrayList<>();
             for (Listing listing : page.listings()) {
                 // Not music, or moved to another venue (which lists it itself).
@@ -149,6 +157,9 @@ public class VenueSiteSource implements GigSource {
             pages.add(new SourcePage(
                     request(site, next), summary(site, next, page.listings().size(), gigs.size()), gigs, issues));
             next = page.next();
+        }
+        if (!failed && next == null && listingsRead > 0 && !pages.isEmpty()) {
+            pages.set(pages.size() - 1, pages.getLast().completing(site.key()));
         }
         log.info("Venue {}: {} page(s) read", site.key(), pages.size());
         return pages;

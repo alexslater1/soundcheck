@@ -17,11 +17,12 @@ import { applyAttendance, ATTENDANCE_OPTIONS, type AttendanceStatus } from './at
 
 /**
  * Query keys a new mark makes stale: every gig list (`/gigs`, `/me/gigs`, an artist's or a venue's gigs,
- * the gigs behind a stats line `/users/{id}/stats/gigs`) and the stats counted from Went gigs
- * (`/users/{id}/stats`).
+ * the gigs behind a stats line `/users/{id}/stats/gigs`), the stats counted from Went gigs
+ * (`/users/{id}/stats`) and how many gigs a line stands for (`/users/{id}/stats/gigs/count`,
+ * "You've seen Keo 5 times").
  */
 export const isGigList = (key: readonly unknown[]) =>
-  typeof key[0] === 'string' && /\/gigs$|\/stats$/.test(key[0]);
+  typeof key[0] === 'string' && /\/gigs$|\/stats$|\/stats\/gigs\/count$/.test(key[0]);
 
 /**
  * Interested / Going / Went with an optimistic update: the button and the counts change

@@ -137,7 +137,8 @@ public interface CatalogIngest {
 
     /**
      * Records that {@code source} lists this gig as {@code externalId} and saw it at {@code seenAt} (upsert).
-     * {@code primary} applies only when the row is new; use {@link #makePrimary} to move ownership.
+     * {@code primary} applies only when the row is new; use {@link #makePrimary} to move ownership. A gig
+     * marked UNLISTED ({@link #unlistNotSeenSince}) is SCHEDULED again: it is listed once more.
      */
     void linkGig(String source, String externalId, UUID gigId, @Nullable String url, Instant seenAt, boolean primary);
 
@@ -147,9 +148,30 @@ public interface CatalogIngest {
     /** Fills in a venue's coordinates when it had none, and copies them to its gigs that have none. */
     void completeVenue(UUID venueId, @Nullable Double lat, @Nullable Double lng);
 
+    /**
+     * Sets the "we don't read this venue's own listings" notes to exactly {@code notes}: a venue
+     * no longer listed loses its note. Returns how many venues carry one.
+     */
+    int applyCoverageNotes(List<VenueNote> notes);
+
+    /**
+     * Venues without coordinates, those with gigs still to come first: a venue no list can place is
+     * invisible to anyone searching near home.
+     */
+    List<VenueToLocate> venuesWithoutLocation(Instant now, int limit);
+
     /** How many listings {@code source} has, optionally only those whose external id starts with a prefix. */
     long countListings(String source, @Nullable String externalIdPrefix);
 
     /** External ids of {@code source}'s future gigs last seen before {@code before}. */
     List<String> futureGigsNotSeenSince(String source, Instant before, Instant now, int limit);
+
+    /**
+     * Marks UNLISTED every scheduled gig still to come that has a listing of {@code source} whose
+     * external id starts with {@code externalIdPrefix}, and whose listings are all {@code source}'s and all
+     * last seen before {@code before}. A gig another source or a fan also lists is left alone.
+     *
+     * @return how many gigs were marked
+     */
+    int unlistNotSeenSince(String source, String externalIdPrefix, Instant before, Instant now);
 }

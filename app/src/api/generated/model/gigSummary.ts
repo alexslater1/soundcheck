@@ -26,6 +26,7 @@ export interface GigSummary {
   priceMax?: GigSummaryPriceMax;
   priceMin?: GigSummaryPriceMin;
   startsAt: string;
+  /** UNLISTED: only a venue's own site listed it, and it has stopped */
   status: GigSummaryStatus;
   support: ArtistSummary[];
   ticketUrl?: GigSummaryTicketUrl;

@@ -90,6 +90,8 @@ soundcheck:
     fixtures-dir: ${INGESTION_FIXTURES_DIR:../fixtures}
     horizon-days: ${INGESTION_HORIZON_DAYS:90}
     call-budget: ${INGESTION_CALL_BUDGET:1500}
+    # Raw responses are kept this long (7 days); the gigs taken from them are kept for good.
+    payload-retention: ${INGESTION_PAYLOAD_RETENTION:7d}
     # Refuse to mix the invented fixture gigs with real ones in one database (see IngestionGuard).
     allow-mixed-data: ${INGESTION_ALLOW_MIXED_DATA:false}
     enrichment:

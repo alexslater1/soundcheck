@@ -110,6 +110,7 @@ class CatalogReadRepository {
             @Nullable String venueCity,
             @Nullable Double venueLat,
             @Nullable Double venueLng,
+            @Nullable String venueCoverageNote,
             @Nullable Double distanceKm,
             boolean userAdded) {}
 
@@ -125,7 +126,8 @@ class CatalogReadRepository {
             @Nullable String postcode,
             @Nullable Double lat,
             @Nullable Double lng,
-            String timezone) {}
+            String timezone,
+            @Nullable String coverageNote) {}
 
     record SourceLink(String source, @Nullable String url) {}
 
@@ -161,6 +163,19 @@ class CatalogReadRepository {
                         filter.newestFirst() ? GIG.ID.desc() : GIG.ID.asc())
                 .limit(filter.limit() + 1)
                 .fetch(r -> toGigRow(r, distanceKm));
+    }
+
+    /**
+     * How many gigs match the filter: the same conditions as {@link #gigs}, without the cursor and the page
+     * size ("You've seen Keo 5 times" counts them all, not one page). Expected indexes: as for
+     * {@link #gigs}; with an attendee, {@code gig_attendance}'s primary key bounds it to their gigs.
+     */
+    int countGigs(GigFilter filter) {
+        return dsl.fetchCount(dsl.selectOne()
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(conditions(filter)));
     }
 
     /** One calendar day (UK time) and how many gigs matching a filter start on it. */
@@ -246,6 +261,10 @@ class CatalogReadRepository {
         if (filter.happenedBy() != null) {
             where.add(happened(filter.happenedBy()));
         }
+        if (filter.attendeeId() == null) {
+            // Finding gigs: one its only site stopped listing is left out. A person's own gigs keep it.
+            where.add(GIG.STATUS.ne("UNLISTED"));
+        }
         if (filter.attendeeId() != null) {
             Condition mine = GIG_ATTENDANCE.GIG_ID.eq(GIG.ID).and(GIG_ATTENDANCE.USER_ID.eq(filter.attendeeId()));
             if (filter.attendanceStatus() != null) {
@@ -280,6 +299,7 @@ class CatalogReadRepository {
                 VENUE.CITY,
                 VENUE_LAT,
                 VENUE_LNG,
+                VENUE.COVERAGE_NOTE,
                 distanceKm,
                 GIG.CREATED_BY);
     }
@@ -673,7 +693,8 @@ class CatalogReadRepository {
                         VENUE.POSTCODE,
                         VENUE_LAT,
                         VENUE_LNG,
-                        VENUE.TIMEZONE)
+                        VENUE.TIMEZONE,
+                        VENUE.COVERAGE_NOTE)
                 .from(VENUE)
                 .where(VENUE.ID.eq(id))
                 .fetchOptional(r -> new VenueRow(
@@ -684,7 +705,8 @@ class CatalogReadRepository {
                         r.value5(),
                         r.value6(),
                         r.value7(),
-                        r.value8()));
+                        r.value8(),
+                        r.value9()));
     }
 
     /** A venue in a search result: where it is and how far from the viewer's home (when known). */
@@ -749,6 +771,7 @@ class CatalogReadRepository {
                 r.get(VENUE.CITY),
                 r.get(VENUE_LAT),
                 r.get(VENUE_LNG),
+                r.get(VENUE.COVERAGE_NOTE),
                 r.get(distanceKm),
                 r.get(GIG.CREATED_BY) != null);
     }

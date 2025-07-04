@@ -3,6 +3,7 @@ package app.soundcheck.ingestion.internal;
 import app.soundcheck.catalog.CatalogIngest;
 import app.soundcheck.ingestion.internal.enrich.ArtistEnricher;
 import app.soundcheck.ingestion.internal.enrich.PayloadSink;
+import app.soundcheck.ingestion.internal.enrich.VenueGeocoder;
 import app.soundcheck.ingestion.internal.resolve.EntityResolver;
 import app.soundcheck.ingestion.internal.source.CallBudget;
 import app.soundcheck.ingestion.internal.source.GigSource;
@@ -57,6 +58,7 @@ public class IngestionService {
     private final IngestionRuns runs;
     private final EntityResolver resolver;
     private final ArtistEnricher enricher;
+    private final VenueGeocoder geocoder;
     private final CatalogIngest catalog;
     private final IngestionProperties properties;
     private final MeterRegistry meters;
@@ -67,6 +69,7 @@ public class IngestionService {
             IngestionRuns runs,
             EntityResolver resolver,
             ArtistEnricher enricher,
+            VenueGeocoder geocoder,
             CatalogIngest catalog,
             IngestionProperties properties,
             MeterRegistry meters,
@@ -75,6 +78,7 @@ public class IngestionService {
         this.runs = runs;
         this.resolver = resolver;
         this.enricher = enricher;
+        this.geocoder = geocoder;
         this.catalog = catalog;
         this.properties = properties;
         this.meters = meters;
@@ -105,6 +109,7 @@ public class IngestionService {
         try {
             fetchAndResolve(source, runId, startedAt, budget, stats, heartbeat);
             enrich(runId, stats, heartbeat);
+            locateVenues(runId, stats);
             if (budget.exhausted()) {
                 status = "PARTIAL";
                 stats.issue("BUDGET_EXHAUSTED", null, "stopped after " + budget.used() + " API calls");
@@ -112,6 +117,8 @@ public class IngestionService {
                 status = "SUCCEEDED";
                 flagGigsNoLongerListed(sourceName, runId, stats);
             }
+            // Per group, not per run: a group read in full counts even when the run as a whole stopped early.
+            unlistGigsDroppedByTheirSite(sourceName, runId, stats);
             error = null;
         } catch (RuntimeException e) {
             // The source gave up (after its retries) or something unexpected broke: keep what was ingested.
@@ -144,6 +151,16 @@ public class IngestionService {
         }
     }
 
+    /** Venues still without coordinates get them (postcode, else town); a failure here never fails the run. */
+    private void locateVenues(UUID runId, RunStats stats) {
+        try {
+            stats.geocoding = geocoder.locateVenues().toMap();
+        } catch (RuntimeException e) {
+            stats.issue("GEOCODING_ABORTED", null, e.getClass().getSimpleName() + ": " + e.getMessage());
+            log.warn("Locating venues stopped early in run {}: {}", runId, e.toString());
+        }
+    }
+
     /** Updates the run's heartbeat at most every 30 seconds. */
     private final class Heartbeat {
         private final UUID runId;
@@ -171,6 +188,9 @@ public class IngestionService {
             for (Iterator<SourcePage> it = pages.iterator(); it.hasNext(); ) {
                 SourcePage page = it.next();
                 stats.pages++;
+                if (page.readInFull() != null) {
+                    stats.groupsReadInFull.add(page.readInFull());
+                }
                 runs.savePayload(runId, source.name(), page.request(), page.body(), Instant.now(clock));
                 for (SourceIssue issue : page.issues()) {
                     stats.issue(issue);
@@ -216,6 +236,22 @@ public class IngestionService {
         }
         if (gig.startsAt().isBefore(now)) {
             stats.issue("START_IN_PAST", gig.externalId(), gig.title() + " at " + gig.startsAt());
+        }
+    }
+
+    /**
+     * An upcoming gig whose only listings come from one group of this source (a venue's own site),
+     * and which that group's last two reads in full both left out, is marked UNLISTED: renamed and vanished
+     * listings stop showing as gigs. "Two reads": its listing was last seen before the group's previous read
+     * in full, and this run's read in full did not see it either.
+     */
+    private void unlistGigsDroppedByTheirSite(String source, UUID runId, RunStats stats) {
+        Instant now = Instant.now(clock);
+        for (String group : stats.groupsReadInFull) {
+            Optional<Instant> previous = runs.previousReadInFull(source, group, runId);
+            if (previous.isPresent()) {
+                stats.unlisted += catalog.unlistNotSeenSince(source, group + ":", previous.get(), now);
+            }
         }
     }
 

@@ -28,4 +28,7 @@ public interface AttendanceStats {
             @Nullable UUID venueId,
             @Nullable String cursor,
             @Nullable Integer limit);
+
+    /** How many gigs {@link #wentGigs} lists in all, across every page: "You've seen Keo 5 times". */
+    int wentCount(UUID userId, @Nullable UUID artistId, @Nullable UUID venueId);
 }

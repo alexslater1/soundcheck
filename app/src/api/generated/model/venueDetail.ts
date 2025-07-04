@@ -7,12 +7,14 @@
  */
 import type { VenueDetailAddress } from './venueDetailAddress';
 import type { VenueDetailCity } from './venueDetailCity';
+import type { VenueDetailCoverageNote } from './venueDetailCoverageNote';
 import type { GeoPoint } from './geoPoint';
 import type { VenueDetailPostcode } from './venueDetailPostcode';
 
 export interface VenueDetail {
   address?: VenueDetailAddress;
   city?: VenueDetailCity;
+  coverageNote?: VenueDetailCoverageNote;
   id: string;
   location?: GeoPoint;
   name: string;

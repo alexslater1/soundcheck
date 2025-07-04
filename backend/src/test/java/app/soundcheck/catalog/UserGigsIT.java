@@ -15,6 +15,8 @@ import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.http.HttpStatus;
@@ -159,6 +161,37 @@ class UserGigsIT extends IntegrationTest {
         bad.put("foundOn", null);
         bad.put("newVenue", Map.of("name", "Nowhere " + tag));
         assertThat(code(api.post("/api/v1/gigs", bad, fan))).isEqualTo("VENUE_PLACE_REQUIRED");
+    }
+
+    /**
+     * A fan's new venue is placed at its city's centre, so distance proves nothing and only a
+     * near-identical name may join an existing venue. Real pairs, each in its own town and without a
+     * per-test tag (a shared tag would add trigrams and make every pair look closer than it is).
+     */
+    @ParameterizedTest(name = "{1} after {0} in {2}: same venue = {3}")
+    @CsvSource({
+        "The Finsbury, Finsbury Park, Kendal, false",
+        "O2 Academy Islington, O2 Academy Brixton, Frome, false",
+        "O2 Academy Islington, O2 Academy2 Islington, Truro, false",
+        "The Lexington, Lexington, Barnstaple, true",
+        "Hope & Anchor, Hope and Anchor, Salisbury, true",
+        "MOTH Club, Moth Club, Hereford, true",
+    })
+    void aFansNewVenueJoinsAnExistingOneOnlyWhenTheNamesAreNearlyIdentical(
+            String existing, String added, String town, boolean same) {
+        int city = cityId(town);
+        LocalDate day = LocalDate.now(UK).minusDays(3);
+        String first = item(api.post("/api/v1/gigs", gig(List.of("First " + tag), newVenue(existing, city), day), fan))
+                .path("venue")
+                .path("id")
+                .asText("");
+        String second = item(api.post(
+                        "/api/v1/gigs", gig(List.of("Second " + tag), newVenue(added, city), day.minusDays(1)), fan))
+                .path("venue")
+                .path("id")
+                .asText("");
+
+        assertThat(second.equals(first)).as("%s joins %s", added, existing).isEqualTo(same);
     }
 
     @Test

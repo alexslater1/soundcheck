@@ -14,6 +14,7 @@ import { ArtistRow } from '@/features/artists/ArtistRow';
 import { useGenreNames } from '@/features/artists/useGenreNames';
 import { TimesSeen } from '@/features/stats/TimesSeen';
 import { isWebUrl, openWebLink } from '@/lib/openLink';
+import { CoverageNote } from '@/features/venues/CoverageNote';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -111,6 +112,7 @@ export function GigDetailScreen({ id }: { id: string }) {
             {gig.venue.city ? `, ${gig.venue.city}` : ''}
           </Text>
         </Link>
+        <CoverageNote note={gig.venue.coverageNote} compact />
         <Text variant="caption" muted>
           {[distance ? `${distance} from your city` : null, price].filter(Boolean).join(' · ') ||
             'Price not listed'}

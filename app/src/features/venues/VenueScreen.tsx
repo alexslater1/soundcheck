@@ -16,6 +16,8 @@ import { PostGrid } from '@/features/posts/PostGrid';
 import { openWebLink } from '@/lib/openLink';
 import { spacing } from '@/theme/tokens';
 
+import { CoverageNote } from './CoverageNote';
+
 /**
  * Venue page: address, a link out to a maps app (maps are out of scope), upcoming gigs
  * (more on request) and the clips filmed there.
@@ -57,6 +59,7 @@ export function VenueScreen({ id }: { id: string }) {
       <ScrollView contentContainerStyle={styles.gap}>
         <Text variant="display">{v.name}</Text>
         <Text muted>{address || 'Address not listed'}</Text>
+        <CoverageNote note={v.coverageNote} />
         <Button
           title="Open in Maps"
           variant="secondary"

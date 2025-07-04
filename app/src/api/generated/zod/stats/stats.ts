@@ -90,7 +90,7 @@ export const listUserStatsGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -103,6 +103,7 @@ export const listUserStatsGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -112,5 +113,21 @@ export const listUserStatsGigsResponse = zod.object({
 })
 })),
   "nextCursor": zod.string().nullish()
+})
+
+/**
+ * @summary How many WENT gigs the user has with an act on the bill, or at a venue (all pages)
+ */
+export const countUserStatsGigsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const countUserStatsGigsQueryParams = zod.object({
+  "artistId": zod.string().uuid().optional(),
+  "venueId": zod.string().uuid().optional()
+})
+
+export const countUserStatsGigsResponse = zod.object({
+  "gigs": zod.number()
 })
 

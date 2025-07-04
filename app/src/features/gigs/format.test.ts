@@ -34,6 +34,7 @@ describe('gig formatting', () => {
   it('labels only unusual statuses and names the ticket source', () => {
     expect(statusLabel('SCHEDULED')).toBeNull();
     expect(statusLabel('CANCELLED')).toBe('Cancelled');
+    expect(statusLabel('UNLISTED')).toBe('No longer listed');
     expect(statusLabel('POSTPONED')).toBe('Postponed');
     expect(ticketLabel([{ source: 'TICKETMASTER' }])).toBe('Tickets on Ticketmaster');
     expect(ticketLabel([{ source: 'SKIDDLE' }])).toBe('Tickets on Skiddle');

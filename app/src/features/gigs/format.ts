@@ -49,6 +49,9 @@ export function statusLabel(status: string): string | null {
       return 'Postponed';
     case 'RESCHEDULED':
       return 'Rescheduled';
+    case 'UNLISTED':
+      // Only the venue's own site listed it, and it has stopped: renamed, moved or called off.
+      return 'No longer listed';
     default:
       return null;
   }

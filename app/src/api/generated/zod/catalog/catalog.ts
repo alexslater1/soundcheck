@@ -95,7 +95,7 @@ export const getArtistResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -108,6 +108,7 @@ export const getArtistResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -147,7 +148,7 @@ export const listArtistGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -160,6 +161,7 @@ export const listArtistGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -228,7 +230,7 @@ export const listGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -241,6 +243,7 @@ export const listGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -321,7 +324,7 @@ export const addGigResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -334,6 +337,7 @@ export const addGigResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -416,7 +420,7 @@ export const getGigResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -429,6 +433,7 @@ export const getGigResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -594,7 +599,7 @@ export const listMyGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -607,6 +612,7 @@ export const listMyGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -655,7 +661,7 @@ export const searchResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -668,6 +674,7 @@ export const searchResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -733,6 +740,7 @@ export const getVenueParams = zod.object({
 export const getVenueResponse = zod.object({
   "address": zod.string().nullish(),
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
@@ -772,7 +780,7 @@ export const listVenueGigsResponse = zod.object({
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
   "startsAt": zod.string().datetime({}),
-  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED']),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
   "support": zod.array(zod.object({
   "genres": zod.array(zod.string()),
   "id": zod.string().uuid(),
@@ -785,6 +793,7 @@ export const listVenueGigsResponse = zod.object({
   "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
   "venue": zod.object({
   "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),

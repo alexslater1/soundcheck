@@ -23,12 +23,19 @@ public record IngestionProperties(
         @DefaultValue("90") int horizonDays,
         /** Maximum API calls per run before it stops and is recorded as PARTIAL. */
         @DefaultValue("1500") int callBudget,
+        /**
+         * How long raw responses are kept for debugging and replay (7 days).
+         * The gig data taken from them is kept for good; Ticketmaster's terms allow storing its
+         * content only "for reasonable periods".
+         */
+        @DefaultValue("7d") Duration payloadRetention,
         @DefaultValue Ticketmaster ticketmaster,
         @DefaultValue Lastfm lastfm,
         @DefaultValue MusicBrainz musicbrainz,
         @DefaultValue Enrichment enrichment,
         @DefaultValue Setlistfm setlistfm,
-        @DefaultValue Venues venues) {
+        @DefaultValue Venues venues,
+        @DefaultValue Geocoding geocoding) {
 
     public boolean live() {
         return "live".equalsIgnoreCase(mode);
@@ -86,6 +93,18 @@ public record IngestionProperties(
                     + ", perUserPerHour=" + perUserPerHour + "]";
         }
     }
+
+    /**
+     * Venue coordinates from postcodes: postcodes.io, free and keyless, up to 100 postcodes a call.
+     * Great Britain's data is under the OS OpenData licence (attribution in the README); Northern Ireland's
+     * (BT…) is free for non-commercial use only, so those venues take their town's centre instead.
+     */
+    public record Geocoding(
+            @DefaultValue("https://api.postcodes.io") String baseUrl,
+            /** Venues located per run, at one call per 100: the first run back-fills, later ones find a few. */
+            @DefaultValue("500") int maxVenuesPerRun,
+            /** postcodes.io publishes no limit; one call a second keeps us polite. */
+            @DefaultValue("1") int requestsPerSecond) {}
 
     public record MusicBrainz(
             @DefaultValue("https://musicbrainz.org") String baseUrl,

@@ -113,7 +113,9 @@ public class CatalogService {
             @Schema(nullable = true) String city,
             @Schema(nullable = true) String postcode,
             @Schema(nullable = true) GeoPoint location,
-            String timezone) {}
+            String timezone,
+            /** Why this venue's gigs here may be incomplete; null when its listings are read or listed. */
+            @Schema(nullable = true) String coverageNote) {}
 
     /** {@code GET /search}: top results per requested type. */
     public record SearchResults(List<ArtistSummary> artists, List<GigSummary> gigs) {}
@@ -302,24 +304,31 @@ public class CatalogService {
             @Nullable UUID venueId,
             @Nullable String cursor,
             @Nullable Integer limit) {
-        return page(
-                viewer,
-                new GigFilter(
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        null,
-                        artistId == null ? null : Set.of(artistId),
-                        venueId == null ? null : Set.of(venueId),
-                        attendee,
-                        "WENT",
-                        true,
-                        Cursor.decode(cursor),
-                        Cursor.limit(limit),
-                        Instant.now(clock)),
-                null);
+        return page(viewer, wentFilter(attendee, artistId, venueId, Cursor.decode(cursor), Cursor.limit(limit)), null);
+    }
+
+    /** How many gigs {@link #wentGigs} would list in all, across every page. */
+    public int wentCount(UUID attendee, @Nullable UUID artistId, @Nullable UUID venueId) {
+        return repository.countGigs(wentFilter(attendee, artistId, venueId, null, Cursor.limit(null)));
+    }
+
+    private GigFilter wentFilter(
+            UUID attendee, @Nullable UUID artistId, @Nullable UUID venueId, @Nullable Cursor cursor, int limit) {
+        return new GigFilter(
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                artistId == null ? null : Set.of(artistId),
+                venueId == null ? null : Set.of(venueId),
+                attendee,
+                "WENT",
+                true,
+                cursor,
+                limit,
+                Instant.now(clock));
     }
 
     // ── artists ─────────────────────────────────────────────────────────────
@@ -391,7 +400,8 @@ public class CatalogService {
                 v.city(),
                 v.postcode(),
                 v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng()),
-                v.timezone());
+                v.timezone(),
+                v.coverageNote());
     }
 
     /** {@code GET /venues?q=}: venues by name, the ones near the viewer's home first. */
@@ -548,7 +558,8 @@ public class CatalogService {
                             row.venueCity(),
                             row.venueLat() == null || row.venueLng() == null
                                     ? null
-                                    : new GeoPoint(row.venueLat(), row.venueLng())),
+                                    : new GeoPoint(row.venueLat(), row.venueLng()),
+                            row.venueCoverageNote()),
                     bill.getFirst(),
                     bill.subList(1, bill.size()),
                     row.imageUrl(),

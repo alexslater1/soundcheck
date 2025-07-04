@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 /**
  * What one ingestion run did ({@code ingestion_run.stats} / {@code issues}). The
@@ -16,6 +18,9 @@ public final class RunStats {
 
     /** The stored issues are a sample, at most this many. */
     public static final int MAX_ISSUES = 200;
+
+    /** The {@code stats} key listing the groups read in full ({@link #groupsReadInFull}). */
+    public static final String GROUPS_READ_IN_FULL = "groupsReadInFull";
 
     /** How entities of one kind were resolved. */
     public static final class Resolution {
@@ -41,6 +46,10 @@ public final class RunStats {
     public int flaggedForReview;
     /** Gigs that gained details (acts, prices, links) from a listing that is not their primary one. */
     public int filled;
+    /** Upcoming gigs marked UNLISTED: their only listings' site dropped them for two full reads. */
+    public int unlisted;
+    /** Listing groups (a venue site's key) read in full this run: the next run compares with this one. */
+    public final Set<String> groupsReadInFull = new TreeSet<>();
 
     public int skipped;
     public int errors;
@@ -51,6 +60,8 @@ public final class RunStats {
     public final Resolution gigs = new Resolution();
     /** What the enrichment pass did (see {@code ArtistEnricher.Result}); empty until it has run. */
     public Map<String, Object> enrichment = Map.of();
+    /** How venues without coordinates were located (see {@code VenueGeocoder.Result}); empty until it has run. */
+    public Map<String, Object> geocoding = Map.of();
 
     private final Map<String, Integer> issueCounts = new TreeMap<>();
     private final List<SourceIssue> issueSample = new ArrayList<>();
@@ -105,6 +116,12 @@ public final class RunStats {
         map.put("merged", merged);
         map.put("flaggedForReview", flaggedForReview);
         map.put("filled", filled);
+        if (unlisted > 0) {
+            map.put("unlisted", unlisted);
+        }
+        if (!groupsReadInFull.isEmpty()) {
+            map.put(GROUPS_READ_IN_FULL, List.copyOf(groupsReadInFull));
+        }
         map.put("skipped", skipped);
         map.put("errors", errors);
         map.put("apiCalls", apiCalls);
@@ -113,6 +130,7 @@ public final class RunStats {
         map.put("artists", artists.toMap());
         map.put("gigs", gigs.toMap());
         map.put("enrichment", enrichment);
+        map.put("geocoding", geocoding);
         map.put("issueCounts", issueCounts);
         return map;
     }

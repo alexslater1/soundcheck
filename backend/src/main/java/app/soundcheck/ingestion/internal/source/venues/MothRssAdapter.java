@@ -11,6 +11,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.jsoup.Jsoup;
@@ -31,6 +32,10 @@ import org.springframework.stereotype.Component;
  * </ul>
  * The headliner comes from the description's "… at MOTH Club" and the support acts from its "With …"
  * sentence (act fields first); without a description the title (minus the date) is parsed.
+ *
+ * <p>The registry now reads MOTH from its All Events page instead, which carries five
+ * times as many of the same show pages ({@link MothPageAdapter}, sharing {@link #listing}); this adapter
+ * stays for the feed.
  */
 @Component
 public class MothRssAdapter implements VenueAdapter {
@@ -67,43 +72,53 @@ public class MothRssAdapter implements VenueAdapter {
                     item.selectFirst("description") == null
                             ? ""
                             : item.selectFirst("description").text());
-            Matcher date = TITLE_DATE.matcher(rawTitle);
-            if (!date.find()) {
-                issues.add(new SourceIssue("NO_DATE", site.key() + ":" + link, rawTitle));
-                continue;
-            }
-            LocalDate day;
-            try {
-                day = LocalDate.parse(date.group(1) + " " + capital(date.group(2)) + " " + date.group(3), DAY);
-            } catch (DateTimeParseException e) {
-                issues.add(new SourceIssue("NO_DATE", site.key() + ":" + link, rawTitle));
-                continue;
-            }
-            String title = rawTitle.substring(0, date.start()).strip();
-            Matcher doors = DOORS.matcher(description);
-            LocalDateTime start;
-            TimePrecision precision;
-            if (doors.find()) {
-                start = day.atTime(time(doors));
-                precision = TimePrecision.DOORS;
-            } else {
-                start = day.atTime(19, 30);
-                precision = TimePrecision.DATE_ONLY;
-            }
-            listings.add(new Listing(
-                    eventId(link, rawTitle),
-                    Listings.webUrl(link),
-                    title,
-                    start,
-                    precision,
-                    acts(description, site.venue().name()),
-                    null,
-                    null,
-                    null,
-                    null,
-                    false));
+            listing(site, rawTitle, link, description)
+                    .ifPresentOrElse(
+                            listings::add,
+                            () -> issues.add(new SourceIssue("NO_DATE", site.key() + ":" + link, rawTitle)));
         }
         return new Page(listings, issues, null);
+    }
+
+    /**
+     * One MOTH event from its title ("Femininomenon Fri 27 Nov 2026"), its page link and its description
+     * (the RSS item's, or the same text as the All Events page's excerpt, {@link MothPageAdapter});
+     * empty when the title carries no date.
+     */
+    static Optional<Listing> listing(VenueSite site, String rawTitle, String link, String description) {
+        Matcher date = TITLE_DATE.matcher(rawTitle);
+        if (!date.find()) {
+            return Optional.empty();
+        }
+        LocalDate day;
+        try {
+            day = LocalDate.parse(date.group(1) + " " + capital(date.group(2)) + " " + date.group(3), DAY);
+        } catch (DateTimeParseException e) {
+            return Optional.empty();
+        }
+        String title = rawTitle.substring(0, date.start()).strip();
+        Matcher doors = DOORS.matcher(description);
+        LocalDateTime start;
+        TimePrecision precision;
+        if (doors.find()) {
+            start = day.atTime(time(doors));
+            precision = TimePrecision.DOORS;
+        } else {
+            start = day.atTime(19, 30);
+            precision = TimePrecision.DATE_ONLY;
+        }
+        return Optional.of(new Listing(
+                eventId(link, rawTitle),
+                Listings.webUrl(link),
+                title,
+                start,
+                precision,
+                acts(description, site.venue().name()),
+                null,
+                null,
+                null,
+                null,
+                false));
     }
 
     /**
