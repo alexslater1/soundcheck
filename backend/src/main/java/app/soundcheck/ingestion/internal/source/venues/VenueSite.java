@@ -81,9 +81,46 @@ public record VenueSite(
                     + "|in\\s+conversation",
             Pattern.CASE_INSENSITIVE);
 
-    /** Whether a title is left out: not music in general, or what the venue's entry says to skip. */
+    /**
+     * What makes a night a club or DJ night. "Party" is not one:
+     * it would drop "Bloc Party" and album launch parties.
+     */
+    static final Pattern CLUB_MARKER = Pattern.compile(
+            "\\bclub\\s*nights?\\b|(?<!at the )\\bdisco\\b|\\bdjs?\\b|\\bdj\\s*sets?\\b|\\bb2b\\b"
+                    + "|\\ball[\\s-]*night[\\s-]*long\\b|\\bday\\s*party\\b|\\brave\\b|\\bclubbing\\b"
+                    + "|\\b\\d0[’']?s\\s+club\\b",
+            Pattern.CASE_INSENSITIVE);
+
+    /** How a bill is cut into its acts for {@link #clubNight}: "+", commas, "/", "with", "ft." / "featuring". */
+    private static final Pattern BILL_SEPARATOR = Pattern.compile(
+            "\\s+\\+\\s+|,\\s+|\\s+/\\s+|\\s+with\\s+|\\s+(?:ft|feat)\\.?\\s+|\\s+featuring\\s+",
+            Pattern.CASE_INSENSITIVE);
+
+    /** A promoter before a colon ("SILO Presents: …"), not an act. */
+    private static final Pattern PRESENTER = Pattern.compile("^.*?\\bpresents?\\s*:\\s*", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * A club or DJ-only night: the title has a {@link #CLUB_MARKER} and every act on its bill is one too
+     * ("Weird Disco Club Night", "Djrum: All Night Long", "Beats Kebab (DJ set)"). A gig that ends with a DJ
+     * stays ("EMOM + Palindrones + DJs", "Leaf Dog + Bva with DJ Jazz T"): one act on the bill is a band.
+     */
+    static boolean clubNight(String title) {
+        if (!CLUB_MARKER.matcher(title).find()) {
+            return false;
+        }
+        String bill = PRESENTER.matcher(title.strip()).replaceFirst("");
+        for (String act : BILL_SEPARATOR.split(bill)) {
+            if (!act.isBlank() && !CLUB_MARKER.matcher(act).find()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Whether a title is left out: not music, a club or DJ night, or what the venue's entry says to skip. */
     public boolean skips(String title) {
         return NOT_MUSIC.matcher(title).find()
+                || clubNight(title)
                 || (skipTitles != null
                         && Pattern.compile(skipTitles, Pattern.CASE_INSENSITIVE)
                                 .matcher(title)

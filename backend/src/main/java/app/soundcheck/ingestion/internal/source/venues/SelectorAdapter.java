@@ -107,8 +107,28 @@ public class SelectorAdapter implements VenueAdapter {
                     false));
         }
         // A paged list ("?page=2"): the next page's link, when the registry names where it is.
-        String next = config.next() == null ? null : value(page.body(), config.next());
+        String next = config.next() == null || lastPage(page, config.next()) ? null : value(page.body(), config.next());
         return new Page(listings, issues, next == null ? null : URI.create(next));
+    }
+
+    /**
+     * Whether this is the last page by the site's own count: an Elementor "load more" anchor (Dingwalls)
+     * says which page it is and how many there are, and still names a next page on the last one
+     * ({@code data-page="2" data-max-page="2" data-next-page=".../3/"}).
+     */
+    static boolean lastPage(Document page, String nextSelector) {
+        int at = nextSelector.lastIndexOf('@');
+        String css = (at < 0 ? nextSelector : nextSelector.substring(0, at)).strip();
+        Element anchor = css.isEmpty() ? null : page.selectFirst(css);
+        if (anchor == null || !anchor.hasAttr("data-page") || !anchor.hasAttr("data-max-page")) {
+            return false;
+        }
+        try {
+            return Integer.parseInt(anchor.attr("data-page").strip())
+                    >= Integer.parseInt(anchor.attr("data-max-page").strip());
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     /** The title, or the bill when each act is on its own line. */
