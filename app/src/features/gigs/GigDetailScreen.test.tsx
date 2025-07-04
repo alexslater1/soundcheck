@@ -205,4 +205,27 @@ describe('GigDetailScreen act bar', () => {
     await waitFor(() => expect(screen.getByText('LINE-UP')).toBeOnTheScreen());
     expect(screen.queryByTestId('act-bar')).toBeNull();
   });
+
+  it("says when the venue's own listings are not read", async () => {
+    const note =
+      "We don't read this venue's own listings: its listings are a DICE ticketing widget, which we don't read. Its gigs here come from Ticketmaster and fans, so some may be missing.";
+    const routed = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input), 'http://x').pathname.endsWith('/gigs/g1')
+        ? json(200, {
+            ...DETAIL,
+            gig: { ...DETAIL.gig, venue: { ...DETAIL.gig.venue, coverageNote: note } },
+          })
+        : routed(input, init),
+    );
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+
+    expect(await screen.findByTestId('coverage-note')).toHaveTextContent(note);
+  });
+
+  it('shows no note for a venue whose listings are read or listed', async () => {
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    await waitFor(() => expect(screen.getByText('LINE-UP')).toBeOnTheScreen());
+    expect(screen.queryByTestId('coverage-note')).toBeNull();
+  });
 });
