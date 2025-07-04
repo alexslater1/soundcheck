@@ -23,23 +23,27 @@ import org.springframework.stereotype.Component;
 @ConditionalOnRole(Roles.SCHEDULER)
 class IngestionSchedule {
 
-    /** Raw payloads are pruned after 14 days. */
-    static final Duration PAYLOAD_RETENTION = Duration.ofDays(14);
-
     private static final Logger log = LoggerFactory.getLogger(IngestionSchedule.class);
 
     private final IngestionService service;
     private final IngestionRuns runs;
     private final List<GigSource> sources;
     private final IngestionGuard guard;
+    private final Duration payloadRetention;
     private final Clock clock;
 
     IngestionSchedule(
-            IngestionService service, IngestionRuns runs, List<GigSource> sources, IngestionGuard guard, Clock clock) {
+            IngestionService service,
+            IngestionRuns runs,
+            List<GigSource> sources,
+            IngestionGuard guard,
+            IngestionProperties properties,
+            Clock clock) {
         this.service = service;
         this.sources = sources;
         this.guard = guard;
         this.runs = runs;
+        this.payloadRetention = properties.payloadRetention();
         this.clock = clock;
     }
 
@@ -61,7 +65,7 @@ class IngestionSchedule {
     @Scheduled(cron = "0 40 4 * * *", zone = "Europe/London")
     @SchedulerLock(name = "ingestion-prune-payloads", lockAtMostFor = "PT10M", lockAtLeastFor = "PT1M")
     void prunePayloads() {
-        int deleted = runs.prunePayloads(Instant.now(clock).minus(PAYLOAD_RETENTION));
-        log.info("Pruned {} raw payloads older than {} days", deleted, PAYLOAD_RETENTION.toDays());
+        int deleted = runs.prunePayloads(Instant.now(clock).minus(payloadRetention));
+        log.info("Pruned {} raw payloads older than {} days", deleted, payloadRetention.toDays());
     }
 }

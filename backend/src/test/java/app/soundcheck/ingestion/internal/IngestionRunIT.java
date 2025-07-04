@@ -397,12 +397,13 @@ class IngestionRunIT extends IntegrationTest {
         assertThat(dsl.fetchCount(RAW_PAYLOAD, RAW_PAYLOAD.RUN_ID.eq(run.runId())))
                 .isPositive();
 
-        // 13 days on, nothing of this run is old enough; 15 days on, everything is.
+        // Kept 7 days. 6 days on, nothing of this run is old enough; 8 days on, everything is.
+        assertThat(properties.payloadRetention()).isEqualTo(Duration.ofDays(7));
         Instant now = Instant.now(clock);
-        runs.prunePayloads(now.plus(Duration.ofDays(13)).minus(IngestionSchedule.PAYLOAD_RETENTION));
+        runs.prunePayloads(now.plus(Duration.ofDays(6)).minus(properties.payloadRetention()));
         assertThat(dsl.fetchCount(RAW_PAYLOAD, RAW_PAYLOAD.RUN_ID.eq(run.runId())))
                 .isPositive();
-        runs.prunePayloads(now.plus(Duration.ofDays(15)).minus(IngestionSchedule.PAYLOAD_RETENTION));
+        runs.prunePayloads(now.plus(Duration.ofDays(8)).minus(properties.payloadRetention()));
         assertThat(dsl.fetchCount(RAW_PAYLOAD, RAW_PAYLOAD.RUN_ID.eq(run.runId())))
                 .isZero();
     }

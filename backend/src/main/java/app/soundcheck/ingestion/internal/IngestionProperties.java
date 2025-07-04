@@ -23,6 +23,12 @@ public record IngestionProperties(
         @DefaultValue("90") int horizonDays,
         /** Maximum API calls per run before it stops and is recorded as PARTIAL. */
         @DefaultValue("1500") int callBudget,
+        /**
+         * How long raw responses are kept for debugging and replay (7 days).
+         * The gig data taken from them is kept for good; Ticketmaster's terms allow storing its
+         * content only "for reasonable periods".
+         */
+        @DefaultValue("7d") Duration payloadRetention,
         @DefaultValue Ticketmaster ticketmaster,
         @DefaultValue Lastfm lastfm,
         @DefaultValue MusicBrainz musicbrainz,
