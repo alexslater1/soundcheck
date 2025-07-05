@@ -9,6 +9,7 @@ import { queryClient } from '@/api/queryClient';
 import { nextRoute } from '@/features/auth/nextRoute';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
+import { UnreachableScreen } from '@/features/auth/UnreachableScreen';
 import { OfflineBanner } from '@/features/network/OfflineBanner';
 import { holdSplash, useSplashGate } from '@/features/splash/splash';
 import { ThemeProvider, useTheme } from '@/theme/ThemeProvider';
@@ -72,6 +73,11 @@ function RootStack() {
         <ActivityIndicator color={colors.textMuted} />
       </View>
     );
+  }
+
+  // The session could not be resumed for want of a server: say so, keep the refresh token, retry.
+  if (status === 'unreachable') {
+    return <UnreachableScreen onRetry={bootstrap} />;
   }
 
   return (

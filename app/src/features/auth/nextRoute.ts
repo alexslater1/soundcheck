@@ -17,7 +17,8 @@ export interface RouteState {
  * out of the auth and onboarding screens. Everything else stays put.
  */
 export function nextRoute({ status, onboarded, group }: RouteState): Redirect {
-  if (status === 'unknown') return null;
+  // Still resuming, or could not reach the server to resume (the root shows "Can't connect" instead).
+  if (status === 'unknown' || status === 'unreachable') return null;
   const inAuth = group === '(auth)';
   const inOnboarding = group === 'onboarding';
   if (status === 'signedOut') return inAuth ? null : '/sign-in';
