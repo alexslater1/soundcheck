@@ -5,6 +5,7 @@ import app.soundcheck.catalog.ArtistSummary;
 import app.soundcheck.catalog.GeoPoint;
 import app.soundcheck.catalog.GigClips;
 import app.soundcheck.catalog.GigSummary;
+import app.soundcheck.catalog.VenueFollows;
 import app.soundcheck.catalog.VenueSummary;
 import app.soundcheck.catalog.ViewerHome;
 import app.soundcheck.catalog.internal.CatalogReadRepository.ArtistRow;
@@ -115,7 +116,10 @@ public class CatalogService {
             @Schema(nullable = true) GeoPoint location,
             String timezone,
             /** Why this venue's gigs here may be incomplete; null when its listings are read or listed. */
-            @Schema(nullable = true) String coverageNote) {}
+            @Schema(nullable = true) String coverageNote,
+            /** Whether the viewer follows this venue (new gigs here then alert them). */
+            boolean following,
+            long followerCount) {}
 
     /** {@code GET /search}: top results per requested type. */
     public record SearchResults(List<ArtistSummary> artists, List<GigSummary> gigs) {}
@@ -123,6 +127,7 @@ public class CatalogService {
     private final CatalogReadRepository repository;
     private final ViewerHome viewerHome;
     private final ArtistFollows follows;
+    private final VenueFollows venueFollows;
     private final GigClips clips;
     private final Clock clock;
 
@@ -130,11 +135,13 @@ public class CatalogService {
             CatalogReadRepository repository,
             ViewerHome viewerHome,
             ArtistFollows follows,
+            VenueFollows venueFollows,
             GigClips clips,
             Clock clock) {
         this.repository = repository;
         this.viewerHome = viewerHome;
         this.follows = follows;
+        this.venueFollows = venueFollows;
         this.clips = clips;
         this.clock = clock;
     }
@@ -389,7 +396,7 @@ public class CatalogService {
 
     // ── venues ──────────────────────────────────────────────────────────────
 
-    public VenueDetail venue(UUID venueId) {
+    public VenueDetail venue(UUID viewer, UUID venueId) {
         VenueRow v = repository
                 .venue(venueId)
                 .orElseThrow(() -> ApiException.notFound("VENUE_NOT_FOUND", "No venue " + venueId));
@@ -401,7 +408,9 @@ public class CatalogService {
                 v.postcode(),
                 v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng()),
                 v.timezone(),
-                v.coverageNote());
+                v.coverageNote(),
+                !venueFollows.followedBy(viewer, List.of(venueId)).isEmpty(),
+                venueFollows.followerCount(venueId));
     }
 
     /** {@code GET /venues?q=}: venues by name, the ones near the viewer's home first. */
@@ -417,7 +426,9 @@ public class CatalogService {
     }
 
     public Page<GigSummary> venueGigs(UUID viewer, UUID venueId, @Nullable String cursor, @Nullable Integer limit) {
-        venue(venueId);
+        if (!repository.venueExists(venueId)) {
+            throw ApiException.notFound("VENUE_NOT_FOUND", "No venue " + venueId);
+        }
         GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
         return page(
                 viewer,

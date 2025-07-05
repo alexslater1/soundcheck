@@ -4,6 +4,7 @@ import app.soundcheck.content.CommentAdded;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostLiked;
 import app.soundcheck.content.PostPublished;
+import app.soundcheck.social.NewGigsFound;
 import app.soundcheck.social.UserBlocked;
 import app.soundcheck.social.UserFollowed;
 import org.springframework.modulith.events.ApplicationModuleListener;
@@ -52,6 +53,12 @@ class NotificationListeners {
     @ApplicationModuleListener
     void on(PostFailed event) {
         notifications.record(event.authorId(), "POST_FAILED", null, event.postId(), null);
+    }
+
+    /** One inbox entry per alert, listing the new gigs that match the user's follows and searches. */
+    @ApplicationModuleListener
+    void on(NewGigsFound event) {
+        notifications.recordNewGigs(event);
     }
 
     @ApplicationModuleListener

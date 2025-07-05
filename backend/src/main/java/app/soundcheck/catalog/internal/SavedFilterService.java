@@ -55,7 +55,9 @@ public class SavedFilterService {
             List<NamedVenue> venues,
             @Schema(nullable = true) String genre,
             @Schema(nullable = true) String q,
-            Place place) {}
+            Place place,
+            /** A new gig matching this search alerts the owner (on unless switched off). */
+            boolean alerts) {}
 
     /** A filter to save, as validated by the controller. */
     public record NewFilter(
@@ -65,7 +67,9 @@ public class SavedFilterService {
             @Nullable String genre,
             @Nullable String q,
             PlaceKind place,
-            @Nullable Integer cityId) {}
+            @Nullable Integer cityId,
+            /** Null: on. */
+            @Nullable Boolean alerts) {}
 
     private final SavedFilterRepository filters;
     private final CatalogReadRepository catalog;
@@ -107,7 +111,8 @@ public class SavedFilterService {
                             .toList(),
                     row.genre(),
                     row.q(),
-                    place(PlaceKind.valueOf(row.place()), row.cityId())));
+                    place(PlaceKind.valueOf(row.place()), row.cityId()),
+                    row.alerts()));
         }
         return out;
     }
@@ -147,8 +152,18 @@ public class SavedFilterService {
                         genre,
                         blankToNull(filter.q()),
                         filter.place().name(),
-                        cityId),
+                        cityId,
+                        !Boolean.FALSE.equals(filter.alerts())),
                 Instant.now(clock));
+        return list(userId).stream().filter(f -> f.id().equals(id)).findFirst().orElseThrow();
+    }
+
+    /** Switches a saved search's new-gig alerts on or off. */
+    @Transactional
+    public SavedGigFilter setAlerts(UUID userId, UUID id, boolean alerts) {
+        if (!filters.setAlerts(userId, id, alerts)) {
+            throw ApiException.notFound("SAVED_FILTER_NOT_FOUND", "No saved search " + id);
+        }
         return list(userId).stream().filter(f -> f.id().equals(id)).findFirst().orElseThrow();
     }
 

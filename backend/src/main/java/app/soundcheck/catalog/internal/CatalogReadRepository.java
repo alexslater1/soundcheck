@@ -20,6 +20,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -117,6 +118,18 @@ class CatalogReadRepository {
     record ArtistRow(UUID id, String name, @Nullable String imageUrl, @Nullable UUID mbid) {}
 
     record LineupEntry(UUID gigId, UUID artistId, int billingOrder) {}
+
+    /** A gig as the new-gig alert pass sees it: when it was created and what to call it. */
+    record CreatedGig(
+            UUID id,
+            String title,
+            Instant startsAt,
+            String status,
+            UUID venueId,
+            String venueName,
+            @Nullable String venueCity,
+            Instant createdAt,
+            @Nullable UUID addedBy) {}
 
     record VenueRow(
             UUID id,
@@ -344,6 +357,62 @@ class CatalogReadRepository {
 
     boolean gigExists(UUID id) {
         return dsl.fetchExists(GIG, GIG.ID.eq(id));
+    }
+
+    /**
+     * Gigs created at or after {@code since} (and after the given position, when set), oldest first, at
+     * most {@code limit} (the alert pass).
+     * Expected index: gig_created (created_at, id).
+     */
+    List<CreatedGig> createdSince(Instant since, @Nullable Instant afterCreatedAt, @Nullable UUID afterId, int limit) {
+        Condition where = GIG.CREATED_AT.ge(at(since));
+        if (afterCreatedAt != null && afterId != null) {
+            where = where.and(DSL.row(GIG.CREATED_AT, GIG.ID).gt(DSL.row(at(afterCreatedAt), afterId)));
+        }
+        return dsl.select(
+                        GIG.ID,
+                        GIG.TITLE,
+                        GIG.STARTS_AT,
+                        GIG.STATUS,
+                        VENUE.ID,
+                        VENUE.NAME,
+                        VENUE.CITY,
+                        GIG.CREATED_AT,
+                        GIG.CREATED_BY)
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(where)
+                .orderBy(GIG.CREATED_AT, GIG.ID)
+                .limit(limit)
+                .fetch(r -> new CreatedGig(
+                        r.value1(),
+                        r.value2(),
+                        r.value3().toInstant(),
+                        r.value4(),
+                        r.value5(),
+                        r.value6(),
+                        r.value7(),
+                        r.value8().toInstant(),
+                        r.value9()));
+    }
+
+    /**
+     * Which of {@code gigIds} the filter would list: the same WHERE clause as {@code GET /gigs}, narrowed
+     * to those ids (a saved search's alerts). Expected index: the primary key.
+     */
+    Set<UUID> matching(GigFilter filter, Collection<UUID> gigIds) {
+        if (gigIds.isEmpty()) {
+            return Set.of();
+        }
+        List<Condition> where = conditions(filter);
+        where.add(GIG.ID.in(gigIds));
+        return new HashSet<>(dsl.select(GIG.ID)
+                .from(GIG)
+                .join(VENUE)
+                .on(VENUE.ID.eq(GIG.VENUE_ID))
+                .where(where)
+                .fetch(GIG.ID));
     }
 
     /** The bills of the given gigs, each in billing order. Expected index: gig_artist primary key. */

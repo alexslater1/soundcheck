@@ -279,8 +279,8 @@ public class CatalogController {
 
     @GetMapping("/venues/{id}")
     @Operation(operationId = "getVenue", summary = "Venue detail")
-    public VenueDetail venue(@PathVariable UUID id) {
-        return catalog.venue(id);
+    public VenueDetail venue(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        return catalog.venue(userId(jwt), id);
     }
 
     @GetMapping("/venues/{id}/gigs")

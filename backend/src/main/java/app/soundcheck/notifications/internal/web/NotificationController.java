@@ -2,6 +2,7 @@ package app.soundcheck.notifications.internal.web;
 
 import app.soundcheck.notifications.internal.NotificationService;
 import app.soundcheck.notifications.internal.NotificationService.Inbox;
+import app.soundcheck.notifications.internal.NotificationService.NotificationView;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +44,14 @@ public class NotificationController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
         return notifications.inbox(UUID.fromString(jwt.getSubject()), cursor, limit);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(
+            operationId = "getNotification",
+            summary = "One of the viewer's notifications (a new-gig alert's page opens it); 404 if not theirs")
+    public NotificationView one(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        return notifications.one(UUID.fromString(jwt.getSubject()), id);
     }
 
     @PostMapping("/read")

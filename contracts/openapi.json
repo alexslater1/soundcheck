@@ -90,6 +90,36 @@
         "required" : [ "created", "item" ],
         "type" : "object"
       },
+      "AlertedGigView" : {
+        "properties" : {
+          "because" : {
+            "type" : "string"
+          },
+          "gigId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "enum" : [ "ARTIST", "VENUE", "SEARCH" ],
+            "type" : "string"
+          },
+          "startsAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          },
+          "venueCity" : {
+            "type" : [ "string", "null" ]
+          },
+          "venueName" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "because", "gigId", "reason", "startsAt", "title", "venueName" ],
+        "type" : "object"
+      },
       "ArtistDetail" : {
         "properties" : {
           "artist" : {
@@ -663,6 +693,15 @@
         "required" : [ "attendanceCounts", "gig", "lineup", "postsCount", "sources" ],
         "type" : "object"
       },
+      "GigFilterAlertsRequest" : {
+        "properties" : {
+          "alerts" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "alerts" ],
+        "type" : "object"
+      },
       "GigStats" : {
         "properties" : {
           "acts" : {
@@ -982,6 +1021,16 @@
             "format" : "date-time",
             "type" : "string"
           },
+          "gigCount" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "gigs" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AlertedGigView"
+            },
+            "type" : [ "array", "null" ]
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -1001,7 +1050,7 @@
             "type" : "boolean"
           },
           "type" : {
-            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED" ],
+            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "NEW_GIGS" ],
             "type" : "string"
           }
         },
@@ -1401,6 +1450,9 @@
       },
       "SaveGigFilterRequest" : {
         "properties" : {
+          "alerts" : {
+            "type" : [ "boolean", "null" ]
+          },
           "artistIds" : {
             "items" : {
               "format" : "uuid",
@@ -1448,6 +1500,9 @@
       },
       "SavedGigFilter" : {
         "properties" : {
+          "alerts" : {
+            "type" : "boolean"
+          },
           "artists" : {
             "items" : {
               "$ref" : "#/components/schemas/NamedArtist"
@@ -1477,7 +1532,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "artists", "id", "name", "place", "venues" ],
+        "required" : [ "alerts", "artists", "id", "name", "place", "venues" ],
         "type" : "object"
       },
       "SearchResults" : {
@@ -1816,6 +1871,13 @@
           "coverageNote" : {
             "type" : [ "string", "null" ]
           },
+          "followerCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "following" : {
+            "type" : "boolean"
+          },
           "id" : {
             "format" : "uuid",
             "type" : "string"
@@ -1834,7 +1896,7 @@
             "type" : "string"
           }
         },
-        "required" : [ "id", "name", "timezone" ],
+        "required" : [ "followerCount", "following", "id", "name", "timezone" ],
         "type" : "object"
       },
       "VenueHit" : {
@@ -3150,6 +3212,42 @@
         },
         "summary" : "Delete one of the viewer's saved gig searches",
         "tags" : [ "catalog" ]
+      },
+      "patch" : {
+        "operationId" : "setGigFilterAlerts",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GigFilterAlertsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/SavedGigFilter"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Switch a saved gig search's new-gig alerts on or off",
+        "tags" : [ "catalog" ]
       }
     },
     "/api/v1/me/gigs" : {
@@ -3459,6 +3557,34 @@
           }
         },
         "summary" : "Mark everything up to a notification as read",
+        "tags" : [ "notifications" ]
+      }
+    },
+    "/api/v1/notifications/{id}" : {
+      "get" : {
+        "operationId" : "getNotification",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/NotificationView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One of the viewer's notifications (a new-gig alert's page opens it); 404 if not theirs",
         "tags" : [ "notifications" ]
       }
     },
@@ -4301,6 +4427,46 @@
         },
         "summary" : "Venue detail",
         "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/venues/{id}/follow" : {
+      "delete" : {
+        "operationId" : "unfollowVenue",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Unfollow a venue (idempotent)",
+        "tags" : [ "social" ]
+      },
+      "put" : {
+        "operationId" : "followVenue",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Follow a venue: its new gigs alert you (idempotent)",
+        "tags" : [ "social" ]
       }
     },
     "/api/v1/venues/{id}/gigs" : {

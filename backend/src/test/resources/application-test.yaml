@@ -15,6 +15,10 @@ management:
 # The shared test context makes many auth calls from one IP; the limits themselves are tested in
 # AuthRateLimitIT, which lowers these with @TestPropertySource (which outranks this file).
 soundcheck:
+  # The new-gig alert job stays off: the alert tests run GigAlertService.run() themselves, and other tests'
+  # gigs must not turn into inbox entries behind their backs.
+  alerts:
+    enabled: false
   rate-limit:
     auth:
       per-ip-per-minute: 10000

@@ -28,7 +28,9 @@ class SavedFilterRepository {
             @Nullable String genre,
             @Nullable String q,
             String place,
-            @Nullable Integer cityId) {}
+            @Nullable Integer cityId,
+            /** Whether a new gig matching this search alerts its owner. */
+            boolean alerts) {}
 
     record VenueName(String name, @Nullable String city) {}
 
@@ -51,7 +53,8 @@ class SavedFilterRepository {
                         r.getGenre(),
                         r.getQ(),
                         r.getPlace(),
-                        r.getCityId()));
+                        r.getCityId(),
+                        r.getAlerts()));
     }
 
     /**
@@ -77,9 +80,41 @@ class SavedFilterRepository {
                 .set(SAVED_GIG_FILTER.Q, row.q())
                 .set(SAVED_GIG_FILTER.PLACE, row.place())
                 .set(SAVED_GIG_FILTER.CITY_ID, row.cityId())
+                .set(SAVED_GIG_FILTER.ALERTS, row.alerts())
                 .set(SAVED_GIG_FILTER.CREATED_AT, now.atOffset(ZoneOffset.UTC))
                 .execute();
     }
+
+    /** Switches the alerts of the user's own filter; false when there is no such filter of theirs. */
+    boolean setAlerts(UUID userId, UUID id, boolean alerts) {
+        return dsl.update(SAVED_GIG_FILTER)
+                        .set(SAVED_GIG_FILTER.ALERTS, alerts)
+                        .where(SAVED_GIG_FILTER.ID.eq(id))
+                        .and(SAVED_GIG_FILTER.USER_ID.eq(userId))
+                        .execute()
+                > 0;
+    }
+
+    /** Every filter whose owner wants alerts, with its owner (the new-gig alert pass). */
+    List<OwnedRow> withAlerts() {
+        return dsl.selectFrom(SAVED_GIG_FILTER)
+                .where(SAVED_GIG_FILTER.ALERTS.isTrue())
+                .orderBy(SAVED_GIG_FILTER.USER_ID, SAVED_GIG_FILTER.CREATED_AT, SAVED_GIG_FILTER.ID)
+                .fetch(r -> new OwnedRow(
+                        r.getUserId(),
+                        new Row(
+                                r.getId(),
+                                r.getName(),
+                                List.of(r.getArtistIds()),
+                                List.of(r.getVenueIds()),
+                                r.getGenre(),
+                                r.getQ(),
+                                r.getPlace(),
+                                r.getCityId(),
+                                true)));
+    }
+
+    record OwnedRow(UUID userId, Row row) {}
 
     /** Deletes the user's own filter; false when there is no such filter of theirs. */
     boolean delete(UUID userId, UUID id) {

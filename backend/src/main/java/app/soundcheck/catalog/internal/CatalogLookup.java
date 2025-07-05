@@ -36,6 +36,11 @@ class CatalogLookup implements Catalog {
     }
 
     @Override
+    public boolean venueExists(UUID venueId) {
+        return repository.venueExists(venueId);
+    }
+
+    @Override
     public Optional<GigFacts> gigFacts(UUID gigId) {
         return repository.gig(gigId, null).map(row -> {
             List<UUID> lineup = repository.lineups(List.of(gigId)).stream()

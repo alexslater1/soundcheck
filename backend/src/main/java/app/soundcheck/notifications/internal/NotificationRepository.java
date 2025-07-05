@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
@@ -27,7 +28,22 @@ class NotificationRepository {
             @Nullable UUID postId,
             @Nullable UUID commentId,
             Instant createdAt,
-            @Nullable Instant readAt) {}
+            @Nullable Instant readAt,
+            /** NEW_GIGS only: the snapshot of the new gigs, as JSON. */
+            @Nullable String gigs) {
+
+        Row(
+                UUID id,
+                UUID userId,
+                String type,
+                @Nullable UUID actorId,
+                @Nullable UUID postId,
+                @Nullable UUID commentId,
+                Instant createdAt,
+                @Nullable Instant readAt) {
+            this(id, userId, type, actorId, postId, commentId, createdAt, readAt, null);
+        }
+    }
 
     private final DSLContext dsl;
 
@@ -38,8 +54,9 @@ class NotificationRepository {
     /**
      * Adds a notification, unless a unique index says this event is already in the inbox (V012, V013):
      * one unread POST_LIKED per (user, post) and one unread NEW_FOLLOWER per (user, follower), so repeats
-     * collapse; one POST_COMMENTED per comment and one POST_READY / POST_FAILED per post, ever. That
-     * makes the listeners safe to run twice for one event.
+     * collapse; one POST_COMMENTED per comment and one POST_READY / POST_FAILED per post, ever. A NEW_GIGS
+     * row's id is its alert's id (the primary key). That makes the listeners safe to run twice for one
+     * event.
      *
      * @return true when a row was inserted
      */
@@ -52,6 +69,7 @@ class NotificationRepository {
                         .set(NOTIFICATION.POST_ID, row.postId())
                         .set(NOTIFICATION.COMMENT_ID, row.commentId())
                         .set(NOTIFICATION.CREATED_AT, at(row.createdAt()))
+                        .set(NOTIFICATION.GIGS, row.gigs() == null ? null : JSONB.valueOf(row.gigs()))
                         .onConflictDoNothing()
                         .execute()
                 == 1;
@@ -109,7 +127,10 @@ class NotificationRepository {
                 r.get(NOTIFICATION.CREATED_AT).toInstant(),
                 r.get(NOTIFICATION.READ_AT) == null
                         ? null
-                        : r.get(NOTIFICATION.READ_AT).toInstant());
+                        : r.get(NOTIFICATION.READ_AT).toInstant(),
+                r.get(NOTIFICATION.GIGS) == null
+                        ? null
+                        : r.get(NOTIFICATION.GIGS).data());
     }
 
     private static OffsetDateTime at(Instant instant) {

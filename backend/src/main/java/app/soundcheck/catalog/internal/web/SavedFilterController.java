@@ -23,6 +23,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -64,8 +65,16 @@ public class SavedFilterController {
                         body.genre(),
                         body.q(),
                         body.place(),
-                        body.cityId()));
+                        body.cityId(),
+                        body.alerts()));
         return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+    }
+
+    @PatchMapping("/{id}")
+    @Operation(operationId = "setGigFilterAlerts", summary = "Switch a saved gig search's new-gig alerts on or off")
+    public SavedGigFilter setAlerts(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody GigFilterAlertsRequest body) {
+        return filters.setAlerts(CatalogController.userId(jwt), id, body.alerts());
     }
 
     @DeleteMapping("/{id}")
@@ -83,5 +92,10 @@ public class SavedFilterController {
             @Schema(nullable = true) @Nullable @Size(max = 40) String genre,
             @Schema(nullable = true) @Nullable @Size(max = 80) String q,
             @NotNull PlaceKind place,
-            @Schema(nullable = true) @Nullable Integer cityId) {}
+            @Schema(nullable = true) @Nullable Integer cityId,
+
+            /** New gigs matching the search alert the viewer; null or absent: on. */
+            @Schema(nullable = true) @Nullable Boolean alerts) {}
+
+    public record GigFilterAlertsRequest(@NotNull Boolean alerts) {}
 }

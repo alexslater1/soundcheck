@@ -10,6 +10,8 @@ public interface Catalog {
 
     boolean gigExists(UUID gigId);
 
+    boolean venueExists(UUID venueId);
+
     /** A gig's date, place, acts and setlist.fm id, for looking it up elsewhere; empty if no such gig. */
     Optional<GigFacts> gigFacts(UUID gigId);
 }
