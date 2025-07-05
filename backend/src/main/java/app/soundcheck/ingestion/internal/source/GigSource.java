@@ -4,8 +4,9 @@ import java.time.Instant;
 import java.util.stream.Stream;
 
 /**
- * A place gigs come from: Ticketmaster, recorded fixtures, later Skiddle. An adapter
- * hides paging, rate limits and the source's JSON; the rest of ingestion only sees {@link SourceGig}s.
+ * A place gigs come from: Ticketmaster, venues' own websites (one VENUE
+ * source), recorded fixtures; Skiddle when its key arrives. An adapter hides paging, rate limits and the
+ * source's format; the rest of ingestion only sees {@link SourceGig}s.
  */
 public interface GigSource {
 
