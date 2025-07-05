@@ -10,7 +10,7 @@ import type { UpdateMeRequestBio } from './updateMeRequestBio';
 import type { UpdateMeRequestDisplayName } from './updateMeRequestDisplayName';
 import type { UpdateMeRequestHandle } from './updateMeRequestHandle';
 import type { UpdateMeRequestHomeCityId } from './updateMeRequestHomeCityId';
-import type { UpdateMeRequestShowGigStats } from './updateMeRequestShowGigStats';
+import type { UpdateMeRequestProfileVisibility } from './updateMeRequestProfileVisibility';
 
 export interface UpdateMeRequest {
   avatarMediaId?: UpdateMeRequestAvatarMediaId;
@@ -30,5 +30,5 @@ export interface UpdateMeRequest {
    */
   handle?: UpdateMeRequestHandle;
   homeCityId?: UpdateMeRequestHomeCityId;
-  showGigStats?: UpdateMeRequestShowGigStats;
+  profileVisibility?: UpdateMeRequestProfileVisibility;
 }

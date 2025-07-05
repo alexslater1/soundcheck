@@ -44,8 +44,8 @@ export const getMeResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string(),
-  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE']).describe('Who may see this user\'s posts, gig stats and gig history'),
+  "role": zod.string()
 })
 
 /**
@@ -66,7 +66,7 @@ export const updateMeBody = zod.object({
   "displayName": zod.string().min(1).max(updateMeBodyDisplayNameMax).nullish(),
   "handle": zod.string().min(updateMeBodyHandleMin).max(updateMeBodyHandleMax).nullish(),
   "homeCityId": zod.number().nullish(),
-  "showGigStats": zod.boolean().nullish()
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE']).nullish()
 })
 
 export const updateMeResponse = zod.object({
@@ -93,8 +93,8 @@ export const updateMeResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string(),
-  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE']).describe('Who may see this user\'s posts, gig stats and gig history'),
+  "role": zod.string()
 })
 
 /**
@@ -140,8 +140,8 @@ export const setMyGenresResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string(),
-  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE']).describe('Who may see this user\'s posts, gig stats and gig history'),
+  "role": zod.string()
 })
 
 /**
@@ -171,8 +171,8 @@ export const completeOnboardingResponse = zod.object({
 }).optional(),
   "id": zod.string().uuid(),
   "onboarded": zod.boolean(),
-  "role": zod.string(),
-  "showGigStats": zod.boolean().describe('Other users may see this user\'s gig stats')
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE']).describe('Who may see this user\'s posts, gig stats and gig history'),
+  "role": zod.string()
 })
 
 /**
@@ -185,6 +185,7 @@ export const getUserByHandleParams = zod.object({
 export const getUserByHandleResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "bio": zod.string().nullish(),
+  "contentVisible": zod.boolean(),
   "counts": zod.object({
   "followers": zod.number(),
   "following": zod.number(),
@@ -196,6 +197,6 @@ export const getUserByHandleResponse = zod.object({
   "id": zod.string().uuid(),
   "isBlocked": zod.boolean(),
   "isFollowing": zod.boolean(),
-  "statsVisible": zod.boolean()
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE'])
 })
 

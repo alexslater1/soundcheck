@@ -61,14 +61,14 @@ export function PrivacyScreen() {
       </Screen>
     );
   }
-  const shared = choice ?? me.showGigStats;
+  const shared = choice ?? me.profileVisibility === 'PUBLIC';
   const saving = choice !== null;
   const choose = async (show: boolean) => {
     if (saving || show === shared) return;
     setChoice(show);
     setFailed(false);
     try {
-      await updateMe({ data: { showGigStats: show } });
+      await updateMe({ data: { profileVisibility: show ? 'PUBLIC' : 'PRIVATE' } });
       await reloadMe();
     } catch {
       setFailed(true);

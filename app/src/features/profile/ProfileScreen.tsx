@@ -107,7 +107,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
         ) : (
           <>
             <UserPosts userId={user.id} />
-            {user.statsVisible ? <GigStatsSection userId={user.id} own={mine} /> : null}
+            {user.contentVisible ? <GigStatsSection userId={user.id} own={mine} /> : null}
           </>
         )}
       </ScrollView>

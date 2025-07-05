@@ -9,10 +9,12 @@ import type { ProfileResponseAvatarUrl } from './profileResponseAvatarUrl';
 import type { ProfileResponseBio } from './profileResponseBio';
 import type { Counts } from './counts';
 import type { ProfileResponseHomeCityName } from './profileResponseHomeCityName';
+import type { ProfileResponseProfileVisibility } from './profileResponseProfileVisibility';
 
 export interface ProfileResponse {
   avatarUrl?: ProfileResponseAvatarUrl;
   bio?: ProfileResponseBio;
+  contentVisible: boolean;
   counts: Counts;
   displayName: string;
   handle: string;
@@ -20,5 +22,5 @@ export interface ProfileResponse {
   id: string;
   isBlocked: boolean;
   isFollowing: boolean;
-  statsVisible: boolean;
+  profileVisibility: ProfileResponseProfileVisibility;
 }
