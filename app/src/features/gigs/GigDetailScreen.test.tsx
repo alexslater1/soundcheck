@@ -69,6 +69,7 @@ const DETAIL = {
   lineup: [KEO, CARDINALS],
   attendanceCounts: { interested: 0, going: 0, went: 3 },
   postsCount: 0,
+  privatePostsCount: 0,
   sources: [],
 };
 
@@ -221,6 +222,28 @@ describe('GigDetailScreen act bar', () => {
     await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
 
     expect(await screen.findByTestId('coverage-note')).toHaveTextContent(note);
+  });
+
+  it('counts the clips from private profiles the viewer cannot see, with no previews', async () => {
+    const routed = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input), 'http://x').pathname.endsWith('/gigs/g1')
+        ? json(200, { ...DETAIL, postsCount: 3, privatePostsCount: 3 })
+        : routed(input, init),
+    );
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+
+    expect(await screen.findByTestId('gig-private-clips')).toHaveTextContent(
+      '+3 clips from private profiles',
+    );
+    // Only private clips: the line takes the empty state's place.
+    expect(screen.queryByTestId('gig-no-clips')).toBeNull();
+  });
+
+  it('says nothing about private clips when there are none hidden', async () => {
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    expect(await screen.findByTestId('gig-no-clips')).toBeOnTheScreen();
+    expect(screen.queryByTestId('gig-private-clips')).toBeNull();
   });
 
   it('shows no note for a venue whose listings are read or listed', async () => {

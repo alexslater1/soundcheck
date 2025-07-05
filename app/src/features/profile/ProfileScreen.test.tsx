@@ -1,0 +1,93 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen } from '@testing-library/react-native';
+import type { PropsWithChildren } from 'react';
+
+import { useAuthStore } from '@/features/auth/store';
+import { ThemeProvider } from '@/theme/ThemeProvider';
+
+import { ProfileScreen } from './ProfileScreen';
+
+const mockProfile = jest.fn();
+const mockPosts = jest.fn();
+const mockStats = jest.fn((_props: unknown) => null);
+
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+jest.mock('@/api/generated/me/me', () => ({
+  useGetUserByHandle: (...args: unknown[]) => mockProfile(...args),
+  getGetUserByHandleQueryKey: (handle: string) => ['/api/v1/users', handle],
+}));
+jest.mock('@/api/generated/posts/posts', () => ({
+  useListUserPosts: (...args: unknown[]) => mockPosts(...args),
+}));
+jest.mock('@/api/generated/social/social', () => ({
+  blockUser: jest.fn(),
+  unblockUser: jest.fn(),
+}));
+jest.mock('./FollowUserButton', () => ({ FollowUserButton: () => null }));
+jest.mock('@/features/stats/GigStatsSection', () => ({
+  GigStatsSection: (props: unknown) => mockStats(props),
+}));
+jest.mock('@/features/posts/PostGrid', () => {
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const React = jest.requireActual<typeof import('react')>('react');
+  return {
+    PostGrid: ({ posts }: { posts: unknown[] }) =>
+      React.createElement(Text, { testID: 'post-grid' }, `${posts.length} clips`),
+  };
+});
+
+function Providers({ children }: PropsWithChildren) {
+  return (
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider>{children}</ThemeProvider>
+    </QueryClientProvider>
+  );
+}
+
+const profile = {
+  id: 'user-2',
+  handle: 'ben',
+  displayName: 'Ben',
+  avatarUrl: null,
+  bio: null,
+  homeCityName: null,
+  counts: { posts: 4, followers: 10, following: 3 },
+  isFollowing: true,
+  isBlocked: false,
+  profileVisibility: 'PRIVATE',
+  contentVisible: false,
+};
+
+describe('ProfileScreen (D25b private profiles)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    useAuthStore.setState({ me: { id: 'user-1' } as never });
+    mockPosts.mockReturnValue({ isPending: false, data: { items: [{ id: 'p1' }, { id: 'p2' }] } });
+  });
+
+  it('shows a private profile as private, with its counts, and never asks for its clips or stats', async () => {
+    mockProfile.mockReturnValue({ isPending: false, data: profile });
+    await render(<ProfileScreen handle="ben" />, { wrapper: Providers });
+
+    expect(screen.getByTestId('profile-private')).toHaveTextContent(/This profile is private/);
+    expect(screen.getByTestId('profile-private')).toHaveTextContent(/Only people @ben follows/);
+    expect(screen.getByText('4')).toBeTruthy(); // the posts count still shows
+    expect(mockPosts).not.toHaveBeenCalled();
+    expect(mockStats).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('post-grid')).toBeNull();
+  });
+
+  it('shows the clips and the stats when the viewer may see them', async () => {
+    mockProfile.mockReturnValue({
+      isPending: false,
+      data: { ...profile, profileVisibility: 'PUBLIC', contentVisible: true },
+    });
+    await render(<ProfileScreen handle="ben" />, { wrapper: Providers });
+
+    expect(screen.queryByTestId('profile-private')).toBeNull();
+    expect(screen.getByTestId('post-grid')).toHaveTextContent('2 clips');
+    expect(mockStats).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-2', own: false }),
+    );
+  });
+});

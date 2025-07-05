@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
@@ -14,17 +15,20 @@ import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { PostGrid } from '@/features/posts/PostGrid';
 import { GigStatsSection } from '@/features/stats/GigStatsSection';
+import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
 import { FollowUserButton } from './FollowUserButton';
 import { ProfileHeader } from './ProfileHeader';
 
 /**
- * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, their clips,
- * and their gig stats when they share them.
+ * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, then their clips
+ * and gig stats. A private profile whose owner does not follow the viewer shows only
+ * the header (name, picture, counts) and says it is private; its clips and stats are not even asked for.
  */
 export function ProfileScreen({ handle }: { handle: string }) {
   const client = useQueryClient();
+  const { colors } = useTheme();
   const myId = useAuthStore((state) => state.me?.id);
   const profile = useGetUserByHandle(handle);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -104,10 +108,19 @@ export function ProfileScreen({ handle }: { handle: string }) {
           <Text muted testID="profile-blocked">
             You have blocked this person. You do not see each other&apos;s clips or comments.
           </Text>
+        ) : !user.contentVisible ? (
+          <View style={styles.private} testID="profile-private">
+            <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
+            <Text variant="title">This profile is private</Text>
+            <Text muted style={styles.privateText}>
+              Only people @{user.handle} follows see their clips, gig stats and the gigs they went
+              to.
+            </Text>
+          </View>
         ) : (
           <>
             <UserPosts userId={user.id} />
-            {user.contentVisible ? <GigStatsSection userId={user.id} own={mine} /> : null}
+            <GigStatsSection userId={user.id} own={mine} />
           </>
         )}
       </ScrollView>
@@ -136,4 +149,6 @@ function UserPosts({ userId }: { userId: string }) {
 const styles = StyleSheet.create({
   gap: { gap: spacing.md, paddingBottom: spacing.xl },
   buttons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  private: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl },
+  privateText: { textAlign: 'center' },
 });

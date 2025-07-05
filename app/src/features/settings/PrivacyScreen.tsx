@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useUpdateMe } from '@/api/generated/me/me';
+import type { MeResponseProfileVisibility } from '@/api/generated/model';
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
@@ -39,10 +40,11 @@ const NOTICE: { title: string; body: string }[] = [
 ];
 
 /**
- * Settings → Privacy: whether other people see your gig stats on your profile (off until
- * the user turns it on: the stats come from the gigs marked Went, so they tell where someone was on
- * which nights; the choice shows at once, one save at a time, and is put back if saving fails), then
- * the privacy notice.
+ * Settings → Privacy: who sees your profile. Public (the default): everyone signed in sees
+ * your clips, gig stats and gig history. Private: only the people you follow do; everyone else sees your
+ * counts your clips without showing them. One switch for everything (it replaced a stats-only
+ * setting). The choice shows at once, one save at a time, and is put back if saving fails. Then the
+ * privacy notice.
  */
 export function PrivacyScreen() {
   const { colors } = useTheme();
@@ -51,7 +53,7 @@ export function PrivacyScreen() {
   const { mutateAsync: updateMe } = useUpdateMe();
   // The choice being saved, shown at once; null when nothing is being saved. One save at a time: the
   // chips wait while one is on its way, so the server always ends on the last choice made.
-  const [choice, setChoice] = useState<boolean | null>(null);
+  const [choice, setChoice] = useState<MeResponseProfileVisibility | null>(null);
   const [failed, setFailed] = useState(false);
 
   if (!me) {
@@ -61,14 +63,14 @@ export function PrivacyScreen() {
       </Screen>
     );
   }
-  const shared = choice ?? me.profileVisibility === 'PUBLIC';
+  const visibility = choice ?? me.profileVisibility;
   const saving = choice !== null;
-  const choose = async (show: boolean) => {
-    if (saving || show === shared) return;
-    setChoice(show);
+  const choose = async (next: MeResponseProfileVisibility) => {
+    if (saving || next === visibility) return;
+    setChoice(next);
     setFailed(false);
     try {
-      await updateMe({ data: { profileVisibility: show ? 'PUBLIC' : 'PRIVATE' } });
+      await updateMe({ data: { profileVisibility: next } });
       await reloadMe();
     } catch {
       setFailed(true);
@@ -80,26 +82,26 @@ export function PrivacyScreen() {
     <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <Text variant="label" muted>
-          WHO SEES YOUR GIG STATS
+          WHO SEES YOUR PROFILE
         </Text>
         <View style={styles.row} accessibilityRole="radiogroup">
           <Chip
-            label="Only me"
-            selected={!shared}
+            label="Everyone"
+            selected={visibility === 'PUBLIC'}
             disabled={saving}
-            onPress={() => void choose(false)}
+            onPress={() => void choose('PUBLIC')}
           />
           <Chip
-            label="Everyone"
-            selected={shared}
+            label="People I follow"
+            selected={visibility === 'PRIVATE'}
             disabled={saving}
-            onPress={() => void choose(true)}
+            onPress={() => void choose('PRIVATE')}
           />
         </View>
-        <Text variant="caption" muted testID="privacy-stats-detail">
-          {shared
-            ? 'Your profile shows the acts you have seen most and the venues you go back to, with their dates, to anyone signed in. People you block never see them.'
-            : 'Your stats are on your Me tab, for you only. They come from the gigs you mark as Went, so they show where you were and when.'}
+        <Text variant="caption" muted testID="privacy-profile-detail">
+          {visibility === 'PRIVATE'
+            ? 'Only people you follow see your clips, your gig stats and the gigs you went to. Everyone else sees your name and picture, and your clips stay out of their feeds. A gig page still counts your clips, without showing them or your name.'
+            : 'Anyone signed in sees your clips, your gig stats and the gigs you went to (they show where you were and when). People you block never do.'}
         </Text>
         {failed ? (
           <Text variant="caption" style={{ color: colors.danger }} testID="privacy-error">

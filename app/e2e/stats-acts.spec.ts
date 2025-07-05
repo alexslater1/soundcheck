@@ -99,7 +99,7 @@ test('Stats from Went gigs, the gigs behind a line, sharing, and the act bar on 
   await expect(acts.nth(0)).toContainText('2×');
   await expect(acts.nth(1)).toContainText(support);
   await expect(acts.nth(1)).toContainText('2 times on');
-  await expect(page.getByTestId('me-stats-privacy')).toContainText('Only you see your stats');
+  await expect(page.getByTestId('me-stats-privacy')).toContainText('Your profile is public');
 
   // A line opens the gigs behind it, newest first.
   await acts.nth(1).click();
@@ -109,21 +109,22 @@ test('Stats from Went gigs, the gigs behind a line, sharing, and the act bar on 
   await expect(gigs).toContainText(`Scala ${tag}`);
   await page.goBack();
 
-  // Nobody else sees them until they are shared.
+  // A public profile (the default, D25b) shows them to anyone signed in; a private one only to the
+  // people its owner follows.
   const other = await register(request, 'viewer');
   expect(
     (await request.get(`/api/v1/users/${fan.id}/stats`, { headers: other.auth })).status(),
-  ).toBe(403);
+  ).toBe(200);
   await page.getByTestId('me-stats-privacy').last().click();
-  await page.getByRole('radio', { name: 'Everyone' }).last().click();
-  await expect(page.getByTestId('privacy-stats-detail').last()).toContainText(
-    'to anyone signed in',
+  await page.getByRole('radio', { name: 'People I follow' }).last().click();
+  await expect(page.getByTestId('privacy-profile-detail').last()).toContainText(
+    'Only people you follow',
   );
   await expect
     .poll(async () =>
       (await request.get(`/api/v1/users/${fan.id}/stats`, { headers: other.auth })).status(),
     )
-    .toBe(200);
+    .toBe(403);
 
   // The two-act gig: a bar of the acts at the top; the support act gets its own part of the page.
   await page.goto(`/gig/${twoActs.id}`);

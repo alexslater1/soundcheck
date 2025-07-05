@@ -165,7 +165,7 @@ export function GigDetailScreen({ id }: { id: string }) {
             <Text variant="label" muted style={styles.heading}>
               CLIPS FROM THIS GIG
             </Text>
-            <GigClips gigId={id} />
+            <GigClips gigId={id} privateCount={data.privatePostsCount} />
           </>
         )}
       </ScrollView>
@@ -181,16 +181,19 @@ const styles = StyleSheet.create({
 
 /**
  * Clips people posted from this gig (the way to find someone to follow); with an act, only the clips
- * tagged with it.
+ * tagged with it. {@code privateCount}: clips of the whole night from private profiles the viewer may not
+ * see: only a count, so a busy night still looks busy, with no previews and no names.
  */
 function GigClips({
   gigId,
   artistId,
   actName,
+  privateCount = 0,
 }: {
   gigId: string;
   artistId?: string;
   actName?: string;
+  privateCount?: number;
 }) {
   const posts = useListGigPosts(gigId, { limit: 12, ...(artistId ? { artistId } : {}) });
   if (posts.isPending) {
@@ -199,14 +202,27 @@ function GigClips({
   if (!posts.data) {
     return <StateMessage title="Could not load clips" onRetry={() => void posts.refetch()} />;
   }
+  const privateLine =
+    privateCount > 0 ? (
+      <Text variant="caption" muted testID="gig-private-clips">
+        {`+${privateCount} ${privateCount === 1 ? 'clip' : 'clips'} from private profiles`}
+      </Text>
+    ) : null;
   if (posts.data.items.length === 0) {
     return (
-      <Text muted testID="gig-no-clips">
-        {actName
-          ? `No clips of ${actName} from this gig yet. Were you there? Share one from the Create tab.`
-          : 'No clips yet. Were you there? Share one from the Create tab.'}
-      </Text>
+      privateLine ?? (
+        <Text muted testID="gig-no-clips">
+          {actName
+            ? `No clips of ${actName} from this gig yet. Were you there? Share one from the Create tab.`
+            : 'No clips yet. Were you there? Share one from the Create tab.'}
+        </Text>
+      )
     );
   }
-  return <PostGrid posts={posts.data.items} />;
+  return (
+    <>
+      <PostGrid posts={posts.data.items} />
+      {privateLine}
+    </>
+  );
 }

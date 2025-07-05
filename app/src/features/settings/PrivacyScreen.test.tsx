@@ -26,13 +26,13 @@ const me = {
   displayName: 'Anna',
   genres: [],
   counts: { posts: 0, followers: 0, following: 0 },
-  showGigStats: false,
+  profileVisibility: 'PUBLIC',
 };
 
 // The line under the choice says which one is in force.
-const detail = () => screen.getByTestId('privacy-stats-detail');
+const detail = () => screen.getByTestId('privacy-profile-detail');
 
-describe('PrivacyScreen', () => {
+describe('PrivacyScreen (one switch for the whole profile)', () => {
   afterEach(() => {
     reloadMe.mockReset();
     useAuthStore.setState({ me: null });
@@ -45,28 +45,28 @@ describe('PrivacyScreen', () => {
     useAuthStore.setState({ me: me as never, reloadMe });
   });
 
-  it('starts private and shares the stats when Everyone is picked', async () => {
+  it('starts public and makes the profile private when People I follow is picked', async () => {
     fetchMock.mockResolvedValue(
-      new Response(JSON.stringify({ ...me, showGigStats: true }), {
+      new Response(JSON.stringify({ ...me, profileVisibility: 'PRIVATE' }), {
         status: 200,
         headers: { 'content-type': 'application/json' },
       }),
     );
     // Reloading the account brings the saved choice into the store, as the real store does.
     reloadMe.mockImplementationOnce(async () => {
-      useAuthStore.setState({ me: { ...me, showGigStats: true } as never });
+      useAuthStore.setState({ me: { ...me, profileVisibility: 'PRIVATE' } as never });
     });
     await render(<PrivacyScreen />, { wrapper: Providers });
-    expect(detail()).toHaveTextContent(/for you only/);
+    expect(detail()).toHaveTextContent(/Anyone signed in sees your clips/);
 
-    await fireEvent.press(screen.getByText('Everyone'));
+    await fireEvent.press(screen.getByText('People I follow'));
 
     await waitFor(() => expect(reloadMe).toHaveBeenCalled());
-    expect(detail()).toHaveTextContent(/to anyone signed in/);
+    expect(detail()).toHaveTextContent(/Only people you follow/);
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/v1/me');
     expect(init?.method).toBe('PATCH');
-    expect(JSON.parse(String(init?.body))).toEqual({ showGigStats: true });
+    expect(JSON.parse(String(init?.body))).toEqual({ profileVisibility: 'PRIVATE' });
   });
 
   it('shows the privacy notice: city only, clips without metadata, no trackers, the 7-day purge', async () => {
@@ -83,14 +83,14 @@ describe('PrivacyScreen', () => {
     fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finish = resolve)));
     await render(<PrivacyScreen />, { wrapper: Providers });
 
+    await fireEvent.press(screen.getByText('People I follow'));
     await fireEvent.press(screen.getByText('Everyone'));
-    await fireEvent.press(screen.getByText('Only me'));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(detail()).toHaveTextContent(/to anyone signed in/);
+    expect(detail()).toHaveTextContent(/Only people you follow/);
     await act(async () =>
       finish(
-        new Response(JSON.stringify({ ...me, showGigStats: true }), {
+        new Response(JSON.stringify({ ...me, profileVisibility: 'PRIVATE' }), {
           status: 200,
           headers: { 'content-type': 'application/json' },
         }),
@@ -108,10 +108,10 @@ describe('PrivacyScreen', () => {
     );
     await render(<PrivacyScreen />, { wrapper: Providers });
 
-    await fireEvent.press(screen.getByText('Everyone'));
+    await fireEvent.press(screen.getByText('People I follow'));
 
     await waitFor(() => expect(screen.getByTestId('privacy-error')).toBeOnTheScreen());
-    expect(detail()).toHaveTextContent(/for you only/);
+    expect(detail()).toHaveTextContent(/Anyone signed in sees your clips/);
     expect(reloadMe).not.toHaveBeenCalled();
   });
 });
