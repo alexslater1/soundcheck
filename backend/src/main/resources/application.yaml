@@ -77,6 +77,9 @@ soundcheck:
       audience: soundcheck-app
       access-ttl: 15m
       refresh-ttl: 30d
+      # A rotated refresh token may be presented again this long after its rotation, if the token that
+      # replaced it was never presented: the answer was lost on the way.
+      refresh-grace: 60s
   rate-limit:
     # Auth limits (Bucket4j, per API instance).
     auth:

@@ -57,6 +57,12 @@ public class RefreshTokenRepository {
                 .fetchOptional(RefreshTokenRepository::toRow);
     }
 
+    public Optional<Row> findById(UUID id) {
+        return dsl.selectFrom(REFRESH_TOKEN)
+                .where(REFRESH_TOKEN.ID.eq(id))
+                .fetchOptional(RefreshTokenRepository::toRow);
+    }
+
     /**
      * Marks one token used/revoked and, for rotation, which token replaced it. Returns the number of
      * rows updated: 0 means another request rotated this token first (concurrent reuse).
@@ -67,6 +73,17 @@ public class RefreshTokenRepository {
                 .set(REFRESH_TOKEN.REPLACED_BY, replacedBy)
                 .where(REFRESH_TOKEN.ID.eq(id))
                 .and(REFRESH_TOKEN.REVOKED_AT.isNull())
+                .execute();
+    }
+
+    /**
+     * Points an already-rotated token at a new successor (its answer was lost and it was presented
+     * again). Its {@code revoked_at} stays the time of the first rotation, so the grace period does not grow.
+     */
+    public int replaceSuccessor(UUID id, UUID replacedBy) {
+        return dsl.update(REFRESH_TOKEN)
+                .set(REFRESH_TOKEN.REPLACED_BY, replacedBy)
+                .where(REFRESH_TOKEN.ID.eq(id))
                 .execute();
     }
 
