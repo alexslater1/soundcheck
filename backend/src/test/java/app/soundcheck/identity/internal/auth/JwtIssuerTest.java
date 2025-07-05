@@ -21,7 +21,13 @@ class JwtIssuerTest {
     static final Instant T0 = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
 
     static final AuthProperties.Jwt SETTINGS = new AuthProperties.Jwt(
-            null, null, "soundcheck", "soundcheck-app", Duration.ofMinutes(15), Duration.ofDays(30));
+            null,
+            null,
+            "soundcheck",
+            "soundcheck-app",
+            Duration.ofMinutes(15),
+            Duration.ofDays(30),
+            Duration.ofSeconds(60));
 
     final JwtKeys keys = JwtKeys.generate();
     final UUID userId = UUID.randomUUID();
@@ -68,7 +74,13 @@ class JwtIssuerTest {
     @Test
     void tokensForAnotherAudienceOrIssuerAreRejected() {
         AuthProperties.Jwt other = new AuthProperties.Jwt(
-                null, null, "soundcheck", "another-app", Duration.ofMinutes(15), Duration.ofDays(30));
+                null,
+                null,
+                "soundcheck",
+                "another-app",
+                Duration.ofMinutes(15),
+                Duration.ofDays(30),
+                Duration.ofSeconds(60));
         String token = new JwtIssuer(keys, other, Clock.systemUTC())
                 .issue(userId, "USER")
                 .token();
@@ -78,7 +90,13 @@ class JwtIssuerTest {
                 .hasMessageContaining("aud");
 
         AuthProperties.Jwt otherIssuer = new AuthProperties.Jwt(
-                null, null, "someone-else", "soundcheck-app", Duration.ofMinutes(15), Duration.ofDays(30));
+                null,
+                null,
+                "someone-else",
+                "soundcheck-app",
+                Duration.ofMinutes(15),
+                Duration.ofDays(30),
+                Duration.ofSeconds(60));
         String token2 = new JwtIssuer(keys, otherIssuer, Clock.systemUTC())
                 .issue(userId, "USER")
                 .token();

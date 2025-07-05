@@ -20,17 +20,25 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import org.jspecify.annotations.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Register / login / refresh / logout. Refresh tokens rotate on every
- * use within a {@code family}; presenting an already-used token revokes the whole family (likely theft).
+ * use within a {@code family}; presenting an already-used token revokes the whole family (likely theft),
+ * unless its answer was simply lost on the way.
  */
 @Service
 @Transactional
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
+
+    /** How many simultaneous retries of one lost answer are sorted out before it counts as reuse. */
+    static final int LOST_ANSWER_RETRIES = 3;
 
     public static final Pattern HANDLE = Pattern.compile("^[a-z0-9_]{3,30}$");
     public static final Set<String> RESERVED_HANDLES = Set.of(
@@ -163,23 +171,72 @@ public class AuthService {
                 .findByHash(hash(rawRefreshToken))
                 .orElseThrow(() -> ApiException.unauthorized("REFRESH_INVALID", "Refresh token is not valid"));
         if (presented.revoked()) {
-            refreshTokens.revokeFamily(presented.familyId(), now);
-            throw ApiException.unauthorized("REFRESH_REUSED", "Refresh token was already used; sign in again");
+            return presentedAgain(presented, client, userAgent, now);
         }
         if (!presented.expiresAt().isAfter(now)) {
             throw ApiException.unauthorized("REFRESH_EXPIRED", "Refresh token has expired; sign in again");
         }
-        UserRecord user = users.findById(presented.userId())
-                .filter(u -> !u.deleted())
-                .orElseThrow(() -> ApiException.unauthorized("REFRESH_INVALID", "Refresh token is not valid"));
+        UserRecord user = activeUser(presented);
         UUID newId = Ids.newId();
         // Atomic conditional update: if two requests race with the same token, exactly one wins the
-        // rotation; the loser is treated as reuse (family revoked), closing the race the SELECT alone leaves.
+        // rotation; the other finds the token rotated a moment ago and follows the rule for a token
+        // presented again, closing the race the SELECT alone leaves.
         if (refreshTokens.revoke(presented.id(), newId, now) == 0) {
-            refreshTokens.revokeFamily(presented.familyId(), now);
-            throw ApiException.unauthorized("REFRESH_REUSED", "Refresh token was already used; sign in again");
+            return presentedAgain(refreshTokens.findById(presented.id()).orElseThrow(), client, userAgent, now);
         }
         return startSession(user, presented.familyId(), newId, client, userAgent, now);
+    }
+
+    /**
+     * A token presented after it was rotated. If its answer may simply have been lost on the way
+     * — it was rotated less than {@code refresh-grace} ago, and the token that replaced it has never been
+     * presented — that unused successor is revoked and a new one issued in the same family, and the
+     * presented token now points at it (so a second lost answer can be asked for again within the same
+     * period, which runs from the first rotation). Anything else is reuse, likely theft: the whole family
+     * is revoked. A successor that was presented means a second holder of the family; a token
+     * revoked without a successor was signed out (logout, reuse, account deletion), which is final.
+     */
+    private Session presentedAgain(
+            RefreshTokenRepository.Row presented, String client, @Nullable String userAgent, Instant now) {
+        RefreshTokenRepository.Row current = presented;
+        for (int attempt = 0; attempt < LOST_ANSWER_RETRIES; attempt++) {
+            UUID successor = current.replacedBy();
+            Instant rotatedAt = current.revokedAt();
+            if (successor == null || rotatedAt == null || rotatedAt.isBefore(now.minus(settings.refreshGrace()))) {
+                break;
+            }
+            UUID newId = Ids.newId();
+            // Conditional: only a successor nobody has presented can be replaced.
+            if (refreshTokens.revoke(successor, null, now) == 1) {
+                refreshTokens.replaceSuccessor(current.id(), newId);
+                log.info(
+                        "Refresh token of family {} presented again {} ms after its rotation; its answer was lost, rotated again",
+                        current.familyId(),
+                        Duration.between(rotatedAt, now).toMillis());
+                return startSession(activeUser(current), current.familyId(), newId, client, userAgent, now);
+            }
+            // The successor is gone. If a simultaneous retry of this same token replaced it, this token now
+            // points at that retry's token: look again. If it is still the same successor, it was presented.
+            RefreshTokenRepository.Row reread =
+                    refreshTokens.findById(current.id()).orElseThrow();
+            if (successor.equals(reread.replacedBy())) {
+                break;
+            }
+            current = reread;
+        }
+        refreshTokens.revokeFamily(presented.familyId(), now);
+        log.warn(
+                "Refresh token reuse: family {} of user {} revoked (rotated at {})",
+                presented.familyId(),
+                presented.userId(),
+                presented.revokedAt());
+        throw ApiException.unauthorized("REFRESH_REUSED", "Refresh token was already used; sign in again");
+    }
+
+    private UserRecord activeUser(RefreshTokenRepository.Row token) {
+        return users.findById(token.userId())
+                .filter(u -> !u.deleted())
+                .orElseThrow(() -> ApiException.unauthorized("REFRESH_INVALID", "Refresh token is not valid"));
     }
 
     /** Revokes the presented token's whole family; silent when the token is unknown. */

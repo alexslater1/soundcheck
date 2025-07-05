@@ -6,7 +6,8 @@ import { env } from '@/lib/env';
  * The orval mutator: every generated API call goes through `customFetch`. It prefixes the
  * base URL, attaches the access token and the `X-Client` hint, maps RFC 9457 Problem Details to a typed
  * `ApiError`, and on 401 refreshes the session **single-flight** (one refresh in progress; concurrent
- * 401s wait for it) and retries the original request once.
+ * 401s wait for it) and retries the original request once. A token that has already run
+ * out (the app was in the background) is refreshed before the request leaves.
  */
 
 /** RFC 9457 Problem Details as the API emits them. */
@@ -65,9 +66,21 @@ export function clientKind(): ClientKind {
   return Platform.OS === 'web' ? 'web' : 'android';
 }
 
-type TokenProvider = () => string | null | Promise<string | null>;
-/** Performs one refresh and returns the new access token, or null when the session is gone. */
+/** The access token in memory, and when it stops working by this device's clock (ms since the epoch). */
+export type AccessToken = { token: string; expiresAt?: number };
+type TokenProvider = () => AccessToken | null | Promise<AccessToken | null>;
+/**
+ * Performs one refresh. Resolves with the new access token, or null when the session is over (the server
+ * refused the refresh token). **Rejects** when the server could not be asked or did not answer (no
+ * network, a 5xx, still rate-limited): the session is kept and the next request tries again.
+ */
 type RefreshHandler = () => Promise<string | null>;
+
+/**
+ * A token with less than this left is refreshed before a request is sent, so that a request does not
+ * leave with a token that dies on the way (and every screen does not collect a 401 after a long pause).
+ */
+export const EXPIRY_MARGIN_MS = 30_000;
 
 let accessTokenProvider: TokenProvider = () => null;
 let refreshHandler: RefreshHandler | null = null;
@@ -84,18 +97,18 @@ export function setRefreshHandler(handler: RefreshHandler | null): void {
   refreshInFlight = null;
 }
 
-/** Single-flight: every caller during a refresh awaits the same promise. */
+/**
+ * Single-flight: every caller during a refresh awaits the same promise, and gets the same answer (a
+ * rejection too). Two refreshes with one refresh token would be reuse to the server, which ends the
+ * session (`RefreshRaceIT`), so nothing in the app may refresh except through here.
+ */
 export function refreshOnce(): Promise<string | null> {
   if (!refreshHandler) {
     return Promise.resolve(null);
   }
-  if (!refreshInFlight) {
-    refreshInFlight = refreshHandler()
-      .catch(() => null)
-      .finally(() => {
-        refreshInFlight = null;
-      });
-  }
+  refreshInFlight ??= refreshHandler().finally(() => {
+    refreshInFlight = null;
+  });
   return refreshInFlight;
 }
 
@@ -112,13 +125,27 @@ export type FetchOptions = RequestInit & {
 
 export async function customFetch<T>(url: string, init: FetchOptions = {}): Promise<T> {
   const { skipRefresh, ...requestInit } = init;
-  const token = await accessTokenProvider();
+  const canRefresh = !skipRefresh && refreshHandler !== null;
+  const access = await accessTokenProvider();
+  let token = access?.token ?? null;
+  // Back from the background with a token that has run out: one refresh for every request waiting,
+  // before any is sent. If it cannot reach the server, its error is this request's error.
+  if (
+    canRefresh &&
+    access?.expiresAt !== undefined &&
+    Date.now() >= access.expiresAt - EXPIRY_MARGIN_MS
+  ) {
+    token = await refreshOnce();
+  }
   let response = await send(url, requestInit, token);
 
-  if (response.status === 401 && !skipRefresh && refreshHandler) {
-    const fresh = await refreshOnce();
-    if (fresh) {
-      response = await send(url, requestInit, fresh);
+  if (response.status === 401 && canRefresh) {
+    // Another request may have refreshed while this one was on its way: retry with that token rather
+    // than rotating the refresh token again.
+    const latest = (await accessTokenProvider())?.token ?? null;
+    const retryWith = latest !== null && latest !== token ? latest : await refreshOnce();
+    if (retryWith) {
+      response = await send(url, requestInit, retryWith);
     }
   }
 

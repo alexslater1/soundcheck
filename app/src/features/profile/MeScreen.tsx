@@ -49,12 +49,17 @@ export function MeScreen() {
     },
   );
   const refetch = posts.refetch;
+  // A background reload that fails (offline, or the session just ended) keeps the profile on screen;
+  // it must not escape as an unhandled rejection.
+  const reloadProfile = useCallback(() => {
+    reloadMe().catch(() => undefined);
+  }, [reloadMe]);
   // Coming back from the Create tab, or from a post: counts and the grid may have changed.
   useFocusEffect(
     useCallback(() => {
-      void reloadMe();
+      reloadProfile();
       void refetch();
-    }, [reloadMe, refetch]),
+    }, [reloadProfile, refetch]),
   );
 
   // Posts created from this device: the moment an upload becomes a post (it happens in the background,
@@ -73,9 +78,9 @@ export function MeScreen() {
   useEffect(() => {
     if (posted !== '') {
       void refetch();
-      void reloadMe();
+      reloadProfile();
     }
-  }, [posted, refetch, reloadMe]);
+  }, [posted, refetch, reloadProfile]);
 
   if (!me) {
     return (

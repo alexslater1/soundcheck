@@ -37,7 +37,7 @@ describe('customFetch', () => {
   });
 
   it('attaches the access token when one is available', async () => {
-    setAccessTokenProvider(async () => 'jwt-123');
+    setAccessTokenProvider(async () => ({ token: 'jwt-123' }));
     fetchMock.mockResolvedValue(jsonResponse(200, {}));
 
     await customFetch('/api/v1/me');

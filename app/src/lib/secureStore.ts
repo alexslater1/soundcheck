@@ -8,13 +8,13 @@ import { Platform } from 'react-native';
 const REFRESH_TOKEN_KEY = 'soundcheck.refreshToken';
 
 export const refreshTokenStore = {
+  /**
+   * The stored token, or null when there is none. Rejects when the store cannot be read (a Keystore
+   * error): that is not the same as "signed out", so the caller keeps the session.
+   */
   async get(): Promise<string | null> {
     if (Platform.OS === 'web') return null;
-    try {
-      return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
-    } catch {
-      return null;
-    }
+    return SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
   },
   async set(token: string | null): Promise<void> {
     if (Platform.OS === 'web') return;

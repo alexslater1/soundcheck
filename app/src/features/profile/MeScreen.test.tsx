@@ -79,4 +79,30 @@ describe('MeScreen', () => {
     );
     expect(screen.getByTestId('me-no-posts')).toBeTruthy();
   });
+
+  it('a profile reload that fails in the background leaves no unhandled rejection', async () => {
+    const unhandled: unknown[] = [];
+    const onUnhandled = (reason: unknown) => unhandled.push(reason);
+    process.on('unhandledRejection', onUnhandled);
+    useAuthStore.setState({
+      reloadMe: jest.fn(async () => {
+        throw new Error('Authentication required');
+      }),
+    });
+    try {
+      await render(
+        <ThemeProvider>
+          <MeScreen />
+        </ThemeProvider>,
+      );
+      // Unhandled rejections are reported after the microtask queue drains.
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    } finally {
+      process.off('unhandledRejection', onUnhandled);
+    }
+
+    expect(unhandled).toEqual([]);
+    // The profile already on screen stays.
+    expect(screen.getByText('Anna')).toBeTruthy();
+  });
 });

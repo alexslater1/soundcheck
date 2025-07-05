@@ -8,6 +8,14 @@ const rows: Row[] = [
   ['unknown on auth', { status: 'unknown', onboarded: undefined, group: '(auth)' }, null],
   ['unknown at the root', { status: 'unknown', onboarded: undefined, group: undefined }, null],
 
+  // Could not reach the server at start: not signed out, so never the sign-in screen.
+  ['unreachable on tabs', { status: 'unreachable', onboarded: undefined, group: '(tabs)' }, null],
+  [
+    'unreachable at the root',
+    { status: 'unreachable', onboarded: undefined, group: undefined },
+    null,
+  ],
+
   // Signed out: everything except the auth screens goes to sign-in.
   [
     'signed out on tabs',
