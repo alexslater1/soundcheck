@@ -75,6 +75,11 @@ describe('ProfileScreen (D25b private profiles)', () => {
     expect(mockPosts).not.toHaveBeenCalled();
     expect(mockStats).not.toHaveBeenCalled();
     expect(screen.queryByTestId('post-grid')).toBeNull();
+    // The follower and following counts show, but the lists do not open.
+    expect(screen.getByTestId('followers-count')).toHaveTextContent('10');
+    expect(screen.getByTestId('following-count')).toHaveTextContent('3');
+    expect(screen.queryByRole('link', { name: '10 followers' })).toBeNull();
+    expect(screen.queryByRole('link', { name: '3 following' })).toBeNull();
   });
 
   it('shows the clips and the stats when the viewer may see them', async () => {
@@ -89,5 +94,7 @@ describe('ProfileScreen (D25b private profiles)', () => {
     expect(mockStats).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-2', own: false }),
     );
+    expect(screen.getByRole('link', { name: '10 followers' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: '3 following' })).toBeTruthy();
   });
 });

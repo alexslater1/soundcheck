@@ -97,6 +97,7 @@ public class UserGraphService implements SocialGraph {
     @Transactional(readOnly = true)
     public Page<UserSummary> followers(UUID viewerId, UUID userId, @Nullable String cursor, @Nullable Integer limit) {
         visibleTo(viewerId, userId);
+        listsVisibleTo(viewerId, userId);
         int size = limit(limit);
         return page(viewerId, graph.followers(userId, Cursor.decode(cursor), size), size);
     }
@@ -104,6 +105,7 @@ public class UserGraphService implements SocialGraph {
     @Transactional(readOnly = true)
     public Page<UserSummary> following(UUID viewerId, UUID userId, @Nullable String cursor, @Nullable Integer limit) {
         visibleTo(viewerId, userId);
+        listsVisibleTo(viewerId, userId);
         int size = limit(limit);
         return page(viewerId, graph.following(userId, Cursor.decode(cursor), size), size);
     }
@@ -129,6 +131,18 @@ public class UserGraphService implements SocialGraph {
     private void visibleTo(UUID viewerId, UUID userId) {
         if (!users.exists(userId) || graph.hasBlocked(userId, viewerId)) {
             throw notFound();
+        }
+    }
+
+    /**
+     * A private profile's follower and following lists are for its owner and the people the owner follows,
+     * like its posts and stats. The counts stay on the profile.
+     */
+    private void listsVisibleTo(UUID viewerId, UUID userId) {
+        if (!viewerId.equals(userId)
+                && users.privateAmong(List.of(userId)).contains(userId)
+                && !graph.followedAmong(userId, List.of(viewerId)).contains(viewerId)) {
+            throw ApiException.forbidden("PROFILE_PRIVATE", "This profile is private");
         }
     }
 

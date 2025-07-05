@@ -120,6 +120,15 @@ class ProfilePrivacyIT extends IntegrationTest {
                     api.get("/api/v1/users/" + owner.id() + "/stats/gigs", outsider),
                     HttpStatus.FORBIDDEN,
                     "PROFILE_PRIVATE");
+            // Who the owner follows and who follows them are private too; the counts stay.
+            assertProblem(
+                    api.get("/api/v1/users/" + owner.id() + "/followers", outsider),
+                    HttpStatus.FORBIDDEN,
+                    "PROFILE_PRIVATE");
+            assertProblem(
+                    api.get("/api/v1/users/" + owner.id() + "/following", outsider),
+                    HttpStatus.FORBIDDEN,
+                    "PROFILE_PRIVATE");
         }
 
         // The friend (followed by the owner) and the owner see it all.
@@ -133,7 +142,25 @@ class ProfilePrivacyIT extends IntegrationTest {
             assertThat(ok(api.get("/api/v1/users/" + owner.id() + "/stats", insider))
                             .has("totals"))
                     .isTrue();
+            assertThat(ids(ok(api.get("/api/v1/users/" + owner.id() + "/followers", insider))))
+                    .containsExactly(fan.id().toString());
+            assertThat(ids(ok(api.get("/api/v1/users/" + owner.id() + "/following", insider))))
+                    .containsExactly(friend.id().toString());
         }
+    }
+
+    @Test
+    void aPrivateProfilesCommentsUnderPublicPostsStayVisible() {
+        String comment = ok(api.post("/api/v1/posts/" + publicClip + "/comments", Map.of("body", "same night!"), owner))
+                .path("id")
+                .asText("");
+        makePrivate();
+
+        // A comment belongs to the post's conversation, so the switch does not reach it.
+        JsonNode comments = ok(api.get("/api/v1/posts/" + publicClip + "/comments", stranger));
+        assertThat(ids(comments)).containsExactly(comment);
+        assertThat(comments.path("items").path(0).path("author").path("id").asText(""))
+                .isEqualTo(owner.id().toString());
     }
 
     @Test

@@ -14,6 +14,8 @@ type Props = PropsWithChildren<{
   bio?: string | null;
   detail?: string | null;
   counts: { posts: number; followers: number; following: number };
+  /** False for a private profile the viewer may not see: the counts show, the lists do not open. */
+  listsOpen?: boolean;
 }>;
 
 /** The top of a profile (one's own or someone else's): avatar, names, bio, counts; children are the buttons. */
@@ -24,6 +26,7 @@ export function ProfileHeader({
   bio,
   detail,
   counts,
+  listsOpen = true,
   children,
 }: Props) {
   const { colors } = useTheme();
@@ -48,16 +51,31 @@ export function ProfileHeader({
       ) : null}
       <View style={styles.counts}>
         <Count label="Posts" value={counts.posts} />
-        <Link href={{ pathname: '/u/[handle]/followers', params: { handle } }} asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`${counts.followers} followers`}>
+        {listsOpen ? (
+          <>
+            <Link href={{ pathname: '/u/[handle]/followers', params: { handle } }} asChild>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`${counts.followers} followers`}
+              >
+                <Count label="Followers" value={counts.followers} testID="followers-count" />
+              </Pressable>
+            </Link>
+            <Link href={{ pathname: '/u/[handle]/following', params: { handle } }} asChild>
+              <Pressable
+                accessibilityRole="link"
+                accessibilityLabel={`${counts.following} following`}
+              >
+                <Count label="Following" value={counts.following} testID="following-count" />
+              </Pressable>
+            </Link>
+          </>
+        ) : (
+          <>
             <Count label="Followers" value={counts.followers} testID="followers-count" />
-          </Pressable>
-        </Link>
-        <Link href={{ pathname: '/u/[handle]/following', params: { handle } }} asChild>
-          <Pressable accessibilityRole="link" accessibilityLabel={`${counts.following} following`}>
-            <Count label="Following" value={counts.following} />
-          </Pressable>
-        </Link>
+            <Count label="Following" value={counts.following} testID="following-count" />
+          </>
+        )}
       </View>
       {children}
     </View>

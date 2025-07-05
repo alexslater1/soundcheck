@@ -67,6 +67,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
           bio={user.bio}
           detail={user.homeCityName}
           counts={user.counts}
+          listsOpen={user.contentVisible}
         >
           {mine ? null : (
             <View style={styles.buttons}>
@@ -113,8 +114,8 @@ export function ProfileScreen({ handle }: { handle: string }) {
             <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
             <Text variant="title">This profile is private</Text>
             <Text muted style={styles.privateText}>
-              Only people @{user.handle} follows see their clips, gig stats and the gigs they went
-              to.
+              Only people @{user.handle} follows see their clips, gig stats, the gigs they went to
+              and who they follow.
             </Text>
           </View>
         ) : (
