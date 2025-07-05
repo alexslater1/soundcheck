@@ -11,6 +11,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +61,11 @@ public class UsersApi implements Users {
         return users.findByHandle(handle.strip().toLowerCase(Locale.ROOT))
                 .filter(u -> !u.deleted())
                 .map(UserRecord::id);
+    }
+
+    @Override
+    public Set<UUID> privateAmong(Collection<UUID> userIds) {
+        return users.privateAmong(userIds);
     }
 
     @Override

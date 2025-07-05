@@ -94,6 +94,18 @@ class UserGraphRepository {
                 .fetch(USER_FOLLOW.FOLLOWEE_ID));
     }
 
+    /** Which of the users follow {@code userId}. Expected index: the user_follow primary key. */
+    Set<UUID> followersAmong(UUID userId, Collection<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(dsl.select(USER_FOLLOW.FOLLOWER_ID)
+                .from(USER_FOLLOW)
+                .where(USER_FOLLOW.FOLLOWEE_ID.eq(userId))
+                .and(USER_FOLLOW.FOLLOWER_ID.in(userIds))
+                .fetch(USER_FOLLOW.FOLLOWER_ID));
+    }
+
     /**
      * Whom the viewer follows, the most recent {@link #MAX_FOLLOWEES} follows at most (the Following
      * feed passes these ids to content as one list). Expected index: the user_follow primary key.

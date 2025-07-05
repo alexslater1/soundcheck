@@ -232,6 +232,16 @@ public class PostRepository {
         return dsl.fetchCount(POST, POST.GIG_ID.eq(gigId).and(POST.STATUS.eq("PUBLISHED")));
     }
 
+    /** A gig's published posts, counted per author. Expected index: post_gig_pub (partial, PUBLISHED). */
+    public Map<UUID, Long> countPublishedAtByAuthor(UUID gigId) {
+        return dsl.select(POST.AUTHOR_ID, DSL.count())
+                .from(POST)
+                .where(POST.GIG_ID.eq(gigId))
+                .and(POST.STATUS.eq("PUBLISHED"))
+                .groupBy(POST.AUTHOR_ID)
+                .fetchMap(r -> r.value1(), r -> (long) r.value2());
+    }
+
     public long countPublished(UUID authorId) {
         return dsl.fetchCount(POST, POST.AUTHOR_ID.eq(authorId).and(POST.STATUS.eq("PUBLISHED")));
     }

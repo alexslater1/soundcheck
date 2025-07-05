@@ -25,8 +25,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * A profile's stats section: acts seen and venues visited, counted from the gigs the user
- * marked WENT, and the gigs behind each line. Visible to the owner, and to others when the owner shares
- * them ({@code PATCH /me {showGigStats}}).
+ * marked WENT, and the gigs behind each line. Visible as the profile's other content is: to everyone
+ * on a public profile, and on a private one ({@code PATCH /me {profileVisibility}}) to the people its owner
+ * follows; always to the owner.
  */
 @ConditionalOnRole(Roles.API)
 @RestController

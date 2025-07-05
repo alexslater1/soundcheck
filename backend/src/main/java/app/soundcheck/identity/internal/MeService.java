@@ -3,6 +3,7 @@ package app.soundcheck.identity.internal;
 import app.soundcheck.catalog.City;
 import app.soundcheck.catalog.ReferenceData;
 import app.soundcheck.identity.ProfileFacts;
+import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.identity.UserDeleted;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
@@ -35,23 +36,20 @@ public class MeService {
     static final int MIN_GENRES = 1;
     static final int MAX_GENRES = 8;
 
-    /**
-     * Everything {@code GET /me} shows; counts are zero until social/content exist.
-     * {@code showGigStats}: the user shares their gig stats with other users.
-     */
+    /** Everything {@code GET /me} shows; counts are zero until social/content exist. */
     public record Me(
             UserRecord user,
             @Nullable City homeCity,
             List<UserRepository.GenrePreference> genres,
             @Nullable String avatarUrl,
-            ProfileFacts.Counts counts,
-            boolean showGigStats) {}
+            ProfileFacts.Counts counts) {}
 
     /**
-     * Someone's public profile as a particular viewer sees it. {@code statsVisible}: the viewer may see
-     * the owner's gig stats (their own, or someone who shares them).
+     * Someone's profile as a particular viewer sees it. {@code contentVisible}: the viewer may see the
+     * owner's posts, gig stats and gig history (D25b, {@link #contentVisible}); {@code privateHidden}: the
+     * profile is private and its owner does not follow the viewer, so only name, avatar and counts show.
      */
-    public record Profile(Me user, ProfileFacts.Relation relation, boolean statsVisible) {}
+    public record Profile(Me user, ProfileFacts.Relation relation, boolean contentVisible, boolean privateHidden) {}
 
     /** As {@code PasswordPolicy.MAX_LENGTH} at sign-up and login. */
     static final int MAX_PASSWORD_LENGTH = 128;
@@ -104,13 +102,7 @@ public class MeService {
     @Transactional(readOnly = true)
     public Me me(UUID userId) {
         UserRecord user = current(userId);
-        return new Me(
-                user,
-                city(user.homeCityId()),
-                users.genres(userId),
-                avatarUrl(userId),
-                facts.counts(userId),
-                user.showGigStats());
+        return new Me(user, city(user.homeCityId()), users.genres(userId), avatarUrl(userId), facts.counts(userId));
     }
 
     private @Nullable String avatarUrl(UUID userId) {
@@ -126,26 +118,36 @@ public class MeService {
         return users.findByHandle(handle.strip().toLowerCase(Locale.ROOT))
                 .filter(u -> !u.deleted())
                 .map(u -> {
-                    boolean shows = u.showGigStats();
                     Me user = new Me(
-                            u,
-                            city(u.homeCityId()),
-                            users.genres(u.id()),
-                            avatarUrl(u.id()),
-                            facts.counts(u.id()),
-                            shows);
+                            u, city(u.homeCityId()), users.genres(u.id()), avatarUrl(u.id()), facts.counts(u.id()));
                     ProfileFacts.Relation relation = facts.relation(viewerId, u.id());
-                    return new Profile(user, relation, statsVisible(viewerId, u.id(), shows, relation));
+                    return new Profile(
+                            user,
+                            relation,
+                            contentVisible(viewerId, u, relation),
+                            hiddenByPrivacy(viewerId, u, relation));
                 })
                 .filter(p -> !p.relation().blockedBy());
     }
 
     /**
-     * Gig stats are shown to their owner, and to anyone else only when the owner shares them and neither
-     * has blocked the other: they tell where someone was on which nights.
+     * A profile's posts, gig stats and gig history: always to their owner; to anyone else
+     * only with no block either way, and, for a private profile, only to someone the owner follows. (A
+     * profile whose owner blocked the viewer is not shown at all; this also covers the viewer's own block.)
      */
-    static boolean statsVisible(UUID viewerId, UUID ownerId, boolean shared, ProfileFacts.Relation relation) {
-        return viewerId.equals(ownerId) || (shared && !relation.blocked() && !relation.blockedBy());
+    static boolean contentVisible(UUID viewerId, UserRecord owner, ProfileFacts.Relation relation) {
+        if (viewerId.equals(owner.id())) {
+            return true;
+        }
+        if (relation.blocked() || relation.blockedBy()) {
+            return false;
+        }
+        return !owner.privateProfile() || relation.followedBy();
+    }
+
+    /** True when the profile is private and the viewer is not someone its owner follows (nor the owner). */
+    static boolean hiddenByPrivacy(UUID viewerId, UserRecord owner, ProfileFacts.Relation relation) {
+        return !viewerId.equals(owner.id()) && owner.privateProfile() && !relation.followedBy();
     }
 
     public Me update(
@@ -155,7 +157,7 @@ public class MeService {
             @Nullable String handle,
             @Nullable Integer homeCityId,
             @Nullable UUID avatarMediaId,
-            @Nullable Boolean showGigStats) {
+            @Nullable ProfileVisibility profileVisibility) {
         UserRecord user = current(userId);
         if (avatarMediaId != null && !images.readyImageOwnedBy(avatarMediaId, userId)) {
             // Not an image, not ready, or somebody else's: one answer for all three, so ids cannot be probed.
@@ -195,8 +197,8 @@ public class MeService {
         if (avatarMediaId != null) {
             users.setAvatar(userId, avatarMediaId, Instant.now(clock));
         }
-        if (showGigStats != null) {
-            users.setShowGigStats(userId, showGigStats, Instant.now(clock));
+        if (profileVisibility != null) {
+            users.setProfileVisibility(userId, profileVisibility, Instant.now(clock));
         }
         return me(userId);
     }

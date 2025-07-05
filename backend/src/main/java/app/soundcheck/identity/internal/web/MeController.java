@@ -2,6 +2,7 @@ package app.soundcheck.identity.internal.web;
 
 import app.soundcheck.catalog.City;
 import app.soundcheck.identity.ProfileFacts;
+import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.identity.internal.MeService;
 import app.soundcheck.identity.internal.UserRecord;
 import app.soundcheck.identity.internal.UserRepository;
@@ -62,7 +63,7 @@ public class MeController {
                 body.handle(),
                 body.homeCityId(),
                 body.avatarMediaId(),
-                body.showGigStats()));
+                body.profileVisibility()));
     }
 
     @PutMapping("/me/genres")
@@ -113,8 +114,11 @@ public class MeController {
             /** A READY image the caller uploaded; null leaves the avatar as it is. */
             @Schema(nullable = true) UUID avatarMediaId,
 
-            /** Let other users see the gig stats on this profile; null leaves it as it is. */
-            @Schema(nullable = true) Boolean showGigStats) {}
+            /**
+             * Who may see this profile's posts, gig stats and gig history; null leaves
+             * it as it is.
+             */
+            @Schema(nullable = true) ProfileVisibility profileVisibility) {}
 
     public record GenreChoice(
             @NotNull @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(32767) Integer genreId,
@@ -151,7 +155,8 @@ public class MeController {
             String role,
             boolean onboarded,
             Counts counts,
-            @Schema(description = "Other users may see this user's gig stats") boolean showGigStats) {
+            @Schema(description = "Who may see this user's posts, gig stats and gig history")
+                    ProfileVisibility profileVisibility) {
 
         static MeResponse from(MeService.Me m) {
             UserRecord u = m.user();
@@ -169,14 +174,16 @@ public class MeController {
                     u.role(),
                     u.onboardedAt() != null,
                     Counts.from(m.counts()),
-                    m.showGigStats());
+                    u.profileVisibility());
         }
     }
 
     /**
-     * Public profile: no email, role or onboarding state. {@code isFollowing} and {@code isBlocked} are
-     * the viewer's own relation to this user (a profile whose owner blocked the viewer is a 404).
-     * {@code statsVisible}: the viewer may load this user's gig stats (their own, or shared by the owner).
+     * Someone's profile: no email, role or onboarding state. {@code isFollowing} and {@code isBlocked}
+     * are the viewer's own relation to this user (a profile whose owner blocked the viewer is a 404).
+     * {@code contentVisible}: the viewer may load this user's posts, gig stats and gig history. A
+     * private profile whose owner does not follow the viewer shows only its name, avatar and counts: bio
+     * and home city are left out too.
      */
     public record ProfileResponse(
             UUID id,
@@ -188,22 +195,25 @@ public class MeController {
             Counts counts,
             boolean isFollowing,
             boolean isBlocked,
-            boolean statsVisible) {
+            ProfileVisibility profileVisibility,
+            boolean contentVisible) {
 
         static ProfileResponse from(MeService.Profile profile) {
             MeService.Me m = profile.user();
             UserRecord u = m.user();
+            boolean limited = profile.privateHidden();
             return new ProfileResponse(
                     u.id(),
                     u.handle(),
                     u.displayName(),
                     m.avatarUrl(),
-                    u.bio(),
-                    m.homeCity() == null ? null : m.homeCity().name(),
+                    limited ? null : u.bio(),
+                    limited || m.homeCity() == null ? null : m.homeCity().name(),
                     Counts.from(m.counts()),
                     profile.relation().following(),
                     profile.relation().blocked(),
-                    profile.statsVisible());
+                    u.profileVisibility(),
+                    profile.contentVisible());
         }
     }
 }

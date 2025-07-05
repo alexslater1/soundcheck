@@ -31,18 +31,27 @@ class PostAssembler {
     private final CatalogViews catalog;
     private final MediaLibrary media;
     private final SocialGraph social;
+    private final AuthorVisibility visibility;
 
-    PostAssembler(PostRepository posts, Users users, CatalogViews catalog, MediaLibrary media, SocialGraph social) {
+    PostAssembler(
+            PostRepository posts,
+            Users users,
+            CatalogViews catalog,
+            MediaLibrary media,
+            SocialGraph social,
+            AuthorVisibility visibility) {
         this.posts = posts;
         this.users = users;
         this.catalog = catalog;
         this.media = media;
         this.social = social;
+        this.visibility = visibility;
     }
 
     /**
-     * Posts in the order of {@code rows}. Left out: a post whose author's account is gone, and a post by
-     * someone with a block between them and the viewer (blocks are enforced in reads).
+     * Posts in the order of {@code rows}. Left out: a post whose author's account is gone, a post by
+     * someone with a block between them and the viewer (blocks are enforced in reads), and a
+     * post by a private profile whose owner does not follow the viewer (D25b, {@link AuthorVisibility}).
      */
     List<Post> assemble(UUID viewerId, List<PostRow> rows) {
         if (rows.isEmpty()) {
@@ -67,12 +76,13 @@ class PostAssembler {
         Set<UUID> liked = posts.likedBy(viewerId, postIds);
         Set<UUID> followed = social.followedAmong(viewerId, authors.keySet());
         Set<UUID> blocked = social.blockedAmong(viewerId, authors.keySet());
+        Set<UUID> hidden = visibility.hiddenAmong(viewerId, authors.keySet());
 
         List<Post> result = new ArrayList<>();
         for (PostRow row : rows) {
             UserSummary author = authors.get(row.authorId());
             Playback playback = playbacks.get(row.mediaId());
-            if (author == null || playback == null || blocked.contains(author.id())) {
+            if (author == null || playback == null || blocked.contains(author.id()) || hidden.contains(author.id())) {
                 continue;
             }
             result.add(new Post(

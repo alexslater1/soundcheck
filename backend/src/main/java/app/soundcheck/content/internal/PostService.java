@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import org.jspecify.annotations.Nullable;
@@ -65,6 +66,7 @@ public class PostService implements PostFeed {
     private final CatalogViews catalogViews;
     private final Users users;
     private final SocialGraph social;
+    private final AuthorVisibility visibility;
     private final IdempotencyKeys idempotency;
     private final ApplicationEventPublisher events;
     private final JsonMapper json;
@@ -78,10 +80,12 @@ public class PostService implements PostFeed {
             CatalogViews catalogViews,
             Users users,
             SocialGraph social,
+            AuthorVisibility visibility,
             IdempotencyKeys idempotency,
             ApplicationEventPublisher events,
             JsonMapper json,
             Clock clock) {
+        this.visibility = visibility;
         this.posts = posts;
         this.assembler = assembler;
         this.media = media;
@@ -285,6 +289,10 @@ public class PostService implements PostFeed {
         if (!users.exists(authorId) || social.hasBlocked(authorId, viewerId)) {
             throw ApiException.notFound("USER_NOT_FOUND", "No such user");
         }
+        // A private profile's grid is for the people its owner follows, as its stats are.
+        if (visibility.hidden(viewerId, authorId)) {
+            throw ApiException.forbidden("PROFILE_PRIVATE", "This profile is private");
+        }
         return publishedPage(viewerId, PostRepository.Scope.author(authorId), cursor, limit);
     }
 
@@ -325,7 +333,11 @@ public class PostService implements PostFeed {
     @Transactional(readOnly = true)
     public Page<Post> byAuthors(
             UUID viewerId, Collection<UUID> authorIds, @Nullable String cursor, @Nullable Integer limit) {
-        return visiblePage(viewerId, cursor, limit, (from, size) -> posts.byAuthors(authorIds, viewerId, from, size));
+        // Private profiles that do not follow the viewer are left out before the query: the
+        // assembler would drop their posts anyway, but then each page would be refilled again and again.
+        Set<UUID> hidden = visibility.hiddenAmong(viewerId, authorIds);
+        List<UUID> shown = authorIds.stream().filter(id -> !hidden.contains(id)).toList();
+        return visiblePage(viewerId, cursor, limit, (from, size) -> posts.byAuthors(shown, viewerId, from, size));
     }
 
     @Override

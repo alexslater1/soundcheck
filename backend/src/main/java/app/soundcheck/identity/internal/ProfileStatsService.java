@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * The stats section of a profile. Identity owns the profile and the owner's choice to share
- * it, so it decides who may look; the catalog, which owns attendance, does the counting.
+ * The stats section of a profile. Identity owns the profile and its visibility, so it
+ * decides who may look; the catalog, which owns attendance, does the counting.
  */
 @Service
 @Transactional(readOnly = true)
@@ -53,7 +53,8 @@ public class ProfileStatsService {
 
     /**
      * 404 when there is no such live user or they blocked the viewer (as for the profile itself);
-     * 403 {@code STATS_HIDDEN} when the profile is there but its stats are not shared with the viewer.
+     * 403 {@code PROFILE_PRIVATE} when the profile is private and its owner does not follow the viewer
+     *; 403 {@code STATS_HIDDEN} when the viewer has blocked the owner.
      */
     private void requireVisible(UUID viewerId, UUID userId) {
         UserRecord owner = users.findById(userId).filter(u -> !u.deleted()).orElse(null);
@@ -61,8 +62,11 @@ public class ProfileStatsService {
         if (owner == null || relation.blockedBy()) {
             throw ApiException.notFound("USER_NOT_FOUND", "No user " + userId);
         }
-        if (!MeService.statsVisible(viewerId, userId, owner.showGigStats(), relation)) {
-            throw ApiException.forbidden("STATS_HIDDEN", "This user does not share their gig stats");
+        if (MeService.hiddenByPrivacy(viewerId, owner, relation)) {
+            throw ApiException.forbidden("PROFILE_PRIVATE", "This profile is private");
+        }
+        if (!MeService.contentVisible(viewerId, owner, relation)) {
+            throw ApiException.forbidden("STATS_HIDDEN", "You have blocked this user");
         }
     }
 }
