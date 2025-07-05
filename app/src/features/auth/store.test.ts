@@ -1,6 +1,8 @@
+import { ApiError, customFetch, refreshOnce } from '@/api/http';
 import { queryClient } from '@/api/queryClient';
+import { refreshTokenStore } from '@/lib/secureStore';
 
-import { REFRESH_ATTEMPTS, refreshSession, useAuthStore } from './store';
+import { BOOTSTRAP_ATTEMPTS, REFRESH_ATTEMPTS, refreshSession, useAuthStore } from './store';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 
@@ -38,26 +40,50 @@ afterEach(() => {
 beforeEach(() => {
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
-  useAuthStore.setState({ status: 'unknown', accessToken: null, me: null });
+  // Forgets the refresh token the previous test's session kept in memory.
+  useAuthStore.getState().clear();
+  useAuthStore.setState({
+    status: 'unknown',
+    accessToken: null,
+    accessTokenExpiresAt: null,
+    me: null,
+  });
 });
 
+/** Answers /auth/refresh with `refresh` and everything else (/me) with the profile. */
+function serveRefresh(refresh: () => Response | Promise<Response>): void {
+  fetchMock.mockImplementation(async (url) =>
+    String(url).endsWith('/auth/refresh') ? refresh() : json(200, me),
+  );
+}
+
+function refreshCalls(): string[] {
+  return fetchMock.mock.calls
+    .filter((c) => String(c[0]).endsWith('/auth/refresh'))
+    .map((c) => (JSON.parse(String(c[1]?.body)) as { refreshToken: string }).refreshToken);
+}
+
 describe('auth store', () => {
-  it('bootstrap ends signed out (not stuck) when /me fails after a refresh', async () => {
-    const { refreshTokenStore } =
-      jest.requireActual<typeof import('@/lib/secureStore')>('@/lib/secureStore');
+  it('bootstrap ends unreachable (not stuck, not signed out) when /me cannot be loaded after a refresh', async () => {
+    jest.useFakeTimers();
     jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    const saved = jest.spyOn(refreshTokenStore, 'set');
     fetchMock.mockImplementation(async (url) =>
       String(url).endsWith('/auth/refresh')
         ? json(200, session)
         : Promise.reject(new TypeError('offline')),
     );
 
-    await useAuthStore.getState().bootstrap();
+    const started = useAuthStore.getState().bootstrap();
+    await jest.runAllTimersAsync();
+    await started;
+    jest.useRealTimers();
 
-    expect(useAuthStore.getState().status).toBe('signedOut');
+    expect(useAuthStore.getState().status).toBe('unreachable');
+    expect(saved).not.toHaveBeenCalledWith(null);
   });
 
-  it('signIn stores the access token in memory and loads /me', async () => {
+  it('signIn stores the access token in memory, with when it runs out, and loads /me', async () => {
     fetchMock.mockImplementation(async (url) =>
       String(url).endsWith('/auth/login') ? json(200, session) : json(200, me),
     );
@@ -67,6 +93,8 @@ describe('auth store', () => {
     const state = useAuthStore.getState();
     expect(state.status).toBe('signedIn');
     expect(state.accessToken).toBe('access-1');
+    expect(state.accessTokenExpiresAt).toBeGreaterThan(Date.now() + 890_000);
+    expect(state.accessTokenExpiresAt).toBeLessThanOrEqual(Date.now() + 900_000);
     expect(state.me?.handle).toBe('fan');
     // /me carried the bearer token; the login call did not.
     const meCall = fetchMock.mock.calls.find((c) => String(c[0]).endsWith('/me'));
@@ -88,9 +116,10 @@ describe('auth store', () => {
 
   it('refreshSession clears the session when the refresh token is gone', async () => {
     useAuthStore.setState({ status: 'signedIn', accessToken: 'stale', me: me as never });
-    // Android with no stored refresh token: no request is even attempted.
+    // Android with no refresh token in memory or stored: nothing can ever renew this session, and no
+    // request is even attempted.
     expect(await refreshSession()).toBeNull();
-    expect(useAuthStore.getState().status).toBe('signedIn');
+    expect(useAuthStore.getState().status).toBe('signedOut');
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -167,16 +196,16 @@ describe('a rate-limited refresh', () => {
     expect(useAuthStore.getState().me?.handle).toBe('fan');
   });
 
-  it(`gives up after ${REFRESH_ATTEMPTS} rate-limited attempts`, async () => {
+  it(`stops after ${REFRESH_ATTEMPTS} rate-limited attempts but keeps the session`, async () => {
     serve([limited('1'), limited('1'), limited('1')]);
     useAuthStore.setState({ status: 'signedIn', accessToken: 'stale', me: me as never });
 
-    const result = refreshSession();
+    const result = refreshSession().catch((e: unknown) => e);
     await jest.advanceTimersByTimeAsync(2_000);
 
-    await expect(result).resolves.toBeNull();
+    expect(await result).toMatchObject({ status: 429 });
     expect(fetchMock).toHaveBeenCalledTimes(REFRESH_ATTEMPTS);
-    expect(useAuthStore.getState().status).toBe('signedOut');
+    expect(useAuthStore.getState().status).toBe('signedIn');
   });
 
   it('still ends the session at once on a 401', async () => {
@@ -187,5 +216,181 @@ describe('a rate-limited refresh', () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(useAuthStore.getState().status).toBe('signedOut');
+  });
+});
+
+describe('signed out only when the server refuses the refresh token', () => {
+  beforeEach(() => {
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    useAuthStore.setState({ status: 'signedIn', accessToken: 'stale', me: me as never });
+  });
+
+  it.each([
+    [
+      'no network (the phone just woke up)',
+      () => Promise.reject(new TypeError('Network request failed')),
+    ],
+    ['a 502 from the edge while the API restarts', () => json(502, { status: 502 })],
+    ['a 503', () => json(503, { status: 503, code: 'UNAVAILABLE' })],
+    ['a 500', () => json(500, { status: 500, code: 'INTERNAL' })],
+  ])('%s keeps the session and its refresh token', async (_name, answer) => {
+    serveRefresh(answer as () => Promise<Response>);
+    const saved = jest.spyOn(refreshTokenStore, 'set');
+
+    const error = await refreshSession().catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(ApiError);
+    const state = useAuthStore.getState();
+    expect(state.status).toBe('signedIn');
+    expect(state.me?.handle).toBe('fan');
+    expect(saved).not.toHaveBeenCalled();
+  });
+
+  it.each(['REFRESH_INVALID', 'REFRESH_REUSED', 'REFRESH_EXPIRED', 'REFRESH_MISSING'])(
+    'a 401 %s ends it',
+    async (code) => {
+      serveRefresh(() => json(401, { status: 401, code }));
+
+      await expect(refreshSession()).resolves.toBeNull();
+
+      expect(useAuthStore.getState().status).toBe('signedOut');
+    },
+  );
+
+  it('a request whose refresh cannot reach the server fails with that error and leaves the user signed in', async () => {
+    fetchMock.mockImplementation(async (url) =>
+      String(url).endsWith('/auth/refresh')
+        ? Promise.reject(new TypeError('Network request failed'))
+        : json(401, { status: 401, code: 'UNAUTHENTICATED' }),
+    );
+
+    const error = await customFetch('/api/v1/me').catch((e: unknown) => e);
+
+    expect(error).toMatchObject({ code: 'NETWORK_ERROR' });
+    expect(useAuthStore.getState().status).toBe('signedIn');
+  });
+});
+
+describe('one refresh at a time, with the newest refresh token', () => {
+  it('bootstrap shares its refresh with a request that got a 401 at the same moment', async () => {
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    let answer: () => void = () => {};
+    const answered = new Promise<void>((resolve) => (answer = resolve));
+    fetchMock.mockImplementation(async (url, init) => {
+      if (String(url).endsWith('/auth/refresh')) {
+        await answered;
+        return json(200, session);
+      }
+      return new Headers(init?.headers).get('Authorization') === 'Bearer access-1'
+        ? json(200, me)
+        : json(401, { status: 401, code: 'UNAUTHENTICATED' });
+    });
+
+    const started = useAuthStore.getState().bootstrap();
+    const request = customFetch('/api/v1/notifications');
+    await new Promise((r) => setTimeout(r, 0));
+    answer();
+    await Promise.all([started, request]);
+
+    // Two refreshes with one token would be reuse: the server revokes the family (RefreshRaceIT).
+    expect(refreshCalls()).toEqual(['refresh-1']);
+    expect(useAuthStore.getState().status).toBe('signedIn');
+  });
+
+  it('sends the newest refresh token even when the secure store failed to save it', async () => {
+    // A store that keeps the first token whatever is written to it.
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    jest.spyOn(refreshTokenStore, 'set').mockResolvedValue(undefined);
+    let n = 0;
+    serveRefresh(() => {
+      n += 1;
+      return json(200, {
+        ...session,
+        accessToken: `access-${n + 1}`,
+        refreshToken: `refresh-${n + 1}`,
+      });
+    });
+
+    await refreshOnce();
+    await refreshOnce();
+
+    // Sending refresh-1 twice would be reuse, and the end of the session.
+    expect(refreshCalls()).toEqual(['refresh-1', 'refresh-2']);
+  });
+
+  it('a secure store that cannot be read in the middle of a session does not end it', async () => {
+    fetchMock.mockImplementation(async (url) =>
+      String(url).endsWith('/auth/login') ? json(200, session) : json(200, me),
+    );
+    await useAuthStore.getState().signIn('fan@example.com', 'correct horse battery');
+    jest.spyOn(refreshTokenStore, 'get').mockRejectedValue(new Error('Keystore busy'));
+    serveRefresh(() =>
+      json(200, { ...session, accessToken: 'access-2', refreshToken: 'refresh-2' }),
+    );
+
+    await expect(refreshSession()).resolves.toBe('access-2');
+    expect(refreshCalls()).toEqual(['refresh-1']);
+  });
+});
+
+describe('starting the app without the server', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  async function bootstrap(): Promise<void> {
+    const started = useAuthStore.getState().bootstrap();
+    await jest.runAllTimersAsync();
+    await started;
+  }
+
+  it(`tries ${BOOTSTRAP_ATTEMPTS} times, then says it cannot connect and keeps the refresh token; trying again signs in`, async () => {
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    const saved = jest.spyOn(refreshTokenStore, 'set');
+    serveRefresh(() => Promise.reject(new TypeError('Network request failed')));
+
+    await bootstrap();
+
+    expect(useAuthStore.getState().status).toBe('unreachable');
+    expect(refreshCalls()).toHaveLength(BOOTSTRAP_ATTEMPTS);
+    expect(saved).not.toHaveBeenCalledWith(null);
+
+    serveRefresh(() => json(200, session));
+    await bootstrap();
+
+    expect(useAuthStore.getState().status).toBe('signedIn');
+    expect(useAuthStore.getState().me?.handle).toBe('fan');
+  });
+
+  it('a secure store that cannot be read at start is not a sign-out', async () => {
+    jest.spyOn(refreshTokenStore, 'get').mockRejectedValue(new Error('Keystore busy'));
+
+    await bootstrap();
+
+    expect(useAuthStore.getState().status).toBe('unreachable');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('nothing stored is a plain signed-out start, with no request', async () => {
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue(null);
+
+    await bootstrap();
+
+    expect(useAuthStore.getState().status).toBe('signedOut');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('a refused refresh token at start is a signed-out start', async () => {
+    jest.spyOn(refreshTokenStore, 'get').mockResolvedValue('refresh-1');
+    serveRefresh(() => json(401, { status: 401, code: 'REFRESH_EXPIRED' }));
+
+    await bootstrap();
+
+    expect(useAuthStore.getState().status).toBe('signedOut');
+    expect(refreshCalls()).toHaveLength(1);
   });
 });
