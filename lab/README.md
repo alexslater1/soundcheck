@@ -38,8 +38,9 @@ changeovers of 25 min or more, the first set before 21:00, the last from 20:30; 
 no set times); otherwise the whole bill, since support acts matter; festival clips get no act. Posts are
 spread over each gig's attendee personas.
 
-The demo fan's own steps: its gig stats are shared (`PATCH /me {"showGigStats": true}`, checked on every
-run, ), and once my gigs are in it follows the 15 acts it has seen most, read from its own
+The demo fan's own steps: its profile is public, so its gig stats show (profiles are public by default;
+the seed only undoes a private switch with `PATCH /me {"profileVisibility": "PUBLIC"}`, checked on every
+run), and once my gigs are in it follows the 15 acts it has seen most, read from its own
 stats (without gigs it follows popular artists of its genres, like the personas).
 
 The acceptance check ("`make reset && make up && make seed-demo` in under 15 minutes") holds only with
