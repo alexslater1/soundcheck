@@ -123,11 +123,11 @@ def accounts(
     done = state.section("profiles")
     for persona in people:
         me = api.get(persona, "/api/v1/me")
-        if persona is DEMO and not me.get("showGigStats"):
-            # The demo profile shows its stats (everyone's are private until shared). Checked
-            # on every run, so an account seeded before this step, or after `make reset`, gets it
-            api.patch(persona, "/api/v1/me", {"showGigStats": True})
-            log("demo fan: gig stats shared")
+        if persona is DEMO and me.get("profileVisibility") == "PRIVATE":
+            # The demo profile shows its stats. Profiles are public by default,
+            # so this only undoes a private switch made by hand; checked on every run.
+            api.patch(persona, "/api/v1/me", {"profileVisibility": "PUBLIC"})
+            log("demo fan: profile made public again")
         if done.get(persona.handle) == me["id"] and me["onboarded"] and me.get("avatarUrl"):
             continue
         if persona.city not in cities:

@@ -1,4 +1,4 @@
-"""The demo fan's own steps: stats shared and follows of the acts it has seen most."""
+"""The demo fan's steps: a public profile and follows of its most-seen acts."""
 
 import json
 from pathlib import Path
@@ -25,12 +25,12 @@ class FakeApi:
         acts: list[dict[str, Any]],
         popular: list[str],
         following: set[str] | None = None,
-        share: bool = False,
+        visibility: str = "PUBLIC",
     ) -> None:
         self.acts = acts
         self.popular = popular
         self.following = following or set()
-        self.share = share
+        self.visibility = visibility
         self.calls: list[tuple[str, str]] = []
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
@@ -43,8 +43,14 @@ class FakeApi:
             return httpx.Response(200, json=[])
         if path == "/api/v1/me":
             if method == "PATCH":
-                self.share = json.loads(request.content).get("showGigStats", self.share)
-            me = {"id": "demo-id", "onboarded": True, "avatarUrl": "a", "showGigStats": self.share}
+                body = json.loads(request.content)
+                self.visibility = body.get("profileVisibility", self.visibility)
+            me = {
+                "id": "demo-id",
+                "onboarded": True,
+                "avatarUrl": "a",
+                "profileVisibility": self.visibility,
+            }
             return httpx.Response(200, json=me)
         if path == "/api/v1/users/demo-id/stats":
             totals = {"gigs": sum(a["times"] for a in self.acts), "acts": len(self.acts)}
@@ -139,16 +145,17 @@ def test_the_follows_step_no_longer_gives_the_demo_fan_popular_artists(tmp_path:
     assert not [c for c in server.calls if c[1].startswith("/api/v1/artists")]
 
 
-def test_the_demo_fans_stats_are_shared_even_when_its_account_is_already_seeded(
+def test_the_demo_fans_profile_stays_public_and_a_private_switch_is_undone(
     tmp_path: Path,
 ) -> None:
-    server = FakeApi([], popular=[])
     state = run.State.load(tmp_path / "state.json")
     state.section("profiles")[DEMO.handle] = "demo-id"  # already seeded
-    run.accounts(client(server), [DEMO], state, tmp_path, lambda _: None)
-    assert server.share is True
-    assert server.writes() == [("PATCH", "/api/v1/me")]
 
-    server.calls.clear()  # already shared: nothing to send
-    run.accounts(client(server), [DEMO], state, tmp_path, lambda _: None)
-    assert server.writes() == []
+    public = FakeApi([], popular=[])  # the default: nothing to send
+    run.accounts(client(public), [DEMO], state, tmp_path, lambda _: None)
+    assert public.writes() == []
+
+    private = FakeApi([], popular=[], visibility="PRIVATE")  # made private by hand
+    run.accounts(client(private), [DEMO], state, tmp_path, lambda _: None)
+    assert private.visibility == "PUBLIC"
+    assert private.writes() == [("PATCH", "/api/v1/me")]
