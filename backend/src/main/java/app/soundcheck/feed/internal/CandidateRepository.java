@@ -1,6 +1,7 @@
 package app.soundcheck.feed.internal;
 
 import static app.soundcheck.shared.jooq.feed.Tables.ARTIST_GENRE;
+import static app.soundcheck.shared.jooq.feed.Tables.FOLLOW_EDGE;
 import static app.soundcheck.shared.jooq.feed.Tables.GIG_PLACE;
 import static app.soundcheck.shared.jooq.feed.Tables.POST_CANDIDATE;
 import static app.soundcheck.shared.jooq.feed.Tables.POST_ENGAGER;
@@ -78,7 +79,8 @@ public class CandidateRepository {
      * keeps all its sources (they explain it later).
      *
      * <p>Every branch applies the same filters: a servable post (the view), not the viewer's own, no
-     * block with its author, not hidden by the viewer.
+     * block with its author, not hidden by the viewer, and not by a private profile unless its owner
+     * follows the viewer (the view's {@code author_private} and {@code follow_edge}).
      */
     public List<Candidate> candidates(UserContext viewer, RankingConfig.Params params, Instant now) {
         // Engagement per post over the last week, and over the last 48 hours.
@@ -88,7 +90,14 @@ public class CandidateRepository {
                 .AUTHOR_ID
                 .ne(viewer.userId())
                 .and(POST_CANDIDATE.AUTHOR_ID.ne(DSL.all(uuids(viewer.blocked()))))
-                .and(POST_CANDIDATE.POST_ID.ne(DSL.all(uuids(viewer.hidden()))));
+                .and(POST_CANDIDATE.POST_ID.ne(DSL.all(uuids(viewer.hidden()))))
+                .and(POST_CANDIDATE
+                        .AUTHOR_PRIVATE
+                        .isFalse()
+                        .or(DSL.exists(DSL.selectOne()
+                                .from(FOLLOW_EDGE)
+                                .where(FOLLOW_EDGE.FOLLOWER_ID.eq(POST_CANDIDATE.AUTHOR_ID))
+                                .and(FOLLOW_EDGE.FOLLOWEE_ID.eq(viewer.userId())))));
 
         List<Select<Record5<UUID, UUID, UUID, OffsetDateTime, String>>> generators = new ArrayList<>();
 

@@ -683,6 +683,10 @@
             "format" : "int64",
             "type" : "integer"
           },
+          "privatePostsCount" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "sources" : {
             "items" : {
               "$ref" : "#/components/schemas/SourceLink"
@@ -690,7 +694,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "attendanceCounts", "gig", "lineup", "postsCount", "sources" ],
+        "required" : [ "attendanceCounts", "gig", "lineup", "postsCount", "privatePostsCount", "sources" ],
         "type" : "object"
       },
       "GigFilterAlertsRequest" : {
@@ -939,15 +943,16 @@
           "onboarded" : {
             "type" : "boolean"
           },
-          "role" : {
+          "profileVisibility" : {
+            "description" : "Who may see this user's posts, gig stats and gig history",
+            "enum" : [ "PUBLIC", "PRIVATE" ],
             "type" : "string"
           },
-          "showGigStats" : {
-            "description" : "Other users may see this user's gig stats",
-            "type" : "boolean"
+          "role" : {
+            "type" : "string"
           }
         },
-        "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "role", "showGigStats" ],
+        "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "profileVisibility", "role" ],
         "type" : "object"
       },
       "NamedArtist" : {
@@ -1342,6 +1347,9 @@
           "bio" : {
             "type" : [ "string", "null" ]
           },
+          "contentVisible" : {
+            "type" : "boolean"
+          },
           "counts" : {
             "$ref" : "#/components/schemas/Counts"
           },
@@ -1364,11 +1372,12 @@
           "isFollowing" : {
             "type" : "boolean"
           },
-          "statsVisible" : {
-            "type" : "boolean"
+          "profileVisibility" : {
+            "enum" : [ "PUBLIC", "PRIVATE" ],
+            "type" : "string"
           }
         },
-        "required" : [ "counts", "displayName", "handle", "id", "isBlocked", "isFollowing", "statsVisible" ],
+        "required" : [ "contentVisible", "counts", "displayName", "handle", "id", "isBlocked", "isFollowing", "profileVisibility" ],
         "type" : "object"
       },
       "ReadRequest" : {
@@ -1795,8 +1804,9 @@
             "format" : "int32",
             "type" : [ "integer", "null" ]
           },
-          "showGigStats" : {
-            "type" : [ "boolean", "null" ]
+          "profileVisibility" : {
+            "enum" : [ "PUBLIC", "PRIVATE" ],
+            "type" : [ "string", "null" ]
           }
         },
         "type" : "object"

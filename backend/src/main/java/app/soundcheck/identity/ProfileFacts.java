@@ -19,6 +19,7 @@ public interface ProfileFacts {
      * @param following the viewer follows this user
      * @param blocked the viewer has blocked this user
      * @param blockedBy this user has blocked the viewer (the profile is then not shown at all)
+     * @param followedBy this user follows the viewer (what lets the viewer see a private profile, D25b)
      */
-    record Relation(boolean following, boolean blocked, boolean blockedBy) {}
+    record Relation(boolean following, boolean blocked, boolean blockedBy, boolean followedBy) {}
 }

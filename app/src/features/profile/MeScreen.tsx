@@ -118,9 +118,9 @@ export function MeScreen() {
         <GigStatsSection userId={me.id} own />
         <Link href="/settings/privacy" testID="me-stats-privacy">
           <Text variant="caption" muted>
-            {me.showGigStats
-              ? 'Your stats are on your profile for everyone. Change →'
-              : 'Only you see your stats. Share them on your profile →'}
+            {me.profileVisibility === 'PRIVATE'
+              ? 'Your profile is private: only people you follow see your clips and stats. Change →'
+              : 'Your profile is public: anyone signed in sees your clips and stats. Change →'}
           </Text>
         </Link>
         <Link href="/settings" style={styles.link}>

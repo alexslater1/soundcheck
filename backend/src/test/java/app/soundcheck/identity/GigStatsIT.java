@@ -214,33 +214,25 @@ class GigStatsIT extends IntegrationTest {
                         .isNull())
                 .isFalse();
 
-        // Hidden like the rest of the stats until shared.
-        assertProblem(api.get(count, other), HttpStatus.FORBIDDEN, "STATS_HIDDEN");
+        // Hidden like the rest of the stats when the profile is private.
+        ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PRIVATE"), fan));
+        assertProblem(api.get(count, other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
     }
 
+    /**
+     * D25b replaced G23's per-stats opt-in: stats are visible like the rest of a profile, to
+     * everyone on a public profile (the default) and, on a private one, to the people its owner follows.
+     * This test asserted the old opt-in ("hidden until the owner shares them"); it now asserts the rule
+     * that replaced it, with the same block cases.
+     */
     @Test
-    void statsAreHiddenFromOthersUntilTheOwnerSharesThemAndFromBlockedPeople() {
+    void statsFollowTheProfilesVisibilityAndBlocks() {
         String stats = "/api/v1/users/" + fan.id() + "/stats";
 
-        assertThat(ok(api.get("/api/v1/me", fan)).path("showGigStats").asBoolean())
-                .isFalse();
-        assertThat(ok(api.get("/api/v1/users/" + fan.handle(), fan))
-                        .path("statsVisible")
-                        .asBoolean())
-                .isTrue();
-        assertThat(ok(api.get("/api/v1/users/" + fan.handle(), other))
-                        .path("statsVisible")
-                        .asBoolean())
-                .isFalse();
-        assertProblem(api.get(stats, other), HttpStatus.FORBIDDEN, "STATS_HIDDEN");
-        assertProblem(api.get(stats + "/gigs", other), HttpStatus.FORBIDDEN, "STATS_HIDDEN");
-
-        JsonNode me = ok(api.patch("/api/v1/me", Map.of("showGigStats", true), fan));
-        assertThat(me.path("showGigStats").asBoolean()).isTrue();
-        assertThat(ok(api.get("/api/v1/users/" + fan.handle(), other))
-                        .path("statsVisible")
-                        .asBoolean())
-                .isTrue();
+        // Public by default: another signed-in user sees them.
+        assertThat(ok(api.get("/api/v1/me", fan)).path("profileVisibility").asText(""))
+                .isEqualTo("PUBLIC");
+        assertThat(contentVisible(other)).isTrue();
         assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
                 .isEqualTo(4);
         // The other fan sees their own attendance in the list, not the owner's.
@@ -251,19 +243,31 @@ class GigStatsIT extends IntegrationTest {
         assertThat(cardinalsGigs.path("items").path(1).path("myAttendance").isNull())
                 .isTrue();
 
+        // Private: hidden from someone the owner does not follow, never from the owner.
+        JsonNode me = ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PRIVATE"), fan));
+        assertThat(me.path("profileVisibility").asText("")).isEqualTo("PRIVATE");
+        assertThat(contentVisible(other)).isFalse();
+        assertProblem(api.get(stats, other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
+        assertProblem(api.get(stats + "/gigs", other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
+        assertThat(ok(api.get(stats, fan)).path("totals").path("gigs").asInt()).isEqualTo(4);
+
         // Another edit of the profile leaves the choice alone.
         assertThat(ok(api.patch("/api/v1/me", Map.of("bio", "gig diary"), fan))
-                        .path("showGigStats")
-                        .asBoolean())
-                .isTrue();
+                        .path("profileVisibility")
+                        .asText(""))
+                .isEqualTo("PRIVATE");
 
-        // The viewer blocked the owner: the profile is there, its stats are not.
+        // The owner follows the viewer: a private profile shows them everything.
+        api.put("/api/v1/users/" + other.id() + "/follow", null, fan);
+        assertThat(contentVisible(other)).isTrue();
+        assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
+                .isEqualTo(4);
+
+        // The viewer blocked the owner: the profile is there, its stats are not (a block removes follows).
         assertThat(api.put("/api/v1/users/" + fan.id() + "/block", null, other).getStatusCode())
                 .isEqualTo(HttpStatus.NO_CONTENT);
-        assertThat(ok(api.get("/api/v1/users/" + fan.handle(), other))
-                        .path("statsVisible")
-                        .asBoolean())
-                .isFalse();
+        ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PUBLIC"), fan));
+        assertThat(contentVisible(other)).isFalse();
         assertProblem(api.get(stats, other), HttpStatus.FORBIDDEN, "STATS_HIDDEN");
         api.delete("/api/v1/users/" + fan.id() + "/block", other);
 
@@ -273,10 +277,12 @@ class GigStatsIT extends IntegrationTest {
         api.delete("/api/v1/users/" + other.id() + "/block", fan);
         assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
                 .isEqualTo(4);
+    }
 
-        // Sharing can be turned off again.
-        api.patch("/api/v1/me", Map.of("showGigStats", false), fan);
-        assertProblem(api.get(stats, other), HttpStatus.FORBIDDEN, "STATS_HIDDEN");
+    private boolean contentVisible(TestApi.User viewer) {
+        return ok(api.get("/api/v1/users/" + fan.handle(), viewer))
+                .path("contentVisible")
+                .asBoolean();
     }
 
     @Test

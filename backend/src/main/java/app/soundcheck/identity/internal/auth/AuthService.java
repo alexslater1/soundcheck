@@ -1,5 +1,6 @@
 package app.soundcheck.identity.internal.auth;
 
+import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.identity.internal.UserRecord;
 import app.soundcheck.identity.internal.UserRepository;
 import app.soundcheck.shared.Ids;
@@ -133,7 +134,7 @@ public class AuthService {
                 null,
                 now,
                 null,
-                false); // a new account does not share its gig stats
+                ProfileVisibility.PUBLIC); // public by default
         users.insert(user);
         return startSession(user, Ids.newId(), client, userAgent, now);
     }

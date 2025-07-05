@@ -1,5 +1,6 @@
 package app.soundcheck.identity.internal;
 
+import app.soundcheck.identity.ProfileVisibility;
 import java.time.Instant;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -17,10 +18,14 @@ public record UserRecord(
         @Nullable Instant onboardedAt,
         Instant createdAt,
         @Nullable Instant deletedAt,
-        /** Other users may see this user's gig stats. */
-        boolean showGigStats) {
+        /** Who may see this user's posts, gig stats and gig history. */
+        ProfileVisibility profileVisibility) {
 
     public boolean deleted() {
         return deletedAt != null;
+    }
+
+    public boolean privateProfile() {
+        return profileVisibility == ProfileVisibility.PRIVATE;
     }
 }

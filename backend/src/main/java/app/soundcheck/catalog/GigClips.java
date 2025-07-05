@@ -9,5 +9,13 @@ import java.util.UUID;
  */
 public interface GigClips {
 
+    /** Every published clip of the gig, whoever may see it. */
     long countAt(UUID gigId);
+
+    /**
+     * How many of those the viewer cannot see because their authors' profiles are private: the
+     * gig page says "+3 clips from private profiles" so a busy night still looks busy, with no previews
+     * and no names.
+     */
+    long privateAt(UUID viewerId, UUID gigId);
 }

@@ -15,6 +15,7 @@ const detail = {
   lineup: [],
   sources: [],
   postsCount: 0,
+  privatePostsCount: 0,
 } as unknown as GigDetail;
 
 /** Reads the gig from the cache like the real screen does, so cache updates re-render the buttons. */

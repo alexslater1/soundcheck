@@ -142,6 +142,12 @@ public class UserGraphService implements SocialGraph {
 
     @Override
     @Transactional(readOnly = true)
+    public Set<UUID> followersAmong(UUID userId, Collection<UUID> userIds) {
+        return graph.followersAmong(userId, userIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public boolean blockBetween(UUID a, UUID b) {
         return graph.hasBlocked(a, b) || graph.hasBlocked(b, a);
     }

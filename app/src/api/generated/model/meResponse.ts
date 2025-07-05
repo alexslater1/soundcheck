@@ -10,6 +10,7 @@ import type { MeResponseBio } from './meResponseBio';
 import type { Counts } from './counts';
 import type { GenreWeight } from './genreWeight';
 import type { HomeCity } from './homeCity';
+import type { MeResponseProfileVisibility } from './meResponseProfileVisibility';
 
 export interface MeResponse {
   avatarUrl?: MeResponseAvatarUrl;
@@ -22,7 +23,7 @@ export interface MeResponse {
   homeCity?: HomeCity;
   id: string;
   onboarded: boolean;
+  /** Who may see this user's posts, gig stats and gig history */
+  profileVisibility: MeResponseProfileVisibility;
   role: string;
-  /** Other users may see this user's gig stats */
-  showGigStats: boolean;
 }

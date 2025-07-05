@@ -86,12 +86,17 @@ public class CatalogService {
 
     public record SourceLink(String source, @Schema(nullable = true) String url) {}
 
-    /** A gig's page: the summary plus the full bill, attendance, post count and provenance. */
+    /**
+     * A gig's page: the summary plus the full bill, attendance, post count and provenance.
+     * {@code postsCount} counts every published clip, private profiles' included; {@code
+     * privatePostsCount} is how many of them the viewer cannot see.
+     */
     public record GigDetail(
             GigSummary gig,
             List<ArtistSummary> lineup,
             AttendanceCounts attendanceCounts,
             long postsCount,
+            long privatePostsCount,
             List<SourceLink> sources) {}
 
     public record Attendance(
@@ -234,7 +239,8 @@ public class CatalogService {
                 .map(s -> new SourceLink(s.source(), s.url()))
                 .toList();
         // postsCount is answered by the content module through GigClips (catalog cannot depend on content).
-        return new GigDetail(summary, lineup, counts(gigId), clips.countAt(gigId), sources);
+        return new GigDetail(
+                summary, lineup, counts(gigId), clips.countAt(gigId), clips.privateAt(viewer, gigId), sources);
     }
 
     /** Idempotent: marking the same status again changes nothing. */

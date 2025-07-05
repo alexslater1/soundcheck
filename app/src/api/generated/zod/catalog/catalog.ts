@@ -450,6 +450,7 @@ export const getGigResponse = zod.object({
   "name": zod.string()
 })),
   "postsCount": zod.number(),
+  "privatePostsCount": zod.number(),
   "sources": zod.array(zod.object({
   "source": zod.string(),
   "url": zod.string().nullish()

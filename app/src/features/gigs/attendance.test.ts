@@ -9,6 +9,7 @@ const detail = (my: GigDetail['gig']['myAttendance'], going: number, interested 
     lineup: [],
     sources: [],
     postsCount: 0,
+    privatePostsCount: 0,
   }) as unknown as GigDetail;
 
 describe('applyAttendance (optimistic update)', () => {

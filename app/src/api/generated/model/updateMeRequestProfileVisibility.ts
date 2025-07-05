@@ -6,4 +6,4 @@
  * OpenAPI spec version: v1
  */
 
-export type UpdateMeRequestShowGigStats = boolean | null;
+export type UpdateMeRequestProfileVisibility = 'PUBLIC' | 'PRIVATE' | null;

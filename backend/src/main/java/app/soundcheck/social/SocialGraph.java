@@ -14,6 +14,12 @@ public interface SocialGraph {
     /** Which of the given users the viewer follows. */
     Set<UUID> followedAmong(UUID viewerId, Collection<UUID> userIds);
 
+    /**
+     * Which of the given users follow {@code userId} (the reverse of {@link #followedAmong}): who may see a
+     * private profile's content are the people its owner follows.
+     */
+    Set<UUID> followersAmong(UUID userId, Collection<UUID> userIds);
+
     /** True when either user has blocked the other. */
     boolean blockBetween(UUID a, UUID b);
 

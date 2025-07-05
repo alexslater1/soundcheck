@@ -30,6 +30,7 @@ class ProfileFactsProvider implements ProfileFacts {
         return new Relation(
                 !social.followedAmong(viewerId, List.of(profileUserId)).isEmpty(),
                 social.hasBlocked(viewerId, profileUserId),
-                social.hasBlocked(profileUserId, viewerId));
+                social.hasBlocked(profileUserId, viewerId),
+                !social.followedAmong(profileUserId, List.of(viewerId)).isEmpty());
     }
 }

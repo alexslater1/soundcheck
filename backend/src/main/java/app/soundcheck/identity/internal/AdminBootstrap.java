@@ -1,5 +1,6 @@
 package app.soundcheck.identity.internal;
 
+import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.Redacted;
 import app.soundcheck.shared.config.ConditionalOnRole;
@@ -90,7 +91,7 @@ public class AdminBootstrap {
                 now,
                 now,
                 null,
-                false));
+                ProfileVisibility.PUBLIC));
         log.info("Bootstrapped ADMIN account {}", email);
         return true;
     }

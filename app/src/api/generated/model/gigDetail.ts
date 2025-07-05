@@ -15,5 +15,6 @@ export interface GigDetail {
   gig: GigSummary;
   lineup: ArtistSummary[];
   postsCount: number;
+  privatePostsCount: number;
   sources: SourceLink[];
 }

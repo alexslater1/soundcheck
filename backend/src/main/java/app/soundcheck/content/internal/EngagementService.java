@@ -52,6 +52,7 @@ public class EngagementService implements PostHides {
     private final PostRepository posts;
     private final Users users;
     private final SocialGraph social;
+    private final AuthorVisibility visibility;
     private final IdempotencyKeys idempotency;
     private final ApplicationEventPublisher events;
     private final JsonMapper json;
@@ -62,6 +63,7 @@ public class EngagementService implements PostHides {
             PostRepository posts,
             Users users,
             SocialGraph social,
+            AuthorVisibility visibility,
             IdempotencyKeys idempotency,
             ApplicationEventPublisher events,
             JsonMapper json,
@@ -70,6 +72,7 @@ public class EngagementService implements PostHides {
         this.posts = posts;
         this.users = users;
         this.social = social;
+        this.visibility = visibility;
         this.idempotency = idempotency;
         this.events = events;
         this.json = json;
@@ -222,8 +225,9 @@ public class EngagementService implements PostHides {
 
     /**
      * The post, if the actor may see it: published, its author's account still live (a deleted
-     * account's posts are gone at once), and no block between the actor and the author
-     * (one cannot like or comment on a blocker's posts; to them the post does not exist).
+     * account's posts are gone at once), no block between the actor and the author
+     * (one cannot like or comment on a blocker's posts; to them the post does not exist), and
+     * not a private profile's post whose owner does not follow the actor.
      */
     private PostRow visible(UUID actorId, UUID postId) {
         return findVisible(actorId, postId).orElseThrow(PostService::notFound);
@@ -233,7 +237,9 @@ public class EngagementService implements PostHides {
         return posts.find(postId)
                 .filter(PostRow::published)
                 .filter(p -> p.authorId().equals(actorId)
-                        || (users.exists(p.authorId()) && !social.blockBetween(actorId, p.authorId())));
+                        || (users.exists(p.authorId())
+                                && !social.blockBetween(actorId, p.authorId())
+                                && !visibility.hidden(actorId, p.authorId())));
     }
 
     private CommentView view(CommentRow row) {

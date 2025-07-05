@@ -4,14 +4,17 @@ import static app.soundcheck.shared.jooq.identity.Tables.APP_USER;
 import static app.soundcheck.shared.jooq.identity.Tables.USER_GENRE_PREFERENCE;
 
 import app.soundcheck.catalog.GeoPoint;
+import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.shared.web.ApiException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
 import org.jooq.Record;
@@ -56,6 +59,7 @@ public class UserRepository {
                     .set(APP_USER.ROLE, user.role())
                     .set(APP_USER.PASSWORD_HASH, user.passwordHash())
                     .set(APP_USER.HOME_CITY_ID, user.homeCityId())
+                    .set(APP_USER.PROFILE_VISIBILITY, user.profileVisibility().name())
                     .set(APP_USER.CREATED_AT, at(user.createdAt()))
                     .set(APP_USER.UPDATED_AT, at(user.createdAt()))
                     .execute();
@@ -113,12 +117,25 @@ public class UserRepository {
                 .execute();
     }
 
-    public void setShowGigStats(UUID id, boolean show, Instant now) {
+    public void setProfileVisibility(UUID id, ProfileVisibility visibility, Instant now) {
         dsl.update(APP_USER)
-                .set(APP_USER.SHOW_GIG_STATS, show)
+                .set(APP_USER.PROFILE_VISIBILITY, visibility.name())
                 .set(APP_USER.UPDATED_AT, at(now))
                 .where(APP_USER.ID.eq(id))
                 .execute();
+    }
+
+    /** The live users among the ids whose profile is private. Expected index: the primary key. */
+    public Set<UUID> privateAmong(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(dsl.select(APP_USER.ID)
+                .from(APP_USER)
+                .where(APP_USER.ID.in(ids))
+                .and(APP_USER.DELETED_AT.isNull())
+                .and(APP_USER.PROFILE_VISIBILITY.eq(ProfileVisibility.PRIVATE.name()))
+                .fetch(APP_USER.ID));
     }
 
     public boolean emailExists(String email) {
@@ -253,7 +270,7 @@ public class UserRepository {
                 instant(r.get(APP_USER.ONBOARDED_AT)),
                 instant(r.get(APP_USER.CREATED_AT)),
                 instant(r.get(APP_USER.DELETED_AT)),
-                r.get(APP_USER.SHOW_GIG_STATS));
+                ProfileVisibility.valueOf(r.get(APP_USER.PROFILE_VISIBILITY)));
     }
 
     static OffsetDateTime at(Instant instant) {
