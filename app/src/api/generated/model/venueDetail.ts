@@ -15,6 +15,8 @@ export interface VenueDetail {
   address?: VenueDetailAddress;
   city?: VenueDetailCity;
   coverageNote?: VenueDetailCoverageNote;
+  followerCount: number;
+  following: boolean;
   id: string;
   location?: GeoPoint;
   name: string;

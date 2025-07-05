@@ -20,16 +20,37 @@ export function notificationText(notification: NotificationView): string {
       return 'Your clip is ready';
     case 'POST_FAILED':
       return 'Your clip could not be processed';
+    case 'NEW_GIGS':
+      return newGigsText(notification);
   }
 }
 
-/** Where tapping a notification goes: the post it is about, or the follower's profile. */
+/** "New gig: Keo at The Social" or "3 new gigs: Keo at The Social, …". */
+function newGigsText(notification: NotificationView): string {
+  const gigs = notification.gigs ?? [];
+  const count = notification.gigCount ?? gigs.length;
+  const first = gigs[0];
+  if (!first) {
+    return count === 1 ? 'A new gig for you' : `${count} new gigs for you`;
+  }
+  const one = `${first.title} at ${first.venueName}`;
+  return count <= 1 ? `New gig: ${one}` : `${count} new gigs: ${one}, …`;
+}
+
+/**
+ * Where tapping a notification goes: a new-gig alert's list of gigs, the post it is about, or the
+ * follower's profile.
+ */
 export function notificationTarget(
   notification: NotificationView,
 ):
+  | { pathname: '/alerts/[id]'; params: { id: string } }
   | { pathname: '/post/[id]'; params: { id: string } }
   | { pathname: '/u/[handle]'; params: { handle: string } }
   | null {
+  if (notification.type === 'NEW_GIGS') {
+    return { pathname: '/alerts/[id]', params: { id: notification.id } };
+  }
   if (notification.postId) {
     return { pathname: '/post/[id]', params: { id: notification.postId } };
   }

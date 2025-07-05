@@ -51,4 +51,34 @@ describe('notificationText', () => {
     });
     expect(notificationTarget({ ...base, actor: undefined })).toBeNull();
   });
+
+  it('names the first new gig of an alert and counts the rest', () => {
+    const gig = (title: string, venueName: string) => ({
+      gigId: title,
+      title,
+      startsAt: '2026-11-01T19:30:00Z',
+      venueName,
+      venueCity: 'London',
+      reason: 'ARTIST' as const,
+      because: 'Keo',
+    });
+    const alert = { ...base, type: 'NEW_GIGS' as const, actor: undefined };
+    expect(notificationText({ ...alert, gigs: [gig('Keo', 'The Social')], gigCount: 1 })).toBe(
+      'New gig: Keo at The Social',
+    );
+    expect(
+      notificationText({
+        ...alert,
+        gigs: [gig('Keo', 'The Social'), gig('Bleech', 'MOTH Club')],
+        gigCount: 3,
+      }),
+    ).toBe('3 new gigs: Keo at The Social, …');
+    expect(notificationText({ ...alert, gigs: [], gigCount: 2 })).toBe('2 new gigs for you');
+    expect(notificationTarget({ ...alert, gigs: [gig('Keo', 'The Social')], gigCount: 1 })).toEqual(
+      {
+        pathname: '/alerts/[id]',
+        params: { id: 'n1' },
+      },
+    );
+  });
 });

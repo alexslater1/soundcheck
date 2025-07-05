@@ -32,12 +32,22 @@ export const listNotificationsResponse = zod.object({
 }).optional(),
   "commentId": zod.string().uuid().nullish(),
   "createdAt": zod.string().datetime({}),
+  "gigCount": zod.number().nullish(),
+  "gigs": zod.array(zod.object({
+  "because": zod.string(),
+  "gigId": zod.string().uuid(),
+  "reason": zod.enum(['ARTIST', 'VENUE', 'SEARCH']),
+  "startsAt": zod.string().datetime({}),
+  "title": zod.string(),
+  "venueCity": zod.string().nullish(),
+  "venueName": zod.string()
+})).nullish(),
   "id": zod.string().uuid(),
   "likeCount": zod.number().nullish(),
   "postId": zod.string().uuid().nullish(),
   "postThumbUrl": zod.string().nullish(),
   "read": zod.boolean(),
-  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED'])
+  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS'])
 })),
   "nextCursor": zod.string().nullish(),
   "unreadCount": zod.number()
@@ -52,5 +62,40 @@ export const markNotificationsReadBody = zod.object({
 
 export const markNotificationsReadResponse = zod.object({
   "unreadCount": zod.number()
+})
+
+/**
+ * @summary One of the viewer's notifications (a new-gig alert's page opens it); 404 if not theirs
+ */
+export const getNotificationParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const getNotificationResponse = zod.object({
+  "actor": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}).optional(),
+  "commentId": zod.string().uuid().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "gigCount": zod.number().nullish(),
+  "gigs": zod.array(zod.object({
+  "because": zod.string(),
+  "gigId": zod.string().uuid(),
+  "reason": zod.enum(['ARTIST', 'VENUE', 'SEARCH']),
+  "startsAt": zod.string().datetime({}),
+  "title": zod.string(),
+  "venueCity": zod.string().nullish(),
+  "venueName": zod.string()
+})).nullish(),
+  "id": zod.string().uuid(),
+  "likeCount": zod.number().nullish(),
+  "postId": zod.string().uuid().nullish(),
+  "postThumbUrl": zod.string().nullish(),
+  "read": zod.boolean(),
+  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS'])
 })
 

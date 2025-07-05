@@ -7,6 +7,8 @@
  */
 import type { UserSummary } from './userSummary';
 import type { NotificationViewCommentId } from './notificationViewCommentId';
+import type { NotificationViewGigCount } from './notificationViewGigCount';
+import type { NotificationViewGigs } from './notificationViewGigs';
 import type { NotificationViewLikeCount } from './notificationViewLikeCount';
 import type { NotificationViewPostId } from './notificationViewPostId';
 import type { NotificationViewPostThumbUrl } from './notificationViewPostThumbUrl';
@@ -16,6 +18,8 @@ export interface NotificationView {
   actor?: UserSummary;
   commentId?: NotificationViewCommentId;
   createdAt: string;
+  gigCount?: NotificationViewGigCount;
+  gigs?: NotificationViewGigs;
   id: string;
   likeCount?: NotificationViewLikeCount;
   postId?: NotificationViewPostId;

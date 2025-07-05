@@ -104,3 +104,17 @@ export const listFollowingResponse = zod.object({
   "nextCursor": zod.string().nullish()
 })
 
+/**
+ * @summary Unfollow a venue (idempotent)
+ */
+export const unfollowVenueParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary Follow a venue: its new gigs alert you (idempotent)
+ */
+export const followVenueParams = zod.object({
+  "id": zod.string().uuid()
+})
+

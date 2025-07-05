@@ -12,6 +12,7 @@ import type { SavedGigFilterQ } from './savedGigFilterQ';
 import type { NamedVenue } from './namedVenue';
 
 export interface SavedGigFilter {
+  alerts: boolean;
   artists: NamedArtist[];
   genre?: SavedGigFilterGenre;
   id: string;

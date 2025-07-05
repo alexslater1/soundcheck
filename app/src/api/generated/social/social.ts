@@ -677,3 +677,144 @@ export function useListFollowing<TData = Awaited<ReturnType<typeof listFollowing
 
 
 
+/**
+ * @summary Unfollow a venue (idempotent)
+ */
+export const getUnfollowVenueUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/venues/${id}/follow`
+}
+
+export const unfollowVenue = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getUnfollowVenueUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getUnfollowVenueMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowVenue>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof unfollowVenue>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['unfollowVenue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof unfollowVenue>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  unfollowVenue(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UnfollowVenueMutationResult = NonNullable<Awaited<ReturnType<typeof unfollowVenue>>>
+    
+    export type UnfollowVenueMutationError = unknown
+
+    /**
+ * @summary Unfollow a venue (idempotent)
+ */
+export const useUnfollowVenue = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowVenue>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof unfollowVenue>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getUnfollowVenueMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Follow a venue: its new gigs alert you (idempotent)
+ */
+export const getFollowVenueUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/venues/${id}/follow`
+}
+
+export const followVenue = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getFollowVenueUrl(id),
+  {      
+    ...options,
+    method: 'PUT'
+    
+    
+  }
+);}
+
+
+
+
+export const getFollowVenueMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followVenue>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof followVenue>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['followVenue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof followVenue>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  followVenue(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FollowVenueMutationResult = NonNullable<Awaited<ReturnType<typeof followVenue>>>
+    
+    export type FollowVenueMutationError = unknown
+
+    /**
+ * @summary Follow a venue: its new gigs alert you (idempotent)
+ */
+export const useFollowVenue = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followVenue>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof followVenue>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getFollowVenueMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    

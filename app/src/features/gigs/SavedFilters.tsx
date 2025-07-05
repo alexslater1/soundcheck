@@ -8,6 +8,7 @@ import {
   useDeleteGigFilter,
   useListSavedGigFilters,
   useSaveGigFilter,
+  useSetGigFilterAlerts,
 } from '@/api/generated/catalog/catalog';
 import type { ApiError } from '@/api/http';
 import { Button } from '@/components/ui/Button';
@@ -20,7 +21,8 @@ import { fromSaved, isNarrowed, suggestName, toSaveRequest, type GigSearch } fro
 /**
  * Saved searches on the Gigs tab: one tap brings back "Keo, Bleech 9:3 and The North in London".
  * The North in London". "Save this search" appears once the search is narrowed; "Edit" shows a cross on
- * each saved one to delete it.
+ * each saved one to delete it, and a bell to switch its new-gig alerts off or on (on by default; a
+ * saved search with alerts shows a small bell).
  */
 export function SavedFilters({
   search,
@@ -34,6 +36,7 @@ export function SavedFilters({
   const saved = useListSavedGigFilters();
   const save = useSaveGigFilter<ApiError>();
   const remove = useDeleteGigFilter();
+  const alerts = useSetGigFilterAlerts();
   const [naming, setNaming] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const refresh = () => client.invalidateQueries({ queryKey: getListSavedGigFiltersQueryKey() });
@@ -52,31 +55,64 @@ export function SavedFilters({
         keyboardShouldPersistTaps="handled"
       >
         {filters.map((f) => (
-          <Pressable
-            key={f.id}
-            accessibilityRole="button"
-            accessibilityLabel={
-              editing ? `Delete saved search ${f.name}` : `Saved search: ${f.name}`
-            }
-            onPress={() =>
-              editing
-                ? void remove.mutateAsync({ id: f.id }).then(refresh, () => undefined)
-                : onApply(fromSaved(f))
-            }
-            style={[
-              styles.chip,
-              { backgroundColor: colors.accentSoft, borderColor: colors.accent },
-            ]}
-          >
-            <Ionicons
-              name={editing ? 'close-circle' : 'bookmark'}
-              size={14}
-              color={colors.accent}
-            />
-            <Text variant="caption" style={styles.bold} numberOfLines={1}>
-              {f.name}
-            </Text>
-          </Pressable>
+          <View key={f.id} style={styles.pair}>
+            {editing ? (
+              <Pressable
+                accessibilityRole="switch"
+                accessibilityState={{ checked: f.alerts }}
+                accessibilityLabel={
+                  f.alerts
+                    ? `Turn off new-gig alerts for ${f.name}`
+                    : `Turn on new-gig alerts for ${f.name}`
+                }
+                onPress={() =>
+                  void alerts
+                    .mutateAsync({ id: f.id, data: { alerts: !f.alerts } })
+                    .then(refresh, () => undefined)
+                }
+                style={[styles.bell, { borderColor: colors.border }]}
+                testID="saved-search-alerts"
+              >
+                <Ionicons
+                  name={f.alerts ? 'notifications' : 'notifications-off-outline'}
+                  size={16}
+                  color={f.alerts ? colors.accent : colors.textMuted}
+                />
+              </Pressable>
+            ) : null}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={
+                editing ? `Delete saved search ${f.name}` : `Saved search: ${f.name}`
+              }
+              onPress={() =>
+                editing
+                  ? void remove.mutateAsync({ id: f.id }).then(refresh, () => undefined)
+                  : onApply(fromSaved(f))
+              }
+              style={[
+                styles.chip,
+                { backgroundColor: colors.accentSoft, borderColor: colors.accent },
+              ]}
+            >
+              <Ionicons
+                name={editing ? 'close-circle' : 'bookmark'}
+                size={14}
+                color={colors.accent}
+              />
+              <Text variant="caption" style={styles.bold} numberOfLines={1}>
+                {f.name}
+              </Text>
+              {!editing && f.alerts ? (
+                <Ionicons
+                  name="notifications"
+                  size={12}
+                  color={colors.accent}
+                  accessibilityLabel="New-gig alerts on"
+                />
+              ) : null}
+            </Pressable>
+          </View>
         ))}
         {canSave && naming === null && !editing ? (
           <Pressable
@@ -160,6 +196,16 @@ const styles = StyleSheet.create({
     maxWidth: 260,
   },
   bold: { fontWeight: '700' },
+  pair: { flexDirection: 'row', alignItems: 'center' },
+  bell: {
+    minHeight: touchTarget,
+    minWidth: touchTarget,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginRight: spacing.xs,
+  },
   form: { marginTop: spacing.sm, gap: spacing.sm },
   input: {
     minHeight: touchTarget,

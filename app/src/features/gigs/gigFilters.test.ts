@@ -75,6 +75,7 @@ describe('gig search', () => {
     const saved: SavedGigFilter = {
       id: 'f1',
       name: request.name,
+      alerts: true,
       artists: [
         { id: 'a-keo', name: 'Keo' },
         { id: 'a-bleech', name: 'Bleech 9:3' },

@@ -16,4 +16,5 @@ export const NotificationViewType = {
   POST_COMMENTED: 'POST_COMMENTED',
   POST_READY: 'POST_READY',
   POST_FAILED: 'POST_FAILED',
+  NEW_GIGS: 'NEW_GIGS',
 } as const;

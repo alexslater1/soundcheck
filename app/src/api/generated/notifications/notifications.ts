@@ -27,6 +27,7 @@ import type {
 import type {
   Inbox,
   ListNotificationsParams,
+  NotificationView,
   ReadRequest,
   UnreadResponse
 } from '.././model';
@@ -211,4 +212,98 @@ export const useMarkNotificationsRead = <TError = unknown,
 
       return useMutation(mutationOptions , queryClient);
     }
+    /**
+ * @summary One of the viewer's notifications (a new-gig alert's page opens it); 404 if not theirs
+ */
+export const getGetNotificationUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/notifications/${id}`
+}
+
+export const getNotification = async (id: string, options?: RequestInit): Promise<NotificationView> => {
+  
+  return customFetch<NotificationView>(getGetNotificationUrl(id),
+  {      
+    ...options,
+    method: 'GET'
     
+    
+  }
+);}
+
+
+
+export const getGetNotificationQueryKey = (id: string,) => {
+    return [`/api/v1/notifications/${id}`] as const;
+    }
+
+    
+export const getGetNotificationQueryOptions = <TData = Awaited<ReturnType<typeof getNotification>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotification>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetNotificationQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getNotification>>> = ({ signal }) => getNotification(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getNotification>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type GetNotificationQueryResult = NonNullable<Awaited<ReturnType<typeof getNotification>>>
+export type GetNotificationQueryError = unknown
+
+
+export function useGetNotification<TData = Awaited<ReturnType<typeof getNotification>>, TError = unknown>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotification>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNotification>>,
+          TError,
+          Awaited<ReturnType<typeof getNotification>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetNotification<TData = Awaited<ReturnType<typeof getNotification>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotification>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof getNotification>>,
+          TError,
+          Awaited<ReturnType<typeof getNotification>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useGetNotification<TData = Awaited<ReturnType<typeof getNotification>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotification>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary One of the viewer's notifications (a new-gig alert's page opens it); 404 if not theirs
+ */
+
+export function useGetNotification<TData = Awaited<ReturnType<typeof getNotification>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getNotification>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getGetNotificationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+

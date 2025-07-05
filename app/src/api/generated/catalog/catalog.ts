@@ -34,6 +34,7 @@ import type {
   AttendanceRequest,
   GigDay,
   GigDetail,
+  GigFilterAlertsRequest,
   ListArtistGigsParams,
   ListArtistsParams,
   ListGigDaysParams,
@@ -1201,6 +1202,78 @@ export const useDeleteGigFilter = <TError = unknown,
       > => {
 
       const mutationOptions = getDeleteGigFilterMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Switch a saved gig search's new-gig alerts on or off
+ */
+export const getSetGigFilterAlertsUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/me/gig-filters/${id}`
+}
+
+export const setGigFilterAlerts = async (id: string,
+    gigFilterAlertsRequest: GigFilterAlertsRequest, options?: RequestInit): Promise<SavedGigFilter> => {
+  
+  return customFetch<SavedGigFilter>(getSetGigFilterAlertsUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      gigFilterAlertsRequest,)
+  }
+);}
+
+
+
+
+export const getSetGigFilterAlertsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setGigFilterAlerts>>, TError,{id: string;data: GigFilterAlertsRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setGigFilterAlerts>>, TError,{id: string;data: GigFilterAlertsRequest}, TContext> => {
+
+const mutationKey = ['setGigFilterAlerts'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setGigFilterAlerts>>, {id: string;data: GigFilterAlertsRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setGigFilterAlerts(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetGigFilterAlertsMutationResult = NonNullable<Awaited<ReturnType<typeof setGigFilterAlerts>>>
+    export type SetGigFilterAlertsMutationBody = GigFilterAlertsRequest
+    export type SetGigFilterAlertsMutationError = unknown
+
+    /**
+ * @summary Switch a saved gig search's new-gig alerts on or off
+ */
+export const useSetGigFilterAlerts = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setGigFilterAlerts>>, TError,{id: string;data: GigFilterAlertsRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setGigFilterAlerts>>,
+        TError,
+        {id: string;data: GigFilterAlertsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSetGigFilterAlertsMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }

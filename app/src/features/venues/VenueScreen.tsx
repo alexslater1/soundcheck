@@ -17,6 +17,7 @@ import { openWebLink } from '@/lib/openLink';
 import { spacing } from '@/theme/tokens';
 
 import { CoverageNote } from './CoverageNote';
+import { VenueFollowButton } from './VenueFollowButton';
 
 /**
  * Venue page: address, a link out to a maps app (maps are out of scope), upcoming gigs
@@ -60,6 +61,13 @@ export function VenueScreen({ id }: { id: string }) {
         <Text variant="display">{v.name}</Text>
         <Text muted>{address || 'Address not listed'}</Text>
         <CoverageNote note={v.coverageNote} />
+        <View style={styles.follow}>
+          <VenueFollowButton venueId={v.id} venueName={v.name} isFollowing={v.following} />
+          <Text variant="caption" muted testID="venue-followers">
+            {v.followerCount === 1 ? '1 follower' : `${v.followerCount} followers`} · new gigs here
+            reach followers in Activity
+          </Text>
+        </View>
         <Button
           title="Open in Maps"
           variant="secondary"
@@ -95,6 +103,7 @@ export function VenueScreen({ id }: { id: string }) {
 }
 
 const styles = StyleSheet.create({
+  follow: { gap: spacing.xs },
   gap: { gap: spacing.sm, paddingBottom: spacing.xl },
   heading: { marginTop: spacing.md },
 });

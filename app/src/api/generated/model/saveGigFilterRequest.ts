@@ -5,6 +5,7 @@
  * Gig discovery and concert clips.
  * OpenAPI spec version: v1
  */
+import type { SaveGigFilterRequestAlerts } from './saveGigFilterRequestAlerts';
 import type { SaveGigFilterRequestArtistIds } from './saveGigFilterRequestArtistIds';
 import type { SaveGigFilterRequestCityId } from './saveGigFilterRequestCityId';
 import type { SaveGigFilterRequestGenre } from './saveGigFilterRequestGenre';
@@ -13,6 +14,7 @@ import type { SaveGigFilterRequestQ } from './saveGigFilterRequestQ';
 import type { SaveGigFilterRequestVenueIds } from './saveGigFilterRequestVenueIds';
 
 export interface SaveGigFilterRequest {
+  alerts?: SaveGigFilterRequestAlerts;
   /**
    * @minItems 0
    * @maxItems 20

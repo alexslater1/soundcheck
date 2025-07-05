@@ -487,6 +487,7 @@ export const setGigAttendanceResponse = zod.object({
  * @summary The viewer's saved gig searches, oldest first
  */
 export const listSavedGigFiltersResponseItem = zod.object({
+  "alerts": zod.boolean(),
   "artists": zod.array(zod.object({
   "id": zod.string().uuid(),
   "name": zod.string()
@@ -531,6 +532,7 @@ export const saveGigFilterBodyVenueIdsMax = 20;
 
 
 export const saveGigFilterBody = zod.object({
+  "alerts": zod.boolean().nullish(),
   "artistIds": zod.array(zod.string().uuid()).min(saveGigFilterBodyArtistIdsMin).max(saveGigFilterBodyArtistIdsMax).nullish(),
   "cityId": zod.number().nullish(),
   "genre": zod.string().min(saveGigFilterBodyGenreMin).max(saveGigFilterBodyGenreMax).nullish(),
@@ -541,6 +543,7 @@ export const saveGigFilterBody = zod.object({
 })
 
 export const saveGigFilterResponse = zod.object({
+  "alerts": zod.boolean(),
   "artists": zod.array(zod.object({
   "id": zod.string().uuid(),
   "name": zod.string()
@@ -568,6 +571,41 @@ export const saveGigFilterResponse = zod.object({
  */
 export const deleteGigFilterParams = zod.object({
   "id": zod.string().uuid()
+})
+
+/**
+ * @summary Switch a saved gig search's new-gig alerts on or off
+ */
+export const setGigFilterAlertsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const setGigFilterAlertsBody = zod.object({
+  "alerts": zod.boolean()
+})
+
+export const setGigFilterAlertsResponse = zod.object({
+  "alerts": zod.boolean(),
+  "artists": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "name": zod.string()
+})),
+  "genre": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "name": zod.string(),
+  "place": zod.object({
+  "cityId": zod.number().nullish(),
+  "cityName": zod.string().nullish(),
+  "kind": zod.enum(['HOME', 'UK', 'CITY']),
+  "lat": zod.number().nullish(),
+  "lng": zod.number().nullish()
+}),
+  "q": zod.string().nullish(),
+  "venues": zod.array(zod.object({
+  "city": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "name": zod.string()
+}))
 })
 
 /**
@@ -741,6 +779,8 @@ export const getVenueResponse = zod.object({
   "address": zod.string().nullish(),
   "city": zod.string().nullish(),
   "coverageNote": zod.string().nullish(),
+  "followerCount": zod.number(),
+  "following": zod.boolean(),
   "id": zod.string().uuid(),
   "location": zod.object({
   "lat": zod.number(),
