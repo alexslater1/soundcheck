@@ -234,5 +234,7 @@ def test_state_survives_a_restart(tmp_path: Path) -> None:
 def test_cli_offers_seed_demo() -> None:
     result = CliRunner().invoke(app, ["seed-demo", "--help"])
     assert result.exit_code == 0
-    assert "--real" in result.output and "--gigs" in result.output
-    assert "--require-feed" in result.output and "--clips-per-gig" in result.output
+    # Rich colours the help on GitHub Actions (GITHUB_ACTIONS is set): drop the escape codes.
+    output = re.sub(r"\x1b\[[0-9;]*m", "", result.output)
+    assert "--real" in output and "--gigs" in output
+    assert "--require-feed" in output and "--clips-per-gig" in output
