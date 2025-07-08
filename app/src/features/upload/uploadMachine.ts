@@ -9,7 +9,12 @@ import { nextPollDelay } from '@/features/player/mediaPolling';
 import { withRetries } from './retry';
 import type { UploadEntry, UploadTransport } from './types';
 
-export const PARALLEL_PARTS = 4;
+/**
+ * Parts sent at once, per upload: two, not more, because each part in flight is a temporary 8 MiB
+ * copy on disk and a native request, and two streams already fill a phone's upload link. Clips are
+ * sent one at a time (`oneAtATime`), so this is also the limit for the whole app.
+ */
+export const PARALLEL_PARTS = 2;
 export const PART_RETRIES = 3;
 const RETRY_BASE_MS = 500;
 
@@ -33,6 +38,12 @@ export type UploadDeps = {
    * post can be created for the clip (the user does not wait for the transcode).
    */
   onAccepted?: () => Promise<void>;
+  /**
+   * Runs the byte-sending step (ticket, bytes, complete). The runner passes a gate shared by every
+   * upload, so a post's clips are sent one after another rather than all at once; the
+   * PREPARING step and the wait for the worker are outside it. Without one, the step just runs.
+   */
+  oneAtATime?: <T>(step: () => Promise<T>) => Promise<T>;
 };
 
 /**
@@ -51,7 +62,7 @@ export async function runUpload(deps: UploadDeps): Promise<void> {
       entry.mediaId !== null &&
       (entry.state === 'PROCESSING' || (await accepted(entry.mediaId, deps)))
         ? entry.mediaId
-        : await upload(deps);
+        : await (deps.oneAtATime ?? ((step) => step()))(() => upload(deps));
     deps.update({ state: 'PROCESSING', progress: 1, error: null });
     await deps.onAccepted?.();
     await pollUntilSettled(mediaId, deps);

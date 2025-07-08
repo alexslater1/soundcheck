@@ -13,6 +13,7 @@ const mockCreateUpload = jest.fn();
 const mockCompleteUpload = jest.fn();
 const mockGetMedia = jest.fn();
 const mockPutWhole = jest.fn();
+const mockDiscardLeftovers = jest.fn();
 const mockDiscard = jest.fn();
 const mockCreatePost = jest.fn();
 const mockDeletePost = jest.fn();
@@ -23,7 +24,11 @@ jest.mock('@/api/generated/media/media', () => ({
   getMedia: (...args: unknown[]) => mockGetMedia(...args),
 }));
 jest.mock('./transport', () => ({
-  transport: { putWhole: (...args: unknown[]) => mockPutWhole(...args), putPart: jest.fn() },
+  transport: {
+    putWhole: (...args: unknown[]) => mockPutWhole(...args),
+    putPart: jest.fn(),
+    discardLeftovers: () => mockDiscardLeftovers(),
+  },
 }));
 jest.mock('./compress', () => ({ discardFile: (uri: string) => mockDiscard(uri) }));
 jest.mock('@/api/generated/posts/posts', () => ({
@@ -199,6 +204,64 @@ describe('upload runner', () => {
     await Promise.all([startUpload(id), startUpload(id)]);
 
     expect(mockCreateUpload).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends one clip’s bytes at a time: the second waits until the first has completed', async () => {
+    const order: string[] = [];
+    let finishFirst: () => void = () => undefined;
+    mockCreateUpload
+      .mockResolvedValueOnce({
+        mediaId: 'media-1',
+        strategy: 'SINGLE',
+        putUrl: 'https://s3.test/one',
+        expiresAt: '2026-10-02T12:00:00Z',
+      })
+      .mockResolvedValueOnce({
+        mediaId: 'media-2',
+        strategy: 'SINGLE',
+        putUrl: 'https://s3.test/two',
+        expiresAt: '2026-10-02T12:00:00Z',
+      });
+    mockPutWhole.mockImplementation(async (url: string) => {
+      order.push(`put ${url}`);
+      if (url.endsWith('one')) {
+        await new Promise<void>((resolve) => (finishFirst = resolve));
+      }
+    });
+    mockCompleteUpload.mockImplementation(async (mediaId: string) => {
+      order.push(`complete ${mediaId}`);
+      return { status: 'UPLOADED' };
+    });
+    const one = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const two = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+
+    const both = Promise.all([startUpload(one), startUpload(two)]);
+    for (let i = 0; i < 20 && order.length === 0; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(order).toEqual(['put https://s3.test/one']);
+    expect(mockCreateUpload).toHaveBeenCalledTimes(1);
+
+    finishFirst();
+    await both;
+    expect(order).toEqual([
+      'put https://s3.test/one',
+      'complete media-1',
+      'put https://s3.test/two',
+      'complete media-2',
+    ]);
+    // Leftover part files are cleared only when the first upload starts, never under a running one.
+    expect(mockDiscardLeftovers).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears leftover part files before an upload starts while nothing else runs', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+
+    await startUpload(id);
+    await startUpload(id); // settled: runs again, still alone
+
+    expect(mockDiscardLeftovers).toHaveBeenCalledTimes(2);
   });
 
   describe('keeping the Create list and the profile in step', () => {

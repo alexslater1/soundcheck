@@ -6,6 +6,7 @@ import app.soundcheck.shared.config.JsonMappers;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +55,8 @@ class FfmpegCommandsRunIT {
         assertThat(contains(input, "SecretTitle")).isTrue();
         assertThat(contains(input, "+53.4808-002.2426")).isTrue();
 
-        ProbeResult probe = ProbeParser.parse(JsonMappers.builder().build().readTree(run(FfmpegCommands.probe(input))));
+        ProbeResult probe = ProbeParser.parse(
+                JsonMappers.builder().build().readTree(run(FfmpegCommands.probe(input))), Duration.ofSeconds(181));
         assertThat(probe.displayWidth()).isEqualTo(720);
         assertThat(probe.displayHeight()).isEqualTo(1280);
         assertThat(probe.hasAudio()).isFalse();
@@ -91,17 +93,19 @@ class FfmpegCommandsRunIT {
 
         // The 720p rung really is 720×1280 with H.264 video and AAC audio. (Probed with a plain ffprobe:
         // the production probe command only accepts MP4 and WebM containers, not a playlist.)
-        ProbeResult rendition = ProbeParser.parse(JsonMappers.builder()
-                .build()
-                .readTree(run(List.of(
-                        "ffprobe",
-                        "-v",
-                        "error",
-                        "-print_format",
-                        "json",
-                        "-show_format",
-                        "-show_streams",
-                        out.resolve("720p").resolve("index.m3u8").toString()))));
+        ProbeResult rendition = ProbeParser.parse(
+                JsonMappers.builder()
+                        .build()
+                        .readTree(run(List.of(
+                                "ffprobe",
+                                "-v",
+                                "error",
+                                "-print_format",
+                                "json",
+                                "-show_format",
+                                "-show_streams",
+                                out.resolve("720p").resolve("index.m3u8").toString()))),
+                Duration.ofSeconds(181));
         assertThat(rendition.width()).isEqualTo(720);
         assertThat(rendition.height()).isEqualTo(1280);
         assertThat(rendition.videoCodec()).isEqualTo("h264");

@@ -6,6 +6,7 @@ import {
   type Connection,
 } from './compressDecision';
 import type { PickedVideo, UploadEntry } from './types';
+import { MAX_BYTES } from './validate';
 
 /** What preparing a clip needs from the outside world; the runner passes the real ones, tests fakes. */
 export type PrepareDeps = {
@@ -29,7 +30,9 @@ export type PrepareDeps = {
  * swap the file the upload will send. The user writes the post meanwhile, looking at the original
  * (`previewUri`).
  *
- * Returns false when the entry was removed while it ran (any file made for it is deleted).
+ * Returns false when the upload must not go on: the entry was removed while it ran (any file made
+ * for it is deleted), or the file to send is still over the 1 GB limit (compression failed on a
+ * file that needed it). The second ends FAILED and unprepared, so Retry compresses again.
  */
 export async function prepareClip(deps: PrepareDeps): Promise<boolean> {
   const entry = deps.current();
@@ -64,6 +67,17 @@ export async function prepareClip(deps: PrepareDeps): Promise<boolean> {
   );
   if (discard) {
     deps.discard(discard);
+  }
+  if (video.bytes > MAX_BYTES) {
+    if (temporary) {
+      deps.discard(video.uri);
+    }
+    deps.update({
+      state: 'FAILED',
+      progress: 0,
+      error: 'This video is larger than 1 GB and could not be compressed.',
+    });
+    return false;
   }
   deps.update({
     fileUri: video.uri,

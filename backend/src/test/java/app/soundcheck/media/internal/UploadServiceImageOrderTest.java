@@ -105,9 +105,9 @@ class UploadServiceImageOrderTest {
                 mock(RateLimiter.class),
                 mock(ApplicationEventPublisher.class),
                 new MediaProperties(
-                        DataSize.ofMegabytes(500),
+                        DataSize.ofGigabytes(1),
                         DataSize.ofMegabytes(10),
-                        Duration.ofSeconds(61),
+                        Duration.ofSeconds(181),
                         DataSize.ofMegabytes(16),
                         DataSize.ofMegabytes(8),
                         Duration.ofMinutes(60),

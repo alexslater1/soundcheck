@@ -13,7 +13,8 @@ export function stateLabel(entry: Pick<UploadEntry, 'state' | 'progress'>): stri
         ? `Compressing for mobile data ${Math.round(entry.progress * 100)}%`
         : 'Getting ready…';
     case 'QUEUED':
-      return 'Waiting…';
+      // Clips are sent one at a time: this one waits for the clip before it.
+      return 'Waiting for its turn…';
     case 'REQUESTING':
       return 'Starting…';
     case 'UPLOADING':

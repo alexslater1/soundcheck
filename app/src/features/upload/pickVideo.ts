@@ -2,6 +2,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
 import type { PickedVideo } from './types';
+import { MAX_DURATION_MS } from './validate';
 
 export type PickResult =
   | { kind: 'picked'; videos: PickedVideo[] }
@@ -38,7 +39,7 @@ export function toPicked(asset: ImagePicker.ImagePickerAsset, platform: string):
 const OPTIONS: ImagePicker.ImagePickerOptions = {
   mediaTypes: ['videos'],
   // Enforced by the camera and, where the platform supports it, by the picker; checked again afterwards.
-  videoMaxDuration: 60,
+  videoMaxDuration: MAX_DURATION_MS / 1000 - 1,
   allowsMultipleSelection: false,
 };
 

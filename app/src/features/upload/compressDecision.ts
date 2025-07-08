@@ -1,4 +1,5 @@
 import type { ClientMeta, PickedVideo } from './types';
+import { MAX_BYTES } from './validate';
 
 export type Compressed = { uri: string; bytes: number; elapsedMs: number };
 
@@ -30,8 +31,9 @@ export function sourceBitrate(video: PickedVideo): number | null {
 /**
  * Whether and how to compress before uploading. Null means upload the original:
  *
- * - On Wi-Fi, always. Measured on the Pixel (2025-06-02): 140.6 MB took 24.8 s to compress to 57.4 MB,
- *   so compressing pays off only when the upload is slower than about 27 Mbit/s — usual on 4G, rare on
+ * - On Wi-Fi, always, unless the file is over the 1 GB upload limit (a 3-minute 4K clip can be).
+ *   Measured on the Pixel (2025-06-02): 140.6 MB took 24.8 s to compress to 57.4 MB, so
+ *   compressing pays off only when the upload is slower than about 27 Mbit/s — usual on 4G, rare on
  *   Wi-Fi — and the original is the better source for the server's transcode.
  * - When the file is already no bigger than 1080p at about the target bitrate: re-encoding would cost
  *   quality and battery and save little.
@@ -43,6 +45,11 @@ export function compressionPlan(
   video: PickedVideo,
   connection: Connection,
 ): CompressionPlan | null {
+  const plan = { maxSize: CLIENT_MAX_LONG_EDGE, bitrate: CLIENT_TARGET_BITRATE };
+  if (video.bytes > MAX_BYTES) {
+    // Too big to send as it is, whatever the connection; 3 minutes at 8 Mbit/s is ~180 MB.
+    return plan;
+  }
   if (connection === 'wifi') {
     return null;
   }
@@ -56,7 +63,7 @@ export function compressionPlan(
   ) {
     return null;
   }
-  return { maxSize: CLIENT_MAX_LONG_EDGE, bitrate: CLIENT_TARGET_BITRATE };
+  return plan;
 }
 
 /**

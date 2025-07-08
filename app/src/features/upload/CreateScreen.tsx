@@ -15,7 +15,9 @@ import { ClipPreview } from './ClipPreview';
 import { ComposeForm } from './ComposeForm';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
-import { pickFromLibrary, recordWithCamera, type PickResult } from './pickVideo';
+import { pickFromLibrary, type PickResult } from './pickVideo';
+import { RecordClipButton } from './RecordClipButton';
+import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
 import {
@@ -25,7 +27,7 @@ import {
   startUpload,
   submitPost,
 } from './uploadRunner';
-import { problemWith } from './validate';
+import { CLIP_LENGTH, problemWith } from './validate';
 
 /**
  * Create tab, in the order a fan thinks about it: 1. which gig, 2. the clips from it,
@@ -119,6 +121,7 @@ export function CreateScreen() {
     <Screen keyboard>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="title">Share clips</Text>
+        <UploadProblems ownerId={ownerId} />
         {lastGig && composingEntries.length === 0 && !gigChosen ? (
           <Button
             title={`Add more clips from ${lastGig.title}`}
@@ -168,7 +171,7 @@ export function CreateScreen() {
           disabled={!gigChosen}
         >
           <Text variant="caption" muted>
-            Up to 60 seconds each, up to ten at a time. They upload while you write.
+            Up to {CLIP_LENGTH} each, up to ten at a time. They upload while you write.
           </Text>
           {composingEntries.length > 0 ? (
             <ScrollView
@@ -209,12 +212,7 @@ export function CreateScreen() {
               testID="choose-video"
             />
             {Platform.OS !== 'web' ? (
-              <Button
-                title="Record a clip"
-                variant="secondary"
-                disabled={!gigChosen}
-                onPress={() => void add(recordWithCamera)}
-              />
+              <RecordClipButton disabled={!gigChosen} onPick={(pick) => void add(pick)} />
             ) : null}
           </View>
           {problem ? (

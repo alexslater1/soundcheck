@@ -1,5 +1,6 @@
 package app.soundcheck.media.internal.worker;
 
+import app.soundcheck.media.internal.MediaProperties;
 import app.soundcheck.media.internal.transcode.FfmpegCommands;
 import app.soundcheck.media.internal.transcode.MediaRejectedException;
 import app.soundcheck.media.internal.transcode.ProbeParser;
@@ -34,13 +35,15 @@ class FfmpegTranscoder implements Transcoder {
     private static final Duration SHORT = Duration.ofSeconds(60);
 
     private final JsonMapper json;
+    private final MediaProperties media;
     private static final int TAIL_BYTES = 800;
 
     private final Set<Process> running = ConcurrentHashMap.newKeySet();
     private final Set<Process> aborted = ConcurrentHashMap.newKeySet();
 
-    FfmpegTranscoder(JsonMapper json) {
+    FfmpegTranscoder(JsonMapper json, MediaProperties media) {
         this.json = json;
+        this.media = media;
     }
 
     @Override
@@ -55,7 +58,7 @@ class FfmpegTranscoder implements Transcoder {
             throw new MediaRejectedException("not a readable media file");
         }
         try {
-            return ProbeParser.parse(json.readTree(output));
+            return ProbeParser.parse(json.readTree(output), media.maxVideoDuration());
         } catch (JacksonException e) {
             throw new MediaRejectedException("not a readable media file");
         }

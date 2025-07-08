@@ -37,4 +37,6 @@ export const transport: UploadTransport = {
     }
     return etag;
   },
+  // The browser makes no copies.
+  discardLeftovers() {},
 };

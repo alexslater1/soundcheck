@@ -47,7 +47,7 @@ describe('nextPollDelay', () => {
     expect(isSettled(status)).toBe(false);
   });
 
-  it('gives up once the schedule has waited five minutes', () => {
+  it('gives up once the schedule has waited fifteen minutes', () => {
     // Replay the schedule: add up the delays until it says stop.
     let waited = 0;
     let polls = 1;
@@ -61,12 +61,13 @@ describe('nextPollDelay', () => {
     }
     expect(waited).toBeGreaterThanOrEqual(POLL_GIVE_UP_MS);
     expect(waited).toBeLessThan(POLL_GIVE_UP_MS + 10_000);
-    expect(polls).toBe(34); // 1 + 2 + 4 + 8 s, then 29 × 10 s
+    expect(POLL_GIVE_UP_MS).toBe(15 * 60 * 1000);
+    expect(polls).toBe(94); // 1 + 2 + 4 + 8 s, then 89 × 10 s
   });
 });
 
 describe('pollDelayForAge', () => {
-  it('looks often at first, then every ten seconds, and stops after five minutes', () => {
+  it('looks often at first, then every ten seconds, and stops after fifteen minutes', () => {
     expect(pollDelayForAge(0)).toBe(2_000);
     expect(pollDelayForAge(19_999)).toBe(2_000);
     expect(pollDelayForAge(20_000)).toBe(10_000);
