@@ -1,23 +1,28 @@
 package app.soundcheck.media.internal.transcode;
 
+import app.soundcheck.media.internal.MediaLimits;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.time.Duration;
 import java.util.Set;
 
 /**
  * Parses the JSON of {@code ffprobe -v error -print_format json -show_format -show_streams} and applies
- * the rejection rules: no video stream, longer than 61 s, wider or taller than 4096, or a
- * codec ffprobe could not identify. Pure: no process is started here.
+ * the rejection rules: no video stream, longer than the configured limit (3 minutes by
+ * default), wider or taller than 4096, or a codec ffprobe could not identify. Pure: no process is
+ * started here.
  */
 public final class ProbeParser {
 
-    public static final long MAX_DURATION_MS = 61_000;
     public static final int MAX_DIMENSION = 4096;
     private static final Set<String> NOT_DECODABLE = Set.of("", "unknown", "none");
 
     private ProbeParser() {}
 
-    /** @throws MediaRejectedException with the reason, when the file must not be transcoded */
-    public static ProbeResult parse(JsonNode probe) {
+    /**
+     * @param maxDuration {@code soundcheck.media.max-video-duration}, the limit the upload was accepted under
+     * @throws MediaRejectedException with the reason, when the file must not be transcoded
+     */
+    public static ProbeResult parse(JsonNode probe, Duration maxDuration) {
         JsonNode video = null;
         JsonNode audio = null;
         for (JsonNode stream : probe.path("streams")) {
@@ -51,8 +56,9 @@ public final class ProbeParser {
         if (durationMs <= 0) {
             throw new MediaRejectedException("duration unknown");
         }
-        if (durationMs > MAX_DURATION_MS) {
-            throw new MediaRejectedException("longer than 60 seconds (" + durationMs / 1000.0 + " s)");
+        if (durationMs > maxDuration.toMillis()) {
+            throw new MediaRejectedException(
+                    "longer than " + MediaLimits.clipLength(maxDuration) + " (" + durationMs / 1000.0 + " s)");
         }
         return new ProbeResult(
                 width,

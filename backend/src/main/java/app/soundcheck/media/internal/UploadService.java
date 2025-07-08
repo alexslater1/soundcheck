@@ -452,11 +452,16 @@ public class UploadService {
                     throw ApiException.badRequest("CONTENT_TYPE_UNSUPPORTED", "Videos must be mp4, quicktime or webm");
                 }
                 if (request.bytes() > properties.maxVideoSize().toBytes()) {
-                    throw new ApiException(HttpStatus.valueOf(413), "MEDIA_TOO_LARGE", "Videos can be at most 500 MB");
+                    throw new ApiException(
+                            HttpStatus.valueOf(413),
+                            "MEDIA_TOO_LARGE",
+                            "Videos can be at most " + MediaLimits.videoSize(properties.maxVideoSize()));
                 }
                 if (request.durationMs() != null
                         && request.durationMs() > properties.maxVideoDuration().toMillis()) {
-                    throw ApiException.badRequest("MEDIA_TOO_LONG", "Clips can be at most 60 seconds");
+                    throw ApiException.badRequest(
+                            "MEDIA_TOO_LONG",
+                            "Clips can be at most " + MediaLimits.clipLength(properties.maxVideoDuration()));
                 }
             }
             case "IMAGE" -> {

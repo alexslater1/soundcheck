@@ -46,6 +46,10 @@ describe('plainReason', () => {
     ['Unable to upload a file: File does not exist', 'the video is no longer on the phone'],
     ['Processing failed on the server.', 'the server could not process the clip'],
     ['Too many requests; try again later', 'too many uploads in the last hour; wait a little'],
+    [
+      'This video is larger than 1 GB and could not be compressed.',
+      'the video is over 1 GB and the phone could not compress it',
+    ],
     ['Clips can be at most 3 minutes', 'clips can be at most 3 minutes'],
     ['Videos can be at most 1 GB.', 'videos can be at most 1 GB'],
     ['Something nobody expected', 'something went wrong'],

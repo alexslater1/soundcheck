@@ -1,8 +1,12 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 
-import { result, toPicked } from './pickVideo';
+import { recordWithCamera, result, toPicked } from './pickVideo';
 
-jest.mock('expo-image-picker', () => ({}));
+const mockLaunchCamera = jest.fn();
+jest.mock('expo-image-picker', () => ({
+  requestCameraPermissionsAsync: async () => ({ granted: true }),
+  launchCameraAsync: (options: unknown) => mockLaunchCamera(options),
+}));
 
 const asset = (overrides: Partial<ImagePickerAsset> = {}): ImagePickerAsset => ({
   uri: 'file:///DCIM/clip.mp4',
@@ -63,5 +67,16 @@ describe('result', () => {
       'file:///b.mp4',
     ]);
     expect(result({ canceled: true, assets: null }, 'android')).toEqual({ kind: 'cancelled' });
+  });
+});
+
+describe('recordWithCamera', () => {
+  it('lets the camera record up to 3 minutes', async () => {
+    mockLaunchCamera.mockResolvedValue({ canceled: true, assets: null });
+
+    expect(await recordWithCamera()).toEqual({ kind: 'cancelled' });
+    expect(mockLaunchCamera).toHaveBeenCalledWith(
+      expect.objectContaining({ mediaTypes: ['videos'], videoMaxDuration: 180 }),
+    );
   });
 });

@@ -4,6 +4,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { CLIP_LENGTH } from '@/features/upload/validate';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
@@ -66,7 +67,7 @@ export function ClipScreen({ id }: { id: string }) {
           title={clip.status === 'REJECTED' ? 'This file could not be used' : 'Processing failed'}
           detail={
             clip.status === 'REJECTED'
-              ? 'It is not a video we can play. Try another clip (up to 60 seconds).'
+              ? `It is not a video we can play. Try another clip (up to ${CLIP_LENGTH}).`
               : 'Something went wrong on our side while preparing this clip.'
           }
         />

@@ -1,9 +1,14 @@
 import { prepareClip, type PrepareDeps } from './prepareClip';
 import type { UploadEntry } from './types';
+import { MAX_BYTES } from './validate';
 
 const MB = 1_000_000;
 
-function setup(connection: 'wifi' | 'cellular' | 'unknown', compressedBytes: number | null) {
+function setup(
+  connection: 'wifi' | 'cellular' | 'unknown',
+  compressedBytes: number | null,
+  bytes = 140 * MB,
+) {
   let entry: UploadEntry | null = {
     localId: 'u1',
     idempotencyKey: 'k1',
@@ -11,7 +16,7 @@ function setup(connection: 'wifi' | 'cellular' | 'unknown', compressedBytes: num
     fileUri: 'file:///DCIM/clip.mp4',
     fileName: 'clip.mp4',
     contentType: 'video/mp4',
-    bytes: 140 * MB, // ~56 s of 1080p at 20 Mbit/s, as the Pixel records
+    bytes, // by default ~56 s of 1080p at 20 Mbit/s, as the Pixel records
     durationMs: 56_000,
     width: 1080,
     height: 1920,
@@ -108,6 +113,34 @@ describe('prepareClip', () => {
 
     expect(t.deps.discard).toHaveBeenCalledWith('file:///cache/out.mp4');
     expect(t.entry()).toMatchObject({ fileUri: 'file:///DCIM/clip.mp4', temporary: false });
+  });
+
+  it('compresses a file over 1 GB on Wi-Fi too, and sends the smaller file', async () => {
+    const t = setup('wifi', 180 * MB, MAX_BYTES + 1);
+
+    expect(await prepareClip(t.deps)).toBe(true);
+
+    expect(t.deps.compress).toHaveBeenCalledTimes(1);
+    expect(t.entry()).toMatchObject({
+      state: 'QUEUED',
+      fileUri: 'file:///cache/out.mp4',
+      bytes: 180 * MB,
+      temporary: true,
+    });
+  });
+
+  it('fails, ready to try again, when a file over 1 GB could not be compressed', async () => {
+    const t = setup('wifi', null, MAX_BYTES + 1);
+
+    expect(await prepareClip(t.deps)).toBe(false);
+
+    expect(t.entry()).toMatchObject({
+      state: 'FAILED',
+      prepared: false,
+      fileUri: 'file:///DCIM/clip.mp4',
+      error: 'This video is larger than 1 GB and could not be compressed.',
+    });
+    expect(t.deps.discard).not.toHaveBeenCalled(); // the user's own file stays
   });
 
   it('throws away its work when the clip was removed meanwhile', async () => {

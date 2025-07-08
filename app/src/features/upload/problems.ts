@@ -41,6 +41,9 @@ export function plainReason(error: string | null): string {
   if (/Storage answered 5\d\d/i.test(message)) {
     return 'storage was not available';
   }
+  if (/larger than 1 GB and could not be compressed/i.test(message)) {
+    return 'the video is over 1 GB and the phone could not compress it';
+  }
   if (/Too many requests/i.test(message)) {
     return 'too many uploads in the last hour; wait a little';
   }

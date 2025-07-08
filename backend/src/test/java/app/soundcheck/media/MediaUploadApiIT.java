@@ -287,7 +287,7 @@ class MediaUploadApiIT extends IntegrationTest {
                 Map.of("kind", "VIDEO", "contentType", "video/x-msvideo", "bytes", 10),
                 Map.of("kind", "IMAGE", "contentType", "image/gif", "bytes", 10),
                 Map.of("kind", "AUDIO", "contentType", "audio/mpeg", "bytes", 10),
-                Map.of("kind", "VIDEO", "contentType", "video/mp4", "bytes", 10, "durationMs", 61_001),
+                Map.of("kind", "VIDEO", "contentType", "video/mp4", "bytes", 10, "durationMs", 181_001),
                 Map.of("kind", "VIDEO", "contentType", "video/mp4", "bytes", 0),
                 Map.of("kind", "VIDEO", "contentType", "video/mp4"))) {
             assertThat(api.post("/api/v1/media/uploads", bad, owner).getStatusCode())
@@ -301,6 +301,28 @@ class MediaUploadApiIT extends IntegrationTest {
                         .getStatusCode()
                         .value())
                 .isEqualTo(413);
+        // 3-minute clips are fine; the refusals name the configured limits (20 MB in tests).
+        ResponseEntity<JsonNode> threeMinutes = api.post(
+                "/api/v1/media/uploads",
+                Map.of("kind", "VIDEO", "contentType", "video/mp4", "bytes", 10, "durationMs", 180_500),
+                owner);
+        assertThat(threeMinutes.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(api.post(
+                                "/api/v1/media/uploads",
+                                Map.of("kind", "VIDEO", "contentType", "video/mp4", "bytes", 10, "durationMs", 181_001),
+                                owner)
+                        .getBody()
+                        .path("detail")
+                        .asText(""))
+                .isEqualTo("Clips can be at most 3 minutes");
+        assertThat(api.post(
+                                "/api/v1/media/uploads",
+                                Map.of("kind", "VIDEO", "contentType", "video/mp4", "bytes", 21 * MIB),
+                                owner)
+                        .getBody()
+                        .path("detail")
+                        .asText(""))
+                .isEqualTo("Videos can be at most 20 MB");
 
         // Free-form client metadata is stored, so it is bounded.
         assertThat(api.post(

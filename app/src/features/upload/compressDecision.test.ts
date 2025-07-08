@@ -6,6 +6,7 @@ import {
   sourceBitrate,
 } from './compressDecision';
 import type { PickedVideo } from './types';
+import { MAX_BYTES } from './validate';
 
 const original: PickedVideo = {
   uri: 'file:///original.mov',
@@ -104,9 +105,18 @@ describe('compressionPlan', () => {
     expect(compressionPlan(video(15_000_000, null, 1080, 1920), 'cellular')).not.toBeNull();
   });
 
-  it('sends the original on Wi-Fi, whatever it is', () => {
+  it('sends the original on Wi-Fi, whatever it is, up to the 1 GB limit', () => {
     expect(compressionPlan(video(42_500_000, 20_000, 1920, 1080), 'wifi')).toBeNull();
     expect(compressionPlan(video(300_000_000, 60_000, 3840, 2160), 'wifi')).toBeNull();
+    expect(compressionPlan(video(MAX_BYTES, 180_000, 3840, 2160), 'wifi')).toBeNull();
+  });
+
+  it('compresses a file over 1 GB even on Wi-Fi', () => {
+    // 3 minutes of 4K at about 50 Mbit/s.
+    expect(compressionPlan(video(MAX_BYTES + 1, 180_000, 3840, 2160), 'wifi')).toEqual({
+      maxSize: CLIENT_MAX_LONG_EDGE,
+      bitrate: CLIENT_TARGET_BITRATE,
+    });
   });
 
   it('compresses when the connection is unknown, as on mobile data', () => {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.catchThrowable;
 
+import app.soundcheck.media.internal.MediaProperties;
 import app.soundcheck.media.internal.transcode.MediaRejectedException;
 import app.soundcheck.media.internal.worker.Transcoder.ToolRefusedException;
 import app.soundcheck.media.internal.worker.Transcoder.TranscodeException;
@@ -16,6 +17,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.springframework.util.unit.DataSize;
 
 /**
  * The process runner under the transcoder, with ordinary shell commands standing in for ffmpeg: what
@@ -27,8 +29,17 @@ class FfmpegTranscoderTest {
     @TempDir
     Path dir;
 
-    final FfmpegTranscoder transcoder =
-            new FfmpegTranscoder(JsonMappers.builder().build());
+    final FfmpegTranscoder transcoder = new FfmpegTranscoder(
+            JsonMappers.builder().build(),
+            new MediaProperties(
+                    DataSize.ofGigabytes(1),
+                    DataSize.ofMegabytes(10),
+                    Duration.ofSeconds(181),
+                    DataSize.ofMegabytes(16),
+                    DataSize.ofMegabytes(8),
+                    Duration.ofMinutes(60),
+                    30,
+                    "http://localhost:8088"));
 
     @Test
     void aNonZeroExitIsTheToolsVerdictAndQuotesTheEndOfItsErrorOutput() {

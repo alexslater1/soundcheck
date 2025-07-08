@@ -8,12 +8,19 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 
 /** ffprobe JSON → {@link ProbeResult}, and the rejection rules. */
 class ProbeParserTest {
 
     static final JsonMapper JSON = JsonMappers.builder().build();
+    /** 3 minutes plus a second of tolerance (the {@code max-video-duration} default). */
+    static final Duration LIMIT = Duration.ofSeconds(181);
+
+    private static ProbeResult parse(JsonNode probe) {
+        return ProbeParser.parse(probe, LIMIT);
+    }
 
     private static JsonNode probe(String streams, String duration) {
         try {
@@ -29,7 +36,7 @@ class ProbeParserTest {
 
     @Test
     void parsesAnOrdinaryClip() {
-        ProbeResult result = ProbeParser.parse(probe(H264_1080 + "," + AAC, "19.986000"));
+        ProbeResult result = parse(probe(H264_1080 + "," + AAC, "19.986000"));
 
         assertThat(result.width()).isEqualTo(1920);
         assertThat(result.height()).isEqualTo(1080);
@@ -46,7 +53,7 @@ class ProbeParserTest {
         // Android writes a display matrix; ffprobe reports it counter-clockwise (-90 = 90° clockwise).
         String matrix = "{\"codec_type\":\"video\",\"codec_name\":\"hevc\",\"width\":1280,\"height\":720,"
                 + "\"side_data_list\":[{\"side_data_type\":\"Display Matrix\",\"rotation\":-90}]}";
-        ProbeResult sideways = ProbeParser.parse(probe(matrix, "8.0"));
+        ProbeResult sideways = parse(probe(matrix, "8.0"));
         assertThat(sideways.rotation()).isEqualTo(90);
         assertThat(sideways.displayWidth()).isEqualTo(720);
         assertThat(sideways.displayHeight()).isEqualTo(1280);
@@ -54,10 +61,10 @@ class ProbeParserTest {
 
         String tag =
                 "{\"codec_type\":\"video\",\"codec_name\":\"h264\",\"width\":1280,\"height\":720,\"tags\":{\"rotate\":\"270\"}}";
-        assertThat(ProbeParser.parse(probe(tag, "8.0")).rotation()).isEqualTo(270);
+        assertThat(parse(probe(tag, "8.0")).rotation()).isEqualTo(270);
         String upsideDown = "{\"codec_type\":\"video\",\"codec_name\":\"h264\",\"width\":1280,\"height\":720,"
                 + "\"side_data_list\":[{\"rotation\":180}]}";
-        ProbeResult flipped = ProbeParser.parse(probe(upsideDown, "8.0"));
+        ProbeResult flipped = parse(probe(upsideDown, "8.0"));
         assertThat(flipped.rotation()).isEqualTo(180);
         assertThat(flipped.displayWidth()).isEqualTo(1280);
     }
@@ -67,7 +74,7 @@ class ProbeParserTest {
         String video =
                 "{\"codec_type\":\"video\",\"codec_name\":\"vp9\",\"width\":640,\"height\":360,\"duration\":\"12.5\"}";
         JsonNode json = JSON.readTree("{\"streams\":[" + video + "],\"format\":{}}");
-        assertThat(ProbeParser.parse(json).durationMs()).isEqualTo(12_500);
+        assertThat(parse(json).durationMs()).isEqualTo(12_500);
     }
 
     @Test
@@ -77,9 +84,11 @@ class ProbeParserTest {
                 + "\"disposition\":{\"attached_pic\":1}}";
         assertRejected(probe(AAC, "30.0"), "no video stream");
         assertRejected(probe(cover + "," + AAC, "30.0"), "no video stream");
-        // Longer than 60 s (61 s of tolerance).
-        assertRejected(probe(H264_1080, "61.5"), "longer than 60 seconds");
-        assertThat(ProbeParser.parse(probe(H264_1080, "60.9")).durationMs()).isEqualTo(60_900);
+        // Longer than 3 minutes (181 s with the second of tolerance), or than whatever is configured.
+        assertRejected(probe(H264_1080, "181.5"), "longer than 3 minutes (181.5 s)");
+        assertThat(parse(probe(H264_1080, "180.9")).durationMs()).isEqualTo(180_900);
+        assertThatThrownBy(() -> ProbeParser.parse(probe(H264_1080, "61.5"), Duration.ofSeconds(61)))
+                .hasMessageContaining("longer than 60 seconds");
         // Too large in either direction.
         String huge = "{\"codec_type\":\"video\",\"codec_name\":\"h264\",\"width\":7680,\"height\":4320}";
         assertRejected(probe(huge, "10.0"), "larger than 4096");
@@ -96,7 +105,7 @@ class ProbeParserTest {
     }
 
     private static void assertRejected(JsonNode probe, String reason) {
-        assertThatThrownBy(() -> ProbeParser.parse(probe))
+        assertThatThrownBy(() -> parse(probe))
                 .isInstanceOf(MediaRejectedException.class)
                 .hasMessageContaining(reason);
     }

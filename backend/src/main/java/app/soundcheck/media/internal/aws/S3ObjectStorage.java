@@ -37,7 +37,7 @@ class S3ObjectStorage implements ObjectStorage {
 
     /**
      * Reading or writing a whole file may take far longer than the 30 s the client allows an ordinary call
-     * (a 500 MB original on a slow link): transfers get their own limit.
+     * (a 1 GB original on a slow link): transfers get their own limit.
      */
     private static final AwsRequestOverrideConfiguration TRANSFER = AwsRequestOverrideConfiguration.builder()
             .apiCallTimeout(Duration.ofMinutes(15))

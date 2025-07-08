@@ -241,19 +241,19 @@ describe('CreateScreen', () => {
   });
 
   it('refuses a clip that is too long without uploading anything', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', videos: [{ ...video, durationMs: 75_000 }] });
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [{ ...video, durationMs: 195_000 }] });
     await renderScreen();
     await fireEvent.press(screen.getByText('pick-gig-stub'));
 
     await fireEvent.press(screen.getByText('Choose videos'));
 
-    expect(await screen.findByText('Clips can be up to 60 seconds long.')).toBeTruthy();
+    expect(await screen.findByText('Clips can be up to 3 minutes long.')).toBeTruthy();
     expect(mockStartUpload).not.toHaveBeenCalled();
     expect(useUploadQueue.getState().entries).toHaveLength(0);
   });
 
   it('posts the clips that can be posted and names the ones that cannot', async () => {
-    const tooLong = { ...video, fileName: 'long.mp4', durationMs: 75_000 };
+    const tooLong = { ...video, fileName: 'long.mp4', durationMs: 195_000 };
     mockPick.mockResolvedValue({ kind: 'picked', videos: [video, tooLong] });
     await renderScreen();
     await fireEvent.press(screen.getByText('pick-gig-stub'));
@@ -262,7 +262,7 @@ describe('CreateScreen', () => {
 
     await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
     expect(screen.getByTestId('create-problem').props.children).toBe(
-      'long.mp4: Clips can be up to 60 seconds long.',
+      'long.mp4: Clips can be up to 3 minutes long.',
     );
   });
 

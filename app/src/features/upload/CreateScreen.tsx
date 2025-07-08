@@ -26,7 +26,7 @@ import {
   startUpload,
   submitPost,
 } from './uploadRunner';
-import { problemWith } from './validate';
+import { CLIP_LENGTH, problemWith } from './validate';
 
 /**
  * Create tab, in the order a fan thinks about it: 1. which gig, 2. the clips from it,
@@ -170,7 +170,7 @@ export function CreateScreen() {
           disabled={!gigChosen}
         >
           <Text variant="caption" muted>
-            Up to 60 seconds each, up to ten at a time. They upload while you write.
+            Up to {CLIP_LENGTH} each, up to ten at a time. They upload while you write.
           </Text>
           {composingEntries.length > 0 ? (
             <ScrollView
