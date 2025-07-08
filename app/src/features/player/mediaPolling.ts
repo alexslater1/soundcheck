@@ -1,7 +1,11 @@
 import type { Playback } from '@/api/generated/model';
 
-/** How long the app keeps asking whether a clip is ready. */
-export const POLL_GIVE_UP_MS = 5 * 60 * 1000;
+/**
+ * How long the app keeps asking whether a clip is ready: 15 minutes, for clips of up to 3 minutes.
+ * The worker may spend up to 4 × 3 min + 1 min on one transcode, and holds a clip for at most its
+ * 15-minute lease, so the app stops asking only once no worker can still be at it.
+ */
+export const POLL_GIVE_UP_MS = 15 * 60 * 1000;
 const MAX_DELAY_MS = 10_000;
 
 /** A status the worker will not change any more. */
@@ -11,7 +15,7 @@ export function isSettled(status: Playback['status']): boolean {
 
 /**
  * When to ask again, given how many answers have arrived: 1 s, 2 s, 4 s, 8 s, then every 10 s; `false`
- * (stop) once the clip is settled or the schedule has waited five minutes. Most clips are ready within seconds, so the early polls are quick, and a
+ * (stop) once the clip is settled or the schedule has waited `POLL_GIVE_UP_MS`. Most clips are ready within seconds, so the early polls are quick, and a
  * slow one does not cost a request per second for minutes.
  */
 export function nextPollDelay(
@@ -30,7 +34,7 @@ export function nextPollDelay(
 /**
  * For a list that shows clips still being processed: how soon to look again, given how long something
  * has been waiting. Every 2 s for the first 20 s (most clips are ready by then), then every 10 s, and
- * not at all after five minutes (the next visit to the screen refetches).
+ * not at all after `POLL_GIVE_UP_MS` (the next visit to the screen refetches).
  */
 export function pollDelayForAge(waitedMs: number): number | false {
   if (waitedMs >= POLL_GIVE_UP_MS) {

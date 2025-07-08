@@ -385,7 +385,7 @@ describe('runUpload', () => {
     expect(ready.deps.api.getMedia).not.toHaveBeenCalled();
   });
 
-  it('keeps polling through a failed status request and stops asking after five minutes', async () => {
+  it('keeps polling through a failed status request and stops asking after fifteen minutes', async () => {
     const h = harness({ ticket: singleTicket });
     let calls = 0;
     h.deps.api.getMedia.mockImplementation(async () => {
@@ -396,8 +396,8 @@ describe('runUpload', () => {
 
     await runUpload(h.deps);
 
-    expect(calls).toBe(34); // the whole polling schedule
-    expect(h.sleeps.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(5 * 60 * 1000);
+    expect(calls).toBe(94); // the whole schedule: 1, 2, 4, 8 s, then every 10 s
+    expect(h.sleeps.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(15 * 60 * 1000);
     expect(h.entry()).toMatchObject({ state: 'PROCESSING', error: null });
   });
 

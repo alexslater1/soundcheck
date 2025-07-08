@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import type { Post } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
+import { PROCESSING_HINT } from '@/features/player/processing';
 import type { PlaybackProgress } from '@/features/player/types';
 import { VideoPlayer } from '@/features/player/VideoPlayer';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { advanceWatch, INITIAL_WATCH } from '@/features/telemetry/watchTracker';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius } from '@/theme/tokens';
+import { radius, spacing } from '@/theme/tokens';
 
 type Props = {
   post: Post;
@@ -75,10 +76,24 @@ export function PostMedia({ post, active, live = true, soundAtTop, frameAspect }
       />
     );
   }
+  if (post.status === 'FAILED') {
+    return (
+      <View style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}>
+        <Text muted>This clip could not be processed.</Text>
+      </View>
+    );
+  }
+  // Not a blank grey box: say what is happening and roughly how long it takes. The
+  // screens around it keep polling, so the player replaces this by itself.
   return (
-    <View style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}>
-      <Text muted>
-        {post.status === 'FAILED' ? 'This clip could not be processed.' : 'Processing…'}
+    <View
+      style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}
+      testID="post-processing"
+    >
+      <ActivityIndicator color={colors.accent} />
+      <Text>Processing your clip…</Text>
+      <Text variant="caption" muted style={styles.hint}>
+        {PROCESSING_HINT}
       </Text>
     </View>
   );
@@ -90,5 +105,8 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: spacing.sm,
+    padding: spacing.lg,
   },
+  hint: { textAlign: 'center' },
 });

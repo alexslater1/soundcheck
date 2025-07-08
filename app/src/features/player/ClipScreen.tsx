@@ -8,6 +8,7 @@ import { CLIP_LENGTH } from '@/features/upload/validate';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
+import { PROCESSING_HINT } from './processing';
 import { useMediaStatus } from './useMediaStatus';
 import { VideoPlayer } from './VideoPlayer';
 
@@ -81,8 +82,8 @@ export function ClipScreen({ id }: { id: string }) {
         <Text variant="title">Processing…</Text>
         <Text muted>
           {media.isFetching || media.fetchStatus === 'idle'
-            ? 'Your clip is being prepared for playback. This page updates by itself.'
-            : 'Your clip is being prepared for playback.'}
+            ? `Your clip is being prepared for playback. ${PROCESSING_HINT} This page updates by itself.`
+            : `Your clip is being prepared for playback. ${PROCESSING_HINT}`}
         </Text>
       </View>
     </Screen>
