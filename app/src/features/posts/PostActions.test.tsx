@@ -143,7 +143,29 @@ describe('PostActions', () => {
     expect(screen.queryByText('Show me less like this')).toBeNull();
     expect(screen.queryByText('Why this post?')).toBeNull();
     await fireEvent.press(screen.getByText('Delete post'));
+    // A confirm step before anything is deleted.
+    expect(screen.getByText('Delete this post?')).toBeOnTheScreen();
+    expect(mockDelete).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByText('Delete'));
     await waitFor(() => expect(onGone).toHaveBeenCalledWith('post-1'));
     expect(mockDelete).toHaveBeenCalledWith('post-1');
+    expect(screen.queryByTestId('post-menu')).toBeNull();
+  });
+
+  it('gives the author of a failed post the same small menu, not a big Delete button', async () => {
+    useAuthStore.setState({ me: { id: 'author-1' } as never });
+    await render(
+      <ThemeProvider>
+        <PostActions post={{ ...post, status: 'FAILED' } as Post} />
+      </ThemeProvider>,
+    );
+    expect(screen.queryByText('Delete post')).toBeNull();
+    expect(screen.queryByLabelText('Share')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(screen.getByText('Delete post'));
+    await fireEvent.press(screen.getByText('Delete'));
+
+    await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('post-1'));
   });
 });

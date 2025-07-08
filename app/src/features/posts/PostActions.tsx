@@ -7,12 +7,13 @@ import { hidePost, reportPost } from '@/api/generated/engagement/engagement';
 import type { Post, Reason } from '@/api/generated/model';
 import { deletePost } from '@/api/generated/posts/posts';
 import { Button } from '@/components/ui/Button';
+import { ActionSheet, Sheet, type SheetAction } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { forgetPost } from '@/features/upload/uploadRunner';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, spacing, touchTarget } from '@/theme/tokens';
+import { spacing, touchTarget } from '@/theme/tokens';
 
 import { LikeButton } from './LikeButton';
 import { sharePost } from './sharePost';
@@ -32,8 +33,9 @@ type Props = {
 const LIGHT = '#FFFFFF';
 
 /**
- * What can be done with a post: like, comment, share, and a menu (delete for its author; "show me
- * less", report and "Why this post?" for everyone else). Each action is also reported as telemetry.
+ * What can be done with a post: like, comment, share, and a ⋯ menu in a sheet (delete, after a
+ * confirm, for its author; "show me less", report and "Why this post?" for everyone else). Each action
+ * is also reported as telemetry.
  */
 export function PostActions({ post, onGone, reasons, layout = 'row', onDark = false }: Props) {
   const { colors } = useTheme();
@@ -50,8 +52,8 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
   // Deleting a post also takes its upload off the Create list.
   const remove = () => deletePost(post.id).then(() => forgetPost(post.id));
 
+  // The sheet has closed by the time an action runs; the outcome shows as a notice by the icons.
   const act = async (work: () => Promise<unknown>, done: string, gone: boolean) => {
-    setMenuOpen(false);
     try {
       await work();
       setNotice(done);
@@ -63,74 +65,94 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
     }
   };
 
-  const panel = StyleSheet.flatten([
-    styles.menu,
-    column
-      ? { backgroundColor: colors.surface, padding: spacing.sm, borderRadius: radius.md }
-      : null,
-  ]);
+  // The ⋯ menu (H11): one sheet of rows. Group 8 adds Edit here for the author.
+  const menuActions: SheetAction[] = mine
+    ? [
+        {
+          key: 'delete',
+          label: 'Delete post',
+          icon: 'trash-outline',
+          destructive: true,
+          confirm: {
+            title: 'Delete this post?',
+            message: 'Its clip, likes and comments go with it. This cannot be undone.',
+            confirmLabel: 'Delete',
+          },
+          onPress: () => void act(remove, 'Post deleted', true),
+        },
+      ]
+    : [
+        ...(reasons && reasons.length > 0
+          ? [
+              {
+                key: 'why',
+                label: 'Why this post?',
+                icon: 'help-circle-outline',
+                onPress: () => setWhyOpen(true),
+              } satisfies SheetAction,
+            ]
+          : []),
+        {
+          key: 'less',
+          label: 'Show me less like this',
+          icon: 'eye-off-outline',
+          onPress: () =>
+            void act(
+              // Reported once the server has hidden it: the HIDE event also hides the post there, so
+              // an event for a request that failed would hide it behind the user's back.
+              () => hidePost(post.id).then(() => track('HIDE', post.id)),
+              'You will see less like this',
+              true,
+            ),
+        },
+        {
+          key: 'report',
+          label: 'Report',
+          icon: 'flag-outline',
+          onPress: () =>
+            void act(
+              () => reportPost(post.id, { reason: 'OTHER' }).then(() => track('REPORT', post.id)),
+              'Reported. Thank you.',
+              false,
+            ),
+        },
+      ];
 
-  const menu = menuOpen ? (
-    <View style={panel} testID="post-menu">
-      {mine ? (
-        <Button
-          title="Delete post"
-          variant="danger"
-          onPress={() => void act(remove, 'Post deleted', true)}
-        />
-      ) : (
-        <>
-          {reasons && reasons.length > 0 ? (
-            <Button
-              title="Why this post?"
-              variant="secondary"
-              onPress={() => {
-                setMenuOpen(false);
-                setWhyOpen(true);
-              }}
-            />
-          ) : null}
-          <Button
-            title="Show me less like this"
-            variant="secondary"
-            onPress={() =>
-              void act(
-                // Reported once the server has hidden it: the HIDE event also hides the post there, so
-                // an event for a request that failed would hide it behind the user's back.
-                () => hidePost(post.id).then(() => track('HIDE', post.id)),
-                'You will see less like this',
-                true,
-              )
-            }
-          />
-          <Button
-            title="Report"
-            variant="secondary"
-            onPress={() =>
-              void act(
-                () => reportPost(post.id, { reason: 'OTHER' }).then(() => track('REPORT', post.id)),
-                'Reported. Thank you.',
-                false,
-              )
-            }
-          />
-        </>
-      )}
-    </View>
-  ) : null;
+  const menu = (
+    <ActionSheet
+      visible={menuOpen}
+      onClose={() => setMenuOpen(false)}
+      actions={menuActions}
+      testID="post-menu"
+    />
+  );
 
-  const why =
-    whyOpen && reasons ? (
-      <View style={panel} testID="why-this-post" accessibilityRole="summary">
-        <Text variant="label" muted>
-          WHY THIS POST
-        </Text>
+  const why = reasons ? (
+    <Sheet
+      visible={whyOpen}
+      onClose={() => setWhyOpen(false)}
+      title="Why this post?"
+      testID="why-this-post"
+    >
+      <View style={styles.why}>
         {reasons.map((reason) => (
           <Text key={reason.kind}>{reason.text}</Text>
         ))}
         <Button title="Close" variant="secondary" onPress={() => setWhyOpen(false)} />
       </View>
-    ) : null;
+    </Sheet>
+  ) : null;
+
+  const more = (
+    <Pressable
+      style={column ? styles.stacked : styles.action}
+      accessibilityRole="button"
+      accessibilityLabel="More"
+      onPress={() => setMenuOpen(true)}
+    >
+      <Ionicons name="ellipsis-horizontal" size={22} color={ink} />
+    </Pressable>
+  );
 
   const buttons =
     post.status === 'PUBLISHED' ? (
@@ -175,24 +197,11 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
         >
           <Ionicons name="share-outline" size={22} color={ink} />
         </Pressable>
-        <Pressable
-          style={column ? styles.stacked : styles.action}
-          accessibilityRole="button"
-          accessibilityLabel="More"
-          onPress={() => setMenuOpen((open) => !open)}
-        >
-          <Ionicons name="ellipsis-horizontal" size={22} color={ink} />
-        </Pressable>
+        {more}
       </View>
     ) : mine ? (
       // A post that failed (or is stuck processing) has no actions; its author can still remove it.
-      <View style={styles.actions}>
-        <Button
-          title="Delete post"
-          variant="danger"
-          onPress={() => void act(remove, 'Post deleted', true)}
-        />
-      </View>
+      <View style={styles.actions}>{more}</View>
     ) : null;
 
   const note = notice ? (
@@ -207,20 +216,15 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
     </Text>
   ) : null;
 
-  // Over the clip the panels open above the icons; under it, below them.
-  return column ? (
-    <View style={styles.overClip}>
-      {why}
-      {menu}
-      {note}
+  // The menu and "Why this post?" are sheets over the whole screen. The notice sits by the icons:
+  // above them over the clip, below them under it.
+  return (
+    <View style={column ? styles.overClip : styles.underClip}>
+      {column ? note : null}
       {buttons}
-    </View>
-  ) : (
-    <View style={styles.underClip}>
-      {buttons}
+      {column ? null : note}
       {menu}
       {why}
-      {note}
     </View>
   );
 }
@@ -244,5 +248,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 2,
   },
-  menu: { gap: spacing.sm, maxWidth: 280 },
+  why: { gap: spacing.sm, paddingHorizontal: spacing.md, paddingBottom: spacing.sm },
 });
