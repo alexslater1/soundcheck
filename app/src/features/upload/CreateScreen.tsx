@@ -16,6 +16,7 @@ import { ComposeForm } from './ComposeForm';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
 import { pickFromLibrary, recordWithCamera, type PickResult } from './pickVideo';
+import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
 import {
@@ -119,6 +120,7 @@ export function CreateScreen() {
     <Screen keyboard>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="title">Share clips</Text>
+        <UploadProblems ownerId={ownerId} />
         {lastGig && composingEntries.length === 0 && !gigChosen ? (
           <Button
             title={`Add more clips from ${lastGig.title}`}

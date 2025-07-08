@@ -14,6 +14,7 @@ describe('upload labels', () => {
   });
 
   it('describes each state, with a percentage while uploading', () => {
+    expect(stateLabel({ state: 'QUEUED', progress: 0 })).toBe('Waiting for its turn…');
     expect(stateLabel({ state: 'UPLOADING', progress: 0.416 })).toBe('Uploading 42%');
     expect(stateLabel({ state: 'PROCESSING', progress: 1 })).toBe('Processing…');
     expect(stateLabel({ state: 'READY', progress: 1 })).toBe('Ready');

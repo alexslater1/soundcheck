@@ -5,6 +5,8 @@ import { StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useListNotifications } from '@/api/generated/notifications/notifications';
+import { useAuthStore } from '@/features/auth/store';
+import { useUploadProblemCount } from '@/features/upload/problems';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
 import { fontFamily } from '@/theme/typography';
@@ -35,6 +37,9 @@ export default function TabsLayout() {
   // The unread count on the Activity tab; refreshed every minute.
   const inbox = useListNotifications({ limit: 1 }, { query: { refetchInterval: 60_000 } });
   const unread = inbox.data?.unreadCount ?? 0;
+  // Uploads that failed and need the user: a badge on Create, wherever they are.
+  const uploadProblems = useUploadProblemCount(useAuthStore((state) => state.me?.id ?? null));
+  const badges: Record<string, number> = { activity: unread, create: uploadProblems };
   return (
     <Tabs
       screenOptions={{
@@ -61,7 +66,7 @@ export default function TabsLayout() {
           name={tab.name}
           options={{
             title: tab.title,
-            tabBarBadge: tab.name === 'activity' && unread > 0 ? unread : undefined,
+            tabBarBadge: (badges[tab.name] ?? 0) > 0 ? badges[tab.name] : undefined,
             tabBarIcon: ({ color, focused }) => (
               <View
                 style={[
