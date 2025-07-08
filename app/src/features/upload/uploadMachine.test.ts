@@ -298,7 +298,7 @@ describe('runUpload', () => {
     expect(h.entry()).toMatchObject({ state: 'READY', mediaId: 'media-1' });
   });
 
-  it('never has more than four parts in flight', async () => {
+  it('never has more than two parts in flight', async () => {
     const parts = Array.from({ length: 10 }, (_, i) => ({
       partNumber: i + 1,
       url: `https://s3.test/part-${i + 1}`,
@@ -319,8 +319,36 @@ describe('runUpload', () => {
 
     await runUpload(h.deps);
 
+    expect(PARALLEL_PARTS).toBe(2);
     expect(peak).toBe(PARALLEL_PARTS);
     expect(h.deps.transport.putPart).toHaveBeenCalledTimes(10);
+    expect(h.entry().state).toBe('READY');
+  });
+
+  it('sends the bytes inside the gate, and waits for the worker outside it', async () => {
+    const order: string[] = [];
+    const h = harness({ ticket: singleTicket, statuses: ['PROCESSING', 'READY'] });
+    const deps: UploadDeps = {
+      ...h.deps,
+      api: {
+        ...h.deps.api,
+        getMedia: async () => {
+          order.push('poll');
+          return h.deps.api.getMedia();
+        },
+      },
+      oneAtATime: async (step) => {
+        order.push('gate in');
+        const result = await step();
+        order.push('gate out');
+        return result;
+      },
+    };
+
+    await runUpload(deps);
+
+    expect(order).toEqual(['gate in', 'gate out', 'poll', 'poll']);
+    expect(h.deps.transport.putWhole).toHaveBeenCalledTimes(1);
     expect(h.entry().state).toBe('READY');
   });
 

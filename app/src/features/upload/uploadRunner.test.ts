@@ -201,6 +201,53 @@ describe('upload runner', () => {
     expect(mockCreateUpload).toHaveBeenCalledTimes(1);
   });
 
+  it('sends one clip’s bytes at a time: the second waits until the first has completed', async () => {
+    const order: string[] = [];
+    let finishFirst: () => void = () => undefined;
+    mockCreateUpload
+      .mockResolvedValueOnce({
+        mediaId: 'media-1',
+        strategy: 'SINGLE',
+        putUrl: 'https://s3.test/one',
+        expiresAt: '2026-10-02T12:00:00Z',
+      })
+      .mockResolvedValueOnce({
+        mediaId: 'media-2',
+        strategy: 'SINGLE',
+        putUrl: 'https://s3.test/two',
+        expiresAt: '2026-10-02T12:00:00Z',
+      });
+    mockPutWhole.mockImplementation(async (url: string) => {
+      order.push(`put ${url}`);
+      if (url.endsWith('one')) {
+        await new Promise<void>((resolve) => (finishFirst = resolve));
+      }
+    });
+    mockCompleteUpload.mockImplementation(async (mediaId: string) => {
+      order.push(`complete ${mediaId}`);
+      return { status: 'UPLOADED' };
+    });
+    const one = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const two = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+
+    const both = Promise.all([startUpload(one), startUpload(two)]);
+    for (let i = 0; i < 20 && order.length === 0; i++) {
+      await new Promise((resolve) => setTimeout(resolve, 1));
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    expect(order).toEqual(['put https://s3.test/one']);
+    expect(mockCreateUpload).toHaveBeenCalledTimes(1);
+
+    finishFirst();
+    await both;
+    expect(order).toEqual([
+      'put https://s3.test/one',
+      'complete media-1',
+      'put https://s3.test/two',
+      'complete media-2',
+    ]);
+  });
+
   describe('keeping the Create list and the profile in step', () => {
     const posted = (postId: string, state: 'PROCESSING' | 'READY') => {
       const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });

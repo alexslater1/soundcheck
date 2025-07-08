@@ -11,3 +11,16 @@ export function serially<A extends unknown[], R>(fn: (...args: A) => Promise<R>)
     return run;
   };
 }
+
+/**
+ * A gate: steps passed to the returned function run one after another, in call order, each resolving
+ * with its own result (or rejecting with its own error). Unlike `serially`, the steps can differ.
+ */
+export function oneAtATime(): <T>(step: () => Promise<T>) => Promise<T> {
+  let tail: Promise<unknown> = Promise.resolve();
+  return <T>(step: () => Promise<T>): Promise<T> => {
+    const run = tail.then(step);
+    tail = run.catch(() => undefined);
+    return run;
+  };
+}

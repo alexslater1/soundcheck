@@ -9,7 +9,7 @@ import { compressVideo, discardFile } from './compress';
 import { currentConnection } from './connection';
 import { ensurePost } from './postDraft';
 import { prepareClip } from './prepareClip';
-import { serially } from './serially';
+import { oneAtATime, serially } from './serially';
 import { transport } from './transport';
 import type { PostDraft, UploadEntry } from './types';
 import { runUpload } from './uploadMachine';
@@ -23,6 +23,12 @@ const running = new Set<string>();
  * holds the phone's video encoder and a lot of memory), while the ones already prepared upload.
  */
 const compressOneAtATime = serially(compressVideo);
+
+/**
+ * One upload sends bytes at a time: two clips of a post no longer double the parts in
+ * flight; the second waits, QUEUED, until the first has completed.
+ */
+const sendOneAtATime = oneAtATime();
 
 /**
  * `completeUpload` as it runs: a single-PUT upload sends no body (`undefined`), but orval 7 types the
@@ -82,6 +88,7 @@ export async function startUpload(localId: string): Promise<void> {
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       random: Math.random,
       onAccepted: () => ensurePostFor(localId),
+      oneAtATime: sendOneAtATime,
     });
   } finally {
     running.delete(localId);
