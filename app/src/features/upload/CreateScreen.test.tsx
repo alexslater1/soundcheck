@@ -78,6 +78,15 @@ jest.mock('./ClipPreview', () => {
     ClipPreview: ({ uri }: { uri: string }) => React.createElement(Text, null, `preview ${uri}`),
   };
 });
+// Recording and its review have their own test; here the button hands the camera's result straight on.
+jest.mock('./RecordClipButton', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    RecordClipButton: ({ onPick }: { onPick: (pick: () => Promise<PickResult>) => void }) =>
+      React.createElement(Text, { onPress: () => onPick(() => mockPick()) }, 'Record a clip'),
+  };
+});
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-router', () => {
   const React = jest.requireActual<typeof import('react')>('react');

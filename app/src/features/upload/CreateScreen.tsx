@@ -15,7 +15,8 @@ import { ClipPreview } from './ClipPreview';
 import { ComposeForm } from './ComposeForm';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
-import { pickFromLibrary, recordWithCamera, type PickResult } from './pickVideo';
+import { pickFromLibrary, type PickResult } from './pickVideo';
+import { RecordClipButton } from './RecordClipButton';
 import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
@@ -211,12 +212,7 @@ export function CreateScreen() {
               testID="choose-video"
             />
             {Platform.OS !== 'web' ? (
-              <Button
-                title="Record a clip"
-                variant="secondary"
-                disabled={!gigChosen}
-                onPress={() => void add(recordWithCamera)}
-              />
+              <RecordClipButton disabled={!gigChosen} onPick={(pick) => void add(pick)} />
             ) : null}
           </View>
           {problem ? (
