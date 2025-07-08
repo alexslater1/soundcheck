@@ -86,12 +86,14 @@ export type PostDraft = { caption: string; gigId: string | null; artistIds: stri
 export type UploadSource = { uri: string; bytes: number };
 
 /**
- * How bytes leave the device. Two implementations: `transport.ts` (Android, reads byte ranges from the
- * file) and `transport.web.ts` (browser, `Blob.slice`). The state machine knows only this interface.
+ * How bytes leave the device. Two implementations: `transport.ts` (Android, streams the file natively;
+ * a part is copied to a temporary file first) and `transport.web.ts` (browser, `Blob.slice`). The state machine knows only this interface.
  */
 export interface UploadTransport {
   /** PUTs the whole file with the signed headers. */
   putWhole(url: string, headers: Record<string, string>, source: UploadSource): Promise<void>;
   /** PUTs `length` bytes starting at `offset`; resolves with the part's ETag. */
   putPart(url: string, source: UploadSource, offset: number, length: number): Promise<string>;
+  /** Deletes temporary copies an earlier run left behind; called only while nothing is uploading. */
+  discardLeftovers(): void;
 }

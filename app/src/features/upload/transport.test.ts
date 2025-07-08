@@ -2,6 +2,7 @@ import { COPY_CHUNK, transport as nativeTransport } from './transport';
 
 /** A fake file system: each file is a byte array; handles read and write at their offset. */
 const mockFiles = new Map<string, Uint8Array>();
+const mockFolders = new Set<string>();
 const mockUpload = jest.fn();
 const mockReads: number[] = [];
 
@@ -50,7 +51,31 @@ jest.mock('expo-file-system/next', () => {
       };
     }
   }
-  return { File: MockFile, Paths: { cache: { uri: 'file:///cache' } } };
+  class MockDirectory {
+    uri: string;
+    constructor(...parts: (string | { uri: string })[]) {
+      this.uri = parts.map((p) => (typeof p === 'string' ? p : p.uri)).join('/');
+    }
+    create() {
+      mockFolders.add(this.uri);
+    }
+    get exists() {
+      return mockFolders.has(this.uri);
+    }
+    delete() {
+      mockFolders.delete(this.uri);
+      for (const uri of [...mockFiles.keys()]) {
+        if (uri.startsWith(`${this.uri}/`)) {
+          mockFiles.delete(uri);
+        }
+      }
+    }
+  }
+  return {
+    File: MockFile,
+    Directory: MockDirectory,
+    Paths: { cache: { uri: 'file:///cache' } },
+  };
 });
 
 const SOURCE = 'file:///clip.mp4';
@@ -67,6 +92,7 @@ describe('native transport', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockFiles.clear();
+    mockFolders.clear();
     mockReads.length = 0;
   });
 
@@ -88,7 +114,7 @@ describe('native transport', () => {
     expect(etag).toBe('"abc"');
     expect(sent).toEqual(video(5000).slice(1000, 1500));
     const [uri, url, options] = mockUpload.mock.calls[0] as [string, string, object];
-    expect(uri).toMatch(/^file:\/\/\/cache\/upload-part-/);
+    expect(uri).toMatch(/^file:\/\/\/cache\/upload-parts\/part-/);
     expect(url).toBe('https://s3.test/part-2');
     expect(options).toEqual({ httpMethod: 'PUT', headers: {} });
     expect(partFiles()).toEqual([]);
@@ -149,6 +175,18 @@ describe('native transport', () => {
     ).rejects.toThrow('shorter than expected');
     expect(mockUpload).not.toHaveBeenCalled();
     expect(partFiles()).toEqual([]);
+  });
+
+  it('deletes part files an app killed mid-part left behind, and nothing else', () => {
+    mockFolders.add('file:///cache/upload-parts');
+    mockFiles.set('file:///cache/upload-parts/part-1-old', video(10));
+    mockFiles.set(SOURCE, video(10));
+
+    nativeTransport.discardLeftovers();
+
+    expect(partFiles()).toEqual([]);
+    expect(mockFiles.has(SOURCE)).toBe(true);
+    expect(() => nativeTransport.discardLeftovers()).not.toThrow(); // no folder: nothing to do
   });
 
   it('fails when storage returns no ETag (a CORS rule that does not expose it)', async () => {

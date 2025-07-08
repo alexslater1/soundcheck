@@ -13,6 +13,7 @@ const mockCreateUpload = jest.fn();
 const mockCompleteUpload = jest.fn();
 const mockGetMedia = jest.fn();
 const mockPutWhole = jest.fn();
+const mockDiscardLeftovers = jest.fn();
 const mockDiscard = jest.fn();
 const mockCreatePost = jest.fn();
 const mockDeletePost = jest.fn();
@@ -23,7 +24,11 @@ jest.mock('@/api/generated/media/media', () => ({
   getMedia: (...args: unknown[]) => mockGetMedia(...args),
 }));
 jest.mock('./transport', () => ({
-  transport: { putWhole: (...args: unknown[]) => mockPutWhole(...args), putPart: jest.fn() },
+  transport: {
+    putWhole: (...args: unknown[]) => mockPutWhole(...args),
+    putPart: jest.fn(),
+    discardLeftovers: () => mockDiscardLeftovers(),
+  },
 }));
 jest.mock('./compress', () => ({ discardFile: (uri: string) => mockDiscard(uri) }));
 jest.mock('@/api/generated/posts/posts', () => ({
@@ -246,6 +251,17 @@ describe('upload runner', () => {
       'put https://s3.test/two',
       'complete media-2',
     ]);
+    // Leftover part files are cleared only when the first upload starts, never under a running one.
+    expect(mockDiscardLeftovers).toHaveBeenCalledTimes(1);
+  });
+
+  it('clears leftover part files before an upload starts while nothing else runs', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+
+    await startUpload(id);
+    await startUpload(id); // settled: runs again, still alone
+
+    expect(mockDiscardLeftovers).toHaveBeenCalledTimes(2);
   });
 
   describe('keeping the Create list and the profile in step', () => {

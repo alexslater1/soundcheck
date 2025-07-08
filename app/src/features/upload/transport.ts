@@ -1,6 +1,6 @@
 import { uploadAsync } from 'expo-file-system';
 
-import { File, type FileHandle, Paths } from '@/lib/fileSystemNext';
+import { Directory, File, type FileHandle, Paths } from '@/lib/fileSystemNext';
 
 import type { UploadSource, UploadTransport } from './types';
 
@@ -17,16 +17,24 @@ import type { UploadSource, UploadTransport } from './types';
  */
 export const COPY_CHUNK = 1024 * 1024;
 
+/** Where the part copies live: one folder, so leftovers from an app killed mid-part can be found. */
+function partsFolder(): Directory {
+  return new Directory(Paths.cache, 'upload-parts');
+}
+
 /** Copies `length` bytes of `uri` starting at `offset` into a new cache file. */
 export function copyRange(uri: string, offset: number, length: number): File {
-  const part = new File(
-    Paths.cache,
-    `upload-part-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-  );
+  const folder = partsFolder();
+  // `create` throws when the folder is already there.
+  if (!folder.exists) {
+    folder.create({ intermediates: true });
+  }
+  const part = new File(folder, `part-${Date.now()}-${Math.random().toString(36).slice(2)}`);
   part.create();
   const from = new File(uri).open();
-  const to = part.open();
+  let to: FileHandle | null = null;
   try {
+    to = part.open();
     from.offset = offset;
     for (let copied = 0; copied < length; ) {
       const bytes = readAtMost(from, Math.min(COPY_CHUNK, length - copied));
@@ -37,7 +45,7 @@ export function copyRange(uri: string, offset: number, length: number): File {
       copied += bytes.byteLength;
     }
   } catch (error) {
-    to.close();
+    to?.close();
     part.delete();
     throw error;
   } finally {
@@ -95,6 +103,18 @@ export const transport: UploadTransport = {
       return etag;
     } finally {
       part.delete();
+    }
+  },
+  discardLeftovers() {
+    // Only called while no upload is sending (the runner checks), so no part here is in use: they
+    // are what an app killed in the middle of a part left behind.
+    try {
+      const folder = partsFolder();
+      if (folder.exists) {
+        folder.delete();
+      }
+    } catch {
+      // The system clears the cache directory when it needs the space.
     }
   },
 };

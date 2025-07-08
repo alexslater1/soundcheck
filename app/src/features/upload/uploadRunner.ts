@@ -50,6 +50,10 @@ export async function startUpload(localId: string): Promise<void> {
   if (running.has(localId) || !find()) {
     return;
   }
+  if (running.size === 0) {
+    // Nothing is sending, so any temporary part file is a leftover from an app killed mid-part.
+    transport.discardLeftovers();
+  }
   running.add(localId);
   const current = () => {
     const entry = find();

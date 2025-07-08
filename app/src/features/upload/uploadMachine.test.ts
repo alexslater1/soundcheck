@@ -75,6 +75,7 @@ function harness(options: {
       putPart: jest.fn(
         options.putPart ?? (async (url: string) => `"etag-${url.slice(url.lastIndexOf('-') + 1)}"`),
       ),
+      discardLeftovers: jest.fn(),
     },
     current: () => state,
     update: (patch: Partial<UploadEntry>) => {
