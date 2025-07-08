@@ -116,6 +116,16 @@ class NotificationRepository {
                 .execute();
     }
 
+    /** Marks one of the user's notifications as read, unless it already is (primary key). */
+    int markRead(UUID userId, UUID id, Instant now) {
+        return dsl.update(NOTIFICATION)
+                .set(NOTIFICATION.READ_AT, at(now))
+                .where(NOTIFICATION.ID.eq(id))
+                .and(NOTIFICATION.USER_ID.eq(userId))
+                .and(NOTIFICATION.READ_AT.isNull())
+                .execute();
+    }
+
     private static Row toRow(org.jooq.Record r) {
         return new Row(
                 r.get(NOTIFICATION.ID),

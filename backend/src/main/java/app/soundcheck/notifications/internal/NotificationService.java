@@ -198,6 +198,19 @@ public class NotificationService {
                 .toList();
     }
 
+    /**
+     * Marks one of the user's notifications as read, because they opened it; returns the new unread
+     * count. One already read keeps the time it was first read.
+     */
+    public long read(UUID userId, UUID notificationId) {
+        notifications
+                .find(notificationId)
+                .filter(row -> row.userId().equals(userId))
+                .orElseThrow(() -> ApiException.notFound("NOTIFICATION_NOT_FOUND", "No such notification"));
+        notifications.markRead(userId, notificationId, Instant.now(clock));
+        return notifications.unreadCount(userId);
+    }
+
     /** Marks everything up to and including the given notification as read; returns the new unread count. */
     public long readUpTo(UUID userId, UUID notificationId) {
         Row upTo = notifications

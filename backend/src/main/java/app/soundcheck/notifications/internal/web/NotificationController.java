@@ -60,6 +60,14 @@ public class NotificationController {
         return new UnreadResponse(notifications.readUpTo(UUID.fromString(jwt.getSubject()), body.upTo()));
     }
 
+    @PostMapping("/{id}/read")
+    @Operation(
+            operationId = "markNotificationRead",
+            summary = "Mark one notification as read (the user opened it); 404 if not theirs")
+    public UnreadResponse readOne(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        return new UnreadResponse(notifications.read(UUID.fromString(jwt.getSubject()), id));
+    }
+
     public record ReadRequest(@NotNull UUID upTo) {}
 
     public record UnreadResponse(long unreadCount) {}

@@ -296,6 +296,47 @@ class NotificationsIT extends IntegrationTest {
                 .isZero();
     }
 
+    /** Opening one entry marks that entry read, and nothing newer or older with it. */
+    @Test
+    void openingOneNotificationMarksOnlyThatOneRead() {
+        TestApi.User second = api.register("second");
+        TestApi.User third = api.register("third");
+        tx.executeWithoutResult(status -> events.publishEvent(new UserFollowed(fan.id(), author.id())));
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(inbox(author)).hasSize(1));
+        tx.executeWithoutResult(status -> events.publishEvent(new UserFollowed(second.id(), author.id())));
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(inbox(author)).hasSize(2));
+        tx.executeWithoutResult(status -> events.publishEvent(new UserFollowed(third.id(), author.id())));
+        await().atMost(Duration.ofSeconds(10))
+                .untilAsserted(() -> assertThat(inbox(author)).hasSize(3));
+        String middle = inbox(author).get(1).path("id").asText("");
+
+        JsonNode answer = api.post("/api/v1/notifications/" + middle + "/read", null, author)
+                .getBody();
+
+        assertThat(answer.path("unreadCount").asInt()).isEqualTo(2);
+        assertThat(inbox(author).stream().map(n -> n.path("read").asBoolean())).containsExactly(false, true, false);
+        // Opening it again changes nothing.
+        assertThat(api.post("/api/v1/notifications/" + middle + "/read", null, author)
+                        .getBody()
+                        .path("unreadCount")
+                        .asInt())
+                .isEqualTo(2);
+        // Someone else's entry, or one that does not exist, is not found and stays unread.
+        assertThat(api.post(
+                                "/api/v1/notifications/"
+                                        + inbox(author).getFirst().path("id").asText("") + "/read",
+                                null,
+                                fan)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(api.post("/api/v1/notifications/" + UUID.randomUUID() + "/read", null, author)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(unread(author)).isEqualTo(2);
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
     private List<JsonNode> inbox(TestApi.User user) {

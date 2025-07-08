@@ -99,3 +99,14 @@ export const getNotificationResponse = zod.object({
   "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS'])
 })
 
+/**
+ * @summary Mark one notification as read (the user opened it); 404 if not theirs
+ */
+export const markNotificationReadParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const markNotificationReadResponse = zod.object({
+  "unreadCount": zod.number()
+})
+

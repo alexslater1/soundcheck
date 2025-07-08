@@ -3598,6 +3598,34 @@
         "tags" : [ "notifications" ]
       }
     },
+    "/api/v1/notifications/{id}/read" : {
+      "post" : {
+        "operationId" : "markNotificationRead",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/UnreadResponse"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mark one notification as read (the user opened it); 404 if not theirs",
+        "tags" : [ "notifications" ]
+      }
+    },
     "/api/v1/past-gigs" : {
       "get" : {
         "operationId" : "searchPastGigs",
