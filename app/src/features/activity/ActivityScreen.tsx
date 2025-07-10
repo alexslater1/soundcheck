@@ -12,20 +12,25 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { relativeTime, relativeTimeLabel, useNow } from '@/lib/relativeTime';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
 import { notificationTarget, notificationText } from './notificationText';
+import { useMarkOpened } from './openNotification';
 
 /**
  * Activity tab: the notification inbox. It is fetched when the tab gets focus (polling on focus is
- * focus is enough, no push), and "Mark all as read" reads up to the newest entry shown.
+ * enough, no push). Tapping an entry opens what it is about and marks that entry read; "Mark all as
+ * read" reads up to the newest entry shown. Each entry says how long ago it happened.
  */
 export function ActivityScreen() {
   const { colors } = useTheme();
   const router = useRouter();
   const client = useQueryClient();
   const inbox = useListNotifications({ limit: 50 });
+  const markOpened = useMarkOpened();
+  const now = useNow();
   const refetch = inbox.refetch;
   useFocusEffect(
     useCallback(() => {
@@ -83,11 +88,17 @@ export function ActivityScreen() {
         ) : (
           items.map((notification) => {
             const target = notificationTarget(notification);
+            const text = notificationText(notification);
+            const when = relativeTimeLabel(notification.createdAt, now);
             return (
               <Pressable
                 key={notification.id}
-                accessibilityRole={target ? 'link' : 'text'}
-                onPress={() => (target ? router.push(target) : undefined)}
+                accessibilityRole={target ? 'link' : 'button'}
+                accessibilityLabel={`${text}, ${when}${notification.read ? '' : ', unread'}`}
+                onPress={() => {
+                  markOpened(notification);
+                  if (target) router.push(target);
+                }}
                 style={[
                   styles.row,
                   {
@@ -97,11 +108,15 @@ export function ActivityScreen() {
                 ]}
                 testID="notification"
               >
-                <Text>{notificationText(notification)}</Text>
+                <Text style={styles.text}>{text}</Text>
+                <Text variant="caption" muted testID="notification-time">
+                  {relativeTime(notification.createdAt, now)}
+                </Text>
                 {notification.read ? null : (
                   <View
                     style={[styles.dot, { backgroundColor: colors.accent }]}
                     accessibilityLabel="Unread"
+                    testID="unread-dot"
                   />
                 )}
               </Pressable>
@@ -124,8 +139,8 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     gap: spacing.sm,
   },
+  text: { flex: 1 },
   dot: { width: 10, height: 10, borderRadius: radius.pill },
 });
