@@ -41,7 +41,8 @@ export function Sheet({ visible, onClose, title, children, testID }: SheetProps)
           style={styles.backdrop}
           onPress={onClose}
           accessibilityRole="button"
-          accessibilityLabel="Close"
+          // Not "Close": a sheet's own Close button must stay the only one by that name.
+          accessibilityLabel="Dismiss"
           testID="sheet-backdrop"
         />
         <View
