@@ -13,15 +13,15 @@ export function formatStatDate(iso: string): string {
 }
 
 /**
- * The line under an act or venue: "Once, 1 Mar 2025" for a single gig, "2 times on 1 Mar 2025" for
- * several on one day (two bills in one night), otherwise the first and the last time.
+ * The line under an act or venue: the date for a single gig, or for several on one day (two
+ * bills in one night; the badge beside it says how many), otherwise the first and the last date as a
+ * range, "25 Sept 2026 – 2 Oct 2026".
  */
 export function seenLine(times: number, first: string, last: string): string {
   const from = formatStatDate(first);
   const to = formatStatDate(last);
-  if (times <= 1) return `Once, ${from}`;
-  if (from === to) return `${times} times on ${from}`;
-  return `First ${from} · last ${to}`;
+  if (times <= 1 || from === to) return from;
+  return `${from} – ${to}`;
 }
 
 /** "1 gig", "3 gigs"; the same for any noun with a regular plural. */
