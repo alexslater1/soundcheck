@@ -2,6 +2,7 @@ package app.soundcheck.content.internal;
 
 import app.soundcheck.catalog.Catalog;
 import app.soundcheck.catalog.CatalogViews;
+import app.soundcheck.catalog.PostAttendance;
 import app.soundcheck.content.Post;
 import app.soundcheck.content.PostDeleted;
 import app.soundcheck.content.PostFailed;
@@ -21,6 +22,8 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -55,6 +58,9 @@ public class PostService implements PostFeed {
     static final int DEFAULT_LIMIT = 20;
     static final int MAX_LIMIT = 50;
 
+    /** Gig days are UK calendar days. */
+    private static final ZoneId UK = ZoneId.of("Europe/London");
+
     /** What the client sends to create a post. */
     public record CreatePost(
             UUID mediaId, @Nullable String caption, @Nullable UUID gigId, @Nullable List<UUID> artistIds) {}
@@ -64,6 +70,7 @@ public class PostService implements PostFeed {
     private final MediaLibrary media;
     private final Catalog catalog;
     private final CatalogViews catalogViews;
+    private final PostAttendance attendance;
     private final Users users;
     private final SocialGraph social;
     private final AuthorVisibility visibility;
@@ -78,6 +85,7 @@ public class PostService implements PostFeed {
             MediaLibrary media,
             Catalog catalog,
             CatalogViews catalogViews,
+            PostAttendance attendance,
             Users users,
             SocialGraph social,
             AuthorVisibility visibility,
@@ -91,6 +99,7 @@ public class PostService implements PostFeed {
         this.media = media;
         this.catalog = catalog;
         this.catalogViews = catalogViews;
+        this.attendance = attendance;
         this.users = users;
         this.social = social;
         this.idempotency = idempotency;
@@ -145,8 +154,14 @@ public class PostService implements PostFeed {
         if (posts.findByMedia(clip.id()).isPresent()) {
             throw alreadyPosted();
         }
-        if (request.gigId() != null && !catalog.gigExists(request.gigId())) {
-            throw ApiException.badRequest("GIG_UNKNOWN", "Unknown gig " + request.gigId());
+        if (request.gigId() != null) {
+            LocalDate day = catalog.gigDay(request.gigId())
+                    .orElseThrow(() -> ApiException.badRequest("GIG_UNKNOWN", "Unknown gig " + request.gigId()));
+            // A clip is filmed at a gig that has happened or is on today (H43): a later one is a mistake.
+            if (day.isAfter(LocalDate.now(clock.withZone(UK)))) {
+                throw ApiException.badRequest(
+                        "GIG_NOT_HAPPENED", "Clips can be posted only from a gig that has happened or is on today");
+            }
         }
         List<UUID> artistIds = artistsFor(authorId, request);
 
@@ -176,6 +191,7 @@ public class PostService implements PostFeed {
             throw e;
         }
         if (ready) {
+            wentLive(row);
             events.publishEvent(new PostPublished(row.id(), authorId, now, false));
         }
         if (idempotencyKey != null) {
@@ -228,6 +244,7 @@ public class PostService implements PostFeed {
         if (post.isEmpty() || !posts.publish(post.get().id(), now)) {
             return false;
         }
+        wentLive(post.get());
         events.publishEvent(new PostPublished(post.get().id(), post.get().authorId(), now, true));
         return true;
     }
@@ -411,7 +428,22 @@ public class PostService implements PostFeed {
                 .filter(p -> admin || p.authorId().equals(actorId))
                 .orElseThrow(PostService::notFound);
         if (posts.markDeleted(row.id(), Instant.now(clock))) {
+            UUID gigId = row.gigId();
+            if (gigId != null && !posts.hasLivePost(row.authorId(), gigId)) {
+                attendance.lastPostGone(row.authorId(), gigId);
+            }
             events.publishEvent(new PostDeleted(row.id(), row.authorId()));
+        }
+    }
+
+    /**
+     * A post went live: its author went to its gig, in the same transaction, so a live post
+     * and the WENT it made are never seen apart.
+     */
+    private void wentLive(PostRow post) {
+        UUID gigId = post.gigId();
+        if (gigId != null) {
+            attendance.postWentLive(post.authorId(), gigId);
         }
     }
 

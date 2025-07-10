@@ -245,7 +245,7 @@ class RollupsIT extends IntegrationTest {
         UUID gig = data.gig(
                 "Affinity night",
                 data.venue("Soup " + UUID.randomUUID()),
-                Instant.parse("2026-11-05T19:30:00Z"),
+                Instant.parse("2026-08-05T19:30:00Z"),
                 artist);
         UUID post = post(author, gig);
         TestApi.User fickle = api.register("fickle");
@@ -274,7 +274,7 @@ class RollupsIT extends IntegrationTest {
         UUID gig = data.gig(
                 "Fading night",
                 data.venue("Night & Day " + UUID.randomUUID()),
-                Instant.parse("2026-11-06T19:30:00Z"),
+                Instant.parse("2026-08-06T19:30:00Z"),
                 artist);
         UUID post = post(author, gig);
         // A score of 0.4 written fourteen days ago.

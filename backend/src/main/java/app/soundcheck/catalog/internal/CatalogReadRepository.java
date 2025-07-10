@@ -40,6 +40,11 @@ import org.springframework.stereotype.Repository;
 @Repository
 class CatalogReadRepository {
 
+    /** Why a fan is marked at a gig: they said so, or a live post of theirs did. */
+    static final String SOURCE_USER = "USER";
+
+    static final String SOURCE_POST = "POST";
+
     static final Field<Double> VENUE_LAT = DSL.field("ST_Y({0}::geometry)", Double.class, VENUE.LOCATION);
     static final Field<Double> VENUE_LNG = DSL.field("ST_X({0}::geometry)", Double.class, VENUE.LOCATION);
 
@@ -359,6 +364,12 @@ class CatalogReadRepository {
         return dsl.fetchExists(GIG, GIG.ID.eq(id));
     }
 
+    /** When a gig starts; empty if no such gig. Expected index: the gig primary key. */
+    Optional<Instant> startsAt(UUID id) {
+        return dsl.select(GIG.STARTS_AT).from(GIG).where(GIG.ID.eq(id)).fetchOptional(r -> r.value1()
+                .toInstant());
+    }
+
     /**
      * Gigs created at or after {@code since} (and after the given position, when set), oldest first, at
      * most {@code limit} (the alert pass).
@@ -483,19 +494,55 @@ class CatalogReadRepository {
         return counts;
     }
 
-    /** Upsert on the primary key {@code (user_id, gig_id)}: repeating the call changes nothing. */
+    /**
+     * The fan's own mark (source USER): an upsert on the primary key {@code (user_id, gig_id)},
+     * so repeating the call changes nothing. Choosing the status a post made makes the mark theirs.
+     */
     void setAttendance(UUID userId, UUID gigId, String status, Instant now) {
         dsl.insertInto(GIG_ATTENDANCE)
                 .set(GIG_ATTENDANCE.USER_ID, userId)
                 .set(GIG_ATTENDANCE.GIG_ID, gigId)
                 .set(GIG_ATTENDANCE.STATUS, status)
+                .set(GIG_ATTENDANCE.SOURCE, SOURCE_USER)
                 .set(GIG_ATTENDANCE.CREATED_AT, at(now))
                 .set(GIG_ATTENDANCE.UPDATED_AT, at(now))
                 .onConflict(GIG_ATTENDANCE.USER_ID, GIG_ATTENDANCE.GIG_ID)
                 .doUpdate()
                 .set(GIG_ATTENDANCE.STATUS, status)
+                .set(GIG_ATTENDANCE.SOURCE, SOURCE_USER)
                 .set(GIG_ATTENDANCE.UPDATED_AT, at(now))
-                .where(GIG_ATTENDANCE.STATUS.ne(status))
+                .where(GIG_ATTENDANCE.STATUS.ne(status).or(GIG_ATTENDANCE.SOURCE.ne(SOURCE_USER)))
+                .execute();
+    }
+
+    /**
+     * A live post marks its author WENT (source POST): a new mark, or an INTERESTED or GOING
+     * one becoming WENT; a WENT, whoever made it, is left as it is. Repeating the call changes nothing.
+     */
+    void markWentFromPost(UUID userId, UUID gigId, Instant now) {
+        dsl.insertInto(GIG_ATTENDANCE)
+                .set(GIG_ATTENDANCE.USER_ID, userId)
+                .set(GIG_ATTENDANCE.GIG_ID, gigId)
+                .set(GIG_ATTENDANCE.STATUS, "WENT")
+                .set(GIG_ATTENDANCE.SOURCE, SOURCE_POST)
+                .set(GIG_ATTENDANCE.CREATED_AT, at(now))
+                .set(GIG_ATTENDANCE.UPDATED_AT, at(now))
+                .onConflict(GIG_ATTENDANCE.USER_ID, GIG_ATTENDANCE.GIG_ID)
+                .doUpdate()
+                .set(GIG_ATTENDANCE.STATUS, "WENT")
+                .set(GIG_ATTENDANCE.SOURCE, SOURCE_POST)
+                .set(GIG_ATTENDANCE.UPDATED_AT, at(now))
+                .where(GIG_ATTENDANCE.STATUS.ne("WENT"))
+                .execute();
+    }
+
+    /** Removes a WENT only posts made (source POST); the fan's own mark stays. Expected index: the primary key. */
+    void clearWentFromPost(UUID userId, UUID gigId) {
+        dsl.deleteFrom(GIG_ATTENDANCE)
+                .where(GIG_ATTENDANCE.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE.GIG_ID.eq(gigId))
+                .and(GIG_ATTENDANCE.STATUS.eq("WENT"))
+                .and(GIG_ATTENDANCE.SOURCE.eq(SOURCE_POST))
                 .execute();
     }
 
