@@ -18,6 +18,8 @@ type Props = {
   onSelect: (date: string | null) => void;
   /** `YYYY-MM-DD` of today on the UK calendar (ringed). */
   today: string;
+  /** `YYYY-MM-DD` of the last day that can be picked; later days are greyed out. None: any day. */
+  latest?: string;
   /** Shown while the counts are loading. */
   loading?: boolean;
   testID?: string;
@@ -35,6 +37,7 @@ export function MonthCalendar({
   selected,
   onSelect,
   today,
+  latest,
   loading = false,
   testID,
 }: Props) {
@@ -79,6 +82,8 @@ export function MonthCalendar({
           {week.map((cell) => {
             const count = counts[cell.date] ?? 0;
             const isSelected = cell.date === selected;
+            // ISO dates compare as strings.
+            const outOfRange = latest !== undefined && cell.date > latest;
             const tier = heat(count);
             // Busier days are deeper purple: a month reads at a glance.
             const background = isSelected
@@ -98,7 +103,8 @@ export function MonthCalendar({
                 key={cell.date}
                 accessibilityRole="button"
                 accessibilityLabel={`${cell.date}${count > 0 ? `, ${count} gig${count === 1 ? '' : 's'}` : ''}`}
-                accessibilityState={{ selected: isSelected }}
+                accessibilityState={{ selected: isSelected, disabled: outOfRange }}
+                disabled={outOfRange}
                 testID={`day-${cell.date}`}
                 onPress={() => onSelect(isSelected ? null : cell.date)}
                 style={[
@@ -106,7 +112,7 @@ export function MonthCalendar({
                   {
                     backgroundColor: background,
                     borderColor: cell.date === today ? colors.accent2 : 'transparent',
-                    opacity: cell.inMonth ? 1 : 0.45,
+                    opacity: outOfRange ? 0.25 : cell.inMonth ? 1 : 0.45,
                   },
                 ]}
               >

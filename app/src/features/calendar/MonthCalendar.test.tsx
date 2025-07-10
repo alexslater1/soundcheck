@@ -47,6 +47,15 @@ describe('MonthCalendar', () => {
     expect(onSelect).toHaveBeenLastCalledWith(null);
   });
 
+  it('does not let a day after the latest one be picked (Add a gig in Create)', async () => {
+    const { onSelect } = await renderCalendar({ latest: '2026-10-02' });
+    expect(screen.getByTestId('day-2026-10-03')).toBeDisabled();
+    await fireEvent.press(screen.getByTestId('day-2026-10-03'));
+    expect(onSelect).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByTestId('day-2026-10-02'));
+    expect(onSelect).toHaveBeenLastCalledWith('2026-10-02');
+  });
+
   it('moves between months', async () => {
     const { onMonthChange } = await renderCalendar();
     await fireEvent.press(screen.getByLabelText('Next month'));
