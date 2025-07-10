@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
@@ -19,6 +20,8 @@ import { StepError } from '@/features/onboarding/StepError';
 import { useSaveStep } from '@/features/onboarding/useSaveStep';
 import { spacing } from '@/theme/tokens';
 
+import { refreshAfterTasteChange } from './refreshAfterTasteChange';
+
 /**
  * Settings → Your genres: the sign-up picks, changeable, each with "love it / like it". The
  * weight scales the genre in the For You ranking: chosen genres are 60 % of the taste vector the
@@ -27,6 +30,7 @@ import { spacing } from '@/theme/tokens';
 export function GenresScreen({ onSaved }: { onSaved?: () => void }) {
   const me = useAuthStore((s) => s.me);
   const reloadMe = useAuthStore((s) => s.reloadMe);
+  const client = useQueryClient();
   const genres = useListGenres();
   const [selection, setSelection] = useState<GenreSelection>(() => fromMe(me?.genres ?? []));
   const [saved, setSaved] = useState(false);
@@ -37,6 +41,8 @@ export function GenresScreen({ onSaved }: { onSaved?: () => void }) {
     void run(async () => {
       await setMyGenres({ data: { genres: toRequest(selection) } });
       await reloadMe();
+      // The For You feed is ranked with the new genres from now on.
+      await refreshAfterTasteChange(client);
       setSaved(true);
       onSaved?.();
     });
