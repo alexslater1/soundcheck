@@ -94,7 +94,8 @@ describe('ActivityScreen', () => {
       { wrapper: Providers },
     );
     const rows = await screen.findAllByTestId('notification');
-    expect(screen.getByTestId('badge').props.children).toBe('2');
+    // The badge is its own query: wait for it too before tapping.
+    await waitFor(() => expect(screen.getByTestId('badge').props.children).toBe('2'));
     expect(screen.getAllByTestId('unread-dot')).toHaveLength(2);
 
     await fireEvent.press(rows[0]!);
