@@ -307,3 +307,74 @@ export function useGetNotification<TData = Awaited<ReturnType<typeof getNotifica
 
 
 
+/**
+ * @summary Mark one notification as read (the user opened it); 404 if not theirs
+ */
+export const getMarkNotificationReadUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/notifications/${id}/read`
+}
+
+export const markNotificationRead = async (id: string, options?: RequestInit): Promise<UnreadResponse> => {
+  
+  return customFetch<UnreadResponse>(getMarkNotificationReadUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getMarkNotificationReadMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['markNotificationRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markNotificationRead>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  markNotificationRead(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkNotificationReadMutationResult = NonNullable<Awaited<ReturnType<typeof markNotificationRead>>>
+    
+    export type MarkNotificationReadMutationError = unknown
+
+    /**
+ * @summary Mark one notification as read (the user opened it); 404 if not theirs
+ */
+export const useMarkNotificationRead = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markNotificationRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof markNotificationRead>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getMarkNotificationReadMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    

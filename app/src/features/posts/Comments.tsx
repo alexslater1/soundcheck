@@ -1,6 +1,8 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import {
   addComment,
@@ -8,14 +10,18 @@ import {
   getListCommentsQueryKey,
   useListComments,
 } from '@/api/generated/engagement/engagement';
+import type { CommentView } from '@/api/generated/model';
 import { getGetPostQueryKey } from '@/api/generated/posts/posts';
+import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
+import { ActionSheet } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { newUuid } from '@/features/upload/uuid';
+import { relativeTime, relativeTimeLabel, useNow } from '@/lib/relativeTime';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
@@ -28,17 +34,44 @@ function useRefreshComments(postId: string) {
   };
 }
 
-/** A post's comments, oldest first. The box to add one is {@link CommentBox}, pinned under the screen. */
+/**
+ * A post's comments, oldest first. Each shows who wrote it (avatar and name open their profile, H12)
+ * and how long ago (H13); a small ⋯ offers Delete to the comment's author and to the post's author
+ * (H11). The box to add one is {@link CommentBox}, pinned under the screen.
+ */
 export function CommentList({ postId, postAuthorId }: { postId: string; postAuthorId: string }) {
+  const { colors } = useTheme();
+  const router = useRouter();
   const myId = useAuthStore((state) => state.me?.id);
   const comments = useListComments(postId, { limit: 50 });
   const refresh = useRefreshComments(postId);
+  const now = useNow();
+  const [menuFor, setMenuFor] = useState<CommentView | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+
+  const openProfile = (handle: string) =>
+    router.push({ pathname: '/u/[handle]', params: { handle } });
+
+  const remove = async (commentId: string) => {
+    setProblem(null);
+    try {
+      await deleteComment(commentId);
+      await refresh();
+    } catch {
+      setProblem('That comment could not be deleted. Try again.');
+    }
+  };
 
   return (
     <View style={styles.box}>
       <Text variant="label" muted>
         COMMENTS
       </Text>
+      {problem ? (
+        <Text variant="caption" style={{ color: colors.danger }} accessibilityRole="alert">
+          {problem}
+        </Text>
+      ) : null}
       {comments.isPending ? (
         <Skeleton height={48} />
       ) : !comments.data ? (
@@ -50,24 +83,78 @@ export function CommentList({ postId, postAuthorId }: { postId: string; postAuth
       ) : (
         comments.data.items.map((comment) => (
           <View key={comment.id} style={styles.comment} testID="comment">
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={`${comment.author.displayName}, @${comment.author.handle}`}
+              hitSlop={6}
+              onPress={() => openProfile(comment.author.handle)}
+            >
+              <Avatar
+                uri={comment.author.avatarUrl}
+                name={comment.author.displayName}
+                size={AVATAR}
+              />
+            </Pressable>
             <View style={styles.commentText}>
-              <Text style={styles.bold}>@{comment.author.handle}</Text>
+              <View style={styles.byline}>
+                <Pressable
+                  accessibilityRole="link"
+                  hitSlop={6}
+                  onPress={() => openProfile(comment.author.handle)}
+                >
+                  <Text style={styles.bold}>@{comment.author.handle}</Text>
+                </Pressable>
+                <Text
+                  variant="caption"
+                  muted
+                  accessibilityLabel={relativeTimeLabel(comment.createdAt, now)}
+                  testID="comment-time"
+                >
+                  {relativeTime(comment.createdAt, now)}
+                </Text>
+              </View>
               <Text>{comment.body}</Text>
             </View>
             {comment.author.id === myId || postAuthorId === myId ? (
-              <Button
-                title="Delete"
-                variant="secondary"
-                accessibilityLabel={`Delete comment by ${comment.author.handle}`}
-                onPress={() => void deleteComment(comment.id).then(refresh, () => undefined)}
-              />
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={`More for the comment by @${comment.author.handle}`}
+                hitSlop={(touchTarget - MORE) / 2}
+                style={styles.more}
+                onPress={() => setMenuFor(comment)}
+              >
+                <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+              </Pressable>
             ) : null}
           </View>
         ))
       )}
+      <ActionSheet
+        visible={menuFor !== null}
+        onClose={() => setMenuFor(null)}
+        testID="comment-menu"
+        actions={
+          menuFor
+            ? [
+                {
+                  key: 'delete',
+                  label: 'Delete comment',
+                  icon: 'trash-outline',
+                  destructive: true,
+                  confirm: { title: 'Delete this comment?', confirmLabel: 'Delete' },
+                  onPress: () => void remove(menuFor.id),
+                },
+              ]
+            : []
+        }
+      />
     </View>
   );
 }
+
+const AVATAR = 32;
+/** The ⋯ is drawn small; its touch area is still {@link touchTarget}. */
+const MORE = 28;
 
 /**
  * The box to add a comment. It sits at the foot of the post screen, outside the scrolling content, so
@@ -140,8 +227,10 @@ export function CommentBox({ postId, onSent }: { postId: string; onSent?: () => 
 
 const styles = StyleSheet.create({
   box: { gap: spacing.sm },
-  comment: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  comment: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   commentText: { flex: 1 },
+  byline: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm },
+  more: { width: MORE, height: MORE, alignItems: 'center', justifyContent: 'center' },
   bold: { fontWeight: '700' },
   composer: {
     gap: spacing.xs,

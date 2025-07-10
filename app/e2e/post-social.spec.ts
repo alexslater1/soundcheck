@@ -63,7 +63,10 @@ test('A posts a clip; B follows A, sees it in Following, likes and comments; A i
   await expect(b.getByTestId('comments-empty')).toBeVisible();
   await b.getByLabel('Add a comment').fill('Great set');
   await b.getByRole('button', { name: 'Send' }).click();
-  await expect(b.getByTestId('comment')).toHaveText(new RegExp(`@${userB.handle}\\s*Great set`));
+  // The writer, how long ago ("now", or "1m" on a slow run), then the words.
+  await expect(b.getByTestId('comment')).toHaveText(
+    new RegExp(`@${userB.handle}\\s*(now|\\d+m)\\s*Great set`),
+  );
 
   // A: the Activity tab shows the follow, the like and the comment (and that the clip became ready).
   await a.getByRole('tab', { name: /Activity/ }).click();
