@@ -45,6 +45,12 @@ public class ProfileStatsService {
         return stats.wentGigs(viewerId, userId, artistId, venueId, cursor, limit);
     }
 
+    /** The gigs the user is going to, soonest first; the same visibility rules as their stats. */
+    public Page<GigSummary> going(UUID viewerId, UUID userId, @Nullable String cursor, @Nullable Integer limit) {
+        requireVisible(viewerId, userId);
+        return stats.goingGigs(viewerId, userId, cursor, limit);
+    }
+
     /** How many gigs {@link #gigs} lists in all; the same visibility rules. */
     public int count(UUID viewerId, UUID userId, @Nullable UUID artistId, @Nullable UUID venueId) {
         requireVisible(viewerId, userId);

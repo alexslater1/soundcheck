@@ -11,6 +11,63 @@ import {
 
 
 /**
+ * @summary The gigs the user is going to (GOING, still to come), soonest first
+ */
+export const listUserGoingGigsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const listUserGoingGigsQueryLimitMax = 50;
+
+
+export const listUserGoingGigsQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(listUserGoingGigsQueryLimitMax).optional()
+})
+
+export const listUserGoingGigsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
  * @summary Gig stats: totals, per year, most-seen acts and most-visited venues (top 10 by default)
  */
 export const getUserStatsParams = zod.object({

@@ -57,6 +57,11 @@ class AttendanceStatsApi implements AttendanceStats {
     }
 
     @Override
+    public Page<GigSummary> goingGigs(UUID viewerId, UUID userId, @Nullable String cursor, @Nullable Integer limit) {
+        return catalog.goingGigs(viewerId, userId, cursor, limit);
+    }
+
+    @Override
     public int wentCount(UUID userId, @Nullable UUID artistId, @Nullable UUID venueId) {
         return catalog.wentCount(userId, artistId, venueId);
     }
