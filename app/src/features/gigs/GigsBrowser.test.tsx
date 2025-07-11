@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import type { PropsWithChildren, ReactNode } from 'react';
 
 import { useAuthStore } from '@/features/auth/store';
@@ -216,6 +216,22 @@ describe('GigsBrowser', () => {
       expect(last().get('nationwide')).toBeNull();
     });
     expect(screen.getByTestId('gigs-where')).toHaveTextContent('Within 25 km of Bristol');
+  });
+
+  it('turns "Another city…" into the city box in place, and back on cancel', async () => {
+    respondWith(() => json({ items: [], nextCursor: null }));
+    await render(<GigsBrowser />, { wrapper: Providers });
+    const chips = await screen.findByTestId('place-chips');
+
+    await fireEvent.press(within(chips).getByRole('radio', { name: 'Another city…' }));
+
+    // The box sits in the chip row, where the chip was; the chip itself is gone.
+    expect(within(chips).getByLabelText('Search cities')).toBeOnTheScreen();
+    expect(screen.queryByRole('radio', { name: 'Another city…' })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel city search' }));
+    expect(screen.queryByLabelText('Search cities')).toBeNull();
+    expect(within(chips).getByRole('radio', { name: 'Another city…' })).toBeOnTheScreen();
   });
 
   it('applies a saved search, and saves the current one under a name', async () => {
