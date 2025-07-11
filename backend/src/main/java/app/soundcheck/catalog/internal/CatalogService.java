@@ -320,6 +320,31 @@ public class CatalogService {
         return page(viewer, wentFilter(attendee, artistId, venueId, Cursor.decode(cursor), Cursor.limit(limit)), null);
     }
 
+    /**
+     * Someone's GOING gigs still to come, soonest first (H26: their profile's Gigs tab). No origin, so no
+     * distances. Expected index: the gig_attendance primary key bounds it to their gigs, as for
+     * {@link #myGigs}.
+     */
+    public Page<GigSummary> goingGigs(UUID viewer, UUID attendee, @Nullable String cursor, @Nullable Integer limit) {
+        return page(
+                viewer,
+                new GigFilter(
+                        null,
+                        null,
+                        Instant.now(clock),
+                        null,
+                        null,
+                        null,
+                        null,
+                        null,
+                        attendee,
+                        "GOING",
+                        false,
+                        Cursor.decode(cursor),
+                        Cursor.limit(limit)),
+                null);
+    }
+
     /** How many gigs {@link #wentGigs} would list in all, across every page. */
     public int wentCount(UUID attendee, @Nullable UUID artistId, @Nullable UUID venueId) {
         return repository.countGigs(wentFilter(attendee, artistId, venueId, null, Cursor.limit(null)));

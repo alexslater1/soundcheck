@@ -97,8 +97,8 @@ describe('GigStatsSection', () => {
 
     const acts = screen.getAllByTestId('stats-act');
     expect(acts).toHaveLength(2);
-    expect(acts[0]).toHaveTextContent(/Keo.*First 1 Mar 2025 · last 10 Feb 2026.*3×/);
-    expect(acts[1]).toHaveTextContent(/Cardinals.*2 times on 1 Mar 2026.*2×/);
+    expect(acts[0]).toHaveTextContent(/Keo.*1 Mar 2025 – 10 Feb 2026.*3×/);
+    expect(acts[1]).toHaveTextContent(/Cardinals.*1 Mar 2026.*2×/);
     expect(screen.getByTestId('stats-venue')).toHaveTextContent(/Scala, London/);
   });
 

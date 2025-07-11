@@ -7,9 +7,21 @@ const gig = (id: string, startsAt: string) => ({ id, startsAt }) as GigSummary;
 describe('gig picker helpers', () => {
   it('looks back from now: two weeks of mine, three days nearby, a year when searching', () => {
     const w = pickerWindows(new Date('2026-10-02T20:00:00Z'));
-    expect(w.mine).toEqual({ from: '2026-09-18T20:00:00.000Z', to: '2026-10-03T20:00:00.000Z' });
-    expect(w.recent).toEqual({ from: '2026-09-29T20:00:00.000Z', to: '2026-10-03T08:00:00.000Z' });
-    expect(w.search.from).toBe('2025-10-02T20:00:00.000Z');
+    // Every window ends at midnight UK time (23:00 UTC in summer): no gig of a later day.
+    expect(w.mine).toEqual({ from: '2026-09-18T20:00:00.000Z', to: '2026-10-02T23:00:00.000Z' });
+    expect(w.recent).toEqual({ from: '2026-09-29T20:00:00.000Z', to: '2026-10-02T23:00:00.000Z' });
+    expect(w.search).toEqual({ from: '2025-10-02T20:00:00.000Z', to: '2026-10-02T23:00:00.000Z' });
+  });
+
+  it("ends at the UK day's midnight, after midnight UTC too, and in winter", () => {
+    // 00:30 BST on 3 Oct: the day is the 3rd.
+    expect(pickerWindows(new Date('2026-10-02T23:30:00Z')).search.to).toBe(
+      '2026-10-03T23:00:00.000Z',
+    );
+    // GMT: midnight is midnight UTC.
+    expect(pickerWindows(new Date('2026-12-01T12:00:00Z')).mine.to).toBe(
+      '2026-12-02T00:00:00.000Z',
+    );
   });
 
   it("suggests the user's own gigs first, newest first, then recent ones nearby, each once", () => {

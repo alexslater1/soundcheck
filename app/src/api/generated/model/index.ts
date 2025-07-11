@@ -111,6 +111,7 @@ export * from './listGigsParams';
 export * from './listMyGigsParams';
 export * from './listMyPostsParams';
 export * from './listNotificationsParams';
+export * from './listUserGoingGigsParams';
 export * from './listUserPostsParams';
 export * from './listUserStatsGigsParams';
 export * from './listVenueGigsParams';

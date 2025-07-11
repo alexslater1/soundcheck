@@ -111,6 +111,17 @@ public class PostRepository {
                 == 1;
     }
 
+    /**
+     * Whether the author still has a live post of the gig (PUBLISHED, or HIDDEN by moderation: it still
+     * exists), the reason a WENT made by posts stays. Expected index: post_author_all
+     * (author_id, created_at desc); one author has at most a few hundred posts.
+     */
+    public boolean hasLivePost(UUID authorId, UUID gigId) {
+        return dsl.fetchExists(
+                POST,
+                POST.AUTHOR_ID.eq(authorId).and(POST.GIG_ID.eq(gigId)).and(POST.STATUS.in("PUBLISHED", "HIDDEN")));
+    }
+
     /** Which published posts a list shows: one of the ids, or a gig and an act together. */
     public record Scope(
             @Nullable UUID authorId, @Nullable UUID gigId, @Nullable Collection<UUID> gigIds, @Nullable UUID artistId) {

@@ -279,6 +279,45 @@ class GigStatsIT extends IntegrationTest {
                 .isEqualTo(4);
     }
 
+    /**
+     * Another fan's Gigs tab shows the gigs they are going to (and, through {@code /stats/gigs},
+     * the ones they went to). Only GOING gigs still to come, soonest first; never INTERESTED; visible
+     * exactly where their stats are.
+     */
+    @Test
+    void theGigsTheyAreGoingToAreListedSoonestFirstWhereTheirStatsAreVisible() {
+        Instant now = Instant.now();
+        UUID soon = data.gig("Keo " + tag, scala, now.plus(java.time.Duration.ofDays(3)), keo);
+        UUID later = data.gig("Cardinals " + tag, chalk, now.plus(java.time.Duration.ofDays(40)), cardinals);
+        UUID maybe = data.gig("Westside Cowboy " + tag, scala, now.plus(java.time.Duration.ofDays(5)), westside);
+        mark(fan, soon, "GOING");
+        mark(fan, later, "GOING");
+        mark(fan, maybe, "INTERESTED");
+        mark(other, later, "GOING");
+        String going = "/api/v1/users/" + fan.id() + "/gigs/going";
+
+        // setUp's Going gig of last year has happened and is not listed; nor is the Went one to come.
+        JsonNode page = ok(api.get(going, other));
+        assertThat(ids(page)).containsExactly(soon, later);
+        // The viewer's own attendance in the summaries, as in every list.
+        assertThat(page.path("items").path(0).path("myAttendance").isNull()).isTrue();
+        assertThat(page.path("items").path(1).path("myAttendance").asText("")).isEqualTo("GOING");
+        JsonNode first = ok(api.get(going + "?limit=1", other));
+        assertThat(ids(first)).containsExactly(soon);
+        assertThat(ids(ok(api.get(
+                        going + "?limit=1&cursor=" + first.path("nextCursor").asText(""), other))))
+                .containsExactly(later);
+
+        // Private: hidden like the stats, never from the owner.
+        ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PRIVATE"), fan));
+        assertProblem(api.get(going, other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
+        assertThat(ids(ok(api.get(going, fan)))).containsExactly(soon, later);
+        // The owner blocked the viewer: no profile, so no gigs either.
+        ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PUBLIC"), fan));
+        api.put("/api/v1/users/" + other.id() + "/block", null, fan);
+        assertProblem(api.get(going, other), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
+    }
+
     private boolean contentVisible(TestApi.User viewer) {
         return ok(api.get("/api/v1/users/" + fan.handle(), viewer))
                 .path("contentVisible")

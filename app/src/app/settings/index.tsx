@@ -9,16 +9,20 @@ import { HealthBadge } from '@/features/health/HealthBadge';
 import { spacing, touchTarget } from '@/theme/tokens';
 
 /**
- * Settings hub: appearance, genres, privacy (who sees the gig stats), profile,
- * account (delete), sign out, and the server's status.
+ * Settings hub: appearance, home city, genres, privacy (who sees the gig stats), profile, account
+ * (delete), sign out, and the server's status.
  */
 export default function SettingsScreen() {
   const signOut = useAuthStore((s) => s.signOut);
+  const homeCity = useAuthStore((s) => s.me?.homeCity?.name);
   return (
     <Screen>
       <View style={styles.list}>
         <Link href="/settings/appearance" style={styles.item}>
           <Text>Appearance: dark or light →</Text>
+        </Link>
+        <Link href="/settings/location" style={styles.item} testID="settings-location">
+          <Text>{`Your city: ${homeCity ?? 'not set'} →`}</Text>
         </Link>
         <Link href="/settings/genres" style={styles.item}>
           <Text>Your genres: love or like →</Text>

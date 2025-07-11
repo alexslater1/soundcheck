@@ -70,7 +70,7 @@ class PostRulesIT extends IntegrationTest {
         UUID gig = data.gig(
                 "Shared night",
                 data.venue("Gorilla " + UUID.randomUUID()),
-                Instant.parse("2026-11-03T19:30:00Z"),
+                Instant.parse("2026-08-03T19:30:00Z"),
                 data.artist("Act " + UUID.randomUUID()));
         api.put("/api/v1/users/" + author.id() + "/follow", null, viewer);
         api.put("/api/v1/users/" + leaver.id() + "/follow", null, viewer);
@@ -156,7 +156,7 @@ class PostRulesIT extends IntegrationTest {
     void anEmptyArtistListTagsNobodyAndALeftOutOneTagsTheBill() {
         UUID headliner = data.artist("Top " + UUID.randomUUID());
         UUID gig = data.gig(
-                "Bill night", data.venue("YES " + UUID.randomUUID()), Instant.parse("2026-11-04T19:30:00Z"), headliner);
+                "Bill night", data.venue("YES " + UUID.randomUUID()), Instant.parse("2026-08-04T19:30:00Z"), headliner);
 
         JsonNode none = created(api.post(
                 "/api/v1/posts",

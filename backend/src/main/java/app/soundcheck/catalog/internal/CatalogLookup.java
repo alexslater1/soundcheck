@@ -2,6 +2,7 @@ package app.soundcheck.catalog.internal;
 
 import app.soundcheck.catalog.Catalog;
 import app.soundcheck.catalog.GigFacts;
+import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,11 @@ class CatalogLookup implements Catalog {
     @Override
     public boolean gigExists(UUID gigId) {
         return repository.gigExists(gigId);
+    }
+
+    @Override
+    public Optional<LocalDate> gigDay(UUID gigId) {
+        return repository.startsAt(gigId).map(at -> LocalDate.ofInstant(at, UserSubmissionService.UK));
     }
 
     @Override

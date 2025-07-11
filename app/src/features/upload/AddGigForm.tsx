@@ -244,6 +244,8 @@ export function AddGigForm({
         selected={date}
         onSelect={(picked) => picked && setDate(picked)}
         today={today}
+        // A clip is from a gig that has happened or is on today.
+        latest={today}
         testID="add-gig-date"
       />
       <TextField

@@ -40,7 +40,7 @@ export async function signUpAndOnboard(page: Page, displayName = 'E2E User'): Pr
 export async function deleteAccount(page: Page, user: E2eUser): Promise<void> {
   await page.getByRole('tab', { name: /Me$/ }).click();
   await expect(page.getByText(`@${user.handle}`).first()).toBeVisible();
-  await page.getByText('Settings →').last().click();
+  await page.getByTestId('me-settings').last().click();
   await page.getByText('Account and deletion →').last().click();
   await page.getByLabel('Password').last().fill(user.password);
   await page.getByRole('button', { name: 'Delete account' }).last().click();

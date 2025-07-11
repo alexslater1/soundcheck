@@ -1,5 +1,6 @@
 package app.soundcheck.catalog;
 
+import java.time.LocalDate;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -9,6 +10,12 @@ public interface Catalog {
     boolean artistExists(UUID artistId);
 
     boolean gigExists(UUID gigId);
+
+    /**
+     * The day a gig starts on the UK calendar (a clip can only have been filmed at a gig whose day
+     * has come); empty if no such gig.
+     */
+    Optional<LocalDate> gigDay(UUID gigId);
 
     boolean venueExists(UUID venueId);
 

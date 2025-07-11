@@ -4219,6 +4219,51 @@
         "tags" : [ "social" ]
       }
     },
+    "/api/v1/users/{id}/gigs/going" : {
+      "get" : {
+        "operationId" : "listUserGoingGigs",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigSummary"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The gigs the user is going to (GOING, still to come), soonest first",
+        "tags" : [ "stats" ]
+      }
+    },
     "/api/v1/users/{id}/posts" : {
       "get" : {
         "operationId" : "listUserPosts",

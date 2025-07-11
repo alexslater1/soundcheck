@@ -73,7 +73,7 @@ class PostApiIT extends IntegrationTest {
         UUID venue = data.venue("The Deaf Institute " + UUID.randomUUID());
         UUID headliner = data.artist("Headliner " + UUID.randomUUID());
         UUID support = data.artist("Support " + UUID.randomUUID());
-        UUID gig = data.gig("A night out", venue, Instant.parse("2026-11-01T19:30:00Z"), headliner, support);
+        UUID gig = data.gig("A night out", venue, Instant.parse("2026-08-01T19:30:00Z"), headliner, support);
         UUID clip = data.video(author.id(), "UPLOADED");
 
         // Posted straight after the upload: nothing to play yet.
@@ -195,7 +195,7 @@ class PostApiIT extends IntegrationTest {
         UUID venue = data.venue("Band on the Wall " + UUID.randomUUID());
         UUID artist = data.artist("Tagged " + UUID.randomUUID());
         UUID other = data.artist("Other " + UUID.randomUUID());
-        UUID gig = data.gig("Lineup night", venue, Instant.parse("2026-11-02T19:30:00Z"), artist);
+        UUID gig = data.gig("Lineup night", venue, Instant.parse("2026-08-02T19:30:00Z"), artist);
 
         // Someone else's clip, an unknown id and an image all get the same answer.
         for (UUID notMine :

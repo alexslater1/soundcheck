@@ -1,23 +1,25 @@
 import type { GigSummary } from '@/api/generated/model';
+import { dayWindow, ukDate } from '@/features/calendar/monthGrid';
 
 const DAY = 24 * 60 * 60 * 1000;
-const HOUR = 60 * 60 * 1000;
 
 /**
  * The windows the clip picker asks for, fixed when the picker opens. A clip is filmed at a
- * gig that has happened (or is happening), so everything looks backwards from now:
- * - mine: gigs the user marked in the last two weeks, up to tomorrow;
- * - recent: gigs near home from the last three days up to the end of tonight;
- * - search: a year back and a month ahead (a clip posted long after, or a gig listed wrongly).
+ * gig that has happened (or is on today), so everything looks backwards from now and ends at midnight
+ * UK time: a gig of a later day cannot be posted to (H43; the server refuses it too).
+ * - mine: gigs the user marked in the last two weeks;
+ * - recent: gigs near home from the last three days;
+ * - search: a year back (a clip posted long after).
  */
 export function pickerWindows(
   now: Date,
 ): Record<'mine' | 'recent' | 'search', { from: string; to: string }> {
   const at = (offset: number) => new Date(now.getTime() + offset).toISOString();
+  const endOfToday = dayWindow(ukDate(now)).to;
   return {
-    mine: { from: at(-14 * DAY), to: at(DAY) },
-    recent: { from: at(-3 * DAY), to: at(12 * HOUR) },
-    search: { from: at(-365 * DAY), to: at(30 * DAY) },
+    mine: { from: at(-14 * DAY), to: endOfToday },
+    recent: { from: at(-3 * DAY), to: endOfToday },
+    search: { from: at(-365 * DAY), to: endOfToday },
   };
 }
 

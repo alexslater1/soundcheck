@@ -84,7 +84,7 @@ test('sign up, onboard, follow an artist, mark a gig as Going, delete the accoun
   // Me tab shows the profile; Settings → delete the account with the password.
   await page.getByRole('tab', { name: /Me$/ }).click();
   await expect(page.getByText(`@${handle}`)).toBeVisible();
-  await page.getByText('Settings →').last().click();
+  await page.getByTestId('me-settings').last().click();
   await expect(page.getByTestId('health-status')).toHaveText(/API: UP/);
   await page.getByText('Account and deletion →').last().click();
   await page.getByLabel('Password').last().fill(password);

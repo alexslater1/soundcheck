@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react-native';
+import { fireEvent, render, screen } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
 import { useAuthStore } from '@/features/auth/store';
@@ -10,6 +10,7 @@ import { ProfileScreen } from './ProfileScreen';
 const mockProfile = jest.fn();
 const mockPosts = jest.fn();
 const mockStats = jest.fn((_props: unknown) => null);
+const mockGigs = jest.fn((_props: unknown) => null);
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('@/api/generated/me/me', () => ({
@@ -24,6 +25,7 @@ jest.mock('@/api/generated/social/social', () => ({
   unblockUser: jest.fn(),
 }));
 jest.mock('./FollowUserButton', () => ({ FollowUserButton: () => null }));
+jest.mock('./UserGigs', () => ({ UserGigs: (props: unknown) => mockGigs(props) }));
 jest.mock('@/features/stats/GigStatsSection', () => ({
   GigStatsSection: (props: unknown) => mockStats(props),
 }));
@@ -74,6 +76,8 @@ describe('ProfileScreen (D25b private profiles)', () => {
     expect(screen.getByText('4')).toBeTruthy(); // the posts count still shows
     expect(mockPosts).not.toHaveBeenCalled();
     expect(mockStats).not.toHaveBeenCalled();
+    expect(mockGigs).not.toHaveBeenCalled();
+    expect(screen.queryByTestId('profile-tabs')).toBeNull();
     expect(screen.queryByTestId('post-grid')).toBeNull();
     // The follower and following counts show, but the lists do not open.
     expect(screen.getByTestId('followers-count')).toHaveTextContent('10');
@@ -82,7 +86,7 @@ describe('ProfileScreen (D25b private profiles)', () => {
     expect(screen.queryByRole('link', { name: '3 following' })).toBeNull();
   });
 
-  it('shows the clips and the stats when the viewer may see them', async () => {
+  it('shows the clips, gigs and stats in three tabs when the viewer may see them', async () => {
     mockProfile.mockReturnValue({
       isPending: false,
       data: { ...profile, profileVisibility: 'PUBLIC', contentVisible: true },
@@ -91,6 +95,15 @@ describe('ProfileScreen (D25b private profiles)', () => {
 
     expect(screen.queryByTestId('profile-private')).toBeNull();
     expect(screen.getByTestId('post-grid')).toHaveTextContent('2 clips');
+    // Each tab asks for its own data only when it is opened.
+    expect(mockGigs).not.toHaveBeenCalled();
+    expect(mockStats).not.toHaveBeenCalled();
+
+    await fireEvent.press(screen.getByText('GIGS'));
+    expect(mockGigs).toHaveBeenCalledWith({ userId: 'user-2' });
+    expect(screen.queryByTestId('post-grid')).toBeNull();
+
+    await fireEvent.press(screen.getByText('STATS'));
     expect(mockStats).toHaveBeenCalledWith(
       expect.objectContaining({ userId: 'user-2', own: false }),
     );
