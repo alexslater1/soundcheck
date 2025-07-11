@@ -12,6 +12,8 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { MonthCalendar } from '@/features/calendar/MonthCalendar';
+import { useDistanceOrigin } from '@/features/location/deviceLocation';
+import { DistanceNote, LocationCard } from '@/features/location/LocationCard';
 import { dayWindow, monthOf, monthWindow, ukDate, type Month } from '@/features/calendar/monthGrid';
 import { useDebounced } from '@/lib/useDebounced';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -37,11 +39,12 @@ import { useGigList } from './useGigList';
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
- * The Gigs tab: a month calendar whose highlighted days have
- * matching gigs, and the gigs of the month (from today on) or of the day tapped. The search box only
- * suggests; the results change when a suggestion is picked (G13): one or more artists and venues (G15),
- * or "Gigs titled …" for the text. The place is near home, UK-wide or another city (G16) and changes
- * only when the user changes it (G14). A search can be saved and brought back with one tap (G17).
+ * The Gigs tab: a month calendar whose highlighted days have matching gigs, and the gigs of the month
+ * (from today on) or of the day tapped. The search box only suggests; the results change when a
+ * suggestion is picked: one or more artists and venues, or "Gigs titled …" for the text. The place is
+ * near home, UK-wide or another city and changes only when the user changes it. A search can be saved
+ * and brought back with one tap. Distances are from where the phone is once the user allows it; the
+ * place stays as chosen.
  */
 export function GigsBrowser() {
   const { colors } = useTheme();
@@ -57,6 +60,7 @@ export function GigsBrowser() {
   useFocusEffect(useCallback(() => setToday(ukDate(new Date())), []));
   const q = useDebounced(text.trim(), SEARCH_DEBOUNCE_MS);
   const { data: genres } = useListGenres();
+  const origin = useDistanceOrigin();
 
   const filters = useMemo(() => toParams(search), [search]);
 
@@ -69,8 +73,13 @@ export function GigsBrowser() {
     const fromToday = dayWindow(today).from;
     return { from: whole.from > fromToday ? whole.from : fromToday, to: whole.to };
   }, [day, month, today]);
-  const params: Omit<ListGigsParams, 'cursor'> = { ...range, ...filters, limit: 20 };
-  const list = useGigList(params);
+  const params: Omit<ListGigsParams, 'cursor'> = {
+    ...range,
+    ...filters,
+    ...origin.params,
+    limit: 20,
+  };
+  const list = useGigList(params, origin.ready);
   const days = useListGigDays({ ...monthWindow(month), ...filters });
   const counts = useMemo(
     () => Object.fromEntries((days.data ?? []).map((d) => [d.date, d.count])),
@@ -87,6 +96,8 @@ export function GigsBrowser() {
       <Text muted testID="gigs-where">
         {describePlace(search.place, homeCity)}
       </Text>
+      <DistanceNote place={search.place} homeCity={homeCity} />
+      <LocationCard />
       <SavedFilters
         search={search}
         onApply={(next) => {

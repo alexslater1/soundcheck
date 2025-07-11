@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { PagedGigs } from '@/features/gigs/PagedGigs';
+import { useDistanceOrigin } from '@/features/location/deviceLocation';
 import { PostGrid } from '@/features/posts/PostGrid';
 import { openWebLink } from '@/lib/openLink';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -23,6 +24,7 @@ import { useGenreNames } from './useGenreNames';
 export function ArtistScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
+  const origin = useDistanceOrigin();
   const { data, isPending, refetch } = useGetArtist(id);
 
   if (isPending) {
@@ -74,8 +76,11 @@ export function ArtistScreen({ id }: { id: string }) {
           UPCOMING GIGS
         </Text>
         <PagedGigs
-          queryKey={getListArtistGigsQueryKey(id)}
-          fetchPage={(cursor) => listArtistGigs(id, { limit: 10, ...(cursor ? { cursor } : {}) })}
+          queryKey={getListArtistGigsQueryKey(id, origin.params)}
+          enabled={origin.ready}
+          fetchPage={(cursor) =>
+            listArtistGigs(id, { limit: 10, ...origin.params, ...(cursor ? { cursor } : {}) })
+          }
           empty="No upcoming gigs listed."
           testID="artist-gigs"
         />

@@ -15,6 +15,7 @@ import { useGenreNames } from '@/features/artists/useGenreNames';
 import { TimesSeen } from '@/features/stats/TimesSeen';
 import { isWebUrl, openWebLink } from '@/lib/openLink';
 import { CoverageNote } from '@/features/venues/CoverageNote';
+import { useDistanceOrigin } from '@/features/location/deviceLocation';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -32,7 +33,10 @@ import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } 
 export function GigDetailScreen({ id }: { id: string }) {
   const { colors } = useTheme();
   const genreNames = useGenreNames();
-  const { data, isPending, refetch } = useGetGig(id);
+  const origin = useDistanceOrigin();
+  const { data, isPending, refetch } = useGetGig(id, origin.params, {
+    query: { enabled: origin.ready },
+  });
   const [actId, setActId] = useState<string | null>(null);
   // Whether the page has scrolled under the act bar (it then needs a background).
   const [stuck, setStuck] = useState(false);
@@ -114,8 +118,9 @@ export function GigDetailScreen({ id }: { id: string }) {
         </Link>
         <CoverageNote note={gig.venue.coverageNote} compact />
         <Text variant="caption" muted>
-          {[distance ? `${distance} from your city` : null, price].filter(Boolean).join(' · ') ||
-            'Price not listed'}
+          {[distance ? `${distance} ${origin.here ? 'away' : 'from your city'}` : null, price]
+            .filter(Boolean)
+            .join(' · ') || 'Price not listed'}
         </Text>
 
         <AttendanceButtons detail={data} />

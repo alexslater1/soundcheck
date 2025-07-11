@@ -230,6 +230,78 @@ class CatalogApiIT extends IntegrationTest {
                 .containsExactlyInAnyOrder("home " + tag, "away " + tag);
     }
 
+    /**
+     * With the viewer's position, every list measures distances from it (rounded to 0.01°,
+     * about 1 km), while the search area stays where it was.
+     */
+    @Test
+    void distancesAreFromTheViewersRoundedPositionWhileTheSearchAreaStays() {
+        double lat = 63.90, lng = -0.30;
+        UUID gigId = gig("here", base, venue("here", lat, lng), "Here Act");
+        JsonNode summary = ok(api.get("/api/v1/gigs/" + gigId, fan)).path("gig");
+        String venueId = summary.path("venue").path("id").asText("");
+        String artistId = summary.path("headliner").path("id").asText("");
+        // 0.09° north of the venue is 10.0 km; sent with more decimals, it would be 10.6 km.
+        String from = "fromLat=63.99449&fromLng=" + lng;
+        String area = "/api/v1/gigs?lat=" + lat + "&lng=" + lng;
+
+        JsonNode atVenue = ok(api.get(area, fan));
+        assertThat(atVenue.path("items").path(0).path("distanceKm").asDouble()).isCloseTo(0.0, within(0.05));
+
+        JsonNode fromHere = ok(api.get(area + "&radiusKm=5&" + from, fan));
+        assertThat(titles(fromHere)).containsExactly("here " + tag); // the area is still 5 km around the venue
+        assertThat(distance(fromHere.path("items").path(0))).isCloseTo(10.0, within(0.05));
+
+        assertThat(distance(
+                        ok(api.get("/api/v1/gigs/" + gigId + "?" + from, fan)).path("gig")))
+                .isCloseTo(10.0, within(0.05));
+        assertThat(distance(ok(api.get("/api/v1/artists/" + artistId + "?" + from, fan))
+                        .path("upcomingGigs")
+                        .path(0)))
+                .isCloseTo(10.0, within(0.05));
+        assertThat(distance(ok(api.get("/api/v1/artists/" + artistId + "/gigs?" + from, fan))
+                        .path("items")
+                        .path(0)))
+                .isCloseTo(10.0, within(0.05));
+        assertThat(distance(ok(api.get("/api/v1/venues/" + venueId + "/gigs?" + from, fan))
+                        .path("items")
+                        .path(0)))
+                .isCloseTo(10.0, within(0.05));
+        assertThat(distance(ok(api.get("/api/v1/search?types=gigs&q=here " + tag + "&" + from, fan))
+                        .path("gigs")
+                        .path(0)))
+                .isCloseTo(10.0, within(0.05));
+        assertThat(api.put("/api/v1/gigs/" + gigId + "/attendance", Map.of("status", "GOING"), fan)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.OK);
+        assertThat(distance(ok(api.get("/api/v1/me/gigs?" + from, fan))
+                        .path("items")
+                        .path(0)))
+                .isCloseTo(10.0, within(0.05));
+
+        // Without a position nothing changes: no home city here, so no distance at all.
+        assertThat(ok(api.get("/api/v1/gigs/" + gigId, fan))
+                        .path("gig")
+                        .path("distanceKm")
+                        .isNull())
+                .isTrue();
+        assertThat(api.get("/api/v1/gigs/" + gigId + "?fromLat=63.9", fan)
+                        .getBody()
+                        .path("code")
+                        .asText(""))
+                .isEqualTo("LOCATION_INCOMPLETE");
+        assertThat(api.get("/api/v1/gigs/" + gigId + "?fromLat=95&fromLng=0", fan)
+                        .getBody()
+                        .path("code")
+                        .asText(""))
+                .isEqualTo("VALIDATION_FAILED");
+    }
+
+    private static double distance(JsonNode gig) {
+        assertThat(gig.path("distanceKm").isNumber()).as(gig.toString()).isTrue();
+        return gig.path("distanceKm").asDouble();
+    }
+
     @Test
     void gigDetailAndIdempotentAttendance() {
         double lat = 62.40, lng = -0.60;

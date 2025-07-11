@@ -2056,6 +2056,28 @@
             "format" : "uuid",
             "type" : "string"
           }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -2138,6 +2160,28 @@
           "schema" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
           }
         } ],
         "responses" : {
@@ -2699,6 +2743,28 @@
             "format" : "int32",
             "type" : "integer"
           }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -2874,6 +2940,28 @@
           "schema" : {
             "format" : "uuid",
             "type" : "string"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
           }
         } ],
         "responses" : {
@@ -3307,6 +3395,28 @@
           "schema" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
           }
         } ],
         "responses" : {
@@ -3973,6 +4083,28 @@
           "schema" : {
             "type" : "string"
           }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -4577,6 +4709,28 @@
           "schema" : {
             "format" : "int32",
             "type" : "integer"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
           }
         } ],
         "responses" : {

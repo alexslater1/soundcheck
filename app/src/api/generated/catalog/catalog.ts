@@ -32,6 +32,8 @@ import type {
   ArtistDetail,
   Attendance,
   AttendanceRequest,
+  GetArtistParams,
+  GetGigParams,
   GigDay,
   GigDetail,
   GigFilterAlertsRequest,
@@ -243,17 +245,26 @@ export const useAddArtist = <TError = unknown,
     /**
  * @summary Artist detail with the next five gigs
  */
-export const getGetArtistUrl = (id: string,) => {
+export const getGetArtistUrl = (id: string,
+    params?: GetArtistParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/artists/${id}`
+  return stringifiedParams.length > 0 ? `/api/v1/artists/${id}?${stringifiedParams}` : `/api/v1/artists/${id}`
 }
 
-export const getArtist = async (id: string, options?: RequestInit): Promise<ArtistDetail> => {
+export const getArtist = async (id: string,
+    params?: GetArtistParams, options?: RequestInit): Promise<ArtistDetail> => {
   
-  return customFetch<ArtistDetail>(getGetArtistUrl(id),
+  return customFetch<ArtistDetail>(getGetArtistUrl(id,params),
   {      
     ...options,
     method: 'GET'
@@ -264,21 +275,23 @@ export const getArtist = async (id: string, options?: RequestInit): Promise<Arti
 
 
 
-export const getGetArtistQueryKey = (id: string,) => {
-    return [`/api/v1/artists/${id}`] as const;
+export const getGetArtistQueryKey = (id: string,
+    params?: GetArtistParams,) => {
+    return [`/api/v1/artists/${id}`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetArtistQueryOptions = <TData = Awaited<ReturnType<typeof getArtist>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetArtistQueryOptions = <TData = Awaited<ReturnType<typeof getArtist>>, TError = unknown>(id: string,
+    params?: GetArtistParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetArtistQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getGetArtistQueryKey(id,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArtist>>> = ({ signal }) => getArtist(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getArtist>>> = ({ signal }) => getArtist(id,params, { signal, ...requestOptions });
 
       
 
@@ -292,7 +305,8 @@ export type GetArtistQueryError = unknown
 
 
 export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TError = unknown>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>> & Pick<
+ id: string,
+    params: undefined |  GetArtistParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getArtist>>,
           TError,
@@ -302,7 +316,8 @@ export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TErr
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>> & Pick<
+ id: string,
+    params?: GetArtistParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getArtist>>,
           TError,
@@ -312,7 +327,8 @@ export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TErr
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string,
+    params?: GetArtistParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -320,11 +336,12 @@ export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TErr
  */
 
 export function useGetArtist<TData = Awaited<ReturnType<typeof getArtist>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string,
+    params?: GetArtistParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getArtist>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetArtistQueryOptions(id,options)
+  const queryOptions = getGetArtistQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 
@@ -735,17 +752,26 @@ export function useListGigDays<TData = Awaited<ReturnType<typeof listGigDays>>, 
 /**
  * @summary Gig detail: line-up, attendance counts, sources
  */
-export const getGetGigUrl = (id: string,) => {
+export const getGetGigUrl = (id: string,
+    params?: GetGigParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
 
-  
+  const stringifiedParams = normalizedParams.toString();
 
-  return `/api/v1/gigs/${id}`
+  return stringifiedParams.length > 0 ? `/api/v1/gigs/${id}?${stringifiedParams}` : `/api/v1/gigs/${id}`
 }
 
-export const getGig = async (id: string, options?: RequestInit): Promise<GigDetail> => {
+export const getGig = async (id: string,
+    params?: GetGigParams, options?: RequestInit): Promise<GigDetail> => {
   
-  return customFetch<GigDetail>(getGetGigUrl(id),
+  return customFetch<GigDetail>(getGetGigUrl(id,params),
   {      
     ...options,
     method: 'GET'
@@ -756,21 +782,23 @@ export const getGig = async (id: string, options?: RequestInit): Promise<GigDeta
 
 
 
-export const getGetGigQueryKey = (id: string,) => {
-    return [`/api/v1/gigs/${id}`] as const;
+export const getGetGigQueryKey = (id: string,
+    params?: GetGigParams,) => {
+    return [`/api/v1/gigs/${id}`, ...(params ? [params]: [])] as const;
     }
 
     
-export const getGetGigQueryOptions = <TData = Awaited<ReturnType<typeof getGig>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+export const getGetGigQueryOptions = <TData = Awaited<ReturnType<typeof getGig>>, TError = unknown>(id: string,
+    params?: GetGigParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetGigQueryKey(id);
+  const queryKey =  queryOptions?.queryKey ?? getGetGigQueryKey(id,params);
 
   
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGig>>> = ({ signal }) => getGig(id, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getGig>>> = ({ signal }) => getGig(id,params, { signal, ...requestOptions });
 
       
 
@@ -784,7 +812,8 @@ export type GetGigQueryError = unknown
 
 
 export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = unknown>(
- id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>> & Pick<
+ id: string,
+    params: undefined |  GetGigParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>> & Pick<
         DefinedInitialDataOptions<
           Awaited<ReturnType<typeof getGig>>,
           TError,
@@ -794,7 +823,8 @@ export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = u
  , queryClient?: QueryClient
   ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>> & Pick<
+ id: string,
+    params?: GetGigParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>> & Pick<
         UndefinedInitialDataOptions<
           Awaited<ReturnType<typeof getGig>>,
           TError,
@@ -804,7 +834,8 @@ export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = u
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string,
+    params?: GetGigParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
@@ -812,11 +843,12 @@ export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = u
  */
 
 export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = unknown>(
- id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ id: string,
+    params?: GetGigParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof getGig>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient 
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
-  const queryOptions = getGetGigQueryOptions(id,options)
+  const queryOptions = getGetGigQueryOptions(id,params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

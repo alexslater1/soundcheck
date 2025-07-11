@@ -1,8 +1,11 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react-native';
 import type { PropsWithChildren, ReactNode } from 'react';
 
+import * as Location from 'expo-location';
+
 import { useAuthStore } from '@/features/auth/store';
+import { useDeviceLocation } from '@/features/location/deviceLocation';
 
 import { GigsBrowser } from './GigsBrowser';
 
@@ -129,6 +132,15 @@ beforeEach(() => {
   fetchMock.mockReset();
   globalThis.fetch = fetchMock as unknown as typeof fetch;
   useAuthStore.setState({ me: { homeCity: { id: 1, name: 'Manchester' } } as never });
+  // Location never asked (jest.setup.ts's answer): the card shows, distances are from home.
+  useDeviceLocation.setState({
+    asked: false,
+    permission: 'unknown',
+    canAskAgain: true,
+    here: null,
+    readAt: null,
+    ready: false,
+  });
 });
 
 describe('GigsBrowser', () => {
@@ -218,6 +230,22 @@ describe('GigsBrowser', () => {
     expect(screen.getByTestId('gigs-where')).toHaveTextContent('Within 25 km of Bristol');
   });
 
+  it('turns "Another city…" into the city box in place, and back on cancel', async () => {
+    respondWith(() => json({ items: [], nextCursor: null }));
+    await render(<GigsBrowser />, { wrapper: Providers });
+    const chips = await screen.findByTestId('place-chips');
+
+    await fireEvent.press(within(chips).getByRole('radio', { name: 'Another city…' }));
+
+    // The box sits in the chip row, where the chip was; the chip itself is gone.
+    expect(within(chips).getByLabelText('Search cities')).toBeOnTheScreen();
+    expect(screen.queryByRole('radio', { name: 'Another city…' })).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Cancel city search' }));
+    expect(screen.queryByLabelText('Search cities')).toBeNull();
+    expect(within(chips).getByRole('radio', { name: 'Another city…' })).toBeOnTheScreen();
+  });
+
   it('applies a saved search, and saves the current one under a name', async () => {
     respondWith(
       () => json({ items: [], nextCursor: null }),
@@ -251,6 +279,48 @@ describe('GigsBrowser', () => {
         cityId: 7,
       });
     });
+  });
+
+  it('asks about location once with a card; "Not now" keeps distances from home', async () => {
+    respondWith(() => json({ items: [gig('g1', 'Harbour Wolves')], nextCursor: null }));
+    await render(<GigsBrowser />, { wrapper: Providers });
+
+    expect(await screen.findByTestId('location-card')).toBeOnTheScreen();
+    expect(screen.getByTestId('distance-note')).toHaveTextContent(
+      'Distances from Manchester’s centre',
+    );
+    expect(last().get('fromLat')).toBeNull();
+
+    await fireEvent.press(screen.getByRole('button', { name: 'Not now' }));
+    expect(screen.queryByTestId('location-card')).toBeNull();
+    expect(screen.getByTestId('distance-note')).toHaveTextContent(
+      'Distances from Manchester’s centre · Use my location',
+    );
+    expect(useDeviceLocation.getState().asked).toBe(true);
+  });
+
+  it('measures distances from the phone once allowed; the place stays home', async () => {
+    jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValueOnce({
+      granted: true,
+      status: Location.PermissionStatus.GRANTED,
+      canAskAgain: true,
+      expires: 'never',
+    });
+    jest
+      .mocked(Location.getLastKnownPositionAsync)
+      .mockResolvedValueOnce({ coords: { latitude: 53.47912, longitude: -2.24511 } } as never);
+    respondWith(() => json({ items: [gig('g1', 'Harbour Wolves')], nextCursor: null }));
+    await render(<GigsBrowser />, { wrapper: Providers });
+
+    await waitFor(() => expect(screen.getByText('Harbour Wolves')).toBeOnTheScreen());
+    // Held back until the position was read, so the list is fetched once, already with it.
+    expect(gigRequests()).toHaveLength(1);
+    expect(last().get('fromLat')).toBe('53.48');
+    expect(last().get('fromLng')).toBe('-2.25');
+    expect(last().get('lat')).toBeNull(); // the search area is still the home city
+    expect(screen.getByTestId('distance-note')).toHaveTextContent('Distances from where you are');
+    expect(screen.queryByTestId('location-card')).toBeNull();
+    expect(screen.getByTestId('gigs-where')).toHaveTextContent('Within 25 km of Manchester');
   });
 
   it('refetches with the genre slug', async () => {

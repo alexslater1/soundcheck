@@ -66,3 +66,27 @@ describe('SavedFilters alerts', () => {
     expect(JSON.parse(String(init?.body))).toEqual({ alerts: false });
   });
 });
+
+describe('SavedFilters "Save this search"', () => {
+  it('is there from the start, greyed out until the search is narrowed', async () => {
+    fetchMock.mockImplementation(() => Promise.resolve(json(200, [])));
+    const view = await render(<SavedFilters search={EMPTY_SEARCH} onApply={jest.fn()} />, {
+      wrapper: Providers,
+    });
+
+    const save = await screen.findByRole('button', { name: 'Save this search' });
+    expect(save).toBeDisabled();
+    await fireEvent.press(save);
+    expect(screen.queryByLabelText('Name of the saved search')).toBeNull();
+
+    await view.rerender(
+      <SavedFilters search={{ ...EMPTY_SEARCH, place: { kind: 'uk' } }} onApply={jest.fn()} />,
+    );
+    const enabled = screen.getByRole('button', { name: 'Save this search' });
+    expect(enabled).toBeEnabled();
+    await fireEvent.press(enabled);
+    expect(screen.getByLabelText('Name of the saved search')).toHaveDisplayValue('UK');
+    // While naming it stays where it is, greyed out, so the row does not move.
+    expect(screen.getByRole('button', { name: 'Save this search' })).toBeDisabled();
+  });
+});

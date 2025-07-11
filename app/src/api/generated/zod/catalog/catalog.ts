@@ -69,6 +69,19 @@ export const getArtistParams = zod.object({
   "id": zod.string().uuid()
 })
 
+export const getArtistQueryFromLatMin = -90;
+
+export const getArtistQueryFromLatMax = 90;
+export const getArtistQueryFromLngMin = -180;
+
+export const getArtistQueryFromLngMax = 180;
+
+
+export const getArtistQueryParams = zod.object({
+  "fromLat": zod.number().min(getArtistQueryFromLatMin).max(getArtistQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(getArtistQueryFromLngMin).max(getArtistQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
+})
+
 export const getArtistResponse = zod.object({
   "artist": zod.object({
   "genres": zod.array(zod.string()),
@@ -126,9 +139,19 @@ export const listArtistGigsParams = zod.object({
   "id": zod.string().uuid()
 })
 
+export const listArtistGigsQueryFromLatMin = -90;
+
+export const listArtistGigsQueryFromLatMax = 90;
+export const listArtistGigsQueryFromLngMin = -180;
+
+export const listArtistGigsQueryFromLngMax = 180;
+
+
 export const listArtistGigsQueryParams = zod.object({
   "cursor": zod.string().optional(),
-  "limit": zod.number().optional()
+  "limit": zod.number().optional(),
+  "fromLat": zod.number().min(listArtistGigsQueryFromLatMin).max(listArtistGigsQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(listArtistGigsQueryFromLngMin).max(listArtistGigsQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
 })
 
 export const listArtistGigsResponse = zod.object({
@@ -195,7 +218,13 @@ export const listGigsQueryArtistIdsMax = 20;
 export const listGigsQueryVenueIdsMin = 0;
 
 export const listGigsQueryVenueIdsMax = 20;
-export const listGigsQueryNationwideDefault = false;export const listGigsQueryOrderDefault = "asc";
+export const listGigsQueryNationwideDefault = false;export const listGigsQueryOrderDefault = "asc";export const listGigsQueryFromLatMin = -90;
+
+export const listGigsQueryFromLatMax = 90;
+export const listGigsQueryFromLngMin = -180;
+
+export const listGigsQueryFromLngMax = 180;
+
 
 export const listGigsQueryParams = zod.object({
   "lat": zod.number().min(listGigsQueryLatMin).max(listGigsQueryLatMax).optional(),
@@ -210,7 +239,9 @@ export const listGigsQueryParams = zod.object({
   "nationwide": zod.boolean().optional(),
   "order": zod.enum(['asc', 'desc']).default(listGigsQueryOrderDefault),
   "cursor": zod.string().optional(),
-  "limit": zod.number().optional()
+  "limit": zod.number().optional(),
+  "fromLat": zod.number().min(listGigsQueryFromLatMin).max(listGigsQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(listGigsQueryFromLngMin).max(listGigsQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
 })
 
 export const listGigsResponse = zod.object({
@@ -396,6 +427,19 @@ export const listGigDaysResponse = zod.array(listGigDaysResponseItem)
  */
 export const getGigParams = zod.object({
   "id": zod.string().uuid()
+})
+
+export const getGigQueryFromLatMin = -90;
+
+export const getGigQueryFromLatMax = 90;
+export const getGigQueryFromLngMin = -180;
+
+export const getGigQueryFromLngMax = 180;
+
+
+export const getGigQueryParams = zod.object({
+  "fromLat": zod.number().min(getGigQueryFromLatMin).max(getGigQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(getGigQueryFromLngMin).max(getGigQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
 })
 
 export const getGigResponse = zod.object({
@@ -612,13 +656,23 @@ export const setGigFilterAlertsResponse = zod.object({
 /**
  * @summary Gigs the viewer marked, upcoming (default) or past
  */
+export const listMyGigsQueryFromLatMin = -90;
+
+export const listMyGigsQueryFromLatMax = 90;
+export const listMyGigsQueryFromLngMin = -180;
+
+export const listMyGigsQueryFromLngMax = 180;
+
+
 export const listMyGigsQueryParams = zod.object({
   "status": zod.string().optional(),
   "when": zod.string().optional(),
   "from": zod.string().datetime({}).optional(),
   "to": zod.string().datetime({}).optional(),
   "cursor": zod.string().optional(),
-  "limit": zod.number().optional()
+  "limit": zod.number().optional(),
+  "fromLat": zod.number().min(listMyGigsQueryFromLatMin).max(listMyGigsQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(listMyGigsQueryFromLngMin).max(listMyGigsQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
 })
 
 export const listMyGigsResponse = zod.object({
@@ -669,11 +723,19 @@ export const listMyGigsResponse = zod.object({
 export const searchQueryQMin = 0;
 
 export const searchQueryQMax = 80;
+export const searchQueryFromLatMin = -90;
+
+export const searchQueryFromLatMax = 90;
+export const searchQueryFromLngMin = -180;
+
+export const searchQueryFromLngMax = 180;
 
 
 export const searchQueryParams = zod.object({
   "q": zod.string().min(searchQueryQMin).max(searchQueryQMax),
-  "types": zod.string().optional()
+  "types": zod.string().optional(),
+  "fromLat": zod.number().min(searchQueryFromLatMin).max(searchQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(searchQueryFromLngMin).max(searchQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
 })
 
 export const searchResponse = zod.object({
@@ -799,9 +861,19 @@ export const listVenueGigsParams = zod.object({
   "id": zod.string().uuid()
 })
 
+export const listVenueGigsQueryFromLatMin = -90;
+
+export const listVenueGigsQueryFromLatMax = 90;
+export const listVenueGigsQueryFromLngMin = -180;
+
+export const listVenueGigsQueryFromLngMax = 180;
+
+
 export const listVenueGigsQueryParams = zod.object({
   "cursor": zod.string().optional(),
-  "limit": zod.number().optional()
+  "limit": zod.number().optional(),
+  "fromLat": zod.number().min(listVenueGigsQueryFromLatMin).max(listVenueGigsQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(listVenueGigsQueryFromLngMin).max(listVenueGigsQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
 })
 
 export const listVenueGigsResponse = zod.object({

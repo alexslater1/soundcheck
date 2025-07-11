@@ -20,7 +20,8 @@ import { fromSaved, isNarrowed, suggestName, toSaveRequest, type GigSearch } fro
 
 /**
  * Saved searches on the Gigs tab: one tap brings back "Keo, Bleech 9:3 and The North in London".
- * The North in London". "Save this search" appears once the search is narrowed; "Edit" shows a cross on
+ * "Save this search" is always there, greyed out until the search is narrowed (an artist, a venue, a
+ * genre or another place), so the row never jumps when it becomes possible; "Edit" shows a cross on
  * each saved one to delete it, and a bell to switch its new-gig alerts off or on (on by default; a
  * saved search with alerts shows a small bell).
  */
@@ -42,10 +43,7 @@ export function SavedFilters({
   const refresh = () => client.invalidateQueries({ queryKey: getListSavedGigFiltersQueryKey() });
 
   const filters = saved.data ?? [];
-  const canSave = isNarrowed(search);
-  if (filters.length === 0 && !canSave) {
-    return null;
-  }
+  const canSave = isNarrowed(search) && naming === null && !editing;
   return (
     <View testID="saved-filters">
       <ScrollView
@@ -114,21 +112,32 @@ export function SavedFilters({
             </Pressable>
           </View>
         ))}
-        {canSave && naming === null && !editing ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Save this search"
-            onPress={() => setNaming(suggestName(search))}
-            style={[
-              styles.chip,
-              { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
-            ]}
-            testID="save-search"
-          >
-            <Ionicons name="bookmark-outline" size={14} color={colors.text} />
-            <Text variant="caption">Save this search</Text>
-          </Pressable>
-        ) : null}
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Save this search"
+          accessibilityHint={
+            canSave ? undefined : 'Pick an artist, a venue, a genre or another place first'
+          }
+          accessibilityState={{ disabled: !canSave }}
+          aria-disabled={!canSave}
+          disabled={!canSave}
+          onPress={() => setNaming(suggestName(search))}
+          style={[
+            styles.chip,
+            { backgroundColor: colors.surfaceRaised, borderColor: colors.border },
+            !canSave && styles.unavailable,
+          ]}
+          testID="save-search"
+        >
+          <Ionicons
+            name="bookmark-outline"
+            size={14}
+            color={canSave ? colors.text : colors.textMuted}
+          />
+          <Text variant="caption" muted={!canSave}>
+            Save this search
+          </Text>
+        </Pressable>
         {filters.length > 0 ? (
           <Pressable
             accessibilityRole="button"
@@ -196,6 +205,7 @@ const styles = StyleSheet.create({
     maxWidth: 260,
   },
   bold: { fontWeight: '700' },
+  unavailable: { opacity: 0.5 },
   pair: { flexDirection: 'row', alignItems: 'center' },
   bell: {
     minHeight: touchTarget,

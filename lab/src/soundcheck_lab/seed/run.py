@@ -325,18 +325,22 @@ def choose_venue(
 def venue_for(
     api: Api, who: Persona, gig: Gig, clips: Sequence[Clip], known: dict[str, Any]
 ) -> dict[str, Any]:
-    """The catalog's venue when it has one, else a new one placed where the clips were filmed.
-    {@code known}: venues already resolved, by name and city (old-phone gigs have no GPS, so they
-    reuse what a filmed gig at the same venue found)."""
-    key = f"{norm(gig.venue)}|{gig.city}"
-    if key in known:
-        return {"venueId": known[key]}
+    """The catalog's venue when its name decides (choose_venue), else the one a filmed gig at the
+    same venue found ({@code known}, by name and city: old-phone gigs have no GPS, and a short name
+    like "Dome" needs GPS to match), else a new one placed where the clips were filmed.
+
+    The catalog comes first because a remembered choice can be wrong and outlive its fix: the first
+    rules sent "The O2" to O2 Academy2 Islington, and the cache kept sending gigs there after the
+    rules were fixed and the gigs were moved."""
     filmed_at = centroid(clips)
     venue_id = choose_venue(
         api.get(who, "/api/v1/venues", q=gig.venue), gig.venue, gig.city, filmed_at
     )
     if venue_id:
         return {"venueId": venue_id}
+    key = f"{norm(gig.venue)}|{gig.city}"
+    if key in known:
+        return {"venueId": known[key]}
     if filmed_at:
         lat, lng = filmed_at
     elif gig.lat is not None and gig.lng is not None:
@@ -362,6 +366,13 @@ def add_gigs(
     summaries: dict[str, dict[str, Any]] = {}
     # gigs with GPS-tagged clips first: their venues are found by location, then reused by name
     for gig in sorted(gigs, key=lambda g: (centroid(matched.get(g.key, [])) is None, g.night)):
+        remembered = added.get(gig.key)
+        existing = _gig_if_exists(api, remembered["id"]) if remembered else None
+        if existing is not None:
+            # Added by an earlier run: kept as the catalog has it now, wherever it was moved since
+            # (six were moved). Adding it again could put a second copy at the old venue.
+            summaries[gig.key] = existing
+            continue
         people = attendees(gig, indie)
         body: dict[str, Any] = {"artistNames": gig.billing[:10], "date": gig.night.isoformat()}
         if gig.festival:
@@ -395,6 +406,17 @@ def add_gigs(
             f"{summary['venue']['name']} ({len(people)} personas + demo went)"
         )
     return summaries
+
+
+def _gig_if_exists(api: Api, gig_id: str) -> dict[str, Any] | None:
+    """A gig an earlier run added, as the catalog has it now, or None when it is gone (a reset
+    database)."""
+    try:
+        return dict(api.get(DEMO, f"/api/v1/gigs/{gig_id}")["gig"])
+    except ApiError as error:
+        if error.status == 404:
+            return None
+        raise
 
 
 def _quota_left(quota: dict[str, Any], handle: str, today: str) -> bool:

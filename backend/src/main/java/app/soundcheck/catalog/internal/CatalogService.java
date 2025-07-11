@@ -155,11 +155,12 @@ public class CatalogService {
 
     /**
      * Upcoming gigs near a point, in start order. The point is the request's {@code lat}/{@code lng}, or
-     * the viewer's home city when they are omitted; with neither, the list is UK-wide and has no distances.
+     * the viewer's home city when they are omitted; with neither, the list is UK-wide. Distances are from
+     * {@code here} (the viewer's rounded position) when sent, else from that point.
      */
-    public Page<GigSummary> gigs(UUID viewer, GigQuery query) {
+    public Page<GigSummary> gigs(UUID viewer, GigQuery query, @Nullable GeoPoint here) {
         GeoPoint origin = originOf(viewer, query);
-        return page(viewer, filterFor(query, origin, Instant.now(clock), null), origin);
+        return page(viewer, filterFor(query, origin, Instant.now(clock), null), here != null ? here : origin);
     }
 
     /**
@@ -226,8 +227,8 @@ public class CatalogService {
                 limit == null ? Cursor.limit(query.limit()) : limit);
     }
 
-    public GigDetail gig(UUID viewer, UUID gigId) {
-        GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+    public GigDetail gig(UUID viewer, UUID gigId, @Nullable GeoPoint here) {
+        GeoPoint origin = distancesFrom(viewer, here);
         GigRow row = repository
                 .gig(gigId, origin)
                 .orElseThrow(() -> ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId));
@@ -272,7 +273,8 @@ public class CatalogService {
             @Nullable Instant windowFrom,
             @Nullable Instant windowTo,
             @Nullable String cursor,
-            @Nullable Integer limit) {
+            @Nullable Integer limit,
+            @Nullable GeoPoint here) {
         if (status != null && !ATTENDANCE.contains(status)) {
             throw ApiException.badRequest("ATTENDANCE_INVALID", "status must be INTERESTED, GOING or WENT");
         }
@@ -281,7 +283,7 @@ public class CatalogService {
             throw ApiException.badRequest("WHEN_INVALID", "when must be upcoming or past");
         }
         Instant now = Instant.now(clock);
-        GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+        GeoPoint origin = distancesFrom(viewer, here);
         boolean window = windowFrom != null || windowTo != null;
         if (window) {
             past = false;
@@ -390,22 +392,23 @@ public class CatalogService {
         return Page.of(artistSummaries(viewer, ids));
     }
 
-    public ArtistDetail artist(UUID viewer, UUID artistId) {
+    public ArtistDetail artist(UUID viewer, UUID artistId, @Nullable GeoPoint here) {
         ArtistRow row = repository.artists(List.of(artistId)).get(artistId);
         if (row == null) {
             throw ApiException.notFound("ARTIST_NOT_FOUND", "No artist " + artistId);
         }
         ArtistSummary summary = artistSummaries(viewer, List.of(artistId)).getFirst();
         List<GigSummary> upcoming =
-                artistGigs(viewer, artistId, null, ARTIST_UPCOMING_GIGS).items();
+                artistGigs(viewer, artistId, null, ARTIST_UPCOMING_GIGS, here).items();
         return new ArtistDetail(summary, row.mbid(), follows.followerCount(artistId), upcoming);
     }
 
-    public Page<GigSummary> artistGigs(UUID viewer, UUID artistId, @Nullable String cursor, @Nullable Integer limit) {
+    public Page<GigSummary> artistGigs(
+            UUID viewer, UUID artistId, @Nullable String cursor, @Nullable Integer limit, @Nullable GeoPoint here) {
         if (!repository.artistExists(artistId)) {
             throw ApiException.notFound("ARTIST_NOT_FOUND", "No artist " + artistId);
         }
-        GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+        GeoPoint origin = distancesFrom(viewer, here);
         return page(
                 viewer,
                 new GigFilter(
@@ -456,11 +459,12 @@ public class CatalogService {
                 .toList();
     }
 
-    public Page<GigSummary> venueGigs(UUID viewer, UUID venueId, @Nullable String cursor, @Nullable Integer limit) {
+    public Page<GigSummary> venueGigs(
+            UUID viewer, UUID venueId, @Nullable String cursor, @Nullable Integer limit, @Nullable GeoPoint here) {
         if (!repository.venueExists(venueId)) {
             throw ApiException.notFound("VENUE_NOT_FOUND", "No venue " + venueId);
         }
-        GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+        GeoPoint origin = distancesFrom(viewer, here);
         return page(
                 viewer,
                 new GigFilter(
@@ -483,13 +487,13 @@ public class CatalogService {
     // ── search ──────────────────────────────────────────────────────────────
 
     /** Top five per type; gigs are upcoming ones, UK-wide, soonest first. */
-    public SearchResults search(UUID viewer, String q, Set<String> types) {
+    public SearchResults search(UUID viewer, String q, Set<String> types, @Nullable GeoPoint here) {
         List<ArtistSummary> artists = types.contains("artists")
                 ? artistSummaries(viewer, repository.searchArtists(q, SEARCH_PER_TYPE))
                 : List.of();
         List<GigSummary> gigs = List.of();
         if (types.contains("gigs")) {
-            GeoPoint origin = viewerHome.homeOf(viewer).orElse(null);
+            GeoPoint origin = distancesFrom(viewer, here);
             gigs = page(
                             viewer,
                             new GigFilter(
@@ -559,8 +563,17 @@ public class CatalogService {
         return repository.gigIdsAtVenue(venueId, limit);
     }
 
-    private Page<GigSummary> page(UUID viewer, GigFilter filter, @Nullable GeoPoint origin) {
-        List<GigRow> rows = repository.gigs(filter);
+    /**
+     * Where distances are measured from when the list has no search area of its own: the viewer's rounded
+     * position when the app sent it, else the home city's centre, else nowhere (no distances).
+     */
+    private @Nullable GeoPoint distancesFrom(UUID viewer, @Nullable GeoPoint here) {
+        return here != null ? here : viewerHome.homeOf(viewer).orElse(null);
+    }
+
+    /** {@code distancesFrom}: the point each gig's {@code distanceKm} is measured from (null: none). */
+    private Page<GigSummary> page(UUID viewer, GigFilter filter, @Nullable GeoPoint distancesFrom) {
+        List<GigRow> rows = repository.gigs(filter, distancesFrom);
         boolean more = rows.size() > filter.limit();
         List<GigRow> shown = more ? rows.subList(0, filter.limit()) : rows;
         String next =

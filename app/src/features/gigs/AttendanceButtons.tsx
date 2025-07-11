@@ -34,6 +34,7 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
   const { colors } = useTheme();
   const client = useQueryClient();
   const gigId = detail.gig.id;
+  // Every cached copy of this gig: the page keys it with the viewer's position when it has one.
   const key = getGetGigQueryKey(gigId);
   const [failed, setFailed] = useState(false);
   const set = useSetGigAttendance();
@@ -48,13 +49,15 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
     const next = detail.gig.myAttendance === status ? null : status;
     setFailed(false);
     await client.cancelQueries({ queryKey: key });
-    const previous = client.getQueryData<GigDetail>(key);
-    client.setQueryData<GigDetail>(key, (old) => (old ? applyAttendance(old, next) : old));
+    const previous = client.getQueriesData<GigDetail>({ queryKey: key });
+    client.setQueriesData<GigDetail>({ queryKey: key }, (old) =>
+      old ? applyAttendance(old, next) : old,
+    );
     try {
       if (next) {
         // The server's answer is the truth: its counts replace the optimistic ones.
         const saved = await set.mutateAsync({ id: gigId, data: { status: next } });
-        client.setQueryData<GigDetail>(key, (old) =>
+        client.setQueriesData<GigDetail>({ queryKey: key }, (old) =>
           old
             ? {
                 ...old,
@@ -68,7 +71,7 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
       }
       void client.invalidateQueries({ predicate: (query) => isGigList(query.queryKey) });
     } catch {
-      client.setQueryData(key, previous);
+      for (const [cached, data] of previous) client.setQueryData(cached, data);
       setFailed(true);
     }
   }

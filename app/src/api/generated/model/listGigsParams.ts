@@ -21,4 +21,12 @@ nationwide?: boolean;
 order?: ListGigsOrder;
 cursor?: string;
 limit?: number;
+/**
+ * Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored
+ */
+fromLat?: number;
+/**
+ * Where the viewer is (with fromLat); see fromLat
+ */
+fromLng?: number;
 };

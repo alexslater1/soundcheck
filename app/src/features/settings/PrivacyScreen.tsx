@@ -12,14 +12,15 @@ import { spacing } from '@/theme/tokens';
 
 /**
  * The privacy notice: what is kept, for how long, and who else sees what. Every line is a
- * fact of the code as built: the city centroid only (identity), the clip outputs without the
+ * fact of the code as built: the city centroid only (identity), and the approximate position sent
+ * per request for distances and never kept, the clip outputs without the
  * source's metadata (`FfmpegCommands`), 90 days of events (`SignalsTables`), 30 of served items, the
  * 7-day purge (`AccountPurgeService`), and images loaded from the sites that provide them.
  */
 const NOTICE: { title: string; body: string }[] = [
   {
     title: 'Where you are',
-    body: 'Soundcheck keeps the city you choose (its centre point), never your phone’s location. Distances are measured from that point.',
+    body: 'Soundcheck keeps the city you choose (its centre point), never your phone’s location. If you allow location, the app sends your approximate position (to about a kilometre) with the gig lists, so distances are measured from where you are; it is used for that answer only and not kept. Otherwise distances are measured from your city’s centre.',
   },
   {
     title: 'Your clips',

@@ -2,7 +2,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
 
+import * as Location from 'expo-location';
+
 import { useAuthStore } from '@/features/auth/store';
+import { useDeviceLocation } from '@/features/location/deviceLocation';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { billingLabel } from './ActBar';
@@ -250,5 +253,59 @@ describe('GigDetailScreen act bar', () => {
     await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
     await waitFor(() => expect(screen.getByText('LINE-UP')).toBeOnTheScreen());
     expect(screen.queryByTestId('coverage-note')).toBeNull();
+  });
+});
+
+describe('GigDetailScreen distance', () => {
+  beforeEach(() => {
+    fetchMock.mockReset();
+    globalThis.fetch = fetchMock as unknown as typeof fetch;
+  });
+
+  afterEach(() => {
+    useDeviceLocation.setState({ here: null, readAt: null });
+  });
+
+  /** As routeRequests, with the gig 1.2 km from wherever the request measured from. */
+  const answerWithDistance = () => {
+    routeRequests();
+    const routed = fetchMock.getMockImplementation()!;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input), 'http://test').pathname.endsWith('/gigs/g1')
+        ? json(200, { ...DETAIL, gig: { ...DETAIL.gig, distanceKm: 1.2 } })
+        : routed(input, init),
+    );
+  };
+
+  it('asks from the phone’s rounded position and says "away"', async () => {
+    useDeviceLocation.setState({
+      permission: 'granted',
+      here: { lat: 51.51, lng: -0.13 },
+      readAt: Date.now(),
+      ready: true,
+    });
+    jest.mocked(Location.getForegroundPermissionsAsync).mockResolvedValueOnce({
+      granted: true,
+      status: Location.PermissionStatus.GRANTED,
+      canAskAgain: true,
+      expires: 'never',
+    });
+    answerWithDistance();
+
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+
+    expect(await screen.findByText('1.2 km away')).toBeOnTheScreen();
+    const gigUrl = new URL(requested('/gigs/g1?')[0]!);
+    expect(gigUrl.searchParams.get('fromLat')).toBe('51.51');
+    expect(gigUrl.searchParams.get('fromLng')).toBe('-0.13');
+  });
+
+  it('without a position, measures from the home city as before', async () => {
+    answerWithDistance();
+
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+
+    expect(await screen.findByText('1.2 km from your city')).toBeOnTheScreen();
+    expect(requested('fromLat')).toEqual([]);
   });
 });

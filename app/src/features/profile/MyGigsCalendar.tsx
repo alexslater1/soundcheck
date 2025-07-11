@@ -9,6 +9,7 @@ import { MonthCalendar } from '@/features/calendar/MonthCalendar';
 import { monthOf, monthWindow, ukDate, type Month } from '@/features/calendar/monthGrid';
 import { formatGigDate } from '@/features/gigs/format';
 import { GigCard } from '@/features/gigs/GigCard';
+import { useDistanceOrigin } from '@/features/location/deviceLocation';
 import { spacing } from '@/theme/tokens';
 
 import { byDay } from './byDay';
@@ -21,7 +22,11 @@ export function MyGigsCalendar() {
   const [month, setMonth] = useState<Month>(() => monthOf(new Date()));
   const [day, setDay] = useState<string | null>(null);
   // A month of one person's gigs fits in one page (50); more than that shows the first 50.
-  const gigs = useListMyGigs({ ...monthWindow(month), limit: 50 });
+  const origin = useDistanceOrigin(); // distances from the phone when allowed
+  const gigs = useListMyGigs(
+    { ...monthWindow(month), limit: 50, ...origin.params },
+    { query: { enabled: origin.ready } },
+  );
   const days = useMemo(() => byDay(gigs.data?.items ?? []), [gigs.data]);
   const counts = useMemo(
     () => Object.fromEntries(Object.entries(days).map(([date, list]) => [date, list.length])),
