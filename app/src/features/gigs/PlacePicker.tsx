@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { useSearchCities } from '@/api/generated/reference/reference';
 import { Chip } from '@/components/ui/Chip';
@@ -150,7 +150,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginRight: spacing.sm,
   },
-  input: { flex: 1, minWidth: 120, fontSize: 14, paddingVertical: 0 },
+  input: {
+    flex: 1,
+    minWidth: 120,
+    fontSize: 14,
+    paddingVertical: 0,
+    // The pill's accent border shows the focus; the browser's own ring would draw a box inside it.
+    ...(Platform.OS === 'web' ? { outlineWidth: 0 } : null),
+  },
   results: { marginTop: spacing.xs },
   city: {
     minHeight: touchTarget,
