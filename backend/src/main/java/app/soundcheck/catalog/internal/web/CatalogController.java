@@ -17,11 +17,13 @@ import app.soundcheck.catalog.internal.UserSubmissionService.AddGig;
 import app.soundcheck.catalog.internal.UserSubmissionService.Added;
 import app.soundcheck.catalog.internal.UserSubmissionService.FoundOn;
 import app.soundcheck.catalog.internal.UserSubmissionService.NewVenue;
+import app.soundcheck.catalog.internal.ViewerPosition;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -70,6 +72,13 @@ public class CatalogController {
     /** At most this many artists, and as many venues, in one gig filter. */
     static final int MAX_FILTER_IDS = 20;
 
+    /** The viewer's position, for distances only (rounded to 0.01° here; never stored). */
+    static final String FROM_LAT =
+            "Where the viewer is (with fromLng): distances are measured from here instead of the "
+                    + "home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored";
+
+    static final String FROM_LNG = "Where the viewer is (with fromLat); see fromLat";
+
     private final CatalogService catalog;
     private final UserSubmissionService submissions;
     private final SuggestionService suggestions;
@@ -102,7 +111,11 @@ public class CatalogController {
             @RequestParam(required = false, defaultValue = "asc") @Schema(allowableValues = {"asc", "desc"})
                     String order,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false) Integer limit) {
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
         if (!order.equals("asc") && !order.equals("desc")) {
             throw ApiException.badRequest("ORDER_INVALID", "order must be asc or desc");
         }
@@ -121,7 +134,8 @@ public class CatalogController {
                         nationwide,
                         order.equals("desc"),
                         cursor,
-                        limit));
+                        limit),
+                ViewerPosition.approximate(fromLat, fromLng));
     }
 
     @GetMapping("/gigs/days")
@@ -196,8 +210,14 @@ public class CatalogController {
 
     @GetMapping("/gigs/{id}")
     @Operation(operationId = "getGig", summary = "Gig detail: line-up, attendance counts, sources")
-    public GigDetail gig(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        return catalog.gig(userId(jwt), id);
+    public GigDetail gig(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
+        return catalog.gig(userId(jwt), id, ViewerPosition.approximate(fromLat, fromLng));
     }
 
     @PutMapping("/gigs/{id}/attendance")
@@ -223,8 +243,13 @@ public class CatalogController {
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false) Integer limit) {
-        return catalog.myGigs(userId(jwt), status, when, from, to, cursor, limit);
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
+        return catalog.myGigs(
+                userId(jwt), status, when, from, to, cursor, limit, ViewerPosition.approximate(fromLat, fromLng));
     }
 
     // ── artists ─────────────────────────────────────────────────────────────
@@ -255,8 +280,14 @@ public class CatalogController {
 
     @GetMapping("/artists/{id}")
     @Operation(operationId = "getArtist", summary = "Artist detail with the next five gigs")
-    public ArtistDetail artist(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        return catalog.artist(userId(jwt), id);
+    public ArtistDetail artist(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
+        return catalog.artist(userId(jwt), id, ViewerPosition.approximate(fromLat, fromLng));
     }
 
     @GetMapping("/artists/{id}/gigs")
@@ -265,8 +296,12 @@ public class CatalogController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false) Integer limit) {
-        return catalog.artistGigs(userId(jwt), id, cursor, limit);
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
+        return catalog.artistGigs(userId(jwt), id, cursor, limit, ViewerPosition.approximate(fromLat, fromLng));
     }
 
     // ── venues ──────────────────────────────────────────────────────────────
@@ -289,8 +324,12 @@ public class CatalogController {
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
             @RequestParam(required = false) String cursor,
-            @RequestParam(required = false) Integer limit) {
-        return catalog.venueGigs(userId(jwt), id, cursor, limit);
+            @RequestParam(required = false) Integer limit,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
+        return catalog.venueGigs(userId(jwt), id, cursor, limit, ViewerPosition.approximate(fromLat, fromLng));
     }
 
     // ── search ──────────────────────────────────────────────────────────────
@@ -300,7 +339,11 @@ public class CatalogController {
     public SearchResults search(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam @NotBlank @Size(max = 80) String q,
-            @RequestParam(required = false) String types) {
+            @RequestParam(required = false) String types,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
         Set<String> wanted = types == null || types.isBlank()
                 ? SEARCH_TYPES
                 : Arrays.stream(types.split(","))
@@ -311,7 +354,7 @@ public class CatalogController {
         if (!Set.of("artists", "gigs", "users", "posts").containsAll(wanted)) {
             throw ApiException.badRequest("SEARCH_TYPE_UNKNOWN", "types may contain artists, gigs, users, posts");
         }
-        return catalog.search(userId(jwt), q, wanted);
+        return catalog.search(userId(jwt), q, wanted, ViewerPosition.approximate(fromLat, fromLng));
     }
 
     @GetMapping("/search/suggest")

@@ -161,10 +161,11 @@ class CatalogReadRepository {
      * One page of gigs in {@code (starts_at, id)} order, fetching {@code limit + 1} rows so the caller can
      * tell whether a next page exists. Expected indexes: {@code gig_starts_at (starts_at, id)} for the
      * keyset walk; {@code gig_location_gix} for the radius; {@code gig_venue} / {@code gig_artist_artist} /
-     * the {@code gig_attendance} primary key when filtering by venue, artist or attendee.
+     * the {@code gig_attendance} primary key when filtering by venue, artist or attendee. Distances are
+     * measured from {@code distancesFrom}, which need not be the filter's search area.
      */
-    List<GigRow> gigs(GigFilter filter) {
-        Field<Double> distanceKm = distanceFrom(filter.origin());
+    List<GigRow> gigs(GigFilter filter, @Nullable GeoPoint distancesFrom) {
+        Field<Double> distanceKm = distanceFrom(distancesFrom);
         List<Condition> where = conditions(filter);
         if (filter.cursor() != null) {
             var last = DSL.row(at(filter.cursor().at()), filter.cursor().id());
