@@ -15,6 +15,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   android: {
     package: 'app.soundcheck',
+    // Distances need only the approximate location: without the precise permission, Android
+    // offers "approximate" alone. expo-location's own manifest asks for both, so the precise one is removed.
+    blockedPermissions: ['android.permission.ACCESS_FINE_LOCATION'],
     adaptiveIcon: {
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
@@ -53,6 +56,14 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'react-native-compressor',
+    [
+      // Distances to gigs from where the phone is, when the user allows it.
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'Soundcheck uses your approximate location only to show how far gigs are from you.',
+      },
+    ],
     [
       'expo-build-properties',
       {

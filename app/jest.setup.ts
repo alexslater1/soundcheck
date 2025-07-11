@@ -31,4 +31,25 @@ jest.mock('@expo-google-fonts/space-grotesk', () => ({
   SpaceGrotesk_700Bold: 7,
 }));
 
+// expo-location's native module does not exist under Jest. By default the phone has never been asked
+// (no position: distances stay from the home city); the location tests give their own answers.
+jest.mock('expo-location', () => ({
+  PermissionStatus: { GRANTED: 'granted', UNDETERMINED: 'undetermined', DENIED: 'denied' },
+  Accuracy: { Lowest: 1, Low: 2, Balanced: 3, High: 4, Highest: 5, BestForNavigation: 6 },
+  getForegroundPermissionsAsync: jest.fn(async () => ({
+    granted: false,
+    status: 'undetermined',
+    canAskAgain: true,
+    expires: 'never',
+  })),
+  requestForegroundPermissionsAsync: jest.fn(async () => ({
+    granted: false,
+    status: 'denied',
+    canAskAgain: true,
+    expires: 'never',
+  })),
+  getLastKnownPositionAsync: jest.fn(async () => null),
+  getCurrentPositionAsync: jest.fn(() => new Promise(() => undefined)),
+}));
+
 export {};

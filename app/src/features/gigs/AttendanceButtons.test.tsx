@@ -18,10 +18,13 @@ const detail = {
   privatePostsCount: 0,
 } as unknown as GigDetail;
 
-/** Reads the gig from the cache like the real screen does, so cache updates re-render the buttons. */
+/**
+ * Reads the gig from the cache like the real screen does, so cache updates re-render the buttons; keyed
+ * with the viewer's position, as the screen keys it once location is allowed.
+ */
 function Harness() {
   const { data } = useQuery<GigDetail>({
-    queryKey: getGetGigQueryKey(GIG_ID),
+    queryKey: getGetGigQueryKey(GIG_ID, { fromLat: 51.51, fromLng: -0.13 }),
     queryFn: () => detail,
     initialData: detail,
     staleTime: Infinity,

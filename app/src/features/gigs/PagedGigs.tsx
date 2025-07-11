@@ -19,16 +19,20 @@ export function PagedGigs({
   queryKey,
   fetchPage,
   empty,
+  enabled = true,
   testID,
 }: {
   queryKey: QueryKey;
   fetchPage: (cursor: string | undefined) => Promise<Page>;
   empty: string;
+  /** False while the list should wait (for the first location check). */
+  enabled?: boolean;
   testID?: string;
 }) {
   const list = useInfiniteQuery({
     queryKey: [...queryKey, 'infinite'],
     queryFn: ({ pageParam }) => fetchPage(pageParam),
+    enabled,
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
   });

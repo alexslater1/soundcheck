@@ -73,6 +73,9 @@ describe('PrivacyScreen (one switch for the whole profile)', () => {
     await render(<PrivacyScreen />, { wrapper: Providers });
     const notice = screen.getByTestId('privacy-notice');
     expect(notice).toHaveTextContent(/never your phone’s location/);
+    expect(notice).toHaveTextContent(
+      /approximate position .* used for that answer only and not kept/,
+    );
     expect(notice).toHaveTextContent(/without the file’s metadata/);
     expect(notice).toHaveTextContent(/no advertising or third-party tracking tools/);
     expect(notice).toHaveTextContent(/Seven days later/);

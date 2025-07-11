@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { PagedGigs } from '@/features/gigs/PagedGigs';
+import { useDistanceOrigin } from '@/features/location/deviceLocation';
 import { PostGrid } from '@/features/posts/PostGrid';
 import { openWebLink } from '@/lib/openLink';
 import { spacing } from '@/theme/tokens';
@@ -25,6 +26,7 @@ import { VenueFollowButton } from './VenueFollowButton';
  */
 export function VenueScreen({ id }: { id: string }) {
   const venue = useGetVenue(id);
+  const origin = useDistanceOrigin();
   const clips = useListVenuePosts(id, { limit: 12 });
 
   if (venue.isPending) {
@@ -80,8 +82,11 @@ export function VenueScreen({ id }: { id: string }) {
           UPCOMING GIGS
         </Text>
         <PagedGigs
-          queryKey={getListVenueGigsQueryKey(id)}
-          fetchPage={(cursor) => listVenueGigs(id, { limit: 10, ...(cursor ? { cursor } : {}) })}
+          queryKey={getListVenueGigsQueryKey(id, origin.params)}
+          enabled={origin.ready}
+          fetchPage={(cursor) =>
+            listVenueGigs(id, { limit: 10, ...origin.params, ...(cursor ? { cursor } : {}) })
+          }
           empty="No upcoming gigs listed."
           testID="venue-gigs"
         />
