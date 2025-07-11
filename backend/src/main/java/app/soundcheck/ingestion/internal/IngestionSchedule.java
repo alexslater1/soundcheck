@@ -1,5 +1,6 @@
 package app.soundcheck.ingestion.internal;
 
+import app.soundcheck.ingestion.internal.enrich.VenueGeocoder;
 import app.soundcheck.ingestion.internal.source.GigSource;
 import app.soundcheck.ingestion.internal.source.venues.VenueCoverageNotes;
 import app.soundcheck.shared.config.ConditionalOnRole;
@@ -33,6 +34,7 @@ class IngestionSchedule {
     private final List<GigSource> sources;
     private final IngestionGuard guard;
     private final VenueCoverageNotes coverageNotes;
+    private final VenueGeocoder geocoder;
     private final Duration payloadRetention;
     private final Clock clock;
 
@@ -42,12 +44,14 @@ class IngestionSchedule {
             List<GigSource> sources,
             IngestionGuard guard,
             VenueCoverageNotes coverageNotes,
+            VenueGeocoder geocoder,
             IngestionProperties properties,
             Clock clock) {
         this.service = service;
         this.sources = sources;
         this.guard = guard;
         this.coverageNotes = coverageNotes;
+        this.geocoder = geocoder;
         this.runs = runs;
         this.payloadRetention = properties.payloadRetention();
         this.clock = clock;
@@ -75,6 +79,21 @@ class IngestionSchedule {
             coverageNotes.apply();
         } catch (RuntimeException e) {
             log.warn("Coverage notes not applied: {}", e.toString()); // never stops a start or a run
+        }
+    }
+
+    /**
+     * Venues without coordinates are located when the scheduler starts, not only at the end of an
+     * ingestion run. On a laptop the 05:10 run rarely happens, so venues that arrived before geocoding (Tramshed,
+     * Cardiff) kept their gigs without a location, and without a distance, until someone ran an ingestion.
+     * Coordinates are only ever filled, never overwritten, so a second instance doing the same is harmless.
+     */
+    @EventListener(ApplicationReadyEvent.class)
+    void locateVenues() {
+        try {
+            log.info("Venues located at start-up: {}", geocoder.locateVenues().toMap());
+        } catch (RuntimeException e) {
+            log.warn("Venues not located at start-up: {}", e.toString()); // never stops a start
         }
     }
 
