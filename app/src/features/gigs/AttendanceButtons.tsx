@@ -22,7 +22,8 @@ import { applyAttendance, ATTENDANCE_OPTIONS, type AttendanceStatus } from './at
  * "You've seen Keo 5 times").
  */
 export const isGigList = (key: readonly unknown[]) =>
-  typeof key[0] === 'string' && /\/gigs$|\/stats$|\/stats\/gigs\/count$/.test(key[0]);
+  typeof key[0] === 'string' &&
+  /\/gigs$|\/gigs\/going$|\/stats$|\/stats\/gigs\/count$/.test(key[0]);
 
 /**
  * Interested / Going / Went with an optimistic update: the button and the counts change

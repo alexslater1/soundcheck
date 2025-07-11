@@ -14,7 +14,7 @@ import { spacing } from '@/theme/tokens';
 import { byDay } from './byDay';
 
 /**
- * The Me tab's calendar: every gig the user marked (Going, Interested or Went), past and
+ * The Me tab's My gigs: every gig the user marked (Going, Interested or Went), past and
  * upcoming, on a month grid; a day's gigs are listed under it when tapped, otherwise the month's.
  */
 export function MyGigsCalendar() {
@@ -31,9 +31,6 @@ export function MyGigsCalendar() {
 
   return (
     <View style={styles.box} testID="my-gigs">
-      <Text variant="label" muted>
-        MY GIGS
-      </Text>
       <MonthCalendar
         month={month}
         onMonthChange={(next) => {

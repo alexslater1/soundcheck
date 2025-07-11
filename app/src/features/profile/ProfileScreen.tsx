@@ -20,11 +20,14 @@ import { spacing } from '@/theme/tokens';
 
 import { FollowUserButton } from './FollowUserButton';
 import { ProfileHeader } from './ProfileHeader';
+import { ProfileTabs, type ProfileTab } from './ProfileTabs';
+import { UserGigs } from './UserGigs';
 
 /**
- * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, then their clips
- * and gig stats. A private profile whose owner does not follow the viewer shows only
- * the header (name, picture, counts) and says it is private; its clips and stats are not even asked for.
+ * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, then three tabs
+ * (H26): their clips, their gigs (Going and Went) and their gig stats. A private profile
+ * whose owner does not follow the viewer shows only the header (name, picture, counts) and says
+ * it is private; its clips, gigs and stats are not even asked for.
  */
 export function ProfileScreen({ handle }: { handle: string }) {
   const client = useQueryClient();
@@ -32,6 +35,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
   const myId = useAuthStore((state) => state.me?.id);
   const profile = useGetUserByHandle(handle);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [tab, setTab] = useState<ProfileTab>('posts');
   const refresh = () => client.invalidateQueries({ queryKey: getGetUserByHandleQueryKey(handle) });
 
   if (profile.isPending) {
@@ -114,14 +118,20 @@ export function ProfileScreen({ handle }: { handle: string }) {
             <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
             <Text variant="title">This profile is private</Text>
             <Text muted style={styles.privateText}>
-              Only people @{user.handle} follows see their clips, gig stats, the gigs they went to
-              and who they follow.
+              Only people @{user.handle} follows see their clips, their gigs, their gig stats and
+              who they follow.
             </Text>
           </View>
         ) : (
           <>
-            <UserPosts userId={user.id} />
-            <GigStatsSection userId={user.id} own={mine} />
+            <ProfileTabs value={tab} onChange={setTab} gigsLabel={mine ? 'My gigs' : 'Gigs'} />
+            {tab === 'posts' ? (
+              <UserPosts userId={user.id} />
+            ) : tab === 'gigs' ? (
+              <UserGigs userId={user.id} />
+            ) : (
+              <GigStatsSection userId={user.id} own={mine} />
+            )}
           </>
         )}
       </ScrollView>

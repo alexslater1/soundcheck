@@ -1,8 +1,10 @@
-import { Link, useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
+import { Link, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { useListMyPosts } from '@/api/generated/posts/posts';
+import { IconButton } from '@/components/ui/IconButton';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
@@ -10,22 +12,32 @@ import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { pollDelayForAge } from '@/features/player/mediaPolling';
 import { PostGrid } from '@/features/posts/PostGrid';
-import { postOnItsWay } from '@/features/upload/labels';
 import { GigStatsSection } from '@/features/stats/GigStatsSection';
+import { refreshOwnGigs } from '@/features/stats/refreshOwnGigs';
+import { postOnItsWay } from '@/features/upload/labels';
 import { useUploadQueue } from '@/features/upload/uploadQueue';
-import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeProvider';
+import { spacing, touchTarget } from '@/theme/tokens';
 
 import { MyGigsCalendar } from './MyGigsCalendar';
 import { ProfileHeader } from './ProfileHeader';
+import { ProfileTabs, type ProfileTab } from './ProfileTabs';
+import { useChangeAvatar } from './useChangeAvatar';
 
 /**
- * Own profile (Me tab): header with counts, every post of one's own, including the ones still
- * processing or failed, each with a badge, a calendar of the gigs the user marked, then
- * their stats with who else can see them.
+ * Own profile (Me tab): the header with counts, a Settings gear (H25), and the photo, bio, city and
+ * genres each opening what changes them (H36, H24). Under it three tabs (H26): Posts (every post of
+ * one's own, including the ones still processing or failed, each with a badge), My gigs (a
+ * calendar of the gigs the user marked) and Stats (with who else can see them).
  */
 export function MeScreen() {
   const me = useAuthStore((state) => state.me);
   const reloadMe = useAuthStore((state) => state.reloadMe);
+  const router = useRouter();
+  const client = useQueryClient();
+  const { colors } = useTheme();
+  const [tab, setTab] = useState<ProfileTab>('posts');
+  const photo = useChangeAvatar();
   // When the grid first showed something still processing; cleared when nothing is. The polling
   // schedule runs from this moment, not from when the tab was first opened.
   const waitingSince = useRef<number | null>(null);
@@ -49,22 +61,38 @@ export function MeScreen() {
     },
   );
   const refetch = posts.refetch;
-  // A background reload that fails (offline, or the session just ended) keeps the profile on screen;
-  // it must not escape as an unhandled rejection.
-  const reloadProfile = useCallback(() => {
-    reloadMe().catch(() => undefined);
-  }, [reloadMe]);
-  // Coming back from the Create tab, or from a post: counts and the grid may have changed.
+  const myId = me?.id;
+  // Coming back from the Create tab, a post or a gig page: counts, the grid, the gigs marked and the
+  // stats may all have changed. The first focus is the first load: nothing to ask again.
+  const focusedBefore = useRef(false);
   useFocusEffect(
     useCallback(() => {
-      reloadProfile();
+      void reloadMe();
       void refetch();
-    }, [reloadProfile, refetch]),
+      if (focusedBefore.current && myId) {
+        void refreshOwnGigs(client, myId);
+      }
+      focusedBefore.current = true;
+    }, [reloadMe, refetch, client, myId]),
   );
+
+  // A post going live marks its gig Went, and deleting the last one of a gig removes that:
+  // when the set of live posts changes while Me is open, the stats and the calendar follow.
+  const live = posts.data?.items
+    .filter((post) => post.status === 'PUBLISHED')
+    .map((post) => post.id)
+    .join(',');
+  const liveBefore = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (live === undefined) return;
+    if (liveBefore.current !== undefined && liveBefore.current !== live && myId) {
+      void refreshOwnGigs(client, myId);
+    }
+    liveBefore.current = live;
+  }, [live, client, myId]);
 
   // Posts created from this device: the moment an upload becomes a post (it happens in the background,
   // usually just after arriving here from the Create tab) the grid is fetched again.
-  const myId = me?.id;
   const posted = useUploadQueue((state) =>
     state.entries
       .filter((entry) => entry.ownerId === myId && entry.postId)
@@ -78,9 +106,9 @@ export function MeScreen() {
   useEffect(() => {
     if (posted !== '') {
       void refetch();
-      reloadProfile();
+      void reloadMe();
     }
-  }, [posted, refetch, reloadProfile]);
+  }, [posted, refetch, reloadMe]);
 
   if (!me) {
     return (
@@ -89,6 +117,7 @@ export function MeScreen() {
       </Screen>
     );
   }
+  const genres = me.genres.length;
   return (
     <Screen>
       <ScrollView contentContainerStyle={styles.gap}>
@@ -97,9 +126,41 @@ export function MeScreen() {
           displayName={me.displayName}
           avatarUrl={me.avatarUrl}
           bio={me.bio}
-          detail={`${me.homeCity ? me.homeCity.name : 'No city yet'} · ${me.genres.length} genres`}
           counts={me.counts}
+          onEditPhoto={() => void photo.change()}
+          photoBusy={photo.saving}
+          onEditBio={() => router.push('/settings/profile')}
+          corner={
+            <IconButton
+              icon="settings-outline"
+              accessibilityLabel="Settings"
+              onPress={() => router.push('/settings')}
+              testID="me-settings"
+            />
+          }
+          detail={
+            <View style={styles.detail}>
+              <Link href="/settings/location" testID="me-city" style={styles.detailLink}>
+                <Text variant="caption" muted>
+                  {me.homeCity ? me.homeCity.name : 'Add your city'}
+                </Text>
+              </Link>
+              <Text variant="caption" muted>
+                ·
+              </Text>
+              <Link href="/settings/genres" testID="me-genres" style={styles.detailLink}>
+                <Text variant="caption" muted>
+                  {genres === 1 ? '1 genre' : `${genres} genres`}
+                </Text>
+              </Link>
+            </View>
+          }
         />
+        {photo.error ? (
+          <Text variant="caption" style={{ color: colors.danger }} testID="me-photo-error">
+            {photo.error}
+          </Text>
+        ) : null}
         {onTheirWay > 0 ? (
           <Text muted testID="me-uploading">
             {onTheirWay === 1
@@ -107,30 +168,34 @@ export function MeScreen() {
               : `${onTheirWay} clips are uploading and will appear here when they have been posted.`}
           </Text>
         ) : null}
-        {posts.isPending ? (
-          <Skeleton height={200} />
-        ) : !posts.data ? (
-          <StateMessage title="Could not load your clips" onRetry={() => void posts.refetch()} />
-        ) : posts.data.items.length === 0 && onTheirWay > 0 ? null : posts.data.items.length ===
-          0 ? (
-          <Text muted testID="me-no-posts">
-            No clips yet. Share one from the Create tab.
-          </Text>
+        <ProfileTabs value={tab} onChange={setTab} gigsLabel="My gigs" />
+        {tab === 'posts' ? (
+          posts.isPending ? (
+            <Skeleton height={200} />
+          ) : !posts.data ? (
+            <StateMessage title="Could not load your clips" onRetry={() => void posts.refetch()} />
+          ) : posts.data.items.length === 0 && onTheirWay > 0 ? null : posts.data.items.length ===
+            0 ? (
+            <Text muted testID="me-no-posts">
+              No clips yet. Share one from the Create tab.
+            </Text>
+          ) : (
+            <PostGrid posts={posts.data.items} />
+          )
+        ) : tab === 'gigs' ? (
+          <MyGigsCalendar />
         ) : (
-          <PostGrid posts={posts.data.items} />
+          <>
+            <GigStatsSection userId={me.id} own />
+            <Link href="/settings/privacy" testID="me-stats-privacy">
+              <Text variant="caption" muted>
+                {me.profileVisibility === 'PRIVATE'
+                  ? 'Your profile is private: only people you follow see your clips and stats. Change →'
+                  : 'Your profile is public: anyone signed in sees your clips and stats. Change →'}
+              </Text>
+            </Link>
+          </>
         )}
-        <MyGigsCalendar />
-        <GigStatsSection userId={me.id} own />
-        <Link href="/settings/privacy" testID="me-stats-privacy">
-          <Text variant="caption" muted>
-            {me.profileVisibility === 'PRIVATE'
-              ? 'Your profile is private: only people you follow see your clips and stats. Change →'
-              : 'Your profile is public: anyone signed in sees your clips and stats. Change →'}
-          </Text>
-        </Link>
-        <Link href="/settings" style={styles.link}>
-          <Text muted>Settings →</Text>
-        </Link>
       </ScrollView>
     </Screen>
   );
@@ -138,5 +203,7 @@ export function MeScreen() {
 
 const styles = StyleSheet.create({
   gap: { gap: spacing.md, paddingBottom: spacing.xl },
-  link: { marginTop: spacing.md },
+  detail: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  // A comfortable target for a one-word link.
+  detailLink: { minHeight: touchTarget / 2, paddingVertical: spacing.xs },
 });

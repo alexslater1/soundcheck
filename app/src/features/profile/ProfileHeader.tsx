@@ -1,7 +1,8 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
-import type { PropsWithChildren } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import type { PropsWithChildren, ReactNode } from 'react';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -12,10 +13,19 @@ type Props = PropsWithChildren<{
   displayName: string;
   avatarUrl?: string | null;
   bio?: string | null;
-  detail?: string | null;
+  /** The line under the bio: the home city (and, on one's own, the genres, each a link). */
+  detail?: ReactNode;
   counts: { posts: number; followers: number; following: number };
   /** False for a private profile the viewer may not see: the counts show, the lists do not open. */
   listsOpen?: boolean;
+  /** One's own profile: tapping the photo changes it. */
+  onEditPhoto?: () => void;
+  /** The new photo is being saved. */
+  photoBusy?: boolean;
+  /** One's own profile: tapping the bio (or "Add a bio") edits it. */
+  onEditBio?: () => void;
+  /** Top-right corner, e.g. the Settings gear on Me. */
+  corner?: ReactNode;
 }>;
 
 /** The top of a profile (one's own or someone else's): avatar, names, bio, counts; children are the buttons. */
@@ -27,28 +37,72 @@ export function ProfileHeader({
   detail,
   counts,
   listsOpen = true,
+  onEditPhoto,
+  photoBusy = false,
+  onEditBio,
+  corner,
   children,
 }: Props) {
   const { colors } = useTheme();
+  const avatar = (
+    <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
+      {avatarUrl ? (
+        <Image source={{ uri: avatarUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
+      ) : (
+        <Text variant="title" style={{ color: colors.onAccent }}>
+          {displayName.slice(0, 1).toUpperCase()}
+        </Text>
+      )}
+      {photoBusy ? (
+        <View style={[StyleSheet.absoluteFill, styles.busy]}>
+          <ActivityIndicator color={colors.onAccent} />
+        </View>
+      ) : null}
+    </View>
+  );
   return (
     <View style={[styles.header, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-      <View style={[styles.avatar, { backgroundColor: colors.accent }]}>
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} style={StyleSheet.absoluteFill} contentFit="cover" />
-        ) : (
-          <Text variant="title" style={{ color: colors.onAccent }}>
-            {displayName.slice(0, 1).toUpperCase()}
-          </Text>
-        )}
-      </View>
+      {corner ? <View style={styles.corner}>{corner}</View> : null}
+      {onEditPhoto ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={avatarUrl ? 'Change profile photo' : 'Add a profile photo'}
+          disabled={photoBusy}
+          onPress={onEditPhoto}
+          style={styles.avatarButton}
+          testID="profile-photo"
+        >
+          {avatar}
+          <View
+            style={[styles.badge, { backgroundColor: colors.accent2, borderColor: colors.surface }]}
+          >
+            <Ionicons name="camera" size={12} color={colors.background} />
+          </View>
+        </Pressable>
+      ) : (
+        avatar
+      )}
       <Text variant="title">{displayName}</Text>
       <Text muted>@{handle}</Text>
-      {bio ? <Text>{bio}</Text> : null}
-      {detail ? (
+      {onEditBio ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={bio ? `Bio: ${bio}. Edit` : 'Add a bio'}
+          onPress={onEditBio}
+          testID="profile-bio"
+        >
+          {bio ? <Text>{bio}</Text> : <Text muted>Add a bio</Text>}
+        </Pressable>
+      ) : bio ? (
+        <Text>{bio}</Text>
+      ) : null}
+      {typeof detail === 'string' ? (
         <Text variant="caption" muted>
           {detail}
         </Text>
-      ) : null}
+      ) : (
+        (detail ?? null)
+      )}
       <View style={styles.counts}>
         <Count label="Posts" value={counts.posts} />
         {listsOpen ? (
@@ -97,6 +151,20 @@ function Count({ label, value, testID }: { label: string; value: number; testID?
 
 const styles = StyleSheet.create({
   header: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
+  corner: { position: 'absolute', top: spacing.sm, right: spacing.sm, zIndex: 1 },
+  avatarButton: { alignSelf: 'flex-start' },
+  busy: { alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
+  badge: {
+    position: 'absolute',
+    right: -2,
+    bottom: -2,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   avatar: {
     width: 64,
     height: 64,

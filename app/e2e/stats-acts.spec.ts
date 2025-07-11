@@ -85,8 +85,9 @@ test('Stats from Went gigs, the gigs behind a line, sharing, and the act bar on 
   await page.getByRole('button', { name: 'Sign in' }).last().click();
   await expect(page.getByRole('radio', { name: 'For You' }).last()).toBeVisible();
 
-  // Me tab: totals and the most-seen acts, support included.
+  // Me tab → Stats: totals and the most-seen acts, support included.
   await page.getByRole('tab', { name: /Me$/ }).click();
+  await page.getByTestId('profile-tab-stats').last().click();
   const stats = page.getByTestId('stats').last();
   await expect(stats).toBeVisible();
   await expect(page.getByLabel('3 gigs')).toBeVisible();
@@ -98,7 +99,9 @@ test('Stats from Went gigs, the gigs behind a line, sharing, and the act bar on 
   await expect(acts.nth(0)).toContainText(headliner);
   await expect(acts.nth(0)).toContainText('2×');
   await expect(acts.nth(1)).toContainText(support);
-  await expect(acts.nth(1)).toContainText('2 times on');
+  // Both times on one night: the line is that date alone, the badge says how many.
+  await expect(acts.nth(1)).toContainText(`1 Mar ${year - 1}`);
+  await expect(acts.nth(1)).not.toContainText('–');
   await expect(page.getByTestId('me-stats-privacy')).toContainText('Your profile is public');
 
   // A line opens the gigs behind it, newest first.
