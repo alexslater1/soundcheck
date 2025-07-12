@@ -82,8 +82,8 @@ function Layer({
     <View
       style={[StyleSheet.absoluteFill, shown ? styles.shown : styles.hidden]}
       pointerEvents={shown ? 'auto' : 'none'}
-      accessibilityElementsHidden={!shown}
-      importantForAccessibility={shown ? 'auto' : 'no-hide-descendants'}
+      // Out of reach of screen readers on Android and of the accessibility tree on the web.
+      aria-hidden={!shown}
       testID={testID}
     >
       {children}
