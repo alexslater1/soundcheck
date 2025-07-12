@@ -5,6 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import type { Post, Reason } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { usePlayerSlot } from '@/features/player/playerManager';
+import { SEEK_BAR_HEIGHT } from '@/features/player/SeekBar';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
@@ -12,6 +13,7 @@ import { PostActions } from './PostActions';
 import { aspectOf, PostMedia } from './PostMedia';
 import { PostMeta } from './PostMeta';
 import { fitClip, pageFit } from './pageFit';
+import { useOpenPost } from './useOpenPost';
 
 /** From this width on, the clip gets a details panel beside it instead of an overlay. */
 export const WIDE_FROM = 900;
@@ -34,6 +36,8 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
   const { colors } = useTheme();
   const { live, active } = usePlayerSlot(post.id);
   const aspect = aspectOf(post);
+  // The caption and the comment count open the post, with the clip playing on.
+  const open = useOpenPost(post);
 
   if (width >= WIDE_FROM) {
     const clip = fitClip(aspect, width - PANEL_WIDTH - spacing.xl, height - spacing.lg);
@@ -43,8 +47,8 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
           <PostMedia post={post} active={active} live={live} />
         </View>
         <View style={[styles.panel, { backgroundColor: colors.surface }]}>
-          <PostMeta post={post} />
-          <PostActions post={post} onGone={onGone} reasons={reasons} />
+          <PostMeta post={post} onCaptionPress={open} />
+          <PostActions post={post} onGone={onGone} reasons={reasons} onComment={open} />
           {reasons && reasons.length > 0 ? (
             <View style={styles.reasons} testID="post-reasons">
               <Text variant="label" muted>
@@ -93,12 +97,23 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
         locations={[0, 0.55, 1]}
         style={[styles.shade, { height: Math.min(height * 0.45, 360) }]}
       />
-      {/* box-none: taps between the controls reach the clip (tap toggles sound). */}
-      <View style={styles.overlay} pointerEvents="box-none">
+      {/* box-none: taps between the controls reach the clip (a tap pauses it). Over a clip that fills
+          the page it stops above the seek bar. */}
+      <View
+        style={[styles.overlay, clip.fill ? { bottom: SEEK_BAR_HEIGHT } : null]}
+        pointerEvents="box-none"
+      >
         <View style={styles.scrim}>
-          <PostMeta post={post} onDark />
+          <PostMeta post={post} onDark onCaptionPress={open} />
         </View>
-        <PostActions post={post} onGone={onGone} reasons={reasons} layout="column" onDark />
+        <PostActions
+          post={post}
+          onGone={onGone}
+          reasons={reasons}
+          layout="column"
+          onDark
+          onComment={open}
+        />
       </View>
     </View>
   );

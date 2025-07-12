@@ -4,9 +4,10 @@
 import Hls from 'hls.js';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 
+import { forgetPosition, notePosition } from './handoff';
 import { PlayerFrame } from './PlayerFrame';
 import { usePlayback } from './PlaybackScope';
-import type { VideoPlayerProps } from './types';
+import type { PlaybackProgress, VideoPlayerProps } from './types';
 
 const DEFAULT_ASPECT = 9 / 16;
 const FILL: CSSProperties = {
@@ -16,6 +17,19 @@ const FILL: CSSProperties = {
   height: '100%',
   objectFit: 'cover',
 };
+
+/**
+ * A `<video>` element cannot move from one screen to another without stopping, so on the web each
+ * screen has its own: the post page starts its own where the feed's was (`startAtMs`). Nothing is
+ * shared, so there is never anything to hand over.
+ */
+export function handOverPlayer(_clipKey: string): boolean {
+  return false;
+}
+
+export function livePlayerCount(): number {
+  return 0;
+}
 
 /**
  * A clip in the browser: a plain `<video>` element. Chrome and Firefox cannot play HLS themselves, so
@@ -42,6 +56,7 @@ export function VideoPlayer(props: VideoPlayerProps) {
 
 function LivePlayer({
   hlsUrl,
+  clipKey,
   posterUrl,
   blurhash,
   aspectRatio = DEFAULT_ASPECT,
@@ -49,14 +64,27 @@ function LivePlayer({
   loop = true,
   soundAtTop,
   rounded,
+  onDoubleTap,
+  startAtMs,
   onProgress,
   testID,
 }: VideoPlayerProps) {
   const video = useRef<HTMLVideoElement>(null);
+  const key = clipKey ?? hlsUrl;
   const { onScreen, muted, setMuted } = usePlayback();
-  // A clip plays only while it is the active one and its screen is the one in view.
-  const playing = active && onScreen;
+  // Paused by a click or tap. It belongs to one viewing: a clip scrolled away and back plays.
+  const [userPaused, setUserPaused] = useState(false);
+  if (!active && userPaused) {
+    setUserPaused(false);
+  }
+  // A clip plays only while it is the active one, its screen is the one in view and the
+  // viewer has not paused it.
+  const playing = active && onScreen && !userPaused;
   const [firstFrame, setFirstFrame] = useState(false);
+  const [progress, setProgress] = useState<PlaybackProgress>({ positionMs: 0, durationMs: 0 });
+  // The handed-over start applies once, to the first load.
+  const startAt = useRef(startAtMs ?? 0);
+  useEffect(() => () => forgetPosition(key), [key]);
   const [failed, setFailed] = useState(false);
   // Incremented by "Try again": the effect below runs again and builds a fresh hls.js instance.
   const [generation, setGeneration] = useState(0);
@@ -136,6 +164,22 @@ function LivePlayer({
       showSound
       soundAtTop={soundAtTop}
       rounded={rounded}
+      paused={userPaused}
+      onTogglePause={() => setUserPaused((paused) => !paused)}
+      onDoubleTap={onDoubleTap}
+      seek={
+        progress.durationMs > 0
+          ? {
+              ...progress,
+              onSeek: (positionMs) => {
+                if (video.current) {
+                  video.current.currentTime = positionMs / 1000;
+                }
+                setProgress((now) => ({ ...now, positionMs }));
+              },
+            }
+          : undefined
+      }
       failed={failed}
       onRetry={() => {
         setFailed(false);
@@ -152,14 +196,23 @@ function LivePlayer({
         loop={loop}
         playsInline
         preload="auto"
+        onLoadedMetadata={(event) => {
+          if (startAt.current > 0) {
+            event.currentTarget.currentTime = startAt.current / 1000;
+            startAt.current = 0;
+          }
+        }}
         onLoadedData={() => setFirstFrame(true)}
         onTimeUpdate={(event) => {
           const element = event.currentTarget;
           if (Number.isFinite(element.duration)) {
-            onProgress?.({
+            const now = {
               positionMs: Math.round(element.currentTime * 1000),
               durationMs: Math.round(element.duration * 1000),
-            });
+            };
+            setProgress(now);
+            notePosition(key, now.positionMs);
+            onProgress?.(now);
           }
         }}
       />

@@ -1,19 +1,16 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ImpactFeedbackStyle, impactAsync } from 'expo-haptics';
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet } from 'react-native';
+import { Pressable, StyleSheet } from 'react-native';
 
-import { likePost, unlikePost } from '@/api/generated/engagement/engagement';
 import { Text } from '@/components/ui/Text';
-import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, touchTarget } from '@/theme/tokens';
 
-import { toggled, type LikeState } from './likeState';
+import type { LikeState } from './likeState';
+import { useLike } from './useLike';
 
 /**
- * The heart. Optimistic: it flips and the count moves the moment it is pressed; the server's answer
- * (the real count) replaces the guess, and a failure puts back what was there before.
+ * The heart. Optimistic (see {@link useLike}): it flips and the count moves the moment it is pressed,
+ * and a double tap on the clip changes the same state.
  */
 export function LikeButton({
   postId,
@@ -22,6 +19,7 @@ export function LikeButton({
   stacked = false,
 }: {
   postId: string;
+  /** What the server last said about this post's likes. */
   initial: LikeState;
   /** True when drawn over the clip: a light icon, whatever the theme. */
   onDark?: boolean;
@@ -29,31 +27,8 @@ export function LikeButton({
   stacked?: boolean;
 }) {
   const { colors } = useTheme();
-  const track = useTrack();
   const ink = onDark ? '#FFFFFF' : colors.text;
-  const [state, setState] = useState(initial);
-  const [busy, setBusy] = useState(false);
-
-  async function toggle() {
-    const before = state;
-    const guess = toggled(before);
-    setState(guess);
-    if (guess.likedByMe && Platform.OS !== 'web') {
-      // A light tap under the thumb when liking; not on the web.
-      void impactAsync(ImpactFeedbackStyle.Light).catch(() => undefined);
-    }
-    setBusy(true);
-    try {
-      const confirmed = await (guess.likedByMe ? likePost(postId) : unlikePost(postId));
-      setState({ likedByMe: confirmed.likedByMe, likeCount: confirmed.likeCount });
-      // Reported once the server has it: a like that failed is not a signal.
-      track(guess.likedByMe ? 'LIKE' : 'UNLIKE', postId);
-    } catch {
-      setState(before);
-    } finally {
-      setBusy(false);
-    }
-  }
+  const { state, busy, toggle } = useLike(postId, initial);
 
   return (
     <Pressable

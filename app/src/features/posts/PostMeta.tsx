@@ -14,17 +14,19 @@ type Props = {
   post: Post;
   /** True when drawn over the clip: light text and translucent chips, whatever the theme. */
   onDark?: boolean;
+  /** In the feed a tap on the caption opens the post; elsewhere it shows the whole caption. */
+  onCaptionPress?: () => void;
 };
 
 const LIGHT = '#FFFFFF';
 const LIGHT_MUTED = 'rgba(255,255,255,0.8)';
 
 /**
- * Who posted the clip, the caption (two lines until tapped), the gig (its date and venue),
+ * Who posted the clip, the caption (two lines until tapped; in the feed a tap opens the post), the gig (its date and venue),
  * the venue and the artists. The author, the gig, the venue and each artist are links; tapping the
  * author or the gig is reported as a signal of interest.
  */
-export function PostMeta({ post, onDark = false }: Props) {
+export function PostMeta({ post, onDark = false, onCaptionPress }: Props) {
   const { colors } = useTheme();
   const track = useTrack();
   const [expanded, setExpanded] = useState(false);
@@ -55,7 +57,8 @@ export function PostMeta({ post, onDark = false }: Props) {
           testID="post-caption"
           style={ink}
           numberOfLines={expanded ? undefined : 2}
-          onPress={() => setExpanded((open) => !open)}
+          onPress={onCaptionPress ?? (() => setExpanded((open) => !open))}
+          accessibilityRole={onCaptionPress ? 'link' : undefined}
         >
           {post.caption}
         </Text>
