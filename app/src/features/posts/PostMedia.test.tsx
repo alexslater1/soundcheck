@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { PostMedia } from './PostMedia';
 
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 // The player is native; here it is a labelled box.
 jest.mock('@/features/player/VideoPlayer', () => {
   const React = jest.requireActual<typeof import('react')>('react');
