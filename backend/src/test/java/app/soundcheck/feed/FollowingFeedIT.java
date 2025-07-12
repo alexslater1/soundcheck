@@ -90,8 +90,10 @@ class FollowingFeedIT extends IntegrationTest {
         TestApi.User anna = api.register("anna");
         api.put("/api/v1/users/" + anna.id() + "/follow", null, viewer);
         UUID venue = data.venue("The Lexington " + UUID.randomUUID());
-        UUID recent = data.gig("Recent night", venue, Instant.parse("2026-09-26T19:30:00Z"));
-        UUID older = data.gig("Older night", venue, Instant.parse("2025-03-14T19:30:00Z"));
+        // Every gig has a bill: the catalog leaves a gig without one out of its summaries.
+        UUID act = data.artist("Pale Kites " + UUID.randomUUID());
+        UUID recent = data.gig("Recent night", venue, Instant.parse("2026-09-26T19:30:00Z"), act);
+        UUID older = data.gig("Older night", venue, Instant.parse("2025-03-14T19:30:00Z"), act);
 
         String fromRecentGig = postAt(api, data, anna, recent);
         String fromOlderGig = postAt(api, data, anna, older);
