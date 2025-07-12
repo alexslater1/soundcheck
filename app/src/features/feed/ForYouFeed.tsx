@@ -9,6 +9,7 @@ import { PostPager, type PagerItem } from '@/features/posts/PostPager';
 import { telemetry } from '@/features/telemetry/telemetry';
 
 import { isSessionExpired } from './sessionExpired';
+import { refreshFirstPage, usePullToRefresh } from './usePullToRefresh';
 
 const KEY = [...getGetHomeFeedQueryKey(), 'infinite'] as const;
 
@@ -17,9 +18,17 @@ const KEY = [...getGetHomeFeedQueryKey(), 'infinite'] as const;
  * pages that follow are cut from it, so the query must not refetch by itself: a refetch of page one
  * would be a different session. It is fetched once, extended as the user scrolls, and replaced only
  * when the user refreshes or the server says the session has expired (410), in which case it starts
- * again from the first page without the user having to do anything.
+ * again from the first page without the user having to do anything. A pull to refresh keeps the old
+ * posts on screen until the new session's first page is in; pressing the tab again starts over.
+ * `visible` is false while Following shows in its place.
  */
-export function ForYouFeed({ refreshToken = 0 }: { refreshToken?: number }) {
+export function ForYouFeed({
+  refreshToken = 0,
+  visible = true,
+}: {
+  refreshToken?: number;
+  visible?: boolean;
+}) {
   const client = useQueryClient();
   const feed = useInfiniteQuery({
     queryKey: KEY,
@@ -40,6 +49,13 @@ export function ForYouFeed({ refreshToken = 0 }: { refreshToken?: number }) {
     await telemetry.flush();
     await client.resetQueries({ queryKey: KEY });
   }, [client]);
+
+  const pull = usePullToRefresh(
+    useCallback(async () => {
+      await telemetry.flush();
+      await refreshFirstPage(client, KEY);
+    }, [client]),
+  );
 
   const expired = isSessionExpired(feed.error);
   useEffect(() => {
@@ -127,8 +143,9 @@ export function ForYouFeed({ refreshToken = 0 }: { refreshToken?: number }) {
             : data,
         )
       }
-      onRefresh={() => void restart()}
-      refreshing={feed.isRefetching && !fetchingNext}
+      onRefresh={() => void pull.refresh()}
+      refreshing={pull.refreshing}
+      visible={visible}
     />
   );
 }
