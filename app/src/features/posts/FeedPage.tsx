@@ -7,8 +7,10 @@ import { Text } from '@/components/ui/Text';
 import { usePlayerSlot } from '@/features/player/playerManager';
 import { SEEK_BAR_HEIGHT } from '@/features/player/SeekBar';
 import { useTheme } from '@/theme/ThemeProvider';
-import { spacing } from '@/theme/tokens';
+import { useThemePrefs, type FeedStyle } from '@/theme/themePrefs';
+import { radius, spacing } from '@/theme/tokens';
 
+import { GigTicket, TICKET_HEIGHT } from './GigTicket';
 import { PostActions } from './PostActions';
 import { aspectOf, PostMedia } from './PostMedia';
 import { PostMeta } from './PostMeta';
@@ -17,6 +19,9 @@ import { useOpenPost } from './useOpenPost';
 
 /** From this width on, the clip gets a details panel beside it instead of an overlay. */
 export const WIDE_FROM = 900;
+
+/** The gap around a card (the Cards and Ticket styles); two cards are twice this apart. */
+export const CARD_INSET = spacing.sm;
 
 type Props = {
   post: Post;
@@ -28,12 +33,37 @@ type Props = {
 };
 
 /**
- * One page of a feed: the clip fills the screen, with the author, caption and tags laid
- * over its foot and the actions stacked on its right. On a wide window the clip is a centred column
- * and the same details sit in a panel beside it.
+ * Where the clip's card sits on a page of the given size in each feed style: Full
+ * screen fills the page; Cards insets a rounded card so the page's background shows between posts;
+ * Ticket also leaves room above the card for the gig's ticket.
+ */
+export function cardBox(
+  style: FeedStyle,
+  width: number,
+  height: number,
+  hasGig: boolean,
+): { inset: number; ticket: number; width: number; height: number } {
+  if (style === 'immersive') {
+    return { inset: 0, ticket: 0, width, height };
+  }
+  const ticket = style === 'ticket' && hasGig ? TICKET_HEIGHT + CARD_INSET : 0;
+  return {
+    inset: CARD_INSET,
+    ticket,
+    width: width - CARD_INSET * 2,
+    height: height - CARD_INSET * 2 - ticket,
+  };
+}
+
+/**
+ * One page of a feed: the clip fills its card, with the author, caption and artists laid
+ * over its foot and the actions stacked on its right, and the gig's ticket (date, gig, venue) at the
+ * top, so every post says which night it is from. Settings → Appearance picks the style.
+ * On a wide window the clip is a centred column and the same details sit in a panel beside it.
  */
 export function FeedPage({ post, reasons, width, height, onGone }: Props) {
   const { colors } = useTheme();
+  const feedStyle = useThemePrefs((state) => state.feedStyle);
   const { live, active } = usePlayerSlot(post.id);
   const aspect = aspectOf(post);
   // The caption and the comment count open the post, with the clip playing on.
@@ -47,7 +77,8 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
           <PostMedia post={post} active={active} live={live} />
         </View>
         <View style={[styles.panel, { backgroundColor: colors.surface }]}>
-          <PostMeta post={post} onCaptionPress={open} />
+          {post.gig ? <GigTicket gig={post.gig} postId={post.id} /> : null}
+          <PostMeta post={post} onCaptionPress={open} showGig={false} />
           <PostActions post={post} onGone={onGone} reasons={reasons} onComment={open} />
           {reasons && reasons.length > 0 ? (
             <View style={styles.reasons} testID="post-reasons">
@@ -66,63 +97,111 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
     );
   }
 
-  const clip = pageFit(aspect, width, height);
+  const immersive = feedStyle === 'immersive';
+  const box = cardBox(feedStyle, width, height, post.gig != null);
+  const clip = pageFit(aspect, box.width, box.height);
+  const ticketOnTop = feedStyle === 'ticket';
   return (
-    <View style={[styles.page, { height }]} testID={`post-${post.id}`}>
-      {clip.fill ? null : (
-        <Image
-          source={post.playback.posterUrl ? { uri: post.playback.posterUrl } : null}
-          placeholder={post.playback.blurhash ? { blurhash: post.playback.blurhash } : null}
-          blurRadius={30}
-          contentFit="cover"
-          style={StyleSheet.absoluteFill}
-          accessibilityIgnoresInvertColors
-          testID="page-backdrop"
-        />
-      )}
-      <View style={{ width: clip.width }}>
-        <PostMedia
-          post={post}
-          active={active}
-          live={live}
-          soundAtTop
-          frameAspect={clip.fill ? width / height : undefined}
-        />
-      </View>
-      {/* A gradient from clear to dark under the overlay: text stays readable on a bright frame
-          without a box over the clip. */}
-      <LinearGradient
-        pointerEvents="none"
-        colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
-        locations={[0, 0.55, 1]}
-        style={[styles.shade, { height: Math.min(height * 0.45, 360) }]}
-      />
-      {/* box-none: taps between the controls reach the clip (a tap pauses it). Over a clip that fills
-          the page it stops above the seek bar. */}
-      <View
-        style={[styles.overlay, clip.fill ? { bottom: SEEK_BAR_HEIGHT } : null]}
-        pointerEvents="box-none"
-      >
-        <View style={styles.scrim}>
-          <PostMeta post={post} onDark onCaptionPress={open} />
+    <View
+      style={[
+        styles.page,
+        {
+          height,
+          padding: box.inset,
+          backgroundColor: immersive ? '#000000' : colors.background,
+        },
+      ]}
+      testID={`post-${post.id}`}
+    >
+      {ticketOnTop && post.gig ? (
+        <View style={[styles.ticketAbove, { height: TICKET_HEIGHT }]}>
+          <GigTicket gig={post.gig} postId={post.id} />
         </View>
-        <PostActions
-          post={post}
-          onGone={onGone}
-          reasons={reasons}
-          layout="column"
-          onDark
-          onComment={open}
+      ) : null}
+      <View
+        style={[
+          styles.card,
+          { width: box.width, height: box.height },
+          immersive ? null : styles.rounded,
+        ]}
+        testID="feed-card"
+      >
+        {clip.fill ? null : (
+          <Image
+            source={post.playback.posterUrl ? { uri: post.playback.posterUrl } : null}
+            placeholder={post.playback.blurhash ? { blurhash: post.playback.blurhash } : null}
+            blurRadius={30}
+            contentFit="cover"
+            style={StyleSheet.absoluteFill}
+            accessibilityIgnoresInvertColors
+            testID="page-backdrop"
+          />
+        )}
+        <View style={{ width: clip.width }}>
+          <PostMedia
+            post={post}
+            active={active}
+            live={live}
+            soundAtTop
+            frameAspect={clip.fill ? box.width / box.height : undefined}
+            // The card rounds a clip that fills it; a fitted one keeps its own corners.
+            rounded={!clip.fill}
+            // A SurfaceView ignores rounded corners: a rounded card needs a TextureView (as on the
+            // post page).
+            surface={immersive ? 'surfaceView' : 'textureView'}
+          />
+        </View>
+        {/* A gradient from clear to dark under the overlay: text stays readable on a bright frame
+            without a box over the clip. */}
+        <LinearGradient
+          pointerEvents="none"
+          colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
+          locations={[0, 0.55, 1]}
+          style={[styles.shade, { height: Math.min(box.height * 0.45, 360) }]}
         />
+        {!ticketOnTop && post.gig ? (
+          <View style={styles.ticketOver} pointerEvents="box-none">
+            <GigTicket gig={post.gig} postId={post.id} onDark />
+          </View>
+        ) : null}
+        {/* box-none: taps between the controls reach the clip (a tap pauses it). Over a clip that
+            fills the card it stops above the seek bar. */}
+        <View
+          style={[styles.overlay, clip.fill ? { bottom: SEEK_BAR_HEIGHT } : null]}
+          pointerEvents="box-none"
+        >
+          <View style={styles.scrim}>
+            <PostMeta post={post} onDark onCaptionPress={open} showGig={false} />
+          </View>
+          <PostActions
+            post={post}
+            onGone={onGone}
+            reasons={reasons}
+            layout="column"
+            onDark
+            onComment={open}
+          />
+        </View>
       </View>
     </View>
   );
 }
 
 const PANEL_WIDTH = 360;
+/** Room on the right of a ticket over the clip for the sound button. */
+const SOUND_ROOM = 64;
 
 const styles = StyleSheet.create({
-  page: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#000000' },
+  page: { alignItems: 'center', justifyContent: 'center' },
+  card: { alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  rounded: { borderRadius: radius.lg, backgroundColor: '#000000' },
+  ticketAbove: { alignSelf: 'stretch', marginBottom: CARD_INSET, justifyContent: 'center' },
+  ticketOver: {
+    position: 'absolute',
+    top: spacing.sm,
+    left: spacing.sm,
+    right: SOUND_ROOM,
+  },
   overlay: {
     position: 'absolute',
     left: 0,

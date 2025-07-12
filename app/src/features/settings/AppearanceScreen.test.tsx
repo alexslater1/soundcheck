@@ -7,7 +7,13 @@ import { AppearanceScreen } from './AppearanceScreen';
 
 describe('AppearanceScreen', () => {
   beforeEach(() =>
-    useThemePrefs.setState({ themeId: 'electric', mode: 'auto', typeStyle: 'grotesk', glow: true }),
+    useThemePrefs.setState({
+      themeId: 'electric',
+      mode: 'auto',
+      typeStyle: 'grotesk',
+      glow: true,
+      feedStyle: 'cards',
+    }),
   );
 
   async function renderScreen() {
@@ -43,5 +49,17 @@ describe('AppearanceScreen', () => {
       fontFamily: 'SpaceGrotesk_700Bold',
     });
     expect(screen.queryByTestId('screen-glow')).toBeNull();
+  });
+
+  it('switches how the feed draws a post', async () => {
+    await renderScreen();
+    expect(screen.getByText(/Each post a rounded card/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Full screen'));
+    expect(useThemePrefs.getState().feedStyle).toBe('immersive');
+    expect(screen.getByText(/edge to edge/)).toBeTruthy();
+
+    await fireEvent.press(screen.getByText('Ticket'));
+    expect(useThemePrefs.getState().feedStyle).toBe('ticket');
   });
 });

@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -16,7 +17,11 @@ type Props = {
   onDark?: boolean;
   /** In the feed a tap on the caption opens the post; elsewhere it shows the whole caption. */
   onCaptionPress?: () => void;
+  /** False where a ticket already shows the gig and its venue (the feed). */
+  showGig?: boolean;
 };
+
+const AVATAR = 32;
 
 const LIGHT = '#FFFFFF';
 const LIGHT_MUTED = 'rgba(255,255,255,0.8)';
@@ -26,7 +31,7 @@ const LIGHT_MUTED = 'rgba(255,255,255,0.8)';
  * the venue and the artists. The author, the gig, the venue and each artist are links; tapping the
  * author or the gig is reported as a signal of interest.
  */
-export function PostMeta({ post, onDark = false, onCaptionPress }: Props) {
+export function PostMeta({ post, onDark = false, onCaptionPress, showGig = true }: Props) {
   const { colors } = useTheme();
   const track = useTrack();
   const [expanded, setExpanded] = useState(false);
@@ -46,10 +51,29 @@ export function PostMeta({ post, onDark = false, onCaptionPress }: Props) {
         asChild
       >
         <Pressable accessibilityRole="link" style={styles.author}>
-          <Text style={[styles.bold, ink]}>{post.author.displayName}</Text>
-          <Text muted style={mutedInk}>
-            @{post.author.handle}
-          </Text>
+          {post.author.avatarUrl ? (
+            <Image
+              source={{ uri: post.author.avatarUrl }}
+              style={styles.avatar}
+              contentFit="cover"
+              accessibilityIgnoresInvertColors
+              testID="post-author-avatar"
+            />
+          ) : (
+            <View style={[styles.avatar, styles.initial, { backgroundColor: colors.accent }]}>
+              <Text style={[styles.bold, { color: colors.onAccent }]}>
+                {post.author.displayName.slice(0, 1).toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={styles.names}>
+            <Text style={[styles.bold, ink]} numberOfLines={1}>
+              {post.author.displayName}
+            </Text>
+            <Text variant="caption" muted style={mutedInk} numberOfLines={1}>
+              @{post.author.handle}
+            </Text>
+          </View>
         </Pressable>
       </Link>
       {post.caption ? (
@@ -63,7 +87,7 @@ export function PostMeta({ post, onDark = false, onCaptionPress }: Props) {
           {post.caption}
         </Text>
       ) : null}
-      {post.gig ? (
+      {post.gig && showGig ? (
         <Link
           href={{ pathname: '/gig/[id]', params: { id: post.gig.id } }}
           onPress={() => track('GIG_TAP', post.id)}
@@ -82,7 +106,7 @@ export function PostMeta({ post, onDark = false, onCaptionPress }: Props) {
         </Link>
       ) : null}
       <View style={styles.chips}>
-        {post.gig ? (
+        {post.gig && showGig ? (
           <Link href={{ pathname: '/venue/[id]', params: { id: post.gig.venue.id } }} asChild>
             <Pressable accessibilityRole="link" style={chipStyle} testID="post-venue">
               <Ionicons
@@ -122,7 +146,16 @@ export function PostMeta({ post, onDark = false, onCaptionPress }: Props) {
 
 const styles = StyleSheet.create({
   meta: { gap: spacing.sm },
-  author: { minHeight: touchTarget, justifyContent: 'center' },
+  author: {
+    minHeight: touchTarget,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  avatar: { width: AVATAR, height: AVATAR, borderRadius: AVATAR / 2 },
+  initial: { alignItems: 'center', justifyContent: 'center' },
+  names: { flexShrink: 1 },
   bold: { fontWeight: '700' },
   gig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 28 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
