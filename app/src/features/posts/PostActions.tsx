@@ -28,6 +28,11 @@ type Props = {
   layout?: 'row' | 'column';
   /** True when drawn over the clip: light icons, whatever the theme. */
   onDark?: boolean;
+  /**
+   * What the comment button does. In the feed it opens the post with its clip playing on; on the post
+   * page it goes to the comment box. Without it, the button opens the post page.
+   */
+  onComment?: () => void;
 };
 
 const LIGHT = '#FFFFFF';
@@ -37,7 +42,14 @@ const LIGHT = '#FFFFFF';
  * confirm, for its author; "show me less", report and "Why this post?" for everyone else). Each action
  * is also reported as telemetry.
  */
-export function PostActions({ post, onGone, reasons, layout = 'row', onDark = false }: Props) {
+export function PostActions({
+  post,
+  onGone,
+  reasons,
+  layout = 'row',
+  onDark = false,
+  onComment,
+}: Props) {
   const { colors } = useTheme();
   const router = useRouter();
   const track = useTrack();
@@ -158,7 +170,6 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
     post.status === 'PUBLISHED' ? (
       <View style={column ? styles.column : styles.actions}>
         <LikeButton
-          key={`${post.id}-${post.likedByMe}-${post.likeCount}`}
           postId={post.id}
           initial={{ likedByMe: post.likedByMe, likeCount: post.likeCount }}
           onDark={onDark}
@@ -168,7 +179,10 @@ export function PostActions({ post, onGone, reasons, layout = 'row', onDark = fa
           style={column ? styles.stacked : styles.action}
           accessibilityRole="link"
           accessibilityLabel={`${post.commentCount} comments`}
-          onPress={() => router.push({ pathname: '/post/[id]', params: { id: post.id } })}
+          onPress={
+            onComment ?? (() => router.push({ pathname: '/post/[id]', params: { id: post.id } }))
+          }
+          testID="comment-button"
         >
           <Ionicons name="chatbubble-outline" size={22} color={ink} />
           <Text testID="comment-count" style={{ color: ink }}>

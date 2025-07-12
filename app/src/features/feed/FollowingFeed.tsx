@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { View } from 'react-native';
 
 import { getFollowingFeed, getGetFollowingFeedQueryKey } from '@/api/generated/feed/feed';
@@ -8,27 +8,48 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { PostPager } from '@/features/posts/PostPager';
 
+import { refreshFirstPage, usePullToRefresh } from './usePullToRefresh';
+
 const KEY = [...getGetFollowingFeedQueryKey(), 'infinite'] as const;
 
 /**
- * Posts by the people you follow, newest first; pages follow the server's cursor. A new
- * `refreshToken` (the Home tab pressed again) drops the loaded pages and starts from the top.
+ * Posts by the people you follow, newest post first (a clip of last week's gig posted today is new
+ * to followers, and every card shows the gig's date); pages follow the server's cursor. Nothing
+ * refetches it behind the viewer's back, because new posts arriving at the top would move the list
+ * under them: pull it down to refresh, or press the tab again, which drops the loaded pages and
+ * starts from the top (`refreshToken`).
  */
-export function FollowingFeed({ refreshToken = 0 }: { refreshToken?: number }) {
+export function FollowingFeed({
+  refreshToken = 0,
+  visible = true,
+}: {
+  refreshToken?: number;
+  visible?: boolean;
+}) {
   const client = useQueryClient();
   const feed = useInfiniteQuery({
     queryKey: KEY,
     queryFn: ({ pageParam }) => getFollowingFeed({ limit: 10, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
+  const pull = usePullToRefresh(useCallback(() => refreshFirstPage(client, KEY), [client]));
 
-  // Home stays mounted under the screens opened from it: coming back after following someone (or
-  // after a while) must show their clips without a reload.
+  // Home stays mounted under the screens opened from it. An empty feed has nothing to lose, so coming
+  // back to it (after following someone) looks again; a feed with posts waits for a pull.
   const refetch = feed.refetch;
+  const empty = feed.data?.pages.every((page) => page.items.length === 0) ?? false;
+  const emptyNow = useRef(empty);
+  useEffect(() => {
+    emptyNow.current = empty;
+  });
   useFocusEffect(
     useCallback(() => {
-      void refetch();
+      if (emptyNow.current) {
+        void refetch();
+      }
     }, [refetch]),
   );
 
@@ -81,6 +102,7 @@ export function FollowingFeed({ refreshToken = 0 }: { refreshToken?: number }) {
         testID="feed-empty"
         title="Nothing here yet"
         detail="Follow people to see their clips here. Open a gig to find clips, then follow who posted them."
+        onRetry={() => void feed.refetch()}
       />
     );
   }
@@ -94,6 +116,9 @@ export function FollowingFeed({ refreshToken = 0 }: { refreshToken?: number }) {
         }
       }}
       onGone={() => void client.invalidateQueries({ queryKey: getGetFollowingFeedQueryKey() })}
+      onRefresh={() => void pull.refresh()}
+      refreshing={pull.refreshing}
+      visible={visible}
     />
   );
 }

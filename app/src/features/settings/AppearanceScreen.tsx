@@ -4,7 +4,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { Wordmark } from '@/components/ui/Wordmark';
-import { useThemePrefs, type ThemeMode } from '@/theme/themePrefs';
+import { useThemePrefs, type FeedStyle, type ThemeMode } from '@/theme/themePrefs';
 import { spacing } from '@/theme/tokens';
 import type { TypeStyle } from '@/theme/typography';
 
@@ -23,10 +23,28 @@ const TYPES: { style: TypeStyle; label: string; detail: string }[] = [
   { style: 'system', label: 'System', detail: "The phone's own font everywhere." },
 ];
 
+const FEED_STYLES: { style: FeedStyle; label: string; detail: string }[] = [
+  {
+    style: 'cards',
+    label: 'Cards',
+    detail: 'Each post a rounded card with a gap before the next, the gig on a ticket at the top.',
+  },
+  {
+    style: 'immersive',
+    label: 'Full screen',
+    detail: 'The clip edge to edge, with the gig in the top corner.',
+  },
+  {
+    style: 'ticket',
+    label: 'Ticket',
+    detail: 'The gig on a ticket stub above a rounded clip.',
+  },
+];
+
 /**
- * Settings → Appearance: dark, light or the phone's setting; the typeface; and the accent glow at the top
- * of each screen (the look is chosen by trying it). The colours are
- * Electric: chosen from the five themes and the others were removed.
+ * Settings → Appearance: dark, light or the phone's setting; the typeface; the accent glow at the top
+ * of each screen (the look is chosen by trying it); and how the home feed draws a post. The colours
+ * are Electric: chosen from five themes, and the others were removed.
  */
 export function AppearanceScreen() {
   const mode = useThemePrefs((state) => state.mode);
@@ -35,6 +53,8 @@ export function AppearanceScreen() {
   const setTypeStyle = useThemePrefs((state) => state.setTypeStyle);
   const glow = useThemePrefs((state) => state.glow);
   const setGlow = useThemePrefs((state) => state.setGlow);
+  const feedStyle = useThemePrefs((state) => state.feedStyle);
+  const setFeedStyle = useThemePrefs((state) => state.setFeedStyle);
 
   return (
     <Screen>
@@ -92,6 +112,23 @@ export function AppearanceScreen() {
           {glow
             ? 'A soft purple light fades down from the top of each screen.'
             : 'Plain backgrounds.'}
+        </Text>
+
+        <Text variant="label" muted style={styles.heading}>
+          FEED
+        </Text>
+        <View style={styles.row} accessibilityRole="radiogroup">
+          {FEED_STYLES.map((f) => (
+            <Chip
+              key={f.style}
+              label={f.label}
+              selected={feedStyle === f.style}
+              onPress={() => setFeedStyle(f.style)}
+            />
+          ))}
+        </View>
+        <Text variant="caption" muted>
+          {FEED_STYLES.find((f) => f.style === feedStyle)?.detail}
         </Text>
       </ScrollView>
     </Screen>

@@ -16,20 +16,39 @@ type Props = {
   /** Called after the post was hidden or deleted. */
   onGone?: (postId: string) => void;
   reasons?: Reason[];
+  /** The comment button: on the post page it goes to the comment box. */
+  onComment?: () => void;
+  /** Where the feed's clip was, when the post was opened from it (the web player starts there). */
+  startAtMs?: number;
 };
 
 /**
  * One post on its own page: the clip, who posted it, the caption, the gig and artists it is tagged
  * with, and the actions under it. (In the feeds the same parts are laid over the clip: FeedPage.)
  */
-export function PostCard({ post, active, live = true, onGone, reasons }: Props) {
+export function PostCard({
+  post,
+  active,
+  live = true,
+  onGone,
+  reasons,
+  onComment,
+  startAtMs,
+}: Props) {
   return (
     <View style={styles.card} testID={`post-${post.id}`}>
       <View style={aspectOf(post) < 1 ? styles.portrait : undefined}>
-        <PostMedia post={post} active={active} live={live} />
+        {/* A TextureView: the page scrolls, and a SurfaceView would lose the rounded corners. */}
+        <PostMedia
+          post={post}
+          active={active}
+          live={live}
+          surface="textureView"
+          startAtMs={startAtMs}
+        />
       </View>
       <PostMeta post={post} />
-      <PostActions post={post} onGone={onGone} reasons={reasons} />
+      <PostActions post={post} onGone={onGone} reasons={reasons} onComment={onComment} />
     </View>
   );
 }

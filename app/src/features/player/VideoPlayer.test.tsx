@@ -5,19 +5,27 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { PlaybackScope } from './PlaybackScope';
 import { usePlayerPrefs } from './playerPrefs';
-import { VideoPlayer } from './VideoPlayer';
+import { DOUBLE_TAP_MS } from './tapGesture';
+import { handOverPlayer, livePlayerCount, VideoPlayer } from './VideoPlayer';
 
 type Listener = (payload: Record<string, unknown>) => void;
+
+/** Calls every listener a component registered for `event` on the fake player. */
+function emit(player: FakePlayer, event: string, payload: Record<string, unknown>) {
+  player.listeners[event]?.forEach((listener) => listener(payload));
+}
 
 type FakePlayer = {
   loop: boolean;
   muted: boolean;
   duration: number;
+  currentTime: number;
   timeUpdateEventInterval: number;
   play: jest.Mock;
   pause: jest.Mock;
+  release: jest.Mock;
   replaceAsync: jest.Mock;
-  listeners: Record<string, Listener>;
+  listeners: Record<string, Listener[]>;
   source: unknown;
 };
 
@@ -28,25 +36,22 @@ jest.mock('expo-video', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    useVideoPlayer: (source: unknown, setup?: (player: FakePlayer) => void) => {
-      const ref = React.useRef<FakePlayer | null>(null);
-      if (ref.current === null) {
-        const player: FakePlayer = {
-          loop: false,
-          muted: false,
-          duration: 12.5,
-          timeUpdateEventInterval: 0,
-          play: jest.fn(),
-          pause: jest.fn(),
-          replaceAsync: jest.fn(() => Promise.resolve()),
-          listeners: {},
-          source,
-        };
-        setup?.(player);
-        mockPlayers.push(player);
-        ref.current = player;
-      }
-      return ref.current;
+    createVideoPlayer: (source: unknown) => {
+      const player: FakePlayer = {
+        loop: false,
+        muted: false,
+        duration: 12.5,
+        currentTime: 0,
+        timeUpdateEventInterval: 0,
+        play: jest.fn(),
+        pause: jest.fn(),
+        release: jest.fn(),
+        replaceAsync: jest.fn(() => Promise.resolve()),
+        listeners: {},
+        source,
+      };
+      mockPlayers.push(player);
+      return player;
     },
     VideoView: (props: { onFirstFrameRender?: () => void }) =>
       React.createElement(View, { testID: 'video-view', ...props }),
@@ -62,8 +67,18 @@ jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 
 jest.mock('expo', () => ({
   ...jest.requireActual<typeof import('expo')>('expo'),
+  // One listener per component and event: the latest render's replaces the one before.
   useEventListener: (player: FakePlayer, event: string, listener: Listener) => {
-    player.listeners[event] = listener;
+    const React = jest.requireActual<typeof import('react')>('react');
+    const latest = React.useRef(listener);
+    latest.current = listener;
+    React.useEffect(() => {
+      const call: Listener = (payload) => latest.current(payload);
+      player.listeners[event] = [...(player.listeners[event] ?? []), call];
+      return () => {
+        player.listeners[event] = (player.listeners[event] ?? []).filter((l) => l !== call);
+      };
+    }, [player, event]);
   },
 }));
 
@@ -160,7 +175,7 @@ describe('VideoPlayer (native)', () => {
     const onProgress = jest.fn();
     await renderPlayer({ onProgress });
 
-    await act(async () => mockPlayers[0]!.listeners.timeUpdate?.({ currentTime: 3.25 }));
+    await act(async () => emit(mockPlayers[0]!, 'timeUpdate', { currentTime: 3.25 }));
 
     expect(onProgress).toHaveBeenCalledWith({ positionMs: 3250, durationMs: 12_500 });
   });
@@ -173,16 +188,17 @@ describe('VideoPlayer (native)', () => {
 
       // First failure: no error shown; a moment later a fresh player is built (the old one may have
       // been released, and a released player cannot be handed to the native view again).
-      await act(async () => first.listeners.statusChange?.({ status: 'error' }));
+      await act(async () => emit(first, 'statusChange', { status: 'error' }));
       expect(screen.queryByTestId('player-error')).toBeNull();
       await act(async () => {
         jest.advanceTimersByTime(1500);
       });
       expect(mockPlayers).toHaveLength(2);
       expect(first.replaceAsync).not.toHaveBeenCalled();
+      expect(first.release).toHaveBeenCalledTimes(1);
 
       // Second failure: the viewer is told, and Try again builds another new player.
-      await act(async () => mockPlayers[1]!.listeners.statusChange?.({ status: 'error' }));
+      await act(async () => emit(mockPlayers[1]!, 'statusChange', { status: 'error' }));
       expect(screen.getByTestId('player-error')).toBeTruthy();
       await fireEvent.press(screen.getByText('Try again'));
 
@@ -236,5 +252,164 @@ describe('VideoPlayer (native)', () => {
     expect(post!.muted).toBe(false);
     expect(feed!.muted).toBe(true);
     expect(usePlayerPrefs.getState().muted).toBe(true);
+  });
+
+  it('pauses on a tap with a play sign, plays on the next, and plays again after a swipe away', async () => {
+    const view = await renderPlayer();
+    const player = mockPlayers[0]!;
+    expect(screen.queryByTestId('player-paused')).toBeNull();
+
+    await fireEvent.press(screen.getByLabelText('Pause'));
+    expect(player.pause).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('player-paused')).toBeTruthy();
+    // The tap pauses; it does not touch the sound.
+    expect(player.muted).toBe(true);
+
+    await fireEvent.press(screen.getByLabelText('Play'));
+    expect(player.play).toHaveBeenCalledTimes(2);
+
+    // Paused, then swiped away and back: a new viewing, so it plays.
+    await fireEvent.press(screen.getByLabelText('Pause'));
+    const at = (active: boolean) => (
+      <ThemeProvider>
+        <VideoPlayer
+          testID="player"
+          hlsUrl="http://localhost:8088/media/abc/v1/master.m3u8"
+          active={active}
+        />
+      </ThemeProvider>
+    );
+    await view.rerender(at(false));
+    await view.rerender(at(true));
+    expect(screen.queryByTestId('player-paused')).toBeNull();
+    expect(player.play).toHaveBeenCalledTimes(3);
+  });
+
+  it('waits out the double-tap window before a tap pauses, and a double tap never pauses', async () => {
+    jest.useFakeTimers();
+    try {
+      const onDoubleTap = jest.fn();
+      await renderPlayer({ onDoubleTap });
+      const player = mockPlayers[0]!;
+      const tap = screen.getByTestId('player-tap');
+      const at = { nativeEvent: { locationX: 120, locationY: 300 } };
+
+      await fireEvent.press(tap, at);
+      await fireEvent.press(tap, at);
+      await act(async () => {
+        jest.advanceTimersByTime(DOUBLE_TAP_MS * 2);
+      });
+      expect(onDoubleTap).toHaveBeenCalledWith({ x: 120, y: 300 });
+      expect(player.pause).not.toHaveBeenCalled();
+
+      await fireEvent.press(tap, at);
+      expect(player.pause).not.toHaveBeenCalled();
+      await act(async () => {
+        jest.advanceTimersByTime(DOUBLE_TAP_MS);
+      });
+      expect(player.pause).toHaveBeenCalledTimes(1);
+      expect(onDoubleTap).toHaveBeenCalledTimes(1);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('shows a seek bar once the length is known, and seeking moves the player', async () => {
+    await renderPlayer();
+    const player = mockPlayers[0]!;
+    expect(screen.queryByTestId('player-seek')).toBeNull();
+
+    await act(async () => emit(player, 'timeUpdate', { currentTime: 2 }));
+    const bar = screen.getByTestId('player-seek');
+    expect(bar.props.accessibilityValue.text).toBe('0:02 of 0:12');
+
+    await fireEvent(bar, 'accessibilityAction', { nativeEvent: { actionName: 'increment' } });
+    expect(player.currentTime).toBe(7);
+  });
+
+  it('hands one player from the feed to the post page and back: no restart, no pause', async () => {
+    const feed = (
+      <PlaybackScope>
+        <VideoPlayer
+          testID="feed"
+          clipKey="post-1"
+          hlsUrl="http://localhost:8088/a/master.m3u8"
+          active
+        />
+      </PlaybackScope>
+    );
+    // The post page renders outside a scope here: on screen whatever the mocked focus says.
+    const post = (
+      <VideoPlayer
+        testID="post"
+        clipKey="post-1"
+        hlsUrl="http://localhost:8088/a/master.m3u8"
+        active
+      />
+    );
+    const view = await render(<ThemeProvider>{feed}</ThemeProvider>);
+    const player = mockPlayers[0]!;
+    await act(async () => {
+      (
+        screen.getByTestId('video-view').props as { onFirstFrameRender: () => void }
+      ).onFirstFrameRender();
+    });
+    expect(player.play).toHaveBeenCalledTimes(1);
+
+    // The caption is tapped: the player is reserved, the feed screen loses focus, the post page opens.
+    await act(async () => {
+      handOverPlayer('post-1');
+    });
+    mockFocused = false;
+    await view.rerender(
+      <ThemeProvider>
+        {feed}
+        {post}
+      </ThemeProvider>,
+    );
+
+    expect(mockPlayers).toHaveLength(1);
+    expect(player.pause).not.toHaveBeenCalled();
+    // One picture, on the post page, carrying on without the poster; the feed shows its poster.
+    expect(screen.getAllByTestId('video-view')).toHaveLength(1);
+    expect(screen.queryByTestId('post-poster')).toBeNull();
+    expect(screen.getByTestId('feed-poster')).toBeTruthy();
+
+    // Only the post page reports progress now.
+    const onFeedProgress = jest.fn();
+    await view.rerender(
+      <ThemeProvider>
+        <PlaybackScope>
+          <VideoPlayer
+            testID="feed"
+            clipKey="post-1"
+            hlsUrl="http://localhost:8088/a/master.m3u8"
+            active
+            onProgress={onFeedProgress}
+          />
+        </PlaybackScope>
+        {post}
+      </ThemeProvider>,
+    );
+    await act(async () => emit(player, 'timeUpdate', { currentTime: 4 }));
+    expect(onFeedProgress).not.toHaveBeenCalled();
+
+    // Back: the post page closes and the feed is in view again, with the same player.
+    mockFocused = true;
+    await view.rerender(<ThemeProvider>{feed}</ThemeProvider>);
+    expect(mockPlayers).toHaveLength(1);
+    expect(player.release).not.toHaveBeenCalled();
+    expect(screen.getAllByTestId('video-view')).toHaveLength(1);
+    expect(player.play.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(player.pause).not.toHaveBeenCalled();
+
+    await view.unmount();
+    expect(player.release).toHaveBeenCalledTimes(1);
+    expect(livePlayerCount()).toBe(0);
+  });
+
+  it('uses a TextureView when asked (the post page, so rounded corners stay rounded)', async () => {
+    await renderPlayer({ surface: 'textureView' });
+    expect(screen.getByTestId('video-view').props.surfaceType).toBe('textureView');
   });
 });

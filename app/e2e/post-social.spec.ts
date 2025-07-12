@@ -47,19 +47,21 @@ test('A posts a clip; B follows A, sees it in Following, likes and comments; A i
 
   // B: back on Home, the clip is now in the Following feed, playing; like it.
   await b.goBack();
-  // Home opens on For You (where A's clip also shows up, among everyone else's).
+  // Home opens on For You (where A's clip also shows up, among everyone else's). For You stays
+  // mounted, hidden, under Following, so look inside the Following layer.
   await b.getByRole('radio', { name: 'Following' }).click();
-  await expect(b.getByTestId('post-caption')).toHaveText('Encore of the night');
-  const video = b.getByTestId('post-player-video');
+  const following = b.getByTestId('feed-layer-following');
+  await expect(following.getByTestId('post-caption')).toHaveText('Encore of the night');
+  const video = following.getByTestId('post-player-video');
   await expect
     .poll(async () => video.evaluate((v: HTMLVideoElement) => v.currentTime), { timeout: 30_000 })
     .toBeGreaterThan(0.5);
-  await b.getByRole('button', { name: 'Like' }).click();
-  await expect(b.getByTestId('like-count')).toHaveText('1');
-  await expect(b.getByRole('button', { name: 'Unlike' })).toBeVisible();
+  await following.getByRole('button', { name: 'Like' }).click();
+  await expect(following.getByTestId('like-count')).toHaveText('1');
+  await expect(following.getByRole('button', { name: 'Unlike' })).toBeVisible();
 
   // B: open the post and comment.
-  await b.getByRole('link', { name: '0 comments' }).click();
+  await following.getByRole('link', { name: '0 comments' }).click();
   await expect(b.getByTestId('comments-empty')).toBeVisible();
   await b.getByLabel('Add a comment').fill('Great set');
   await b.getByRole('button', { name: 'Send' }).click();

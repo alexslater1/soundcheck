@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useState, type Ref } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 
 import {
@@ -158,9 +158,18 @@ const MORE = 28;
 
 /**
  * The box to add a comment. It sits at the foot of the post screen, outside the scrolling content, so
- * the keyboard pushes it up instead of covering it; `onSent` lets the screen scroll to the new comment.
+ * the keyboard pushes it up instead of covering it; `onSent` lets the screen scroll to the new comment,
+ * and `inputRef` lets the post's comment button focus the box.
  */
-export function CommentBox({ postId, onSent }: { postId: string; onSent?: () => void }) {
+export function CommentBox({
+  postId,
+  onSent,
+  inputRef,
+}: {
+  postId: string;
+  onSent?: () => void;
+  inputRef?: Ref<TextInput>;
+}) {
   const { colors } = useTheme();
   const track = useTrack();
   const refresh = useRefreshComments(postId);
@@ -200,6 +209,7 @@ export function CommentBox({ postId, onSent }: { postId: string; onSent?: () => 
       ) : null}
       <View style={styles.form}>
         <TextInput
+          ref={inputRef}
           value={body}
           onChangeText={(text) => {
             // The key belongs to the text: sending the same words again is a retry (answered with the

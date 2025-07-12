@@ -24,14 +24,18 @@ jest.mock('@/features/posts/PostPager', () => {
       items,
       onEndReached,
       onGone,
+      onRefresh,
+      refreshing,
     }: {
       items: PagerItem[];
       onEndReached?: () => void;
       onGone?: (postId: string) => void;
+      onRefresh?: () => void;
+      refreshing?: boolean;
     }) =>
       React.createElement(
         View,
-        null,
+        { testID: refreshing ? 'pager-refreshing' : 'pager' },
         ...items.map((item) =>
           React.createElement(
             Text,
@@ -40,6 +44,7 @@ jest.mock('@/features/posts/PostPager', () => {
           ),
         ),
         React.createElement(Text, { onPress: onEndReached }, 'reach-end'),
+        React.createElement(Text, { onPress: onRefresh }, 'pull'),
       ),
   };
 });
@@ -142,6 +147,34 @@ describe('ForYouFeed', () => {
     await waitFor(() => expect(screen.queryByText(/s1-p0/)).toBeNull());
     expect(screen.getByText(/s1-p1/)).toBeTruthy();
     expect(mockGetHomeFeed).toHaveBeenCalledTimes(1);
+  });
+
+  it('on a pull, keeps the old posts on screen and swaps in a new session’s first page', async () => {
+    let answer: (feed: HomeFeed) => void = () => undefined;
+    mockGetHomeFeed
+      .mockResolvedValueOnce(page('s1', 0, 2, true))
+      .mockResolvedValueOnce(page('s1', 2, 2, true))
+      .mockReturnValueOnce(new Promise((resolve) => (answer = resolve)));
+    await renderFeed().rendered;
+    await screen.findByText(/s1-p0/);
+    await fireEvent.press(screen.getByText('reach-end'));
+    await screen.findByText(/s1-p3/);
+
+    await fireEvent.press(screen.getByText('pull'));
+
+    // While the new session loads: the header animates over the posts already there, no skeleton.
+    await waitFor(() => expect(screen.getByTestId('pager-refreshing')).toBeTruthy());
+    expect(screen.queryByTestId('for-you-loading')).toBeNull();
+    expect(screen.getByText(/s1-p0/)).toBeTruthy();
+    await waitFor(() => expect(mockGetHomeFeed).toHaveBeenCalledTimes(3));
+    // Only page one is asked for, with no cursor: a new session.
+    expect(mockGetHomeFeed).toHaveBeenLastCalledWith({ limit: 10, cursor: undefined });
+    expect(telemetry.flush).toHaveBeenCalled();
+
+    answer(page('s2', 0, 2, true));
+    expect(await screen.findByText(/s2-p0 #0 s2/)).toBeTruthy();
+    expect(screen.queryByText(/s1-p/)).toBeNull();
+    await waitFor(() => expect(screen.getByTestId('pager')).toBeTruthy(), { timeout: 2_000 });
   });
 
   it('says so when there is nothing to show, and when the feed cannot be loaded', async () => {

@@ -8,6 +8,12 @@ import type { TypeStyle } from './typography';
 /** Auto follows the phone's light/dark setting; the other two fix it. */
 export type ThemeMode = 'auto' | 'dark' | 'light';
 
+/**
+ * How the home feed draws a post (chosen on the phone): inset rounded cards with a gap
+ * between posts, the clip edge to edge, or a ticket stub with the gig above a rounded clip.
+ */
+export type FeedStyle = 'cards' | 'immersive' | 'ticket';
+
 type ThemePrefs = {
   themeId: ThemeId;
   mode: ThemeMode;
@@ -15,10 +21,12 @@ type ThemePrefs = {
   typeStyle: TypeStyle;
   /** The soft accent glow behind the top of each screen. */
   glow: boolean;
+  feedStyle: FeedStyle;
   setTheme: (themeId: ThemeId) => void;
   setMode: (mode: ThemeMode) => void;
   setTypeStyle: (typeStyle: TypeStyle) => void;
   setGlow: (glow: boolean) => void;
+  setFeedStyle: (feedStyle: FeedStyle) => void;
 };
 
 // The same small key-value file the upload queue uses (MMKV on Android, localStorage on the web).
@@ -32,10 +40,12 @@ export const useThemePrefs = create<ThemePrefs>()(
       mode: 'auto',
       typeStyle: 'grotesk',
       glow: true,
+      feedStyle: 'cards',
       setTheme: (themeId) => set({ themeId }),
       setMode: (mode) => set({ mode }),
       setTypeStyle: (typeStyle) => set({ typeStyle }),
       setGlow: (glow) => set({ glow }),
+      setFeedStyle: (feedStyle) => set({ feedStyle }),
     }),
     {
       name: 'theme',
@@ -52,6 +62,7 @@ export const useThemePrefs = create<ThemePrefs>()(
         mode: state.mode,
         typeStyle: state.typeStyle,
         glow: state.glow,
+        feedStyle: state.feedStyle,
       }),
       // A theme removed in a later version falls back to the default instead of crashing.
       merge: (persisted, current) => {
@@ -62,6 +73,10 @@ export const useThemePrefs = create<ThemePrefs>()(
           mode: saved.mode === 'dark' || saved.mode === 'light' ? saved.mode : 'auto',
           typeStyle: saved.typeStyle === 'system' ? 'system' : 'grotesk',
           glow: saved.glow !== false,
+          feedStyle:
+            saved.feedStyle === 'immersive' || saved.feedStyle === 'ticket'
+              ? saved.feedStyle
+              : 'cards',
         };
       },
     },

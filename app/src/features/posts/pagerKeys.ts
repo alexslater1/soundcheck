@@ -29,3 +29,17 @@ export function targetIndex(current: number, step: 1 | -1, count: number): numbe
   const to = Math.min(Math.max(from + step, 0), count - 1);
   return to === from ? null : to;
 }
+
+/**
+ * Where each page of the feed starts, for the list to snap to: with a refresh header,
+ * offset 0 shows the header and the first post starts below it; every post is one page tall.
+ */
+export function pageOffsets(count: number, pageHeight: number, header: number): number[] {
+  const pages = Array.from({ length: count }, (_, index) => header + pageHeight * index);
+  return header > 0 ? [0, ...pages] : pages;
+}
+
+/** The list came to rest with its refresh header fully in view: time to refresh. */
+export function restsOnHeader(offsetY: number, header: number): boolean {
+  return header > 0 && offsetY <= 1;
+}

@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useRef } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View, type TextInput } from 'react-native';
 
 import { useGetPost } from '@/api/generated/posts/posts';
 import { Screen } from '@/components/ui/Screen';
@@ -14,11 +14,15 @@ import { PostCard } from './PostCard';
 
 /**
  * One post on its own page (`/post/{id}`, the address that Share copies): the clip, its details,
- * comments, and the comment box pinned at the foot, above the keyboard when it is open.
+ * comments, and the comment box pinned at the foot, above the keyboard when it is open. The clip,
+ * details and comments scroll as one page, so the clip goes off the top; the comment
+ * button scrolls to the comments and opens the keyboard in the box.
  */
-export function PostScreen({ id }: { id: string }) {
+export function PostScreen({ id, startAtMs }: { id: string; startAtMs?: number }) {
   const router = useRouter();
   const scroll = useRef<ScrollView>(null);
+  const commentsAt = useRef(0);
+  const commentInput = useRef<TextInput>(null);
   const post = useGetPost(id, {
     query: {
       // The author may open their post while the clip is still being transcoded: keep asking.
@@ -51,25 +55,41 @@ export function PostScreen({ id }: { id: string }) {
     );
   }
   const published = post.data.status === 'PUBLISHED';
+  const goToComments = () => {
+    scroll.current?.scrollTo({ y: commentsAt.current, animated: true });
+    commentInput.current?.focus();
+  };
   return (
-    <Screen keyboard>
+    // No padding above the scroll view: the page's top padding scrolls with it instead of staying
+    // behind as a band the content slides under.
+    <Screen keyboard style={styles.flush}>
       <ScrollView
         ref={scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
+        testID="post-scroll"
       >
         <PostCard
           post={post.data}
           active
+          startAtMs={startAtMs}
+          onComment={published ? goToComments : undefined}
           onGone={() => (router.canGoBack() ? router.back() : router.replace('/'))}
         />
         {published ? (
-          <CommentList postId={post.data.id} postAuthorId={post.data.author.id} />
+          <View
+            onLayout={(event) => {
+              commentsAt.current = event.nativeEvent.layout.y;
+            }}
+          >
+            <CommentList postId={post.data.id} postAuthorId={post.data.author.id} />
+          </View>
         ) : null}
       </ScrollView>
       {published ? (
         <CommentBox
           postId={post.data.id}
+          inputRef={commentInput}
           onSent={() => scroll.current?.scrollToEnd({ animated: true })}
         />
       ) : null}
@@ -78,5 +98,6 @@ export function PostScreen({ id }: { id: string }) {
 }
 
 const styles = StyleSheet.create({
-  content: { gap: spacing.lg, paddingBottom: spacing.lg },
+  flush: { paddingTop: 0 },
+  content: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
 });

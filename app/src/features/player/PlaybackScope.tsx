@@ -20,9 +20,15 @@ const PlaybackContext = createContext<Playback | null>(null);
  * when its screen is not the one in view; and turning sound on for one screen's clip must not turn it on
  * for another screen's.
  */
-export function PlaybackScope({ children }: PropsWithChildren) {
+export function PlaybackScope({
+  children,
+  initialMuted = true,
+}: PropsWithChildren<{
+  /** Clips start muted; a post opened from the feed starts with the feed's setting. */
+  initialMuted?: boolean;
+}>) {
   const onScreen = useIsFocused();
-  const [muted, setMuted] = useState(true);
+  const [muted, setMuted] = useState(initialMuted);
   const value = useMemo<Playback>(
     () => ({ onScreen, muted, setMuted, toggleMuted: () => setMuted((m) => !m) }),
     [onScreen, muted],

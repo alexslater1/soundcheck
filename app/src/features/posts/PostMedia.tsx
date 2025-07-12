@@ -1,15 +1,19 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
 import type { Post } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { PROCESSING_HINT } from '@/features/player/processing';
+import type { TapPoint } from '@/features/player/tapGesture';
 import type { PlaybackProgress } from '@/features/player/types';
 import { VideoPlayer } from '@/features/player/VideoPlayer';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { advanceWatch, INITIAL_WATCH } from '@/features/telemetry/watchTracker';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
+
+import { HeartBurst } from './HeartBurst';
+import { useLike } from './useLike';
 
 type Props = {
   post: Post;
@@ -24,6 +28,12 @@ type Props = {
    * whose shape is close to the clip's, cropping the edges (see `pageFit`).
    */
   frameAspect?: number;
+  /** Rounded corners even when the clip fills a box of another shape (the feed's card styles). */
+  rounded?: boolean;
+  /** See `VideoPlayerProps.surface`: the post page asks for a TextureView. */
+  surface?: 'surfaceView' | 'textureView';
+  /** Where the feed's clip was when this post was opened from it (used by the web player). */
+  startAtMs?: number;
 };
 
 /** Width divided by height of a post's clip; portrait 9:16 until the size is known. */
@@ -32,15 +42,30 @@ export function aspectOf(post: Post): number {
   return width && height ? width / height : 9 / 16;
 }
 
+type Burst = { id: number; x: number; y: number };
+
 /**
  * A post's clip: the player when it is ready, a note while it is processing or when it failed. While
  * the clip is the active one, what the viewer watches is reported: the start, each quarter, the end.
+ * A double tap on a published clip likes the post and pops a heart where the finger was (H5).
  */
-export function PostMedia({ post, active, live = true, soundAtTop, frameAspect }: Props) {
+export function PostMedia({
+  post,
+  active,
+  live = true,
+  soundAtTop,
+  frameAspect,
+  rounded,
+  surface,
+  startAtMs,
+}: Props) {
   const { colors } = useTheme();
   const track = useTrack();
   const { playback } = post;
   const aspectRatio = frameAspect ?? aspectOf(post);
+  const { like } = useLike(post.id, { likedByMe: post.likedByMe, likeCount: post.likeCount });
+  const [bursts, setBursts] = useState<Burst[]>([]);
+  const nextBurst = useRef(0);
 
   // One "viewing" lasts from the clip becoming active until it stops being so; each watch event is
   // reported once per viewing, however often the clip loops.
@@ -60,20 +85,40 @@ export function PostMedia({ post, active, live = true, soundAtTop, frameAspect }
     }
   };
 
+  const onDoubleTap = (point: TapPoint) => {
+    nextBurst.current += 1;
+    const burst = { id: nextBurst.current, ...point };
+    setBursts((now) => [...now, burst]);
+    void like();
+  };
+  const dropBurst = useCallback(
+    (id: number) => setBursts((now) => now.filter((burst) => burst.id !== id)),
+    [],
+  );
+
   if (playback.status === 'READY' && playback.hlsUrl) {
     return (
-      <VideoPlayer
-        testID="post-player"
-        hlsUrl={playback.hlsUrl}
-        posterUrl={playback.posterUrl}
-        blurhash={playback.blurhash}
-        aspectRatio={aspectRatio}
-        active={active}
-        live={live}
-        soundAtTop={soundAtTop}
-        rounded={frameAspect === undefined}
-        onProgress={onProgress}
-      />
+      <View>
+        <VideoPlayer
+          testID="post-player"
+          clipKey={post.id}
+          hlsUrl={playback.hlsUrl}
+          posterUrl={playback.posterUrl}
+          blurhash={playback.blurhash}
+          aspectRatio={aspectRatio}
+          active={active}
+          live={live}
+          soundAtTop={soundAtTop}
+          rounded={rounded ?? frameAspect === undefined}
+          surface={surface}
+          startAtMs={startAtMs}
+          onDoubleTap={post.status === 'PUBLISHED' ? onDoubleTap : undefined}
+          onProgress={onProgress}
+        />
+        {bursts.map((burst) => (
+          <HeartBurst key={burst.id} x={burst.x} y={burst.y} onDone={() => dropBurst(burst.id)} />
+        ))}
+      </View>
     );
   }
   if (post.status === 'FAILED') {
