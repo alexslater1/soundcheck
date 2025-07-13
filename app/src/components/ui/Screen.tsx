@@ -1,5 +1,6 @@
+import { HeaderHeightContext } from '@react-navigation/elements';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { PropsWithChildren } from 'react';
+import { use, type PropsWithChildren } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View, type ViewProps } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -14,6 +15,10 @@ import { spacing } from '@/theme/tokens';
  * keyboard opens; the screen must make room itself.
  * With the glow on (Settings → Appearance) a soft wash of the accent colour fades down from
  * the top, so screens have depth instead of a flat black.
+ *
+ * Under a page header (`PageHeader`) the screen starts at the top of the window,
+ * behind the transparent header, so the glow runs behind it too. The column then starts at the header's
+ * measured bottom edge instead of 16 pt below it, so content scrolls right up to the header.
  */
 export function Screen({
   children,
@@ -23,13 +28,29 @@ export function Screen({
   ...props
 }: PropsWithChildren<ViewProps & { wide?: boolean; keyboard?: boolean }>) {
   const { colors, glow } = useTheme();
+  // The stack's header height: 0 on the tabs and on screens without a header. Every header in the app
+  // is a transparent PageHeader (pageStackOptions), so a height here is room to leave at the top.
+  const headerHeight = use(HeaderHeightContext) ?? 0;
   const column = (
-    <View {...props} style={[styles.column, wide ? styles.wide : null, style]}>
+    <View
+      {...props}
+      style={[
+        styles.column,
+        wide ? styles.wide : null,
+        style,
+        // Last, so a screen's own top padding can never slide its content under the header.
+        headerHeight > 0 ? { paddingTop: headerHeight } : null,
+      ]}
+    >
       {children}
     </View>
   );
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: colors.background }]}>
+    <SafeAreaView
+      // The header already keeps clear of the status bar.
+      edges={headerHeight > 0 ? ['right', 'bottom', 'left'] : undefined}
+      style={[styles.safe, { backgroundColor: colors.background }]}
+    >
       {glow ? (
         <LinearGradient
           pointerEvents="none"

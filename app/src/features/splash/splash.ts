@@ -2,8 +2,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useRef } from 'react';
 
 /**
- * The native splash screen: the five-bar mark from `ops/scripts/make_icons.py` on the
- * Electric background, configured in app.config.ts. It stays up while the app starts (the session
+ * The native splash screen: the mic-check mark from `ops/scripts/make_icons.py` on the Electric
+ * background, configured in app.config.ts. It stays up while the app starts (the session check and
  * the fonts) instead of showing a spinner, and is hidden exactly once. On the web the module is a
  * no-op, so the root layout's own loading view is what the browser shows.
  */
