@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 import { queryClient } from '@/api/queryClient';
+import { pageStackOptions } from '@/components/ui/PageHeader';
 import { nextRoute } from '@/features/auth/nextRoute';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
@@ -83,13 +84,8 @@ function RootStack() {
   return (
     <>
       <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
-      <Stack
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.surface },
-          headerTintColor: colors.text,
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      >
+      {/* Every pushed screen gets the page header (PageHeader: no grey bar). */}
+      <Stack screenOptions={pageStackOptions(colors)}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
@@ -99,9 +95,11 @@ function RootStack() {
         <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
         <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
         <Stack.Screen name="u/[handle]/index" options={{ title: 'Profile' }} />
-        <Stack.Screen name="u/[handle]/followers" options={{ title: 'Followers' }} />
-        <Stack.Screen name="u/[handle]/following" options={{ title: 'Following' }} />
+        {/* The lists say "Followers" / "Following" as their own heading, so the header shows only the chevron. */}
+        <Stack.Screen name="u/[handle]/followers" options={{ title: '' }} />
+        <Stack.Screen name="u/[handle]/following" options={{ title: '' }} />
         <Stack.Screen name="stats/[userId]" options={{ title: 'Gigs' }} />
+        <Stack.Screen name="alerts/[id]" options={{ title: 'Alert' }} />
         <Stack.Screen name="console" options={{ headerShown: false }} />
         {/* Settings has its own stack and header; without this a second "settings" bar sat above it. */}
         <Stack.Screen name="settings" options={{ headerShown: false }} />
