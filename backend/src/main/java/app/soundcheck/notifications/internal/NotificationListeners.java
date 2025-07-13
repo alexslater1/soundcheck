@@ -4,6 +4,9 @@ import app.soundcheck.content.CommentAdded;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostLiked;
 import app.soundcheck.content.PostPublished;
+import app.soundcheck.social.FollowRequestAccepted;
+import app.soundcheck.social.FollowRequestWithdrawn;
+import app.soundcheck.social.FollowRequested;
 import app.soundcheck.social.NewGigsFound;
 import app.soundcheck.social.UserBlocked;
 import app.soundcheck.social.UserFollowed;
@@ -28,6 +31,25 @@ class NotificationListeners {
     @ApplicationModuleListener
     void on(UserFollowed event) {
         notifications.record(event.followeeId(), "NEW_FOLLOWER", event.followerId(), null, null);
+    }
+
+    /** The private profile's owner is asked, with Accept and Decline in Activity. */
+    @ApplicationModuleListener
+    void on(FollowRequested event) {
+        notifications.record(event.ownerId(), "FOLLOW_REQUEST", event.requesterId(), null, null);
+    }
+
+    /** The requester is told; the owner's request entry becomes "started following you". */
+    @ApplicationModuleListener
+    void on(FollowRequestAccepted event) {
+        notifications.requestAccepted(event.ownerId(), event.requesterId());
+        notifications.record(event.requesterId(), "FOLLOW_ACCEPTED", event.ownerId(), null, null);
+    }
+
+    /** Declined or cancelled: the owner's entry goes; the requester is not told. */
+    @ApplicationModuleListener
+    void on(FollowRequestWithdrawn event) {
+        notifications.requestWithdrawn(event.ownerId(), event.requesterId());
     }
 
     /** Collapsed: while an unread like notification for the post exists, further likes add nothing. */

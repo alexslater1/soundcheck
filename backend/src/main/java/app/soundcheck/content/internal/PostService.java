@@ -306,7 +306,7 @@ public class PostService implements PostFeed {
         if (!users.exists(authorId) || social.hasBlocked(authorId, viewerId)) {
             throw ApiException.notFound("USER_NOT_FOUND", "No such user");
         }
-        // A private profile's grid is for the people its owner follows, as its stats are.
+        // A private profile's grid is for its followers, as its stats are.
         if (visibility.hidden(viewerId, authorId)) {
             throw ApiException.forbidden("PROFILE_PRIVATE", "This profile is private");
         }
@@ -350,7 +350,7 @@ public class PostService implements PostFeed {
     @Transactional(readOnly = true)
     public Page<Post> byAuthors(
             UUID viewerId, Collection<UUID> authorIds, @Nullable String cursor, @Nullable Integer limit) {
-        // Private profiles that do not follow the viewer are left out before the query: the
+        // Private profiles the viewer does not follow are left out before the query: the
         // assembler would drop their posts anyway, but then each page would be refilled again and again.
         Set<UUID> hidden = visibility.hiddenAmong(viewerId, authorIds);
         List<UUID> shown = authorIds.stream().filter(id -> !hidden.contains(id)).toList();

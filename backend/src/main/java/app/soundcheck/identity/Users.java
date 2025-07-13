@@ -21,8 +21,9 @@ public interface Users {
     Map<Short, Double> genrePreferences(UUID userId);
 
     /**
-     * The users among the ids whose profile is private: their posts, gig stats and gig
-     * history are for the people they follow only. Deleted accounts are not returned.
+     * The users among the ids whose profile is private: their posts, gig stats and gig history
+     * are for their followers only (social's {@code ProfileAccess} applies the rule). Deleted accounts
+     * are not returned.
      */
     Set<UUID> privateAmong(Collection<UUID> userIds);
 

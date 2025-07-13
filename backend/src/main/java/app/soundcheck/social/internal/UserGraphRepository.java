@@ -1,6 +1,7 @@
 package app.soundcheck.social.internal;
 
 import static app.soundcheck.shared.jooq.social.Tables.ARTIST_FOLLOW;
+import static app.soundcheck.shared.jooq.social.Tables.FOLLOW_REQUEST;
 import static app.soundcheck.shared.jooq.social.Tables.USER_BLOCK;
 import static app.soundcheck.shared.jooq.social.Tables.USER_FOLLOW;
 
@@ -19,7 +20,7 @@ import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
 
-/** jOOQ access to {@code social.user_follow} and {@code social.user_block}. */
+/** jOOQ access to {@code social.user_follow}, {@code social.follow_request} and {@code social.user_block}. */
 @Repository
 class UserGraphRepository {
 
@@ -63,6 +64,63 @@ class UserGraphRepository {
                         .execute()
                 == 1;
     }
+
+    // ── follow requests ────────────────────────────────────────────────────────────────
+
+    /** @return true when the request did not exist before */
+    boolean request(UUID requesterId, UUID ownerId, Instant now) {
+        return dsl.insertInto(FOLLOW_REQUEST)
+                        .set(FOLLOW_REQUEST.REQUESTER_ID, requesterId)
+                        .set(FOLLOW_REQUEST.OWNER_ID, ownerId)
+                        .set(FOLLOW_REQUEST.CREATED_AT, at(now))
+                        .onConflictDoNothing()
+                        .execute()
+                == 1;
+    }
+
+    /** @return true when there was a request to delete */
+    boolean deleteRequest(UUID requesterId, UUID ownerId) {
+        return dsl.deleteFrom(FOLLOW_REQUEST)
+                        .where(FOLLOW_REQUEST.REQUESTER_ID.eq(requesterId))
+                        .and(FOLLOW_REQUEST.OWNER_ID.eq(ownerId))
+                        .execute()
+                == 1;
+    }
+
+    /** The owners among {@code ownerIds} the requester is waiting on. Expected index: the follow_request primary key. */
+    Set<UUID> requestedAmong(UUID requesterId, Collection<UUID> ownerIds) {
+        if (ownerIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(dsl.select(FOLLOW_REQUEST.OWNER_ID)
+                .from(FOLLOW_REQUEST)
+                .where(FOLLOW_REQUEST.REQUESTER_ID.eq(requesterId))
+                .and(FOLLOW_REQUEST.OWNER_ID.in(ownerIds))
+                .fetch(FOLLOW_REQUEST.OWNER_ID));
+    }
+
+    /** The users among {@code userIds} waiting for the owner's answer. Expected index: follow_request_owner. */
+    Set<UUID> requestersAmong(UUID ownerId, Collection<UUID> userIds) {
+        if (userIds.isEmpty()) {
+            return Set.of();
+        }
+        return new HashSet<>(dsl.select(FOLLOW_REQUEST.REQUESTER_ID)
+                .from(FOLLOW_REQUEST)
+                .where(FOLLOW_REQUEST.OWNER_ID.eq(ownerId))
+                .and(FOLLOW_REQUEST.REQUESTER_ID.in(userIds))
+                .fetch(FOLLOW_REQUEST.REQUESTER_ID));
+    }
+
+    /** Everyone waiting for the owner's answer, oldest first. Expected index: follow_request_owner. */
+    List<UUID> requesters(UUID ownerId) {
+        return dsl.select(FOLLOW_REQUEST.REQUESTER_ID)
+                .from(FOLLOW_REQUEST)
+                .where(FOLLOW_REQUEST.OWNER_ID.eq(ownerId))
+                .orderBy(FOLLOW_REQUEST.CREATED_AT, FOLLOW_REQUEST.REQUESTER_ID)
+                .fetch(FOLLOW_REQUEST.REQUESTER_ID);
+    }
+
+    // ── blocks ───────────────────────────────────────────────────────────────────────────────────
 
     boolean block(UUID blockerId, UUID blockedId, Instant now) {
         return dsl.insertInto(USER_BLOCK)

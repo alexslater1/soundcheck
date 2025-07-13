@@ -23,11 +23,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * D25b through every read path, over HTTP against real PostGIS: a private profile's posts,
- * profile details and engagement are for the owner and the people the owner follows; everyone else sees a
- * name, an avatar, counts, and, on a gig page, how many clips they cannot see. Four people: the private
- * {@code owner}, a {@code friend} the owner follows, a {@code fan} who follows the owner (not followed
- * back: following a private profile gives nothing), and a {@code stranger}.
+ * Private profiles through every read path, over HTTP against real PostGIS: a
+ * private profile's posts, profile details and engagement are for the owner and its followers; everyone
+ * else sees a name, an avatar, counts, and, on a gig page, how many clips they cannot see. Four people: the
+ * private {@code owner}; a {@code follower} who followed the owner while it was public (and so stays a
+ * follower); a {@code followee} the owner follows, who does not follow back (being
+ * followed by a private profile gives nothing); and a {@code stranger}. Follow
+ * requests themselves are in {@code FollowRequestsIT}.
  */
 class ProfilePrivacyIT extends IntegrationTest {
 
@@ -49,8 +51,8 @@ class ProfilePrivacyIT extends IntegrationTest {
     TestApi api;
     TestData data;
     TestApi.User owner;
-    TestApi.User friend;
-    TestApi.User fan;
+    TestApi.User followee;
+    TestApi.User follower;
     TestApi.User stranger;
     UUID act;
     UUID venue;
@@ -64,8 +66,8 @@ class ProfilePrivacyIT extends IntegrationTest {
         api = new TestApi(rest);
         data = new TestData(catalogIngest, dsl, tx, events);
         owner = api.register("owner");
-        friend = api.register("friend");
-        fan = api.register("fan");
+        followee = api.register("followee");
+        follower = api.register("follower");
         stranger = api.register("stranger");
         String tag = UUID.randomUUID().toString().substring(0, 8);
         act = data.artist("Private Act " + tag);
@@ -74,8 +76,8 @@ class ProfilePrivacyIT extends IntegrationTest {
         ownerClip1 = post(owner, "first");
         ownerClip2 = post(owner, "second");
         publicClip = post(stranger, "public");
-        api.put("/api/v1/users/" + friend.id() + "/follow", null, owner);
-        api.put("/api/v1/users/" + owner.id() + "/follow", null, fan);
+        api.put("/api/v1/users/" + followee.id() + "/follow", null, owner);
+        api.put("/api/v1/users/" + owner.id() + "/follow", null, follower);
         ok(api.patch("/api/v1/me", Map.of("bio", "front row", "homeCityId", city()), owner));
     }
 
@@ -97,10 +99,10 @@ class ProfilePrivacyIT extends IntegrationTest {
     }
 
     @Test
-    void aPrivateProfileShowsOnlyItsNameAvatarAndCountsToSomeoneItsOwnerDoesNotFollow() {
+    void aPrivateProfileShowsOnlyItsNameAvatarAndCountsToSomeoneWhoDoesNotFollowIt() {
         makePrivate();
 
-        for (TestApi.User outsider : List.of(stranger, fan)) {
+        for (TestApi.User outsider : List.of(stranger, followee)) {
             JsonNode profile = profile(outsider);
             assertThat(profile.path("profileVisibility").asText("")).isEqualTo("PRIVATE");
             assertThat(profile.path("contentVisible").asBoolean()).isFalse();
@@ -131,8 +133,8 @@ class ProfilePrivacyIT extends IntegrationTest {
                     "PROFILE_PRIVATE");
         }
 
-        // The friend (followed by the owner) and the owner see it all.
-        for (TestApi.User insider : List.of(friend, owner)) {
+        // The follower and the owner see it all.
+        for (TestApi.User insider : List.of(follower, owner)) {
             JsonNode profile = profile(insider);
             assertThat(profile.path("contentVisible").asBoolean()).isTrue();
             assertThat(profile.path("bio").asText("")).isEqualTo("front row");
@@ -143,9 +145,9 @@ class ProfilePrivacyIT extends IntegrationTest {
                             .has("totals"))
                     .isTrue();
             assertThat(ids(ok(api.get("/api/v1/users/" + owner.id() + "/followers", insider))))
-                    .containsExactly(fan.id().toString());
+                    .containsExactly(follower.id().toString());
             assertThat(ids(ok(api.get("/api/v1/users/" + owner.id() + "/following", insider))))
-                    .containsExactly(friend.id().toString());
+                    .containsExactly(followee.id().toString());
         }
     }
 
@@ -170,21 +172,25 @@ class ProfilePrivacyIT extends IntegrationTest {
         // A direct link answers 404, like a hidden post; likes and comments too.
         assertProblem(api.get("/api/v1/posts/" + ownerClip1, stranger), HttpStatus.NOT_FOUND, "POST_NOT_FOUND");
         assertProblem(
-                api.put("/api/v1/posts/" + ownerClip1 + "/like", null, fan), HttpStatus.NOT_FOUND, "POST_NOT_FOUND");
+                api.put("/api/v1/posts/" + ownerClip1 + "/like", null, followee),
+                HttpStatus.NOT_FOUND,
+                "POST_NOT_FOUND");
         assertProblem(
                 api.post("/api/v1/posts/" + ownerClip1 + "/comments", Map.of("body", "hi"), stranger),
                 HttpStatus.NOT_FOUND,
                 "POST_NOT_FOUND");
         assertProblem(
                 api.get("/api/v1/posts/" + ownerClip1 + "/comments", stranger), HttpStatus.NOT_FOUND, "POST_NOT_FOUND");
-        // The friend may.
-        assertThat(ok(api.get("/api/v1/posts/" + ownerClip1, friend)).path("id").asText(""))
+        // The follower may.
+        assertThat(ok(api.get("/api/v1/posts/" + ownerClip1, follower))
+                        .path("id")
+                        .asText(""))
                 .isEqualTo(ownerClip1);
-        assertThat(api.put("/api/v1/posts/" + ownerClip1 + "/like", null, friend)
+        assertThat(api.put("/api/v1/posts/" + ownerClip1 + "/like", null, follower)
                         .getStatusCode()
                         .is2xxSuccessful())
                 .isTrue();
-        assertThat(api.post("/api/v1/posts/" + ownerClip1 + "/comments", Map.of("body", "great"), friend)
+        assertThat(api.post("/api/v1/posts/" + ownerClip1 + "/comments", Map.of("body", "great"), follower)
                         .getStatusCode()
                         .is2xxSuccessful())
                 .isTrue();
@@ -194,15 +200,22 @@ class ProfilePrivacyIT extends IntegrationTest {
             assertThat(ids(ok(api.get("/api/v1" + list + "/posts", stranger))))
                     .as(list)
                     .containsExactly(publicClip);
-            assertThat(ids(ok(api.get("/api/v1" + list + "/posts", friend))))
+            assertThat(ids(ok(api.get("/api/v1" + list + "/posts", followee))))
+                    .as(list)
+                    .containsExactly(publicClip);
+            assertThat(ids(ok(api.get("/api/v1" + list + "/posts", follower))))
                     .as(list)
                     .containsExactly(publicClip, ownerClip2, ownerClip1);
         }
 
-        // The Following feed: the fan follows the owner, but the owner does not follow the fan.
-        assertThat(ids(ok(api.get("/api/v1/feed/following", fan)))).doesNotContain(ownerClip1, ownerClip2);
-        api.put("/api/v1/users/" + fan.id() + "/follow", null, owner);
-        assertThat(ids(ok(api.get("/api/v1/feed/following", fan)))).contains(ownerClip1, ownerClip2);
+        // The Following feed: the follower sees the owner's clips; once the owner removes them as a
+        // follower (without blocking), they do not, and the owner's profile is closed to them.
+        assertThat(ids(ok(api.get("/api/v1/feed/following", follower)))).contains(ownerClip1, ownerClip2);
+        assertThat(api.delete("/api/v1/me/followers/" + follower.id(), owner).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(ids(ok(api.get("/api/v1/feed/following", follower)))).doesNotContain(ownerClip1, ownerClip2);
+        assertThat(profile(follower).path("contentVisible").asBoolean()).isFalse();
+        assertThat(profile(follower).path("isFollowing").asBoolean()).isFalse();
     }
 
     @Test
@@ -212,7 +225,7 @@ class ProfilePrivacyIT extends IntegrationTest {
         JsonNode forStranger = ok(api.get("/api/v1/gigs/" + gig, stranger));
         assertThat(forStranger.path("postsCount").asLong()).isEqualTo(3);
         assertThat(forStranger.path("privatePostsCount").asLong()).isEqualTo(2);
-        for (TestApi.User insider : List.of(friend, owner)) {
+        for (TestApi.User insider : List.of(follower, owner)) {
             JsonNode detail = ok(api.get("/api/v1/gigs/" + gig, insider));
             assertThat(detail.path("postsCount").asLong()).isEqualTo(3);
             assertThat(detail.path("privatePostsCount").asLong()).isZero();
@@ -223,12 +236,12 @@ class ProfilePrivacyIT extends IntegrationTest {
     void blocksStillWinAndTheSwitchCanBeTurnedBack() {
         makePrivate();
 
-        // The owner blocks the friend: no profile at all (as before), and the block ended the follow.
-        api.put("/api/v1/users/" + friend.id() + "/block", null, owner);
-        assertProblem(api.get("/api/v1/users/" + owner.handle(), friend), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
-        api.delete("/api/v1/users/" + friend.id() + "/block", owner);
-        assertThat(profile(friend).path("contentVisible").asBoolean()).isFalse();
-        assertProblem(api.get("/api/v1/posts/" + ownerClip1, friend), HttpStatus.NOT_FOUND, "POST_NOT_FOUND");
+        // The owner blocks the follower: no profile at all (as before), and the block ended the follow.
+        api.put("/api/v1/users/" + follower.id() + "/block", null, owner);
+        assertProblem(api.get("/api/v1/users/" + owner.handle(), follower), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
+        api.delete("/api/v1/users/" + follower.id() + "/block", owner);
+        assertThat(profile(follower).path("contentVisible").asBoolean()).isFalse();
+        assertProblem(api.get("/api/v1/posts/" + ownerClip1, follower), HttpStatus.NOT_FOUND, "POST_NOT_FOUND");
 
         // Public again: everyone sees everything, the stranger's gig page has nothing hidden.
         ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PUBLIC"), owner));
