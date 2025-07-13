@@ -1,34 +1,29 @@
-import { StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 
+import markDark from '../../../assets/mark.png';
+import markLight from '../../../assets/mark-light.png';
+
 import { Text } from './Text';
 
-/** Bar heights of the mark, as a share of its size: a level meter caught mid-song. */
-const BARS = [0.45, 0.85, 0.6, 1, 0.7];
-
 /**
- * The Soundcheck mark and name: five meter bars in the two accent colours beside the name
- * in the display face. Drawn with views, so it needs no image and follows the theme.
+ * The Soundcheck mark and name: the mic-check mark (a tick whose long arm is a microphone) beside
+ * the name in the display face. The mark is the same drawing as the app icon, rendered by
+ * `ops/scripts/make_icons.py` in each palette's accents, so the light theme gets its darker violet and
+ * cyan. Screen readers hear one heading, "Soundcheck".
  */
 export function Wordmark({ size = 26 }: { size?: number }) {
-  const { colors } = useTheme();
-  const bar = Math.max(3, Math.round(size / 7));
+  const { scheme } = useTheme();
+  const mark = Math.round(size * 1.15);
   return (
-    <View style={styles.row} accessibilityRole="header" accessibilityLabel="Soundcheck">
-      <View style={[styles.mark, { height: size, gap: Math.max(2, bar / 2) }]}>
-        {BARS.map((height, i) => (
-          <View
-            key={i}
-            style={{
-              width: bar,
-              height: size * height,
-              borderRadius: bar / 2,
-              backgroundColor: i % 2 === 0 ? colors.accent : colors.accent2,
-            }}
-          />
-        ))}
-      </View>
+    <View style={styles.row} accessible accessibilityRole="header" accessibilityLabel="Soundcheck">
+      <Image
+        source={scheme === 'dark' ? markDark : markLight}
+        style={{ width: mark, height: mark }}
+        accessible={false}
+        testID="wordmark-mark"
+      />
       <Text
         variant="title"
         style={{ fontSize: size, lineHeight: size * 1.2, fontWeight: '700', letterSpacing: -0.5 }}
@@ -40,6 +35,5 @@ export function Wordmark({ size = 26 }: { size?: number }) {
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  mark: { flexDirection: 'row', alignItems: 'flex-end' },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
 });

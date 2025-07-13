@@ -36,11 +36,12 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     'expo-secure-store',
     'expo-font',
     [
-      // The five-bar mark (ops/scripts/make_icons.py → splash-icon.png) on the Electric theme's
-      // background, light or dark as the phone is; the root layout hides it once the app is ready.
+      // The mic-check mark (ops/scripts/make_icons.py → splash-icon*.png) on the Electric
+      // theme's background, in that palette's colours, light or dark as the phone is; the root layout
+      // hides it once the app is ready.
       'expo-splash-screen',
       {
-        image: './assets/splash-icon.png',
+        image: './assets/splash-icon-light.png',
         imageWidth: 160,
         resizeMode: 'contain',
         backgroundColor: '#F7F6FB',
