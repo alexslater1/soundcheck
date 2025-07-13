@@ -47,7 +47,8 @@ export const listNotificationsResponse = zod.object({
   "postId": zod.string().uuid().nullish(),
   "postThumbUrl": zod.string().nullish(),
   "read": zod.boolean(),
-  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS'])
+  "requestPending": zod.boolean().nullish(),
+  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS', 'FOLLOW_REQUEST', 'FOLLOW_ACCEPTED'])
 })),
   "nextCursor": zod.string().nullish(),
   "unreadCount": zod.number()
@@ -96,7 +97,8 @@ export const getNotificationResponse = zod.object({
   "postId": zod.string().uuid().nullish(),
   "postThumbUrl": zod.string().nullish(),
   "read": zod.boolean(),
-  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS'])
+  "requestPending": zod.boolean().nullish(),
+  "type": zod.enum(['NEW_FOLLOWER', 'POST_LIKED', 'POST_COMMENTED', 'POST_READY', 'POST_FAILED', 'NEW_GIGS', 'FOLLOW_REQUEST', 'FOLLOW_ACCEPTED'])
 })
 
 /**

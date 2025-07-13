@@ -176,6 +176,54 @@ describe('ActivityScreen', () => {
   });
 });
 
+describe('ActivityScreen follow requests', () => {
+  const request = (requestPending: boolean) => ({
+    id: 'r1',
+    type: 'FOLLOW_REQUEST',
+    actor: maya,
+    requestPending,
+    createdAt: minutesAgo(5),
+    read: false,
+  });
+
+  it('accepts a waiting request, says so at once, and marks the entry read', async () => {
+    server([request(true)]);
+    await render(<ActivityScreen />, { wrapper: Providers });
+
+    expect(await screen.findByText('@maya asked to follow you')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByLabelText("Accept @maya's follow request"));
+
+    expect(await screen.findByTestId('follow-request-answer')).toHaveTextContent('Accepted');
+    const urls = posts().map(([url]) => String(url));
+    expect(urls).toContain('http://localhost:8088/api/v1/me/follow-requests/u1/accept');
+    await waitFor(() =>
+      expect(posts().map(([url]) => String(url))).toContain(
+        'http://localhost:8088/api/v1/notifications/r1/read',
+      ),
+    );
+    expect(mockPush).not.toHaveBeenCalled();
+  });
+
+  it('declines a waiting request', async () => {
+    server([request(true)]);
+    await render(<ActivityScreen />, { wrapper: Providers });
+
+    await fireEvent.press(await screen.findByLabelText("Decline @maya's follow request"));
+
+    expect(await screen.findByTestId('follow-request-answer')).toHaveTextContent('Declined');
+    const decline = fetchMock.mock.calls.find(([, init]) => init?.method === 'DELETE');
+    expect(String(decline?.[0])).toBe('http://localhost:8088/api/v1/me/follow-requests/u1');
+  });
+
+  it('offers no buttons once the request has been answered elsewhere', async () => {
+    server([request(false)]);
+    await render(<ActivityScreen />, { wrapper: Providers });
+
+    expect(await screen.findByText('@maya asked to follow you')).toBeOnTheScreen();
+    expect(screen.queryByTestId('follow-request-accept')).toBeNull();
+  });
+});
+
 describe('withEntryRead', () => {
   it('marks the entry read and counts one fewer, never below zero', () => {
     const inbox = {

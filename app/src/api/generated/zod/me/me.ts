@@ -197,6 +197,7 @@ export const getUserByHandleResponse = zod.object({
   "id": zod.string().uuid(),
   "isBlocked": zod.boolean(),
   "isFollowing": zod.boolean(),
+  "isRequested": zod.boolean().describe('The viewer has asked to follow this private profile and is waiting'),
   "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE'])
 })
 

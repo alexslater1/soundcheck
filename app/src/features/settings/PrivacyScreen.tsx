@@ -41,8 +41,9 @@ const NOTICE: { title: string; body: string }[] = [
 ];
 
 /**
- * Settings → Privacy: who sees your profile. Public (the default): everyone signed in sees
- * your clips, gig stats and gig history. Private: only the people you follow do; everyone else sees your
+ * Settings → Privacy: who sees your profile. Public (the default): everyone signed in sees your
+ * clips, gig stats and gig history. Private: only your followers do, and new followers need your
+ * OK (a follow request in Activity); everyone else sees your name and picture, and a gig page
  * counts your clips without showing them. One switch for everything (it replaced a stats-only
  * setting). The choice shows at once, one save at a time, and is put back if saving fails. Then the
  * privacy notice.
@@ -93,7 +94,7 @@ export function PrivacyScreen() {
             onPress={() => void choose('PUBLIC')}
           />
           <Chip
-            label="People I follow"
+            label="My followers"
             selected={visibility === 'PRIVATE'}
             disabled={saving}
             onPress={() => void choose('PRIVATE')}
@@ -101,8 +102,8 @@ export function PrivacyScreen() {
         </View>
         <Text variant="caption" muted testID="privacy-profile-detail">
           {visibility === 'PRIVATE'
-            ? 'Only people you follow see your clips, your gig stats and the gigs you went to. Everyone else sees your name and picture, and your clips stay out of their feeds. A gig page still counts your clips, without showing them or your name.'
-            : 'Anyone signed in sees your clips, your gig stats and the gigs you went to (they show where you were and when). People you block never do.'}
+            ? 'Only your followers see your clips, your gig stats, the gigs you went to and who you follow. New followers need your OK: their requests show in Activity. The people who already follow you stay; remove anyone from your Followers list. Everyone else sees your name and picture, and a gig page counts your clips without showing them or your name. Switching back to Everyone accepts the requests still waiting.'
+            : 'Anyone signed in sees your clips, your gig stats and the gigs you went to (they show where you were and when), and anyone can follow you. People you block never see anything.'}
         </Text>
         {failed ? (
           <Text variant="caption" style={{ color: colors.danger }} testID="privacy-error">

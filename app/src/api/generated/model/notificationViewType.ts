@@ -17,4 +17,6 @@ export const NotificationViewType = {
   POST_READY: 'POST_READY',
   POST_FAILED: 'POST_FAILED',
   NEW_GIGS: 'NEW_GIGS',
+  FOLLOW_REQUEST: 'FOLLOW_REQUEST',
+  FOLLOW_ACCEPTED: 'FOLLOW_ACCEPTED',
 } as const;

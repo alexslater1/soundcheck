@@ -12,6 +12,7 @@ import type { NotificationViewGigs } from './notificationViewGigs';
 import type { NotificationViewLikeCount } from './notificationViewLikeCount';
 import type { NotificationViewPostId } from './notificationViewPostId';
 import type { NotificationViewPostThumbUrl } from './notificationViewPostThumbUrl';
+import type { NotificationViewRequestPending } from './notificationViewRequestPending';
 import type { NotificationViewType } from './notificationViewType';
 
 export interface NotificationView {
@@ -25,5 +26,6 @@ export interface NotificationView {
   postId?: NotificationViewPostId;
   postThumbUrl?: NotificationViewPostThumbUrl;
   read: boolean;
+  requestPending?: NotificationViewRequestPending;
   type: NotificationViewType;
 }

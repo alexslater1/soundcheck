@@ -45,7 +45,7 @@ describe('PrivacyScreen (one switch for the whole profile)', () => {
     useAuthStore.setState({ me: me as never, reloadMe });
   });
 
-  it('starts public and makes the profile private when People I follow is picked', async () => {
+  it('starts public and makes the profile private when My followers is picked', async () => {
     fetchMock.mockResolvedValue(
       new Response(JSON.stringify({ ...me, profileVisibility: 'PRIVATE' }), {
         status: 200,
@@ -59,10 +59,10 @@ describe('PrivacyScreen (one switch for the whole profile)', () => {
     await render(<PrivacyScreen />, { wrapper: Providers });
     expect(detail()).toHaveTextContent(/Anyone signed in sees your clips/);
 
-    await fireEvent.press(screen.getByText('People I follow'));
+    await fireEvent.press(screen.getByText('My followers'));
 
     await waitFor(() => expect(reloadMe).toHaveBeenCalled());
-    expect(detail()).toHaveTextContent(/Only people you follow/);
+    expect(detail()).toHaveTextContent(/Only your followers see/);
     const [url, init] = fetchMock.mock.calls[0]!;
     expect(String(url)).toContain('/api/v1/me');
     expect(init?.method).toBe('PATCH');
@@ -86,11 +86,11 @@ describe('PrivacyScreen (one switch for the whole profile)', () => {
     fetchMock.mockReturnValueOnce(new Promise<Response>((resolve) => (finish = resolve)));
     await render(<PrivacyScreen />, { wrapper: Providers });
 
-    await fireEvent.press(screen.getByText('People I follow'));
+    await fireEvent.press(screen.getByText('My followers'));
     await fireEvent.press(screen.getByText('Everyone'));
 
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(detail()).toHaveTextContent(/Only people you follow/);
+    expect(detail()).toHaveTextContent(/Only your followers see/);
     await act(async () =>
       finish(
         new Response(JSON.stringify({ ...me, profileVisibility: 'PRIVATE' }), {
@@ -111,7 +111,7 @@ describe('PrivacyScreen (one switch for the whole profile)', () => {
     );
     await render(<PrivacyScreen />, { wrapper: Providers });
 
-    await fireEvent.press(screen.getByText('People I follow'));
+    await fireEvent.press(screen.getByText('My followers'));
 
     await waitFor(() => expect(screen.getByTestId('privacy-error')).toBeOnTheScreen());
     expect(detail()).toHaveTextContent(/Anyone signed in sees your clips/);

@@ -26,8 +26,8 @@ import { UserGigs } from './UserGigs';
 /**
  * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, then three tabs
  * (H26): their clips, their gigs (Going and Went) and their gig stats. A private profile
- * whose owner does not follow the viewer shows only the header (name, picture, counts) and says
- * it is private; its clips, gigs and stats are not even asked for.
+ * is private; its clips, gigs and stats are not even asked for. Following it sends a request
+ * (Requested).
  */
 export function ProfileScreen({ handle }: { handle: string }) {
   const client = useQueryClient();
@@ -83,10 +83,12 @@ export function ProfileScreen({ handle }: { handle: string }) {
                 />
               ) : (
                 <FollowUserButton
-                  key={`${user.id}-${user.isFollowing}`}
+                  key={`${user.id}-${user.isFollowing}-${user.isRequested}`}
                   userId={user.id}
                   handle={user.handle}
                   isFollowing={user.isFollowing}
+                  isRequested={user.isRequested}
+                  isPrivate={user.profileVisibility === 'PRIVATE'}
                   onChange={() => void refresh()}
                 />
               )}
@@ -117,9 +119,10 @@ export function ProfileScreen({ handle }: { handle: string }) {
           <View style={styles.private} testID="profile-private">
             <Ionicons name="lock-closed-outline" size={28} color={colors.textMuted} />
             <Text variant="title">This profile is private</Text>
-            <Text muted style={styles.privateText}>
-              Only people @{user.handle} follows see their clips, their gigs, their gig stats and
-              who they follow.
+            <Text muted style={styles.privateText} testID="profile-private-detail">
+              {user.isRequested
+                ? `You asked to follow @${user.handle}. Once they accept, you'll see their clips, their gigs, their gig stats and who they follow.`
+                : `Only @${user.handle}'s followers see their clips, their gigs, their gig stats and who they follow. Follow to ask them.`}
             </Text>
           </View>
         ) : (
