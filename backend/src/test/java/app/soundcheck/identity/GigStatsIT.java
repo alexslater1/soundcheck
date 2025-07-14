@@ -220,10 +220,9 @@ class GigStatsIT extends IntegrationTest {
     }
 
     /**
-     * D25b replaced G23's per-stats opt-in: stats are visible like the rest of a profile, to
-     * everyone on a public profile (the default) and, on a private one, to the people its owner follows.
-     * This test asserted the old opt-in ("hidden until the owner shares them"); it now asserts the rule
-     * that replaced it, with the same block cases.
+     * Stats are visible like the rest of a profile: to everyone on a public profile (the default) and,
+     * on a private one, to its followers. This test once asserted an older per-stats opt-in ("hidden until
+     * the owner shares them"); it now asserts the rule that replaced it, with the same block cases.
      */
     @Test
     void statsFollowTheProfilesVisibilityAndBlocks() {
@@ -243,7 +242,7 @@ class GigStatsIT extends IntegrationTest {
         assertThat(cardinalsGigs.path("items").path(1).path("myAttendance").isNull())
                 .isTrue();
 
-        // Private: hidden from someone the owner does not follow, never from the owner.
+        // Private: hidden from someone who does not follow the owner, never from the owner.
         JsonNode me = ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PRIVATE"), fan));
         assertThat(me.path("profileVisibility").asText("")).isEqualTo("PRIVATE");
         assertThat(contentVisible(other)).isFalse();
@@ -257,8 +256,18 @@ class GigStatsIT extends IntegrationTest {
                         .asText(""))
                 .isEqualTo("PRIVATE");
 
-        // The owner follows the viewer: a private profile shows them everything.
+        // The owner following the viewer gives nothing; the viewer asking does not either, until
+        // the owner accepts: then a private profile shows them everything.
         api.put("/api/v1/users/" + other.id() + "/follow", null, fan);
+        assertThat(contentVisible(other)).isFalse();
+        assertThat(ok(api.put("/api/v1/users/" + fan.id() + "/follow", null, other))
+                        .path("state")
+                        .asText(""))
+                .isEqualTo("REQUESTED");
+        assertThat(contentVisible(other)).isFalse();
+        assertThat(api.post("/api/v1/me/follow-requests/" + other.id() + "/accept", null, fan)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(contentVisible(other)).isTrue();
         assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
                 .isEqualTo(4);

@@ -79,8 +79,10 @@ public class CandidateRepository {
      * keeps all its sources (they explain it later).
      *
      * <p>Every branch applies the same filters: a servable post (the view), not the viewer's own, no
-     * block with its author, not hidden by the viewer, and not by a private profile unless its owner
-     * follows the viewer (the view's {@code author_private} and {@code follow_edge}).
+     * block with its author, not hidden by the viewer, and not by a private profile unless the viewer
+     * follows it (the view's {@code author_private} and {@code follow_edge}). This is social's
+     * {@code ProfileAccess} rule in SQL, so candidates come from one statement; {@code
+     * PrivateAuthorCandidatesIT} holds the two to the same answers.
      */
     public List<Candidate> candidates(UserContext viewer, RankingConfig.Params params, Instant now) {
         // Engagement per post over the last week, and over the last 48 hours.
@@ -96,8 +98,8 @@ public class CandidateRepository {
                         .isFalse()
                         .or(DSL.exists(DSL.selectOne()
                                 .from(FOLLOW_EDGE)
-                                .where(FOLLOW_EDGE.FOLLOWER_ID.eq(POST_CANDIDATE.AUTHOR_ID))
-                                .and(FOLLOW_EDGE.FOLLOWEE_ID.eq(viewer.userId())))));
+                                .where(FOLLOW_EDGE.FOLLOWER_ID.eq(viewer.userId()))
+                                .and(FOLLOW_EDGE.FOLLOWEE_ID.eq(POST_CANDIDATE.AUTHOR_ID)))));
 
         List<Select<Record5<UUID, UUID, UUID, OffsetDateTime, String>>> generators = new ArrayList<>();
 

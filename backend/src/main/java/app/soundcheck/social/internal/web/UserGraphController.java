@@ -5,6 +5,7 @@ import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Page;
 import app.soundcheck.social.internal.UserGraphService;
+import app.soundcheck.social.internal.UserGraphService.FollowState;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
@@ -22,7 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-/** User follows, follower lists and blocks. */
+/** User follows, follower lists and blocks, and follow requests. */
 @ConditionalOnRole(Roles.API)
 @RestController
 @RequestMapping("/api/v1/users/{id}")
@@ -37,14 +38,15 @@ public class UserGraphController {
     }
 
     @PutMapping("/follow")
-    @Operation(operationId = "followUser", summary = "Follow a user (idempotent)")
-    public ResponseEntity<Void> follow(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        graph.follow(userId(jwt), id);
-        return ResponseEntity.noContent().build();
+    @Operation(
+            operationId = "followUser",
+            summary = "Follow a user (idempotent); a private profile gets a follow request instead")
+    public FollowResponse follow(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        return new FollowResponse(graph.follow(userId(jwt), id));
     }
 
     @DeleteMapping("/follow")
-    @Operation(operationId = "unfollowUser", summary = "Unfollow a user (idempotent)")
+    @Operation(operationId = "unfollowUser", summary = "Unfollow a user, or cancel a follow request (idempotent)")
     public ResponseEntity<Void> unfollow(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
         graph.unfollow(userId(jwt), id);
         return ResponseEntity.noContent().build();
@@ -83,6 +85,9 @@ public class UserGraphController {
         graph.unblock(userId(jwt), id);
         return ResponseEntity.noContent().build();
     }
+
+    /** FOLLOWING: the viewer follows the user now; REQUESTED: the private profile's owner was asked. */
+    public record FollowResponse(FollowState state) {}
 
     static UUID userId(Jwt jwt) {
         return UUID.fromString(jwt.getSubject());

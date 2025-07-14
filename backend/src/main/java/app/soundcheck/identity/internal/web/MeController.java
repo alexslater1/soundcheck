@@ -115,7 +115,7 @@ public class MeController {
             @Schema(nullable = true) UUID avatarMediaId,
 
             /**
-             * Who may see this profile's posts, gig stats and gig history; null leaves
+             * Who may see this profile's posts, gig stats and gig history (everyone, or followers only); null leaves
              * it as it is.
              */
             @Schema(nullable = true) ProfileVisibility profileVisibility) {}
@@ -179,11 +179,11 @@ public class MeController {
     }
 
     /**
-     * Someone's profile: no email, role or onboarding state. {@code isFollowing} and {@code isBlocked}
-     * are the viewer's own relation to this user (a profile whose owner blocked the viewer is a 404).
-     * {@code contentVisible}: the viewer may load this user's posts, gig stats and gig history. A
-     * private profile whose owner does not follow the viewer shows only its name, avatar and counts: bio
-     * and home city are left out too.
+     * Someone's profile: no email, role or onboarding state. {@code isFollowing}, {@code isRequested} and
+     * {@code isBlocked} are the viewer's own relation to this user (a profile whose owner blocked the
+     * viewer is a 404). {@code contentVisible}: the viewer may load this user's posts, gig stats and gig
+     * history. A private profile the viewer does not follow shows only its name, avatar and
+     * counts: bio and home city are left out too.
      */
     public record ProfileResponse(
             UUID id,
@@ -194,6 +194,8 @@ public class MeController {
             @Schema(nullable = true) String homeCityName,
             Counts counts,
             boolean isFollowing,
+            @Schema(description = "The viewer has asked to follow this private profile and is waiting")
+                    boolean isRequested,
             boolean isBlocked,
             ProfileVisibility profileVisibility,
             boolean contentVisible) {
@@ -211,6 +213,7 @@ public class MeController {
                     limited || m.homeCity() == null ? null : m.homeCity().name(),
                     Counts.from(m.counts()),
                     profile.relation().following(),
+                    profile.relation().requested(),
                     profile.relation().blocked(),
                     u.profileVisibility(),
                     profile.contentVisible());

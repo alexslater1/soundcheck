@@ -195,7 +195,7 @@ export function MeScreen() {
             <Link href="/settings/privacy" testID="me-stats-privacy">
               <Text variant="caption" muted>
                 {me.profileVisibility === 'PRIVATE'
-                  ? 'Your profile is private: only people you follow see your clips and stats. Change →'
+                  ? 'Your profile is private: only your followers see your clips and stats. Change →'
                   : 'Your profile is public: anyone signed in sees your clips and stats. Change →'}
               </Text>
             </Link>

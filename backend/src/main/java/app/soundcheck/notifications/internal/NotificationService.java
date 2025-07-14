@@ -9,6 +9,7 @@ import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.social.NewGigsFound;
+import app.soundcheck.social.SocialGraph;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -18,6 +19,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
@@ -35,7 +37,10 @@ public class NotificationService {
     static final int DEFAULT_LIMIT = 20;
     static final int MAX_LIMIT = 50;
 
-    /** One entry of the inbox. {@code likeCount} is set for POST_LIKED: how many likes the post has now. */
+    /**
+     * One entry of the inbox. {@code likeCount} is set for POST_LIKED: how many likes the post has now;
+     * {@code requestPending} for FOLLOW_REQUEST.
+     */
     public record NotificationView(
             UUID id,
             @Schema(
@@ -45,7 +50,9 @@ public class NotificationService {
                                 "POST_COMMENTED",
                                 "POST_READY",
                                 "POST_FAILED",
-                                "NEW_GIGS"
+                                "NEW_GIGS",
+                                "FOLLOW_REQUEST",
+                                "FOLLOW_ACCEPTED"
                             })
                     String type,
             @Schema(nullable = true) UserSummary actor,
@@ -57,6 +64,11 @@ public class NotificationService {
             @Schema(nullable = true) List<AlertedGigView> gigs,
             /** NEW_GIGS: how many new gigs there were in all. */
             @Schema(nullable = true) Integer gigCount,
+            /**
+             * FOLLOW_REQUEST: the request is still waiting for an answer, so Activity shows Accept and Decline
+             *. False for a moment after an answer, until its event has updated the entry.
+             */
+            @Schema(nullable = true) Boolean requestPending,
             Instant createdAt,
             boolean read) {}
 
@@ -83,14 +95,21 @@ public class NotificationService {
     private final NotificationRepository notifications;
     private final Users users;
     private final PostLookup posts;
+    private final SocialGraph social;
     private final JsonMapper json;
     private final Clock clock;
 
     NotificationService(
-            NotificationRepository notifications, Users users, PostLookup posts, JsonMapper json, Clock clock) {
+            NotificationRepository notifications,
+            Users users,
+            PostLookup posts,
+            SocialGraph social,
+            JsonMapper json,
+            Clock clock) {
         this.notifications = notifications;
         this.users = users;
         this.posts = posts;
+        this.social = social;
         this.json = json;
         this.clock = clock;
     }
@@ -135,6 +154,16 @@ public class NotificationService {
                 new Row(alert.alertId(), alert.userId(), "NEW_GIGS", null, null, null, alert.at(), null, snapshot));
     }
 
+    /** The owner accepted, so their request entry becomes "started following you" (read). */
+    void requestAccepted(UUID ownerId, UUID requesterId) {
+        notifications.requestAccepted(ownerId, requesterId, Instant.now(clock));
+    }
+
+    /** A request declined or cancelled leaves nothing to answer in the owner's inbox. */
+    void requestWithdrawn(UUID ownerId, UUID requesterId) {
+        notifications.deleteRequest(ownerId, requesterId);
+    }
+
     /** A block makes two people invisible to each other, in the inbox too. */
     void forgetBetween(UUID a, UUID b) {
         notifications.deleteBetween(a, b);
@@ -173,6 +202,17 @@ public class NotificationService {
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList());
+        // Every row of one inbox belongs to one user, so one query answers which requests still wait.
+        List<Row> requests =
+                shown.stream().filter(r -> r.type().equals("FOLLOW_REQUEST")).toList();
+        Set<UUID> waiting = requests.isEmpty()
+                ? Set.of()
+                : social.requestersAmong(
+                        requests.getFirst().userId(),
+                        requests.stream()
+                                .map(Row::actorId)
+                                .filter(Objects::nonNull)
+                                .toList());
         return shown.stream()
                 .map(row -> {
                     PostBrief post = row.postId() == null ? null : briefs.get(row.postId());
@@ -192,6 +232,7 @@ public class NotificationService {
                             row.type().equals("POST_LIKED") && post != null ? post.likeCount() : null,
                             gigs == null ? null : gigs.items(),
                             gigs == null ? null : gigs.total(),
+                            row.type().equals("FOLLOW_REQUEST") ? waiting.contains(row.actorId()) : null,
                             row.createdAt(),
                             row.readAt() != null);
                 })

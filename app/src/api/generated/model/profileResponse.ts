@@ -22,5 +22,7 @@ export interface ProfileResponse {
   id: string;
   isBlocked: boolean;
   isFollowing: boolean;
+  /** The viewer has asked to follow this private profile and is waiting */
+  isRequested: boolean;
   profileVisibility: ProfileResponseProfileVisibility;
 }

@@ -25,6 +25,27 @@ export const followArtistParams = zod.object({
 })
 
 /**
+ * @summary Decline a follow request (idempotent; not told)
+ */
+export const declineFollowRequestParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+/**
+ * @summary Accept a follow request: the user follows you from now on and is told; 404 if there is none
+ */
+export const acceptFollowRequestParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+/**
+ * @summary Remove someone from your followers without blocking them (idempotent; not told)
+ */
+export const removeFollowerParams = zod.object({
+  "userId": zod.string().uuid()
+})
+
+/**
  * @summary Unblock a user (idempotent)
  */
 export const unblockUserParams = zod.object({
@@ -39,17 +60,21 @@ export const blockUserParams = zod.object({
 })
 
 /**
- * @summary Unfollow a user (idempotent)
+ * @summary Unfollow a user, or cancel a follow request (idempotent)
  */
 export const unfollowUserParams = zod.object({
   "id": zod.string().uuid()
 })
 
 /**
- * @summary Follow a user (idempotent)
+ * @summary Follow a user (idempotent); a private profile gets a follow request instead
  */
 export const followUserParams = zod.object({
   "id": zod.string().uuid()
+})
+
+export const followUserResponse = zod.object({
+  "state": zod.enum(['FOLLOWING', 'REQUESTED'])
 })
 
 /**

@@ -3,6 +3,7 @@ package app.soundcheck.identity.internal;
 import app.soundcheck.catalog.City;
 import app.soundcheck.catalog.ReferenceData;
 import app.soundcheck.identity.ProfileFacts;
+import app.soundcheck.identity.ProfileMadePublic;
 import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.identity.UserDeleted;
 import app.soundcheck.identity.UserSummary;
@@ -46,8 +47,8 @@ public class MeService {
 
     /**
      * Someone's profile as a particular viewer sees it. {@code contentVisible}: the viewer may see the
-     * owner's posts, gig stats and gig history (D25b, {@link #contentVisible}); {@code privateHidden}: the
-     * profile is private and its owner does not follow the viewer, so only name, avatar and counts show.
+     * owner's posts, gig stats and gig history ({@link #contentVisible}); {@code privateHidden}: the
+     * profile is private and the viewer does not follow it, so only name, avatar and counts show.
      */
     public record Profile(Me user, ProfileFacts.Relation relation, boolean contentVisible, boolean privateHidden) {}
 
@@ -131,9 +132,9 @@ public class MeService {
     }
 
     /**
-     * A profile's posts, gig stats and gig history: always to their owner; to anyone else
-     * only with no block either way, and, for a private profile, only to someone the owner follows. (A
-     * profile whose owner blocked the viewer is not shown at all; this also covers the viewer's own block.)
+     * A profile's posts, gig stats and gig history: always to their owner; to anyone else only
+     * with no block either way, and, for a private profile, only to its followers. (A profile whose owner
+     * blocked the viewer is not shown at all; this also covers the viewer's own block.)
      */
     static boolean contentVisible(UUID viewerId, UserRecord owner, ProfileFacts.Relation relation) {
         if (viewerId.equals(owner.id())) {
@@ -142,12 +143,15 @@ public class MeService {
         if (relation.blocked() || relation.blockedBy()) {
             return false;
         }
-        return !owner.privateProfile() || relation.followedBy();
+        return !relation.hiddenByPrivacy();
     }
 
-    /** True when the profile is private and the viewer is not someone its owner follows (nor the owner). */
+    /**
+     * True when the profile is private and the viewer is neither its owner nor a follower. The rule itself
+     * is social's {@code ProfileAccess}, reached through {@link ProfileFacts}.
+     */
     static boolean hiddenByPrivacy(UUID viewerId, UserRecord owner, ProfileFacts.Relation relation) {
-        return !viewerId.equals(owner.id()) && owner.privateProfile() && !relation.followedBy();
+        return !viewerId.equals(owner.id()) && relation.hiddenByPrivacy();
     }
 
     public Me update(
@@ -199,6 +203,9 @@ public class MeService {
         }
         if (profileVisibility != null) {
             users.setProfileVisibility(userId, profileVisibility, Instant.now(clock));
+            if (user.privateProfile() && profileVisibility == ProfileVisibility.PUBLIC) {
+                events.publishEvent(new ProfileMadePublic(userId)); // social accepts waiting requests
+            }
         }
         return me(userId);
     }

@@ -16,6 +16,7 @@ import { relativeTime, relativeTimeLabel, useNow } from '@/lib/relativeTime';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
+import { FollowRequestActions } from './FollowRequestActions';
 import { notificationTarget, notificationText } from './notificationText';
 import { useMarkOpened } from './openNotification';
 
@@ -23,6 +24,7 @@ import { useMarkOpened } from './openNotification';
  * Activity tab: the notification inbox. It is fetched when the tab gets focus (polling on focus is
  * enough, no push). Tapping an entry opens what it is about and marks that entry read; "Mark all as
  * read" reads up to the newest entry shown. Each entry says how long ago it happened.
+ * A follow request waiting for an answer has Accept and Decline.
  */
 export function ActivityScreen() {
   const { colors } = useTheme();
@@ -82,8 +84,8 @@ export function ActivityScreen() {
         </View>
         {items.length === 0 ? (
           <Text muted testID="activity-empty">
-            Nothing yet. Likes, comments, new followers and new gigs from the acts, venues and
-            searches you follow show up here.
+            Nothing yet. Likes, comments, new followers, follow requests and new gigs from the acts,
+            venues and searches you follow show up here.
           </Text>
         ) : (
           items.map((notification) => {
@@ -108,7 +110,15 @@ export function ActivityScreen() {
                 ]}
                 testID="notification"
               >
-                <Text style={styles.text}>{text}</Text>
+                <View style={styles.body}>
+                  <Text>{text}</Text>
+                  {notification.type === 'FOLLOW_REQUEST' ? (
+                    <FollowRequestActions
+                      notification={notification}
+                      onAnswered={() => markOpened(notification)}
+                    />
+                  ) : null}
+                </View>
                 <Text variant="caption" muted testID="notification-time">
                   {relativeTime(notification.createdAt, now)}
                 </Text>
@@ -141,6 +151,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
   },
-  text: { flex: 1 },
+  body: { flex: 1, gap: spacing.sm },
   dot: { width: 10, height: 10, borderRadius: radius.pill },
 });

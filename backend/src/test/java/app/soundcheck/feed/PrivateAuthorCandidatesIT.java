@@ -23,9 +23,10 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * D25b in the For You candidates, which read posts through the feed's own views, not
- * through the content module: a private profile's posts are candidates only for the people its owner
- * follows. Following a private profile gives nothing; being followed by it does.
+ * Private profiles in the For You candidates, which read posts through the feed's own views, not through
+ * the content module: a private profile's posts are candidates only for its followers. Being followed by
+ * it gives nothing; a waiting follow request gives nothing until it is accepted.
+ * This is the SQL form of social's {@code ProfileAccess}, so it must give the same answers.
  */
 class PrivateAuthorCandidatesIT extends IntegrationTest {
 
@@ -54,25 +55,33 @@ class PrivateAuthorCandidatesIT extends IntegrationTest {
     MutableClock clock;
 
     @Test
-    void aPrivateAuthorsPostsReachOnlyThePeopleTheAuthorFollows() {
+    void aPrivateAuthorsPostsReachOnlyItsFollowers() {
         TestApi api = new TestApi(rest);
         TestData data = new TestData(catalogIngest, dsl, tx, events);
         TestApi.User author = api.register("private");
+        TestApi.User follower = api.register("follower");
         TestApi.User viewer = api.register("viewer");
         TestApi.User publicAuthor = api.register("public");
-        // The viewer follows both, so both would be FOLLOWING candidates (and fresh ones FRESH).
-        api.put("/api/v1/users/" + author.id() + "/follow", null, viewer);
+        // The follower follows the author while it is public, so stays a follower.
+        api.put("/api/v1/users/" + author.id() + "/follow", null, follower);
+        // The viewer follows only the public author; the private author follows the viewer (which gives
+        // the viewer nothing).
         api.put("/api/v1/users/" + publicAuthor.id() + "/follow", null, viewer);
+        api.put("/api/v1/users/" + viewer.id() + "/follow", null, author);
         UUID privatePost = post(api, data, author);
         UUID publicPost = post(api, data, publicAuthor);
 
         assertThat(candidateIds(viewer)).contains(privatePost, publicPost);
+        assertThat(candidateIds(follower)).contains(privatePost, publicPost);
 
         api.patch("/api/v1/me", Map.of("profileVisibility", "PRIVATE"), author);
         assertThat(candidateIds(viewer)).contains(publicPost).doesNotContain(privatePost);
+        assertThat(candidateIds(follower)).contains(privatePost, publicPost);
 
-        // The private author follows the viewer: the viewer is in its circle.
-        api.put("/api/v1/users/" + viewer.id() + "/follow", null, author);
+        // A request is not a follow; accepted, it is.
+        api.put("/api/v1/users/" + author.id() + "/follow", null, viewer);
+        assertThat(candidateIds(viewer)).doesNotContain(privatePost);
+        api.post("/api/v1/me/follow-requests/" + viewer.id() + "/accept", null, author);
         assertThat(candidateIds(viewer)).contains(privatePost, publicPost);
     }
 

@@ -112,16 +112,16 @@ test('Stats from Went gigs, the gigs behind a line, sharing, and the act bar on 
   await expect(gigs).toContainText(`Scala ${tag}`);
   await page.goBack();
 
-  // A public profile (the default, D25b) shows them to anyone signed in; a private one only to the
-  // people its owner follows.
+  // A public profile (the default) shows them to anyone signed in; a private one only to its
+  // followers.
   const other = await register(request, 'viewer');
   expect(
     (await request.get(`/api/v1/users/${fan.id}/stats`, { headers: other.auth })).status(),
   ).toBe(200);
   await page.getByTestId('me-stats-privacy').last().click();
-  await page.getByRole('radio', { name: 'People I follow' }).last().click();
+  await page.getByRole('radio', { name: 'My followers' }).last().click();
   await expect(page.getByTestId('privacy-profile-detail').last()).toContainText(
-    'Only people you follow',
+    'Only your followers see',
   );
   await expect
     .poll(async () =>

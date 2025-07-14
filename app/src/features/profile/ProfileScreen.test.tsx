@@ -54,13 +54,14 @@ const profile = {
   bio: null,
   homeCityName: null,
   counts: { posts: 4, followers: 10, following: 3 },
-  isFollowing: true,
+  isFollowing: false,
+  isRequested: false,
   isBlocked: false,
   profileVisibility: 'PRIVATE',
   contentVisible: false,
 };
 
-describe('ProfileScreen (D25b private profiles)', () => {
+describe('ProfileScreen (private profiles)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useAuthStore.setState({ me: { id: 'user-1' } as never });
@@ -72,7 +73,9 @@ describe('ProfileScreen (D25b private profiles)', () => {
     await render(<ProfileScreen handle="ben" />, { wrapper: Providers });
 
     expect(screen.getByTestId('profile-private')).toHaveTextContent(/This profile is private/);
-    expect(screen.getByTestId('profile-private')).toHaveTextContent(/Only people @ben follows/);
+    expect(screen.getByTestId('profile-private')).toHaveTextContent(
+      /Only @ben's followers see their clips/,
+    );
     expect(screen.getByText('4')).toBeTruthy(); // the posts count still shows
     expect(mockPosts).not.toHaveBeenCalled();
     expect(mockStats).not.toHaveBeenCalled();
@@ -84,6 +87,15 @@ describe('ProfileScreen (D25b private profiles)', () => {
     expect(screen.getByTestId('following-count')).toHaveTextContent('3');
     expect(screen.queryByRole('link', { name: '10 followers' })).toBeNull();
     expect(screen.queryByRole('link', { name: '3 following' })).toBeNull();
+  });
+
+  it('says the request is waiting after the viewer asked to follow', async () => {
+    mockProfile.mockReturnValue({ isPending: false, data: { ...profile, isRequested: true } });
+    await render(<ProfileScreen handle="ben" />, { wrapper: Providers });
+
+    expect(screen.getByTestId('profile-private-detail')).toHaveTextContent(
+      /You asked to follow @ben. Once they accept/,
+    );
   });
 
   it('shows the clips, gigs and stats in three tabs when the viewer may see them', async () => {

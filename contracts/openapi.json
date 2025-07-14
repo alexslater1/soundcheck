@@ -529,6 +529,16 @@
         "required" : [ "position", "post", "reasons" ],
         "type" : "object"
       },
+      "FollowResponse" : {
+        "properties" : {
+          "state" : {
+            "enum" : [ "FOLLOWING", "REQUESTED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "state" ],
+        "type" : "object"
+      },
       "FoundOnRequest" : {
         "properties" : {
           "artistMbid" : {
@@ -1054,8 +1064,11 @@
           "read" : {
             "type" : "boolean"
           },
+          "requestPending" : {
+            "type" : [ "boolean", "null" ]
+          },
           "type" : {
-            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "NEW_GIGS" ],
+            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "NEW_GIGS", "FOLLOW_REQUEST", "FOLLOW_ACCEPTED" ],
             "type" : "string"
           }
         },
@@ -1372,12 +1385,16 @@
           "isFollowing" : {
             "type" : "boolean"
           },
+          "isRequested" : {
+            "description" : "The viewer has asked to follow this private profile and is waiting",
+            "type" : "boolean"
+          },
           "profileVisibility" : {
             "enum" : [ "PUBLIC", "PRIVATE" ],
             "type" : "string"
           }
         },
-        "required" : [ "contentVisible", "counts", "displayName", "handle", "id", "isBlocked", "isFollowing", "profileVisibility" ],
+        "required" : [ "contentVisible", "counts", "displayName", "handle", "id", "isBlocked", "isFollowing", "isRequested", "profileVisibility" ],
         "type" : "object"
       },
       "ReadRequest" : {
@@ -3213,6 +3230,69 @@
         "tags" : [ "me" ]
       }
     },
+    "/api/v1/me/follow-requests/{userId}" : {
+      "delete" : {
+        "operationId" : "declineFollowRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Decline a follow request (idempotent; not told)",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/me/follow-requests/{userId}/accept" : {
+      "post" : {
+        "operationId" : "acceptFollowRequest",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Accept a follow request: the user follows you from now on and is told; 404 if there is none",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/me/followers/{userId}" : {
+      "delete" : {
+        "operationId" : "removeFollower",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "userId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Remove someone from your followers without blocking them (idempotent; not told)",
+        "tags" : [ "social" ]
+      }
+    },
     "/api/v1/me/genres" : {
       "put" : {
         "operationId" : "setMyGenres",
@@ -4238,7 +4318,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Unfollow a user (idempotent)",
+        "summary" : "Unfollow a user, or cancel a follow request (idempotent)",
         "tags" : [ "social" ]
       },
       "put" : {
@@ -4254,10 +4334,17 @@
         } ],
         "responses" : {
           "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FollowResponse"
+                }
+              }
+            },
             "description" : "OK"
           }
         },
-        "summary" : "Follow a user (idempotent)",
+        "summary" : "Follow a user (idempotent); a private profile gets a follow request instead",
         "tags" : [ "social" ]
       }
     },

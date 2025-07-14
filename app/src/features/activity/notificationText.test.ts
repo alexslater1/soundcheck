@@ -21,6 +21,19 @@ describe('notificationText', () => {
     );
   });
 
+  it('names the actor for follow requests and accepted requests', () => {
+    expect(notificationText({ ...base, type: 'FOLLOW_REQUEST', requestPending: true })).toBe(
+      '@fan_one asked to follow you',
+    );
+    expect(notificationText({ ...base, type: 'FOLLOW_ACCEPTED' })).toBe(
+      '@fan_one accepted your follow request',
+    );
+    expect(notificationTarget({ ...base, type: 'FOLLOW_REQUEST' })).toEqual({
+      pathname: '/u/[handle]',
+      params: { handle: 'fan_one' },
+    });
+  });
+
   it('counts the other likers of a collapsed like', () => {
     expect(notificationText({ ...base, type: 'POST_LIKED', postId: 'p1', likeCount: 2 })).toBe(
       '@fan_one and 1 other liked your clip',

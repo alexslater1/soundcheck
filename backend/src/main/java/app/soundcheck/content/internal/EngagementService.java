@@ -227,7 +227,7 @@ public class EngagementService implements PostHides {
      * The post, if the actor may see it: published, its author's account still live (a deleted
      * account's posts are gone at once), no block between the actor and the author
      * (one cannot like or comment on a blocker's posts; to them the post does not exist), and
-     * not a private profile's post whose owner does not follow the actor.
+     * not a private profile's post when the actor does not follow it.
      */
     private PostRow visible(UUID actorId, UUID postId) {
         return findVisible(actorId, postId).orElseThrow(PostService::notFound);

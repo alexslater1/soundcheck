@@ -59,10 +59,10 @@ class SocialGraphApiIT extends IntegrationTest {
 
     @Test
     void followingIsIdempotentAndShowsInCountsListsAndNextToPosts() {
-        assertThat(follow(bob, alice)).isEqualTo(HttpStatus.NO_CONTENT);
-        assertThat(follow(bob, alice)).isEqualTo(HttpStatus.NO_CONTENT); // again: nothing changes
-        assertThat(follow(carol, alice)).isEqualTo(HttpStatus.NO_CONTENT);
-        assertThat(follow(alice, carol)).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(follow(bob, alice)).isEqualTo("FOLLOWING");
+        assertThat(follow(bob, alice)).isEqualTo("FOLLOWING"); // again: nothing changes
+        assertThat(follow(carol, alice)).isEqualTo("FOLLOWING");
+        assertThat(follow(alice, carol)).isEqualTo("FOLLOWING");
         assertThat(dsl.fetchCount(dsl.selectFrom("social.user_follow").where("followee_id = ?", alice.id())))
                 .isEqualTo(2);
 
@@ -227,7 +227,7 @@ class SocialGraphApiIT extends IntegrationTest {
         assertThat(again.path("counts").path("followers").asInt()).isZero();
         assertThat(api.put("/api/v1/posts/" + alicePost + "/like", null, bob).getStatusCode())
                 .isEqualTo(HttpStatus.OK);
-        assertThat(follow(bob, alice)).isEqualTo(HttpStatus.NO_CONTENT);
+        assertThat(follow(bob, alice)).isEqualTo("FOLLOWING");
 
         // Not possible: yourself, or someone who does not exist.
         assertThat(api.put("/api/v1/users/" + alice.id() + "/block", null, alice)
@@ -242,9 +242,15 @@ class SocialGraphApiIT extends IntegrationTest {
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
-    private HttpStatus follow(TestApi.User follower, TestApi.User followee) {
-        return (HttpStatus) api.put("/api/v1/users/" + followee.id() + "/follow", null, follower)
-                .getStatusCode();
+    /**
+     * Follows and returns what the API said: "FOLLOWING" (200: the follow endpoint answers with
+     * the state since follow requests; it was 204 before), or the error status.
+     */
+    private String follow(TestApi.User follower, TestApi.User followee) {
+        ResponseEntity<JsonNode> response = api.put("/api/v1/users/" + followee.id() + "/follow", null, follower);
+        return response.getStatusCode() == HttpStatus.OK
+                ? response.getBody().path("state").asText("")
+                : response.getStatusCode().toString();
     }
 
     private JsonNode profile(TestApi.User of, TestApi.User viewer) {

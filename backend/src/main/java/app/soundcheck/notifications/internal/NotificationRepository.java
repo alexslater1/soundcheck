@@ -54,7 +54,8 @@ class NotificationRepository {
     /**
      * Adds a notification, unless a unique index says this event is already in the inbox (V012, V013):
      * one unread POST_LIKED per (user, post) and one unread NEW_FOLLOWER per (user, follower), so repeats
-     * collapse; one POST_COMMENTED per comment and one POST_READY / POST_FAILED per post, ever. A NEW_GIGS
+     * collapse; one POST_COMMENTED per comment and one POST_READY / POST_FAILED per post, ever; one FOLLOW_REQUEST
+     * per (owner, requester) and one unread FOLLOW_ACCEPTED per (requester, owner) (V091). A NEW_GIGS
      * row's id is its alert's id (the primary key). That makes the listeners safe to run twice for one
      * event.
      *
@@ -87,6 +88,30 @@ class NotificationRepository {
                 .orderBy(NOTIFICATION.CREATED_AT.desc(), NOTIFICATION.ID.desc())
                 .limit(limit + 1)
                 .fetch(NotificationRepository::toRow);
+    }
+
+    /**
+     * The owner's entry for a follow request they accepted becomes "started following you",
+     * read: they have just answered it, so it should not count as news. Read, it cannot clash with the
+     * one-unread-NEW_FOLLOWER index. Expected index: notification_follow_request.
+     */
+    int requestAccepted(UUID ownerId, UUID requesterId, Instant now) {
+        return dsl.update(NOTIFICATION)
+                .set(NOTIFICATION.TYPE, "NEW_FOLLOWER")
+                .set(NOTIFICATION.READ_AT, DSL.coalesce(NOTIFICATION.READ_AT, DSL.val(at(now))))
+                .where(NOTIFICATION.USER_ID.eq(ownerId))
+                .and(NOTIFICATION.ACTOR_ID.eq(requesterId))
+                .and(NOTIFICATION.TYPE.eq("FOLLOW_REQUEST"))
+                .execute();
+    }
+
+    /** The owner's entry for a request that was declined or cancelled. Expected index: notification_follow_request. */
+    int deleteRequest(UUID ownerId, UUID requesterId) {
+        return dsl.deleteFrom(NOTIFICATION)
+                .where(NOTIFICATION.USER_ID.eq(ownerId))
+                .and(NOTIFICATION.ACTOR_ID.eq(requesterId))
+                .and(NOTIFICATION.TYPE.eq("FOLLOW_REQUEST"))
+                .execute();
     }
 
     /** Removes what the two users' inboxes say about each other (one has blocked the other). */

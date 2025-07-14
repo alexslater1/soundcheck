@@ -25,6 +25,7 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  FollowResponse,
   ListFollowersParams,
   ListFollowingParams,
   PageUserSummary
@@ -178,6 +179,216 @@ export const useFollowArtist = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
+ * @summary Decline a follow request (idempotent; not told)
+ */
+export const getDeclineFollowRequestUrl = (userId: string,) => {
+
+
+  
+
+  return `/api/v1/me/follow-requests/${userId}`
+}
+
+export const declineFollowRequest = async (userId: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getDeclineFollowRequestUrl(userId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeclineFollowRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['declineFollowRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof declineFollowRequest>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  declineFollowRequest(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeclineFollowRequestMutationResult = NonNullable<Awaited<ReturnType<typeof declineFollowRequest>>>
+    
+    export type DeclineFollowRequestMutationError = unknown
+
+    /**
+ * @summary Decline a follow request (idempotent; not told)
+ */
+export const useDeclineFollowRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof declineFollowRequest>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof declineFollowRequest>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeclineFollowRequestMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Accept a follow request: the user follows you from now on and is told; 404 if there is none
+ */
+export const getAcceptFollowRequestUrl = (userId: string,) => {
+
+
+  
+
+  return `/api/v1/me/follow-requests/${userId}/accept`
+}
+
+export const acceptFollowRequest = async (userId: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getAcceptFollowRequestUrl(userId),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAcceptFollowRequestMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptFollowRequest>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof acceptFollowRequest>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['acceptFollowRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof acceptFollowRequest>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  acceptFollowRequest(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AcceptFollowRequestMutationResult = NonNullable<Awaited<ReturnType<typeof acceptFollowRequest>>>
+    
+    export type AcceptFollowRequestMutationError = unknown
+
+    /**
+ * @summary Accept a follow request: the user follows you from now on and is told; 404 if there is none
+ */
+export const useAcceptFollowRequest = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof acceptFollowRequest>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof acceptFollowRequest>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getAcceptFollowRequestMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Remove someone from your followers without blocking them (idempotent; not told)
+ */
+export const getRemoveFollowerUrl = (userId: string,) => {
+
+
+  
+
+  return `/api/v1/me/followers/${userId}`
+}
+
+export const removeFollower = async (userId: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getRemoveFollowerUrl(userId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getRemoveFollowerMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeFollower>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeFollower>>, TError,{userId: string}, TContext> => {
+
+const mutationKey = ['removeFollower'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeFollower>>, {userId: string}> = (props) => {
+          const {userId} = props ?? {};
+
+          return  removeFollower(userId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveFollowerMutationResult = NonNullable<Awaited<ReturnType<typeof removeFollower>>>
+    
+    export type RemoveFollowerMutationError = unknown
+
+    /**
+ * @summary Remove someone from your followers without blocking them (idempotent; not told)
+ */
+export const useRemoveFollower = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeFollower>>, TError,{userId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removeFollower>>,
+        TError,
+        {userId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRemoveFollowerMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Unblock a user (idempotent)
  */
 export const getUnblockUserUrl = (id: string,) => {
@@ -318,7 +529,7 @@ export const useBlockUser = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
- * @summary Unfollow a user (idempotent)
+ * @summary Unfollow a user, or cancel a follow request (idempotent)
  */
 export const getUnfollowUserUrl = (id: string,) => {
 
@@ -372,7 +583,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type UnfollowUserMutationError = unknown
 
     /**
- * @summary Unfollow a user (idempotent)
+ * @summary Unfollow a user, or cancel a follow request (idempotent)
  */
 export const useUnfollowUser = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof unfollowUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -388,7 +599,7 @@ export const useUnfollowUser = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
- * @summary Follow a user (idempotent)
+ * @summary Follow a user (idempotent); a private profile gets a follow request instead
  */
 export const getFollowUserUrl = (id: string,) => {
 
@@ -398,9 +609,9 @@ export const getFollowUserUrl = (id: string,) => {
   return `/api/v1/users/${id}/follow`
 }
 
-export const followUser = async (id: string, options?: RequestInit): Promise<void> => {
+export const followUser = async (id: string, options?: RequestInit): Promise<FollowResponse> => {
   
-  return customFetch<void>(getFollowUserUrl(id),
+  return customFetch<FollowResponse>(getFollowUserUrl(id),
   {      
     ...options,
     method: 'PUT'
@@ -442,7 +653,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type FollowUserMutationError = unknown
 
     /**
- * @summary Follow a user (idempotent)
+ * @summary Follow a user (idempotent); a private profile gets a follow request instead
  */
 export const useFollowUser = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof followUser>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}

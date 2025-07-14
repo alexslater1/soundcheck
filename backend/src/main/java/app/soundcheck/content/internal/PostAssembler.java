@@ -51,7 +51,7 @@ class PostAssembler {
     /**
      * Posts in the order of {@code rows}. Left out: a post whose author's account is gone, a post by
      * someone with a block between them and the viewer (blocks are enforced in reads), and a
-     * post by a private profile whose owner does not follow the viewer (D25b, {@link AuthorVisibility}).
+     * post by a private profile the viewer does not follow ({@link AuthorVisibility}).
      */
     List<Post> assemble(UUID viewerId, List<PostRow> rows) {
         if (rows.isEmpty()) {

@@ -59,7 +59,7 @@ public class ProfileStatsService {
 
     /**
      * 404 when there is no such live user or they blocked the viewer (as for the profile itself);
-     * 403 {@code PROFILE_PRIVATE} when the profile is private and its owner does not follow the viewer
+     * 403 {@code PROFILE_PRIVATE} when the profile is private and the viewer does not follow it
      *; 403 {@code STATS_HIDDEN} when the viewer has blocked the owner.
      */
     private void requireVisible(UUID viewerId, UUID userId) {

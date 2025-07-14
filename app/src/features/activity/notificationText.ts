@@ -22,6 +22,10 @@ export function notificationText(notification: NotificationView): string {
       return 'Your clip could not be processed';
     case 'NEW_GIGS':
       return newGigsText(notification);
+    case 'FOLLOW_REQUEST':
+      return `${who} asked to follow you`;
+    case 'FOLLOW_ACCEPTED':
+      return `${who} accepted your follow request`;
   }
 }
 
@@ -39,7 +43,7 @@ function newGigsText(notification: NotificationView): string {
 
 /**
  * Where tapping a notification goes: a new-gig alert's list of gigs, the post it is about, or the
- * follower's profile.
+ * profile of the person who did it (a follower, someone asking to follow, someone who accepted).
  */
 export function notificationTarget(
   notification: NotificationView,
