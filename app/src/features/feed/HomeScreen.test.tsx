@@ -22,6 +22,19 @@ function mockFeed(name: 'forYou' | 'following') {
 
 jest.mock('./ForYouFeed', () => ({ ForYouFeed: mockFeed('forYou') }));
 jest.mock('./FollowingFeed', () => ({ FollowingFeed: mockFeed('following') }));
+const mockSearchMounts = { count: 0 };
+jest.mock('@/features/search/SearchScreen', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    SearchScreen: function Search() {
+      React.useEffect(() => {
+        mockSearchMounts.count += 1;
+      }, []);
+      return React.createElement(Text, null, 'search box');
+    },
+  };
+});
 const mockReselect: (() => void)[] = [];
 jest.mock('@/lib/useTabReselect', () => ({
   useTabReselect: (callback: () => void) => {
@@ -82,5 +95,30 @@ describe('HomeScreen', () => {
     await act(async () => mockReselect[0]?.());
     expect(mockLast.following?.refreshToken).toBe(2);
     expect(mockLast.forYou?.refreshToken).toBe(1);
+  });
+
+  it('opens Search as a third layer that keeps its state and holds the feeds still', async () => {
+    mockSearchMounts.count = 0;
+    await render(
+      <ThemeProvider>
+        <HomeScreen />
+      </ThemeProvider>,
+    );
+    // Not mounted until it is first opened.
+    expect(screen.queryByText('search box', { includeHiddenElements: true })).toBeNull();
+
+    await fireEvent.press(screen.getByText('Search'));
+    expect(screen.getByText('search box')).toBeTruthy();
+    expect(screen.getByTestId('feed-layer-search').props.pointerEvents).toBe('auto');
+    // The feed under it is hidden, so it holds no players.
+    expect(mockLast.forYou?.visible).toBe(false);
+
+    await fireEvent.press(screen.getByText('For You'));
+    await fireEvent.press(screen.getByText('Search'));
+    // Pressing Search again refreshes nothing, and the box was never mounted twice.
+    await fireEvent.press(screen.getByText('Search'));
+    await act(async () => mockReselect[0]?.());
+    expect(mockSearchMounts.count).toBe(1);
+    expect(mockLast.forYou?.refreshToken).toBe(0);
   });
 });

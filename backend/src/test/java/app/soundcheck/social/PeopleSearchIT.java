@@ -48,12 +48,15 @@ class PeopleSearchIT extends IntegrationTest {
         TestApi.User blocker = person(word + "_d", "Blocks You");
         TestApi.User blocked = person(word + "_e", "Blocked By You");
 
+        // 2xx: a follow answers 204 today, and 200 with its state once follow requests land.
         assertThat(api.put("/api/v1/users/" + friend.id() + "/follow", null, viewer)
-                        .getStatusCode())
-                .isEqualTo(HttpStatus.NO_CONTENT);
+                        .getStatusCode()
+                        .is2xxSuccessful())
+                .isTrue();
         assertThat(api.put("/api/v1/users/" + viewer.id() + "/follow", null, fan)
-                        .getStatusCode())
-                .isEqualTo(HttpStatus.NO_CONTENT);
+                        .getStatusCode()
+                        .is2xxSuccessful())
+                .isTrue();
         assertThat(api.put("/api/v1/users/" + viewer.id() + "/block", null, blocker)
                         .getStatusCode())
                 .isEqualTo(HttpStatus.NO_CONTENT);
