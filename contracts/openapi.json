@@ -1245,6 +1245,19 @@
         "required" : [ "items", "itemsPerPage", "page", "total" ],
         "type" : "object"
       },
+      "PersonResult" : {
+        "properties" : {
+          "profileVisibility" : {
+            "enum" : [ "PUBLIC", "PRIVATE" ],
+            "type" : "string"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          }
+        },
+        "required" : [ "profileVisibility", "user" ],
+        "type" : "object"
+      },
       "Place" : {
         "properties" : {
           "cityId" : {
@@ -1574,9 +1587,16 @@
               "$ref" : "#/components/schemas/GigSummary"
             },
             "type" : "array"
+          },
+          "pastGigs" : {
+            "description" : "Gigs of the last 12 months, newest first; only with type pastGigs",
+            "items" : {
+              "$ref" : "#/components/schemas/GigSummary"
+            },
+            "type" : "array"
           }
         },
-        "required" : [ "artists", "gigs" ],
+        "required" : [ "artists", "gigs", "pastGigs" ],
         "type" : "object"
       },
       "Setlist" : {
@@ -4198,8 +4218,50 @@
             "description" : "OK"
           }
         },
-        "summary" : "Top results per type (artists, gigs; max 5 each)",
+        "summary" : "Top results per type (artists, gigs, pastGigs; max 5 each); artists and gigs by default",
         "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/search/people" : {
+      "get" : {
+        "operationId" : "searchPeople",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "q",
+          "required" : true,
+          "schema" : {
+            "maxLength" : 80,
+            "minLength" : 2,
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 10,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/PersonResult"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear",
+        "tags" : [ "social" ]
       }
     },
     "/api/v1/search/suggest" : {

@@ -28,7 +28,9 @@ import type {
   FollowResponse,
   ListFollowersParams,
   ListFollowingParams,
-  PageUserSummary
+  PageUserSummary,
+  PersonResult,
+  SearchPeopleParams
 } from '.././model';
 
 import { customFetch } from '../../http';
@@ -389,6 +391,108 @@ export const useRemoveFollower = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
+ * @summary People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear
+ */
+export const getSearchPeopleUrl = (params: SearchPeopleParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/search/people?${stringifiedParams}` : `/api/v1/search/people`
+}
+
+export const searchPeople = async (params: SearchPeopleParams, options?: RequestInit): Promise<PersonResult[]> => {
+  
+  return customFetch<PersonResult[]>(getSearchPeopleUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getSearchPeopleQueryKey = (params: SearchPeopleParams,) => {
+    return [`/api/v1/search/people`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getSearchPeopleQueryOptions = <TData = Awaited<ReturnType<typeof searchPeople>>, TError = unknown>(params: SearchPeopleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPeople>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchPeopleQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchPeople>>> = ({ signal }) => searchPeople(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchPeople>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type SearchPeopleQueryResult = NonNullable<Awaited<ReturnType<typeof searchPeople>>>
+export type SearchPeopleQueryError = unknown
+
+
+export function useSearchPeople<TData = Awaited<ReturnType<typeof searchPeople>>, TError = unknown>(
+ params: SearchPeopleParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPeople>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchPeople>>,
+          TError,
+          Awaited<ReturnType<typeof searchPeople>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchPeople<TData = Awaited<ReturnType<typeof searchPeople>>, TError = unknown>(
+ params: SearchPeopleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPeople>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof searchPeople>>,
+          TError,
+          Awaited<ReturnType<typeof searchPeople>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useSearchPeople<TData = Awaited<ReturnType<typeof searchPeople>>, TError = unknown>(
+ params: SearchPeopleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPeople>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear
+ */
+
+export function useSearchPeople<TData = Awaited<ReturnType<typeof searchPeople>>, TError = unknown>(
+ params: SearchPeopleParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof searchPeople>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getSearchPeopleQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
  * @summary Unblock a user (idempotent)
  */
 export const getUnblockUserUrl = (id: string,) => {

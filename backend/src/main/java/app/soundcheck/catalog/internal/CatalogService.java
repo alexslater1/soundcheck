@@ -46,6 +46,13 @@ public class CatalogService {
     public static final int MAX_RADIUS_KM = 200;
     static final Set<String> ATTENDANCE = Set.of("INTERESTED", "GOING", "WENT");
     static final int SEARCH_PER_TYPE = 5;
+
+    /**
+     * How far back the Search tab's past gigs go. The gig title has no text index, so the
+     * window bounds the scan, as "from now" bounds the upcoming one.
+     */
+    static final Duration PAST_SEARCH_WINDOW = Duration.ofDays(365);
+
     static final int ARTIST_UPCOMING_GIGS = 5;
 
     /** The longest window {@code GET /gigs/days} counts over (a little more than three months). */
@@ -126,8 +133,15 @@ public class CatalogService {
             boolean following,
             long followerCount) {}
 
-    /** {@code GET /search}: top results per requested type. */
-    public record SearchResults(List<ArtistSummary> artists, List<GigSummary> gigs) {}
+    /**
+     * {@code GET /search}: top results per requested type. People are searched in social and posts are
+     * listed per artist or venue in content, so {@code users} and {@code posts} stay empty.
+     */
+    public record SearchResults(
+            List<ArtistSummary> artists,
+            List<GigSummary> gigs,
+            @Schema(description = "Gigs of the last 12 months, newest first; only with type pastGigs")
+                    List<GigSummary> pastGigs) {}
 
     private final CatalogReadRepository repository;
     private final ViewerHome viewerHome;
@@ -486,34 +500,43 @@ public class CatalogService {
 
     // ── search ──────────────────────────────────────────────────────────────
 
-    /** Top five per type; gigs are upcoming ones, UK-wide, soonest first. */
+    /**
+     * Top five per type, UK-wide; {@code types} are lower case. Gigs are upcoming ones, soonest first;
+     * past gigs ({@code pastgigs}) are those of the last 12 months, newest first.
+     */
     public SearchResults search(UUID viewer, String q, Set<String> types, @Nullable GeoPoint here) {
         List<ArtistSummary> artists = types.contains("artists")
                 ? artistSummaries(viewer, repository.searchArtists(q, SEARCH_PER_TYPE))
                 : List.of();
-        List<GigSummary> gigs = List.of();
-        if (types.contains("gigs")) {
-            GeoPoint origin = distancesFrom(viewer, here);
-            gigs = page(
-                            viewer,
-                            new GigFilter(
-                                    origin,
-                                    null,
-                                    Instant.now(clock),
-                                    null,
-                                    null,
-                                    q,
-                                    null,
-                                    null,
-                                    null,
-                                    null,
-                                    false,
-                                    null,
-                                    SEARCH_PER_TYPE),
-                            origin)
-                    .items();
-        }
-        return new SearchResults(artists, gigs);
+        Instant now = Instant.now(clock);
+        GeoPoint origin = distancesFrom(viewer, here);
+        List<GigSummary> gigs = types.contains("gigs") ? searchGigs(viewer, q, now, null, false, origin) : List.of();
+        List<GigSummary> past = types.contains("pastgigs")
+                ? searchGigs(viewer, q, now.minus(PAST_SEARCH_WINDOW), now, true, origin)
+                : List.of();
+        return new SearchResults(artists, gigs, past);
+    }
+
+    private List<GigSummary> searchGigs(
+            UUID viewer, String q, Instant from, @Nullable Instant to, boolean newestFirst, GeoPoint origin) {
+        return page(
+                        viewer,
+                        new GigFilter(
+                                origin,
+                                null,
+                                from,
+                                to,
+                                null,
+                                q,
+                                null,
+                                null,
+                                null,
+                                null,
+                                newestFirst,
+                                null,
+                                SEARCH_PER_TYPE),
+                        origin)
+                .items();
     }
 
     // ── assembly ────────────────────────────────────────────────────────────

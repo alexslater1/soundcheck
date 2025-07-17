@@ -11,4 +11,6 @@ import type { GigSummary } from './gigSummary';
 export interface SearchResults {
   artists: ArtistSummary[];
   gigs: GigSummary[];
+  /** Gigs of the last 12 months, newest first; only with type pastGigs */
+  pastGigs: GigSummary[];
 }

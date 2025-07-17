@@ -544,6 +544,30 @@ class CatalogApiIT extends IntegrationTest {
         assertThat(api.get("/api/v1/search?q=", fan).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
+    /**
+     * The Search tab shows upcoming and past gigs as two groups. Past ones are the last 12
+     * months, newest first; without {@code pastGigs} in the types nothing changes for older callers.
+     */
+    @Test
+    void searchListsPastGigsNewestFirstWithinAYearApartFromUpcomingOnes() {
+        SourceVenue hall = venue("past", 64.40, -0.20);
+        Instant now = Instant.now().truncatedTo(ChronoUnit.HOURS);
+        gig("soon", base, hall, "Pastsearch Act");
+        gig("lastweek", now.minus(Duration.ofDays(7)), hall, "Pastsearch Act");
+        gig("lastmonth", now.minus(Duration.ofDays(30)), hall, "Pastsearch Act");
+        gig("twoyears", now.minus(Duration.ofDays(730)), hall, "Pastsearch Act");
+        String q = "pastsearch act " + tag;
+
+        JsonNode split = ok(api.get("/api/v1/search?types=gigs,pastGigs&q=" + q, fan));
+        assertThat(listed(split.path("gigs"))).containsExactly("soon " + tag);
+        assertThat(listed(split.path("pastGigs"))).containsExactly("lastweek " + tag, "lastmonth " + tag);
+        assertThat(split.path("artists").size()).isZero();
+
+        JsonNode byDefault = ok(api.get("/api/v1/search?q=" + q, fan));
+        assertThat(listed(byDefault.path("gigs"))).containsExactly("soon " + tag);
+        assertThat(byDefault.path("pastGigs").size()).isZero();
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     @Test
@@ -636,6 +660,11 @@ class CatalogApiIT extends IntegrationTest {
                 .as(String.valueOf(response.getBody()))
                 .isEqualTo(HttpStatus.OK);
         return response.getBody();
+    }
+
+    /** The titles in a plain list of gigs (a search group). */
+    private static List<String> listed(JsonNode gigs) {
+        return gigs.valueStream().map(gig -> gig.path("title").asText("")).toList();
     }
 
     private static List<String> titles(JsonNode page) {

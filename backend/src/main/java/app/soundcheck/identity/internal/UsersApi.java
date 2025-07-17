@@ -1,5 +1,6 @@
 package app.soundcheck.identity.internal;
 
+import app.soundcheck.identity.UserMatch;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.shared.media.PublicImages;
@@ -71,5 +72,12 @@ public class UsersApi implements Users {
     @Override
     public boolean exists(UUID userId) {
         return users.findById(userId).filter(u -> !u.deleted()).isPresent();
+    }
+
+    @Override
+    public List<UserMatch> search(String q, int limit) {
+        String text = q.strip();
+        text = (text.startsWith("@") ? text.substring(1) : text).strip().toLowerCase(Locale.ROOT);
+        return text.isEmpty() ? List.of() : users.search(text, limit);
     }
 }

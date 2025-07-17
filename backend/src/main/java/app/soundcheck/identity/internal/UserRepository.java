@@ -5,6 +5,7 @@ import static app.soundcheck.shared.jooq.identity.Tables.USER_GENRE_PREFERENCE;
 
 import app.soundcheck.catalog.GeoPoint;
 import app.soundcheck.identity.ProfileVisibility;
+import app.soundcheck.identity.UserMatch;
 import app.soundcheck.shared.web.ApiException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -16,7 +17,9 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
@@ -136,6 +139,37 @@ public class UserRepository {
                 .and(APP_USER.DELETED_AT.isNull())
                 .and(APP_USER.PROFILE_VISIBILITY.eq(ProfileVisibility.PRIVATE.name()))
                 .fetch(APP_USER.ID));
+    }
+
+    /**
+     * Live users whose handle starts with {@code text}, whose display name has a word that starts with it,
+     * or either of which is similar to it (pg_trgm word similarity), best tier first, then the most similar
+     *. {@code text} is lower case, without a leading {@code @}. Expected indexes:
+     * app_user_handle_trgm and app_user_display_name_trgm (V095), combined by a bitmap OR.
+     */
+    public List<UserMatch> search(String text, int limit) {
+        String escaped = DSL.escape(text, '!');
+        Field<String> handle = DSL.field("{0}::text", String.class, APP_USER.HANDLE);
+        Field<String> name = DSL.lower(APP_USER.DISPLAY_NAME);
+        Condition handleStarts = handle.like(escaped + "%", '!');
+        Condition wordStarts = name.like(escaped + "%", '!').or(name.like("% " + escaped + "%", '!'));
+        Field<Integer> tier = DSL.when(handle.eq(text).or(name.eq(text)), DSL.inline(0))
+                .when(handleStarts, DSL.inline(1))
+                .when(wordStarts, DSL.inline(2))
+                .otherwise(DSL.inline(3));
+        Field<Double> similarity = DSL.greatest(
+                DSL.field("word_similarity({0}, {1})", Double.class, DSL.val(text), handle),
+                DSL.field("word_similarity({0}, {1})", Double.class, DSL.val(text), name));
+        return dsl.select(APP_USER.ID, tier, similarity)
+                .from(APP_USER)
+                .where(APP_USER.DELETED_AT.isNull())
+                .and(handleStarts
+                        .or(wordStarts)
+                        .or(DSL.condition("{0} <% {1}", DSL.val(text), handle))
+                        .or(DSL.condition("{0} <% {1}", DSL.val(text), name)))
+                .orderBy(tier, similarity.desc(), APP_USER.HANDLE)
+                .limit(limit)
+                .fetch(r -> new UserMatch(r.value1(), r.value2(), r.value3()));
     }
 
     public boolean emailExists(String email) {
