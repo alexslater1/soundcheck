@@ -180,11 +180,24 @@ describe('SearchScreen', () => {
   it('shows three per group under All, and the rest under the group chip', async () => {
     mockAnswers.people = ok(['a1', 'a2', 'a3', 'a4', 'a5'].map((h) => person(h, h)));
     await show();
-    await type('al');
+    await type('ali');
     expect(screen.getAllByTestId('search-person')).toHaveLength(3);
     await fireEvent.press(screen.getByText('More'));
     expect(screen.getAllByTestId('search-person')).toHaveLength(5);
     expect(order()).toEqual(['people']);
+  });
+
+  it('asks for people only from the third letter, and says so under People', async () => {
+    mockAnswers.suggest = ok([artist('Jorja Smith')]);
+    await show();
+    await type('jo');
+    expect(mockAsked.people?.enabled).toBe(false);
+    expect(mockAsked.suggest?.enabled).toBe(true);
+    expect(order()).toEqual(['artists']); // the People group waits, silently, under All
+    await fireEvent.press(screen.getByText('People'));
+    expect(
+      within(screen.getByTestId('search-group-people')).getByText('Type three letters or more.'),
+    ).toBeTruthy();
   });
 
   it('says when nothing matches, and when the search failed', async () => {

@@ -112,7 +112,12 @@ class PeopleSearchIT extends IntegrationTest {
         JsonNode found = ok(api.get("/api/v1/search/people?q=" + word, viewer));
         assertThat(handles(found)).containsExactly(owner.handle());
         assertThat(found.path(0).path("profileVisibility").asText("")).isEqualTo("PRIVATE");
-        assertThat(api.get("/api/v1/search/people?q=a", viewer).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(api.get("/api/v1/search/people?q=ab", viewer).getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+        // Three characters with the @, two without it: too short for the index, so nobody.
+        assertThat(ok(api.get("/api/v1/search/people?q=@" + word.substring(0, 2), viewer))
+                        .size())
+                .isZero();
     }
 
     /** A new account with the given handle and display name. */

@@ -46,13 +46,13 @@ export function useSearchResults(query: ParsedQuery): SearchResults {
   const catalogWanted = query.ready && !query.peopleOnly;
   const gigsWanted = catalogWanted && origin.ready;
   const suggest = useSuggest({ q }, { query: { enabled: catalogWanted } });
-  const people = useSearchPeople({ q }, { query: { enabled: query.ready } });
+  const people = useSearchPeople({ q }, { query: { enabled: query.peopleReady } });
   const gigs = useSearch(
     { q, types: 'gigs,pastGigs', ...origin.params },
     { query: { enabled: gigsWanted } },
   );
   return {
-    people: stateOf(people, query.ready, (data) => data),
+    people: stateOf(people, query.peopleReady, (data) => data),
     artists: stateOf(suggest, catalogWanted, (data) => data.filter((s) => s.kind === 'ARTIST')),
     venues: stateOf(suggest, catalogWanted, (data) => data.filter((s) => s.kind === 'VENUE')),
     upcoming: stateOf(gigs, catalogWanted, (data) => data.gigs),
@@ -70,7 +70,22 @@ export function topNames(results: SearchResults): TopNames {
   };
 }
 
-/** Whether every group asked for has answered, and none has anything. */
+/** The groups among these that were asked: people wait for a third character. */
+export function asked(results: SearchResults, groups: Group[]): Group[] {
+  return groups.filter((g) => results[g].status !== 'idle');
+}
+
+/** Whether every group asked has answered, and none has anything. */
 export function nothingFound(results: SearchResults, groups: Group[]): boolean {
-  return groups.every((g) => results[g].status === 'done' && results[g].items.length === 0);
+  const shown = asked(results, groups);
+  return (
+    shown.length > 0 &&
+    shown.every((g) => results[g].status === 'done' && results[g].items.length === 0)
+  );
+}
+
+/** Whether every group asked has failed. */
+export function allFailed(results: SearchResults, groups: Group[]): boolean {
+  const shown = asked(results, groups);
+  return shown.length > 0 && shown.every((g) => results[g].status === 'error');
 }

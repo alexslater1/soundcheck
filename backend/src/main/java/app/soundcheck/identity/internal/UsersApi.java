@@ -22,6 +22,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class UsersApi implements Users {
 
+    /** The shortest text people search runs on: a handle's minimum, and a trigram's length. */
+    static final int MIN_SEARCH_LENGTH = 3;
+
     private final UserRepository users;
     private final PublicImages images;
 
@@ -78,6 +81,7 @@ public class UsersApi implements Users {
     public List<UserMatch> search(String q, int limit) {
         String text = q.strip();
         text = (text.startsWith("@") ? text.substring(1) : text).strip().toLowerCase(Locale.ROOT);
-        return text.isEmpty() ? List.of() : users.search(text, limit);
+        // Fewer than three characters hold no trigram, so the index could not narrow the match.
+        return text.length() < MIN_SEARCH_LENGTH ? List.of() : users.search(text, limit);
     }
 }

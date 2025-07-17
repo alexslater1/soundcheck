@@ -2,13 +2,28 @@ import { groupsToShow, normaliseName, parseQuery } from './searchQuery';
 
 describe('parseQuery', () => {
   it('trims, and searches from two characters', () => {
-    expect(parseQuery('  oasis ')).toEqual({ text: 'oasis', peopleOnly: false, ready: true });
-    expect(parseQuery('o')).toEqual({ text: 'o', peopleOnly: false, ready: false });
+    expect(parseQuery('  oasis ')).toEqual({
+      text: 'oasis',
+      peopleOnly: false,
+      ready: true,
+      peopleReady: true,
+    });
+    expect(parseQuery('o').ready).toBe(false);
+  });
+
+  it('asks for people only from three characters, as handles have', () => {
+    expect(parseQuery('jo')).toMatchObject({ ready: true, peopleReady: false });
+    expect(parseQuery('joe')).toMatchObject({ ready: true, peopleReady: true });
   });
 
   it('treats a leading @ as a handle: people only, sent without the @', () => {
-    expect(parseQuery('@alex_s')).toEqual({ text: 'alex_s', peopleOnly: true, ready: true });
-    expect(parseQuery('@a')).toEqual({ text: 'a', peopleOnly: true, ready: false });
+    expect(parseQuery('@alex_s')).toEqual({
+      text: 'alex_s',
+      peopleOnly: true,
+      ready: true,
+      peopleReady: true,
+    });
+    expect(parseQuery('@al')).toMatchObject({ text: 'al', peopleOnly: true, ready: false });
   });
 });
 

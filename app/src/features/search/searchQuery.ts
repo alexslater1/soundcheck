@@ -19,23 +19,37 @@ export const FILTER_LABELS: Record<Filter, string> = {
   gigs: 'Gigs',
 };
 
-/** Fewer characters than this ask nothing: one or two letters match half the catalog. */
+/** Fewer characters than this ask nothing: one letter matches half the catalog. */
 export const MIN_LENGTH = 2;
+
+/**
+ * People need one more: a handle has at least three, and the server's trigram index cannot narrow a
+ * match on fewer.
+ */
+export const MIN_PEOPLE_LENGTH = 3;
 
 export type ParsedQuery = {
   /** What to send: trimmed, without a leading @. */
   text: string;
   /** A leading @ means a handle: only people are searched. */
   peopleOnly: boolean;
-  /** Long enough to search. */
+  /** Long enough to search artists, venues and gigs. */
   ready: boolean;
+  /** Long enough to search people. */
+  peopleReady: boolean;
 };
 
 export function parseQuery(raw: string): ParsedQuery {
   const trimmed = raw.trim();
   const peopleOnly = trimmed.startsWith('@');
   const text = (peopleOnly ? trimmed.slice(1) : trimmed).trim();
-  return { text, peopleOnly, ready: text.length >= MIN_LENGTH };
+  const peopleReady = text.length >= MIN_PEOPLE_LENGTH;
+  return {
+    text,
+    peopleOnly,
+    ready: peopleOnly ? peopleReady : text.length >= MIN_LENGTH,
+    peopleReady,
+  };
 }
 
 /**

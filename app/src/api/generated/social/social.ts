@@ -391,7 +391,7 @@ export const useRemoveFollower = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
- * @summary People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear
+ * @summary People by handle or display name (a leading @ is ignored; at least 3 characters after it): the best match first, then people you follow, then your followers (max 10); blocked people never appear
  */
 export const getSearchPeopleUrl = (params: SearchPeopleParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -473,7 +473,7 @@ export function useSearchPeople<TData = Awaited<ReturnType<typeof searchPeople>>
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear
+ * @summary People by handle or display name (a leading @ is ignored; at least 3 characters after it): the best match first, then people you follow, then your followers (max 10); blocked people never appear
  */
 
 export function useSearchPeople<TData = Awaited<ReturnType<typeof searchPeople>>, TError = unknown>(

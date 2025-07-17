@@ -33,7 +33,7 @@ public interface Users {
 
     /**
      * Live users whose handle or display name matches {@code q} (a leading {@code @} is ignored), best
-     * match first, at most {@code limit}. Private profiles are included: they can be
+     * match first, at most {@code limit}; none for fewer than three characters. Private profiles are included: they can be
      * found, only their content is withheld.
      */
     List<UserMatch> search(String q, int limit);

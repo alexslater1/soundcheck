@@ -4231,7 +4231,7 @@
           "required" : true,
           "schema" : {
             "maxLength" : 80,
-            "minLength" : 2,
+            "minLength" : 3,
             "type" : "string"
           }
         }, {
@@ -4260,7 +4260,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear",
+        "summary" : "People by handle or display name (a leading @ is ignored; at least 3 characters after it): the best match first, then people you follow, then your followers (max 10); blocked people never appear",
         "tags" : [ "social" ]
       }
     },

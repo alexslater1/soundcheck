@@ -46,9 +46,9 @@ export const removeFollowerParams = zod.object({
 })
 
 /**
- * @summary People by handle or display name (a leading @ is ignored): the best match first, then people you follow, then your followers (max 10); blocked people never appear
+ * @summary People by handle or display name (a leading @ is ignored; at least 3 characters after it): the best match first, then people you follow, then your followers (max 10); blocked people never appear
  */
-export const searchPeopleQueryQMin = 2;
+export const searchPeopleQueryQMin = 3;
 
 export const searchPeopleQueryQMax = 80;
 export const searchPeopleQueryLimitMax = 10;

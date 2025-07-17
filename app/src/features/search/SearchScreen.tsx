@@ -23,7 +23,13 @@ import {
   type Filter,
   type Group,
 } from './searchQuery';
-import { nothingFound, topNames, useSearchResults, type GroupState } from './useSearchResults';
+import {
+  allFailed,
+  nothingFound,
+  topNames,
+  useSearchResults,
+  type GroupState,
+} from './useSearchResults';
 
 /** Under "All", each group shows this many; its "More" switches to the group's own chip. */
 const PREVIEW = 3;
@@ -108,7 +114,7 @@ export function SearchScreen() {
           title="Search Soundcheck"
           detail="Find people, artists, venues and gigs. Pick an artist or a venue to watch its clips. Start with @ to look for someone by their handle."
         />
-      ) : groups.every((g) => results[g].status === 'error') ? (
+      ) : allFailed(results, groups) ? (
         <StateMessage
           testID="search-error"
           title="Could not search"
@@ -131,8 +137,14 @@ export function SearchScreen() {
             const state: GroupState<unknown> = results[group];
             const preview = filter === 'all' && groups.length > 1;
             const more = preview && state.items.length > PREVIEW;
-            // Under "All" an empty group says nothing; under its own chip it says so.
-            if (preview && state.status === 'done' && state.items.length === 0) return null;
+            // Under "All" an empty group, or one not asked yet, says nothing; under its own chip it says so.
+            if (
+              preview &&
+              state.status !== 'loading' &&
+              state.status !== 'error' &&
+              state.items.length === 0
+            )
+              return null;
             return (
               <Section
                 key={group}
@@ -200,7 +212,11 @@ function Section({
           </Pressable>
         ) : null}
       </View>
-      {state.status === 'loading' ? (
+      {state.status === 'idle' ? (
+        <Text variant="caption" muted>
+          Type three letters or more.
+        </Text>
+      ) : state.status === 'loading' ? (
         <Skeleton height={touchTarget} />
       ) : state.status === 'error' ? (
         <Pressable accessibilityRole="button" onPress={state.retry}>

@@ -38,11 +38,12 @@ public class PeopleSearchController {
     @GetMapping("/api/v1/search/people")
     @Operation(
             operationId = "searchPeople",
-            summary = "People by handle or display name (a leading @ is ignored): the best match first, then "
-                    + "people you follow, then your followers (max 10); blocked people never appear")
+            summary = "People by handle or display name (a leading @ is ignored; at least 3 characters after it): "
+                    + "the best match first, then people you follow, then your followers (max 10); blocked "
+                    + "people never appear")
     public List<PersonResult> search(
             @AuthenticationPrincipal Jwt jwt,
-            @RequestParam @NotBlank @Size(min = 2, max = 80) String q,
+            @RequestParam @NotBlank @Size(min = 3, max = 80) String q,
             @RequestParam(required = false) @Min(1) @Max(PeopleSearchService.LIMIT) Integer limit) {
         return people.search(UUID.fromString(jwt.getSubject()), q, limit == null ? PeopleSearchService.LIMIT : limit);
     }
