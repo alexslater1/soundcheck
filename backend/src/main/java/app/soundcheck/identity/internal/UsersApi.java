@@ -1,5 +1,6 @@
 package app.soundcheck.identity.internal;
 
+import app.soundcheck.identity.UserMatch;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.shared.media.PublicImages;
@@ -20,6 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional(readOnly = true)
 public class UsersApi implements Users {
+
+    /** The shortest text people search runs on: a handle's minimum, and a trigram's length. */
+    static final int MIN_SEARCH_LENGTH = 3;
 
     private final UserRepository users;
     private final PublicImages images;
@@ -71,5 +75,13 @@ public class UsersApi implements Users {
     @Override
     public boolean exists(UUID userId) {
         return users.findById(userId).filter(u -> !u.deleted()).isPresent();
+    }
+
+    @Override
+    public List<UserMatch> search(String q, int limit) {
+        String text = q.strip();
+        text = (text.startsWith("@") ? text.substring(1) : text).strip().toLowerCase(Locale.ROOT);
+        // Fewer than three characters hold no trigram, so the index could not narrow the match.
+        return text.length() < MIN_SEARCH_LENGTH ? List.of() : users.search(text, limit);
     }
 }

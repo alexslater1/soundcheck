@@ -1,6 +1,7 @@
 package app.soundcheck.identity;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -29,4 +30,11 @@ public interface Users {
 
     /** True when the id belongs to a live (not deleted) account. */
     boolean exists(UUID userId);
+
+    /**
+     * Live users whose handle or display name matches {@code q} (a leading {@code @} is ignored), best
+     * match first, at most {@code limit}; none for fewer than three characters. Private profiles are included: they can be
+     * found, only their content is withheld.
+     */
+    List<UserMatch> search(String q, int limit);
 }

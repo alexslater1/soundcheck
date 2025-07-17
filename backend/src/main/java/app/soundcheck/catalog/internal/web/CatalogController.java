@@ -335,7 +335,9 @@ public class CatalogController {
     // ── search ──────────────────────────────────────────────────────────────
 
     @GetMapping("/search")
-    @Operation(operationId = "search", summary = "Top results per type (artists, gigs; max 5 each)")
+    @Operation(
+            operationId = "search",
+            summary = "Top results per type (artists, gigs, pastGigs; max 5 each); artists and gigs by default")
     public SearchResults search(
             @AuthenticationPrincipal Jwt jwt,
             @RequestParam @NotBlank @Size(max = 80) String q,
@@ -350,9 +352,10 @@ public class CatalogController {
                         .map(t -> t.strip().toLowerCase(Locale.ROOT))
                         .filter(t -> !t.isEmpty())
                         .collect(Collectors.toSet());
-        // users and posts are accepted as types but return nothing here.
-        if (!Set.of("artists", "gigs", "users", "posts").containsAll(wanted)) {
-            throw ApiException.badRequest("SEARCH_TYPE_UNKNOWN", "types may contain artists, gigs, users, posts");
+        // users and posts are accepted but return nothing: people and posts are searched elsewhere.
+        if (!Set.of("artists", "gigs", "pastgigs", "users", "posts").containsAll(wanted)) {
+            throw ApiException.badRequest(
+                    "SEARCH_TYPE_UNKNOWN", "types may contain artists, gigs, pastGigs, users, posts");
         }
         return catalog.search(userId(jwt), q, wanted, ViewerPosition.approximate(fromLat, fromLng));
     }

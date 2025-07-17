@@ -4,27 +4,33 @@ import { StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { SearchScreen } from '@/features/search/SearchScreen';
 import { useTabReselect } from '@/lib/useTabReselect';
 import { spacing } from '@/theme/tokens';
 
 import { FollowingFeed } from './FollowingFeed';
 import { ForYouFeed } from './ForYouFeed';
 
-type Tab = 'following' | 'forYou';
+type Tab = 'following' | 'forYou' | 'search';
 
 /**
- * Home: "For You | Following". Both feeds stay mounted once opened, one over the other,
- * so switching keeps each one's place and posts with no reload; the hidden one holds no
- * players. Pressing the open feed's chip again, or the Home tab while Home is showing, asks that feed
- * for fresh posts from the top (the web has no pull to refresh).
+ * Home: "For You | Following | Search". Both feeds stay mounted once opened, one over the
+ * other, so switching keeps each one's place and posts with no reload; the hidden one holds
+ * no players. Pressing the open feed's chip again, or the Home tab while Home is showing, asks that feed
+ * for fresh posts from the top (the web has no pull to refresh). Search is a third layer,
+ * mounted the first time it is opened, which keeps what was typed while the feeds are shown.
  */
 export function HomeScreen() {
   const [tab, setTab] = useState<Tab>('forYou');
   // Following is fetched the first time it is opened, not with every app start.
   const [followingOpened, setFollowingOpened] = useState(false);
+  const [searchOpened, setSearchOpened] = useState(false);
   const [refreshTokens, setRefreshTokens] = useState({ forYou: 0, following: 0 });
-  const refresh = (which: Tab) =>
-    setRefreshTokens((tokens) => ({ ...tokens, [which]: tokens[which] + 1 }));
+  const refresh = (which: Tab) => {
+    if (which !== 'search') {
+      setRefreshTokens((tokens) => ({ ...tokens, [which]: tokens[which] + 1 }));
+    }
+  };
   useTabReselect(() => refresh(tab));
 
   const choose = (which: Tab) => {
@@ -33,6 +39,9 @@ export function HomeScreen() {
     }
     if (which === 'following') {
       setFollowingOpened(true);
+    }
+    if (which === 'search') {
+      setSearchOpened(true);
     }
     setTab(which);
   };
@@ -49,6 +58,7 @@ export function HomeScreen() {
           selected={tab === 'following'}
           onPress={() => choose('following')}
         />
+        <Chip label="Search" selected={tab === 'search'} onPress={() => choose('search')} />
       </View>
       <View style={styles.feed}>
         <Layer shown={tab === 'forYou'} testID="feed-layer-for-you">
@@ -57,6 +67,11 @@ export function HomeScreen() {
         {followingOpened ? (
           <Layer shown={tab === 'following'} testID="feed-layer-following">
             <FollowingFeed refreshToken={refreshTokens.following} visible={tab === 'following'} />
+          </Layer>
+        ) : null}
+        {searchOpened ? (
+          <Layer shown={tab === 'search'} testID="feed-layer-search">
+            <SearchScreen />
           </Layer>
         ) : null}
       </View>

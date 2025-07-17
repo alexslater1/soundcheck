@@ -1412,7 +1412,7 @@ export function useListMyGigs<TData = Awaited<ReturnType<typeof listMyGigs>>, TE
 
 
 /**
- * @summary Top results per type (artists, gigs; max 5 each)
+ * @summary Top results per type (artists, gigs, pastGigs; max 5 each); artists and gigs by default
  */
 export const getSearchUrl = (params: SearchParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -1494,7 +1494,7 @@ export function useSearch<TData = Awaited<ReturnType<typeof search>>, TError = u
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary Top results per type (artists, gigs; max 5 each)
+ * @summary Top results per type (artists, gigs, pastGigs; max 5 each); artists and gigs by default
  */
 
 export function useSearch<TData = Awaited<ReturnType<typeof search>>, TError = unknown>(

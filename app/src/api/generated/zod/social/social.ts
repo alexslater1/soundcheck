@@ -46,6 +46,32 @@ export const removeFollowerParams = zod.object({
 })
 
 /**
+ * @summary People by handle or display name (a leading @ is ignored; at least 3 characters after it): the best match first, then people you follow, then your followers (max 10); blocked people never appear
+ */
+export const searchPeopleQueryQMin = 3;
+
+export const searchPeopleQueryQMax = 80;
+export const searchPeopleQueryLimitMax = 10;
+
+
+export const searchPeopleQueryParams = zod.object({
+  "q": zod.string().min(searchPeopleQueryQMin).max(searchPeopleQueryQMax),
+  "limit": zod.number().min(1).max(searchPeopleQueryLimitMax).optional()
+})
+
+export const searchPeopleResponseItem = zod.object({
+  "profileVisibility": zod.enum(['PUBLIC', 'PRIVATE']),
+  "user": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+})
+})
+export const searchPeopleResponse = zod.array(searchPeopleResponseItem)
+
+/**
  * @summary Unblock a user (idempotent)
  */
 export const unblockUserParams = zod.object({
