@@ -1,5 +1,27 @@
 import type { PickedVideo, UploadEntry } from './types';
-import { afterRestart, useUploadQueue } from './uploadQueue';
+import { afterRestart, upgraded, useUploadQueue } from './uploadQueue';
+
+describe('upgraded', () => {
+  it('turns a clip posted on its own into a post of one, its old key naming the post', () => {
+    const old = {
+      localId: 'u1',
+      postIdempotencyKey: 'old-key',
+      postId: 'p1',
+      draft: { caption: 'Encore', gigId: 'g1', artistIds: ['a1'] },
+    } as unknown as UploadEntry;
+
+    expect(upgraded(old)).toMatchObject({
+      attached: true,
+      clipId: null,
+      previewState: 'NONE',
+      draft: { groupKey: 'old-key', order: 0, caption: 'Encore', gigId: 'g1', joinPostId: null },
+    });
+    expect(upgraded({ ...old, postId: null, draft: null })).toMatchObject({
+      attached: false,
+      draft: null,
+    });
+  });
+});
 
 const video: PickedVideo = {
   uri: 'file:///clip.mp4',

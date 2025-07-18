@@ -2,9 +2,11 @@ import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
 import {
   forgetPost,
+  makePreview,
   pruneFinished,
   removeUpload,
   resumeProcessing,
+  retryPost,
   startUpload,
   submitPost,
 } from './uploadRunner';
@@ -17,6 +19,11 @@ const mockDiscardLeftovers = jest.fn();
 const mockDiscard = jest.fn();
 const mockCreatePost = jest.fn();
 const mockDeletePost = jest.fn();
+const mockAddPostClips = jest.fn();
+const mockFillPostClip = jest.fn();
+const mockRemovePostClip = jest.fn();
+const mockPreviewFrame = jest.fn();
+const mockUploadImage = jest.fn();
 
 jest.mock('@/api/generated/media/media', () => ({
   createUpload: (...args: unknown[]) => mockCreateUpload(...args),
@@ -34,7 +41,33 @@ jest.mock('./compress', () => ({ discardFile: (uri: string) => mockDiscard(uri) 
 jest.mock('@/api/generated/posts/posts', () => ({
   createPost: (...args: unknown[]) => mockCreatePost(...args),
   deletePost: (...args: unknown[]) => mockDeletePost(...args),
+  addPostClips: (...args: unknown[]) => mockAddPostClips(...args),
+  fillPostClip: (...args: unknown[]) => mockFillPostClip(...args),
+  removePostClip: (...args: unknown[]) => mockRemovePostClip(...args),
 }));
+jest.mock('./previewFrame', () => ({
+  previewFrame: (...args: unknown[]) => mockPreviewFrame(...args),
+}));
+jest.mock('./uploadImage', () => ({
+  uploadImage: (...args: unknown[]) => mockUploadImage(...args),
+}));
+
+/** The post the server answers with: one slot per clip of `user-1`. */
+const postWith = (...slots: string[]) => ({
+  id: 'post-1',
+  clips: slots.map((id, position) => ({ id, position, owner: { id: 'user-1' } })),
+});
+
+/** What the user chose for a post of these uploads. */
+const input = (localIds: string[], over: Partial<Parameters<typeof submitPost>[0]> = {}) => ({
+  caption: 'Encore',
+  gigId: 'gig-1',
+  day: null,
+  taggedUserIds: [],
+  joinPostId: null,
+  clips: localIds.map((localId) => ({ localId, artistId: 'artist-1' })),
+  ...over,
+});
 
 const video: PickedVideo = {
   uri: 'file:///cache/compressed.mp4',
@@ -46,9 +79,9 @@ const video: PickedVideo = {
   height: null,
 };
 
-/** Lets the runner's un-awaited post request finish. */
-async function waitForPost(): Promise<void> {
-  for (let i = 0; i < 20 && !useUploadQueue.getState().entries[0]?.postId; i++) {
+/** Lets the runner's un-awaited post requests finish. */
+async function waitFor(done: () => boolean): Promise<void> {
+  for (let i = 0; i < 40 && !done(); i++) {
     await new Promise((resolve) => setTimeout(resolve, 5));
   }
 }
@@ -67,96 +100,130 @@ describe('upload runner', () => {
     mockCompleteUpload.mockResolvedValue({ status: 'UPLOADED' });
     mockGetMedia.mockResolvedValue({ status: 'READY' });
     mockPutWhole.mockResolvedValue(undefined);
-    mockCreatePost.mockResolvedValue({ id: 'post-1' });
+    mockCreatePost.mockResolvedValue(postWith('slot-1'));
+    mockFillPostClip.mockResolvedValue(postWith('slot-1'));
   });
 
-  it('posts as soon as the upload completes when Post was pressed first, without waiting for READY', async () => {
+  it('makes the post when Post is pressed, and puts the clip in its slot once the upload completes', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
-    await submitPost({
-      caption: 'Encore',
-      gigId: 'gig-1',
-      day: null,
-      taggedUserIds: [],
-      joinPostId: null,
-      clips: [{ localId: id, artistId: null }],
+    await submitPost(input([id]));
+
+    const key = useUploadQueue.getState().entries[0]!.draft!.groupKey;
+    expect(mockCreatePost).toHaveBeenCalledWith(
+      {
+        clips: [{ mediaId: null, artistId: 'artist-1', previewMediaId: null }],
+        caption: 'Encore',
+        gigId: 'gig-1',
+        day: null,
+        artistIds: ['artist-1'],
+        taggedUserIds: [],
+      },
+      { headers: { 'Idempotency-Key': key } },
+    );
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      postId: 'post-1',
+      clipId: 'slot-1',
+      attached: false,
     });
-    expect(mockCreatePost).not.toHaveBeenCalled(); // nothing uploaded yet
-    // The worker is still busy when the post is created.
+    // The worker is still busy when the clip goes into its slot.
     mockGetMedia.mockImplementation(async () => {
-      expect(mockCreatePost).toHaveBeenCalledTimes(1);
+      expect(mockFillPostClip).toHaveBeenCalledWith('post-1', 'slot-1', { mediaId: 'media-1' });
       return { status: 'READY' };
     });
 
     await startUpload(id);
 
-    const key = useUploadQueue.getState().entries[0]!.postIdempotencyKey;
-    expect(mockCreatePost).toHaveBeenCalledWith(
-      { mediaId: 'media-1', caption: 'Encore', gigId: 'gig-1', artistIds: [] },
-      { headers: { 'Idempotency-Key': key } },
-    );
-    expect(useUploadQueue.getState().entries[0]).toMatchObject({
-      postId: 'post-1',
-      state: 'READY',
-    });
+    expect(mockCreatePost).toHaveBeenCalledTimes(1);
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({ attached: true, state: 'READY' });
   });
 
-  it('posts at once when Post is pressed after the upload completed, and only once', async () => {
-    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
-    await startUpload(id);
-    expect(mockCreatePost).not.toHaveBeenCalled(); // no draft yet
+  it('several clips make one post, each in its own slot, in the order announced', async () => {
+    const a = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const b = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    mockCreatePost.mockResolvedValue(postWith('slot-b', 'slot-a'));
 
-    await submitPost({
-      caption: '',
-      gigId: null,
-      day: null,
-      taggedUserIds: [],
-      joinPostId: null,
-      clips: [{ localId: id, artistId: null }],
-    });
-    await submitPost({
-      caption: '',
-      gigId: null,
-      day: null,
-      taggedUserIds: [],
-      joinPostId: null,
-      clips: [{ localId: id, artistId: null }],
-    });
+    await submitPost(input([b, a]));
 
     expect(mockCreatePost).toHaveBeenCalledTimes(1);
-    expect(useUploadQueue.getState().entries[0]!.postId).toBe('post-1');
+    expect(mockCreatePost.mock.calls[0]![0].clips).toHaveLength(2);
+    const byId = (localId: string) =>
+      useUploadQueue.getState().entries.find((e) => e.localId === localId)!;
+    expect(byId(b).clipId).toBe('slot-b');
+    expect(byId(a).clipId).toBe('slot-a');
+    expect(byId(a).draft!.groupKey).toBe(byId(b).draft!.groupKey);
   });
 
   it('a post whose request failed is sent again with the same key, by Post again and when the queue resumes', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
     await startUpload(id);
-    const draft = {
-      caption: 'Encore',
-      gigId: null,
-      day: null,
-      taggedUserIds: [],
-      joinPostId: null,
-      clips: [{ localId: id, artistId: null }],
-    };
     mockCreatePost.mockRejectedValueOnce(new Error('Network request failed'));
 
-    await submitPost(draft);
+    await submitPost(input([id]));
     expect(useUploadQueue.getState().entries[0]).toMatchObject({
       postId: null,
       postError: 'Network request failed',
     });
+    mockCreatePost.mockRejectedValueOnce(new Error('Network request failed'));
+    await retryPost(id);
 
     // The app is opened again later: the queue is resumed and the post goes through.
     resumeProcessing('user-1');
-    await waitForPost();
+    await waitFor(() => useUploadQueue.getState().entries[0]?.postId != null);
 
-    expect(mockCreatePost).toHaveBeenCalledTimes(2);
+    expect(mockCreatePost).toHaveBeenCalledTimes(3);
     const keys = mockCreatePost.mock.calls.map(
       (call) => (call[1] as { headers: Record<string, string> }).headers['Idempotency-Key'],
     );
-    expect(keys[0]).toBe(keys[1]);
+    expect(new Set(keys).size).toBe(1);
     expect(useUploadQueue.getState().entries[0]).toMatchObject({
       postId: 'post-1',
+      attached: true,
       postError: null,
+    });
+  });
+
+  it('adds the clips to an existing post when asked to', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    mockAddPostClips.mockResolvedValue({
+      id: 'their-post',
+      clips: [
+        { id: 'theirs', position: 0, owner: { id: 'author' } },
+        { id: 'mine', position: 1, owner: { id: 'user-1' } },
+      ],
+    });
+
+    await submitPost(input([id], { joinPostId: 'their-post' }));
+
+    expect(mockCreatePost).not.toHaveBeenCalled();
+    expect(mockAddPostClips).toHaveBeenCalledWith('their-post', {
+      clips: [{ mediaId: null, artistId: 'artist-1', previewMediaId: null }],
+    });
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      postId: 'their-post',
+      clipId: 'mine',
+    });
+  });
+
+  it('uploads a preview frame and gives it to the clip’s slot; a frame that cannot be made is left out', async () => {
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    await submitPost(input([id]));
+    mockPreviewFrame.mockResolvedValue({ uri: 'file:///thumb.jpg', contentType: 'image/jpeg', bytes: 9 });
+    mockUploadImage.mockResolvedValue('img-1');
+
+    await makePreview(id);
+
+    expect(mockUploadImage).toHaveBeenCalled();
+    expect(mockFillPostClip).toHaveBeenCalledWith('post-1', 'slot-1', { previewMediaId: 'img-1' });
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({
+      previewState: 'READY',
+      previewSent: true,
+    });
+
+    const other = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    mockPreviewFrame.mockResolvedValue(null);
+    await makePreview(other);
+    expect(useUploadQueue.getState().entries.find((e) => e.localId === other)).toMatchObject({
+      previewState: 'FAILED',
     });
   });
 
@@ -293,13 +360,31 @@ describe('upload runner', () => {
   });
 
   describe('keeping the Create list and the profile in step', () => {
-    const posted = (postId: string, state: 'PROCESSING' | 'READY') => {
+    const posted = (postId: string, state: 'PROCESSING' | 'READY', clipId: string | null = null) => {
       const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
-      useUploadQueue.getState().patch(id, { postId, state, mediaId: `m-${postId}` });
+      useUploadQueue
+        .getState()
+        .patch(id, { postId, clipId, attached: true, state, mediaId: `m-${postId}` });
       return id;
     };
 
-    it('removing an upload that became a post deletes the post', async () => {
+    it('removing an upload removes its clip from the post, or the post with its last clip', async () => {
+      const { ApiError } = jest.requireActual<typeof import('@/api/http')>('@/api/http');
+      mockRemovePostClip.mockResolvedValueOnce(undefined);
+      const one = posted('p1', 'READY', 'c1');
+      await removeUpload(one);
+      expect(mockRemovePostClip).toHaveBeenCalledWith('p1', 'c1');
+      expect(mockDeletePost).not.toHaveBeenCalled();
+
+      mockRemovePostClip.mockRejectedValueOnce(new ApiError(409, 'LAST_CLIP', 'last'));
+      mockDeletePost.mockResolvedValue(undefined);
+      const last = posted('p1', 'READY', 'c2');
+      await removeUpload(last);
+      expect(mockDeletePost).toHaveBeenCalledWith('p1');
+      expect(useUploadQueue.getState().entries).toHaveLength(0);
+    });
+
+    it('removing an upload posted as a post of its own deletes its post', async () => {
       mockDeletePost.mockResolvedValue(undefined);
       const id = posted('p1', 'PROCESSING');
 
