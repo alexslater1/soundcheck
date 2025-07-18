@@ -42,7 +42,39 @@ export const listArtistPostsResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -84,6 +116,7 @@ export const listArtistPostsResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -95,7 +128,14 @@ export const listArtistPostsResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -133,7 +173,39 @@ export const listGigPostsResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -175,6 +247,7 @@ export const listGigPostsResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -186,10 +259,60 @@ export const listGigPostsResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })),
   "nextCursor": zod.string().nullish()
 })
+
+/**
+ * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ */
+export const listUnpostedGigsResponseItem = zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+})
+export const listUnpostedGigsResponse = zod.array(listUnpostedGigsResponseItem)
 
 /**
  * @summary The caller's own posts in every status (processing and failed included), newest first
@@ -219,7 +342,39 @@ export const listMyPostsResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -261,6 +416,7 @@ export const listMyPostsResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -272,13 +428,20 @@ export const listMyPostsResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })),
   "nextCursor": zod.string().nullish()
 })
 
 /**
- * @summary Post an uploaded clip (PENDING_MEDIA until it is transcoded, PUBLISHED if it already is)
+ * @summary Post clips from a gig and day: each clip is a slot, filled now (mediaId) or when its upload is complete. Joins the caller's open post from the same gig and day if there is one. PENDING_MEDIA until a clip is playable
  */
 export const createPostHeader = zod.object({
   "Idempotency-Key": zod.string().optional()
@@ -290,13 +453,25 @@ export const createPostBodyArtistIdsMax = 10;
 export const createPostBodyCaptionMin = 0;
 
 export const createPostBodyCaptionMax = 2200;
+export const createPostBodyClipsMin = 0;
+
+export const createPostBodyClipsMax = 60;
+export const createPostBodyTaggedUserIdsMin = 0;
+
+export const createPostBodyTaggedUserIdsMax = 10;
 
 
 export const createPostBody = zod.object({
-  "artistIds": zod.array(zod.string().uuid()).min(createPostBodyArtistIdsMin).max(createPostBodyArtistIdsMax).nullish(),
+  "artistIds": zod.array(zod.string().uuid()).min(createPostBodyArtistIdsMin).max(createPostBodyArtistIdsMax).nullish().describe('The post\'s acts; left out: the gig\'s bill'),
   "caption": zod.string().min(createPostBodyCaptionMin).max(createPostBodyCaptionMax).nullish(),
+  "clips": zod.array(zod.object({
+  "artistId": zod.string().uuid().nullish(),
+  "mediaId": zod.string().uuid().nullish(),
+  "previewMediaId": zod.string().uuid().nullish()
+})).min(createPostBodyClipsMin).max(createPostBodyClipsMax),
+  "day": zod.string().date().nullish().describe('UK day the clips are from; default: the gig\'s day'),
   "gigId": zod.string().uuid().nullish(),
-  "mediaId": zod.string().uuid()
+  "taggedUserIds": zod.array(zod.string().uuid()).min(createPostBodyTaggedUserIdsMin).max(createPostBodyTaggedUserIdsMax).nullish()
 })
 
 export const createPostResponse = zod.object({
@@ -315,7 +490,39 @@ export const createPostResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -357,6 +564,7 @@ export const createPostResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -368,7 +576,14 @@ export const createPostResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })
 
 /**
@@ -401,7 +616,39 @@ export const getPostResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -443,6 +690,7 @@ export const getPostResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -454,7 +702,554 @@ export const getPostResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
+})
+
+/**
+ * @summary Edit your post: caption ("" clears it), gig and day, acts, tagged people, and the clips' order and acts (clips left out are removed). A field left out is unchanged
+ */
+export const editPostParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const editPostBodyArtistIdsMin = 0;
+
+export const editPostBodyArtistIdsMax = 10;
+export const editPostBodyCaptionMin = 0;
+
+export const editPostBodyCaptionMax = 2200;
+export const editPostBodyClipsMin = 0;
+
+export const editPostBodyClipsMax = 60;
+export const editPostBodyTaggedUserIdsMin = 0;
+
+export const editPostBodyTaggedUserIdsMax = 10;
+
+
+export const editPostBody = zod.object({
+  "artistIds": zod.array(zod.string().uuid()).min(editPostBodyArtistIdsMin).max(editPostBodyArtistIdsMax).nullish(),
+  "caption": zod.string().min(editPostBodyCaptionMin).max(editPostBodyCaptionMax).nullish(),
+  "clips": zod.array(zod.object({
+  "artistId": zod.string().uuid().nullish(),
+  "id": zod.string().uuid()
+})).min(editPostBodyClipsMin).max(editPostBodyClipsMax).nullish(),
+  "day": zod.string().date().nullish(),
+  "gigId": zod.string().uuid().nullish(),
+  "taggedUserIds": zod.array(zod.string().uuid()).min(editPostBodyTaggedUserIdsMin).max(editPostBodyTaggedUserIdsMax).nullish()
+})
+
+export const editPostResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
+  "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
+  "gig": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+}).optional(),
+  "id": zod.string().uuid(),
+  "likeCount": zod.number(),
+  "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "publishedAt": zod.string().datetime({}).nullish(),
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
+})
+
+/**
+ * @summary Add clips to a post: its author, or someone tagged in it (which puts it on their profile)
+ */
+export const addPostClipsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const addPostClipsBodyClipsMin = 0;
+
+export const addPostClipsBodyClipsMax = 60;
+
+
+export const addPostClipsBody = zod.object({
+  "clips": zod.array(zod.object({
+  "artistId": zod.string().uuid().nullish(),
+  "mediaId": zod.string().uuid().nullish(),
+  "previewMediaId": zod.string().uuid().nullish()
+})).min(addPostClipsBodyClipsMin).max(addPostClipsBodyClipsMax)
+})
+
+export const addPostClipsResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
+  "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
+  "gig": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+}).optional(),
+  "id": zod.string().uuid(),
+  "likeCount": zod.number(),
+  "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "publishedAt": zod.string().datetime({}).nullish(),
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
+})
+
+/**
+ * @summary Remove a clip: its owner or the post's author; never the last one
+ */
+export const removePostClipParams = zod.object({
+  "id": zod.string().uuid(),
+  "clipId": zod.string().uuid()
+})
+
+/**
+ * @summary Fill your clip's slot: its video once the upload is complete, and/or its preview frame
+ */
+export const fillPostClipParams = zod.object({
+  "id": zod.string().uuid(),
+  "clipId": zod.string().uuid()
+})
+
+export const fillPostClipBody = zod.object({
+  "mediaId": zod.string().uuid().nullish(),
+  "previewMediaId": zod.string().uuid().nullish()
+})
+
+export const fillPostClipResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
+  "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
+  "gig": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+}).optional(),
+  "id": zod.string().uuid(),
+  "likeCount": zod.number(),
+  "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "publishedAt": zod.string().datetime({}).nullish(),
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
+})
+
+/**
+ * @summary Take your tag off a post, with any clips you added; you cannot be tagged on it again
+ */
+export const leavePostParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary Put a post you are tagged in on your profile, or take it off
+ */
+export const setPostOnProfileParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const setPostOnProfileBody = zod.object({
+  "onProfile": zod.boolean()
+})
+
+export const setPostOnProfileResponse = zod.object({
+  "artists": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
+  "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
+  "gig": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+}).optional(),
+  "id": zod.string().uuid(),
+  "likeCount": zod.number(),
+  "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "publishedAt": zod.string().datetime({}).nullish(),
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })
 
 /**
@@ -489,7 +1284,39 @@ export const listUserPostsResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -531,6 +1358,7 @@ export const listUserPostsResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -542,7 +1370,14 @@ export const listUserPostsResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -579,7 +1414,39 @@ export const listVenuePostsResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -621,6 +1488,7 @@ export const listVenuePostsResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -632,7 +1500,14 @@ export const listVenuePostsResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })),
   "nextCursor": zod.string().nullish()
 })

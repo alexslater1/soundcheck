@@ -37,10 +37,12 @@ import type {
   GigDay,
   GigDetail,
   GigFilterAlertsRequest,
+  GigSummary,
   ListArtistGigsParams,
   ListArtistsParams,
   ListGigDaysParams,
   ListGigsParams,
+  ListGigsToPostParams,
   ListMyGigsParams,
   ListVenueGigsParams,
   PageArtistSummary,
@@ -1401,6 +1403,108 @@ export function useListMyGigs<TData = Awaited<ReturnType<typeof listMyGigs>>, TE
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getListMyGigsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Create's gig suggestions: gigs you marked Going or Went and gigs of acts you follow near home, from the last 7 days up to today, newest first
+ */
+export const getListGigsToPostUrl = (params?: ListGigsToPostParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/me/gigs/to-post?${stringifiedParams}` : `/api/v1/me/gigs/to-post`
+}
+
+export const listGigsToPost = async (params?: ListGigsToPostParams, options?: RequestInit): Promise<GigSummary[]> => {
+  
+  return customFetch<GigSummary[]>(getListGigsToPostUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListGigsToPostQueryKey = (params?: ListGigsToPostParams,) => {
+    return [`/api/v1/me/gigs/to-post`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListGigsToPostQueryOptions = <TData = Awaited<ReturnType<typeof listGigsToPost>>, TError = unknown>(params?: ListGigsToPostParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigsToPost>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGigsToPostQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGigsToPost>>> = ({ signal }) => listGigsToPost(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGigsToPost>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListGigsToPostQueryResult = NonNullable<Awaited<ReturnType<typeof listGigsToPost>>>
+export type ListGigsToPostQueryError = unknown
+
+
+export function useListGigsToPost<TData = Awaited<ReturnType<typeof listGigsToPost>>, TError = unknown>(
+ params: undefined |  ListGigsToPostParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigsToPost>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGigsToPost>>,
+          TError,
+          Awaited<ReturnType<typeof listGigsToPost>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGigsToPost<TData = Awaited<ReturnType<typeof listGigsToPost>>, TError = unknown>(
+ params?: ListGigsToPostParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigsToPost>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGigsToPost>>,
+          TError,
+          Awaited<ReturnType<typeof listGigsToPost>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGigsToPost<TData = Awaited<ReturnType<typeof listGigsToPost>>, TError = unknown>(
+ params?: ListGigsToPostParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigsToPost>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Create's gig suggestions: gigs you marked Going or Went and gigs of acts you follow near home, from the last 7 days up to today, newest first
+ */
+
+export function useListGigsToPost<TData = Awaited<ReturnType<typeof listGigsToPost>>, TError = unknown>(
+ params?: ListGigsToPostParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigsToPost>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListGigsToPostQueryOptions(params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

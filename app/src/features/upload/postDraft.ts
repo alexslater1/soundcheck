@@ -24,7 +24,7 @@ export async function ensurePost(deps: PostDeps): Promise<void> {
   try {
     const post = await deps.createPost(
       {
-        mediaId: entry.mediaId,
+        clips: [{ mediaId: entry.mediaId }],
         caption: entry.draft.caption.trim() === '' ? null : entry.draft.caption.trim(),
         gigId: entry.draft.gigId,
         artistIds: entry.draft.artistIds,

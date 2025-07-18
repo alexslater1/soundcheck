@@ -7,6 +7,7 @@
  */
 
 /**
+ * The post's acts; left out: the gig's bill
  * @minItems 0
  * @maxItems 10
  */

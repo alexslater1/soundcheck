@@ -37,6 +37,9 @@ class PostAssembler {
     /** A slot that has no clip yet: nothing to play, only its preview. */
     private static final Playback WAITING = new Playback("AWAITING_UPLOAD", null, null, null, null, null, null, null);
 
+    /** The cover of a post with no clip left (its author's view of a failed post). */
+    private static final Playback NOTHING = new Playback("FAILED", null, null, null, null, null, null, null);
+
     private final PostRepository posts;
     private final ClipRepository clips;
     private final TagRepository tags;
@@ -160,10 +163,14 @@ class PostAssembler {
                                 : previews.get(clip.previewMediaId())));
             }
             List<PostClip> ordered = groupedByAct(shown);
-            Optional<PostClip> cover = ordered.stream()
+            // The cover: the first playable clip; for the author, while none is, the first clip, or (a post
+            // whose every clip is gone) nothing playable, so a failed post still shows on their profile.
+            Optional<Playback> cover = ordered.stream()
                     .filter(PostClip::ready)
                     .findFirst()
-                    .or(() -> ordered.stream().findFirst().filter(first -> byViewer));
+                    .or(() -> ordered.stream().findFirst().filter(first -> byViewer))
+                    .map(PostClip::playback)
+                    .or(() -> byViewer ? Optional.of(NOTHING) : Optional.empty());
             if (cover.isEmpty()) {
                 continue;
             }
@@ -178,7 +185,7 @@ class PostAssembler {
                             .map(artists::get)
                             .filter(Objects::nonNull)
                             .toList(),
-                    cover.get().playback(),
+                    cover.get(),
                     ordered,
                     ordered.size(),
                     postTags.stream()

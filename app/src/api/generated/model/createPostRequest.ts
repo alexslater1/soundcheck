@@ -7,10 +7,14 @@
  */
 import type { CreatePostRequestArtistIds } from './createPostRequestArtistIds';
 import type { CreatePostRequestCaption } from './createPostRequestCaption';
+import type { NewClipRequest } from './newClipRequest';
+import type { CreatePostRequestDay } from './createPostRequestDay';
 import type { CreatePostRequestGigId } from './createPostRequestGigId';
+import type { CreatePostRequestTaggedUserIds } from './createPostRequestTaggedUserIds';
 
 export interface CreatePostRequest {
   /**
+   * The post's acts; left out: the gig's bill
    * @minItems 0
    * @maxItems 10
    */
@@ -20,6 +24,17 @@ export interface CreatePostRequest {
    * @maxLength 2200
    */
   caption?: CreatePostRequestCaption;
+  /**
+   * @minItems 0
+   * @maxItems 60
+   */
+  clips: NewClipRequest[];
+  /** UK day the clips are from; default: the gig's day */
+  day?: CreatePostRequestDay;
   gigId?: CreatePostRequestGigId;
-  mediaId: string;
+  /**
+   * @minItems 0
+   * @maxItems 10
+   */
+  taggedUserIds?: CreatePostRequestTaggedUserIds;
 }
