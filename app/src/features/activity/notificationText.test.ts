@@ -21,6 +21,12 @@ describe('notificationText', () => {
     );
   });
 
+  it('names who tagged you, and opens the post', () => {
+    const tagged = { ...base, type: 'POST_TAGGED' as const, postId: 'p9' };
+    expect(notificationText(tagged)).toBe('@fan_one tagged you in their post');
+    expect(notificationTarget(tagged)).toEqual({ pathname: '/post/[id]', params: { id: 'p9' } });
+  });
+
   it('names the actor for follow requests and accepted requests', () => {
     expect(notificationText({ ...base, type: 'FOLLOW_REQUEST', requestPending: true })).toBe(
       '@fan_one asked to follow you',

@@ -5,11 +5,13 @@ import { Pressable, StyleSheet, View } from 'react-native';
 
 import { hidePost, reportPost } from '@/api/generated/engagement/engagement';
 import type { Post, Reason } from '@/api/generated/model';
-import { deletePost } from '@/api/generated/posts/posts';
+import { deletePost, leavePost, setPostOnProfile } from '@/api/generated/posts/posts';
+import { queryClient } from '@/api/queryClient';
 import { Button } from '@/components/ui/Button';
 import { ActionSheet, Sheet, type SheetAction } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { refreshPosts } from '@/features/editPost/refreshPosts';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { forgetPost } from '@/features/upload/uploadRunner';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -77,9 +79,67 @@ export function PostActions({
     }
   };
 
-  // The ⋯ menu (H11): one sheet of rows. Group 8 adds Edit here for the author.
+  // What someone tagged in the post can do with their tag.
+  const tagActions: SheetAction[] = post.myTag
+    ? [
+        {
+          key: 'profile',
+          label: post.myTag === 'ON_PROFILE' ? 'Take off my profile' : 'Add to my profile',
+          icon: post.myTag === 'ON_PROFILE' ? 'person-remove-outline' : 'person-add-outline',
+          onPress: () =>
+            void act(
+              () =>
+                setPostOnProfile(post.id, { onProfile: post.myTag !== 'ON_PROFILE' }).then(() =>
+                  refreshPosts(queryClient),
+                ),
+              post.myTag === 'ON_PROFILE' ? 'Taken off your profile' : 'On your profile',
+              false,
+            ),
+        },
+        ...(post.gig
+          ? [
+              {
+                key: 'add-mine',
+                label: 'Add my clips',
+                icon: 'add-circle-outline',
+                onPress: () =>
+                  router.push({
+                    pathname: '/create',
+                    params: { postId: post.id, gigId: post.gig!.id },
+                  }),
+              } satisfies SheetAction,
+            ]
+          : []),
+        {
+          key: 'leave',
+          label: 'Remove me from this post',
+          icon: 'exit-outline',
+          destructive: true,
+          confirm: {
+            title: 'Remove yourself?',
+            message:
+              'Your tag and any clips you added leave the post. You cannot be tagged on it again.',
+            confirmLabel: 'Remove me',
+          },
+          onPress: () =>
+            void act(
+              () => leavePost(post.id).then(() => refreshPosts(queryClient)),
+              'Removed from the post',
+              false,
+            ),
+        },
+      ]
+    : [];
+
+  // The ⋯ menu: one sheet of rows; the author can also edit.
   const menuActions: SheetAction[] = mine
     ? [
+        {
+          key: 'edit',
+          label: 'Edit post',
+          icon: 'create-outline',
+          onPress: () => router.push({ pathname: '/edit-post/[id]', params: { id: post.id } }),
+        },
         {
           key: 'delete',
           label: 'Delete post',
@@ -87,13 +147,14 @@ export function PostActions({
           destructive: true,
           confirm: {
             title: 'Delete this post?',
-            message: 'Its clip, likes and comments go with it. This cannot be undone.',
+            message: 'Its clips, likes and comments go with it. This cannot be undone.',
             confirmLabel: 'Delete',
           },
           onPress: () => void act(remove, 'Post deleted', true),
         },
       ]
     : [
+        ...tagActions,
         ...(reasons && reasons.length > 0
           ? [
               {
