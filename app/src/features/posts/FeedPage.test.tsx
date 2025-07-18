@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, within } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 import { StyleSheet } from 'react-native';
 
-import type { Post } from '@/api/generated/model';
+import type { Post, PostClip } from '@/api/generated/model';
 import { handoffFor } from '@/features/player/handoff';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { useThemePrefs, type FeedStyle } from '@/theme/themePrefs';
@@ -62,6 +62,10 @@ const post = {
     width: 1080,
     height: 1920,
   },
+  // A post from before clips existed in the API (one clip, played under the post's id).
+  clips: [],
+  clipCount: 1,
+  withUsers: [],
 } as unknown as Post;
 
 /** The Pixel's feed area in points. */
@@ -142,6 +146,56 @@ describe('FeedPage', () => {
 
     expect(mockHandOver).toHaveBeenCalledWith('post-1');
     expect(mockPush).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('FeedPage with several clips', () => {
+  beforeEach(() => jest.clearAllMocks());
+
+  const clip = (id: string): PostClip =>
+    ({
+      id,
+      position: 0,
+      owner: post.author,
+      status: 'READY',
+      playback: post.playback,
+    }) as PostClip;
+
+  it('opens the post on the clip in view and hands that clip’s player over', async () => {
+    const several = { ...post, clips: [clip('c1'), clip('c2'), clip('c3')], clipCount: 3 };
+    useThemePrefs.setState({ feedStyle: 'cards' });
+    await render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider>
+          <FeedPage post={several} width={PAGE.width} height={PAGE.height} />
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    const width = PAGE.width - CARD_INSET * 2;
+    await act(async () => {
+      fireEvent(screen.getByTestId('clip-frame'), 'layout', {
+        nativeEvent: { layout: { width, height: 600, x: 0, y: 0 } },
+      });
+    });
+    await act(async () => {
+      fireEvent.scroll(screen.getByTestId('clip-list'), {
+        nativeEvent: {
+          contentOffset: { x: width, y: 0 },
+          contentSize: { width: width * 3, height: 600 },
+          layoutMeasurement: { width, height: 600 },
+        },
+      });
+    });
+    expect(screen.getByTestId('clip-counter').props.children).toEqual([2, '/', 3]);
+
+    await fireEvent.press(screen.getByText('Front row for the encore'));
+
+    expect(mockHandOver).toHaveBeenCalledWith('c2');
+    expect(handoffFor('post-1')?.clipKey).toBe('c2');
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/post/[id]',
+      params: { id: 'post-1', clip: 'c2' },
+    });
   });
 });
 

@@ -1,8 +1,10 @@
+import { Image } from 'expo-image';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
-import type { Post } from '@/api/generated/model';
+import type { Post, PostClip } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
+import { useAuthStore } from '@/features/auth/store';
 import { PROCESSING_HINT } from '@/features/player/processing';
 import type { TapPoint } from '@/features/player/tapGesture';
 import type { PlaybackProgress } from '@/features/player/types';
@@ -17,6 +19,11 @@ import { useLike } from './useLike';
 
 type Props = {
   post: Post;
+  /**
+   * Which of the post's clips to show; without one, the post's cover (`post.playback`), as a
+   * grid or a post from before clips existed shows it.
+   */
+  clip?: PostClip;
   /** Plays when true; in a list only the clip in view is active (see the player manager). */
   active: boolean;
   /** False shows the poster only (a clip far from the one in view). */
@@ -45,12 +52,14 @@ export function aspectOf(post: Post): number {
 type Burst = { id: number; x: number; y: number };
 
 /**
- * A post's clip: the player when it is ready, a note while it is processing or when it failed. While
+ * One clip of a post: the player when it is ready, a note while it is on its way (its preview frame,
+ * blurred, behind it) or when it failed. While
  * the clip is the active one, what the viewer watches is reported: the start, each quarter, the end.
  * A double tap on a published clip likes the post and pops a heart where the finger was (H5).
  */
 export function PostMedia({
   post,
+  clip,
   active,
   live = true,
   soundAtTop,
@@ -61,7 +70,10 @@ export function PostMedia({
 }: Props) {
   const { colors } = useTheme();
   const track = useTrack();
-  const { playback } = post;
+  const myId = useAuthStore((state) => state.me?.id);
+  const playback = clip ? clip.playback : post.playback;
+  // One player per clip; the post's id for a post without clips.
+  const clipKey = clip ? clip.id : post.id;
   const aspectRatio = frameAspect ?? aspectOf(post);
   const { like } = useLike(post.id, { likedByMe: post.likedByMe, likeCount: post.likeCount });
   const [bursts, setBursts] = useState<Burst[]>([]);
@@ -72,7 +84,7 @@ export function PostMedia({
   const watch = useRef(INITIAL_WATCH);
   useEffect(() => {
     watch.current = INITIAL_WATCH;
-  }, [active, post.id]);
+  }, [active, clipKey]);
 
   const onProgress = (progress: PlaybackProgress) => {
     if (!active) {
@@ -101,7 +113,7 @@ export function PostMedia({
       <View>
         <VideoPlayer
           testID="post-player"
-          clipKey={post.id}
+          clipKey={clipKey}
           hlsUrl={playback.hlsUrl}
           posterUrl={playback.posterUrl}
           blurhash={playback.blurhash}
@@ -121,10 +133,43 @@ export function PostMedia({
       </View>
     );
   }
-  if (post.status === 'FAILED') {
+  if (clip?.status === 'FAILED' || (!clip && post.status === 'FAILED')) {
     return (
       <View style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}>
         <Text muted>This clip could not be processed.</Text>
+      </View>
+    );
+  }
+  if (clip && (post.status === 'PUBLISHED' || clip.previewUrl)) {
+    // A clip of a post that is live while this one is still uploading or processing: its
+    // preview frame, blurred, says what is coming. The owner and the author also get the usual hint.
+    const mine = myId !== undefined && (myId === clip.owner.id || myId === post.author.id);
+    return (
+      <View
+        style={[styles.pending, styles.onItsWay, { backgroundColor: colors.surface, aspectRatio }]}
+        testID="clip-on-its-way"
+      >
+        {clip.previewUrl ? (
+          <Image
+            source={{ uri: clip.previewUrl }}
+            blurRadius={24}
+            contentFit="cover"
+            style={StyleSheet.absoluteFill}
+            accessibilityIgnoresInvertColors
+            testID="clip-preview"
+          />
+        ) : null}
+        <ActivityIndicator color={clip.previewUrl ? LIGHT : colors.accent} />
+        <Text style={clip.previewUrl ? styles.light : undefined}>On its way</Text>
+        {mine ? (
+          <Text
+            variant="caption"
+            muted={!clip.previewUrl}
+            style={[styles.hint, clip.previewUrl ? styles.light : null]}
+          >
+            {PROCESSING_HINT}
+          </Text>
+        ) : null}
       </View>
     );
   }
@@ -144,6 +189,8 @@ export function PostMedia({
   );
 }
 
+const LIGHT = '#FFFFFF';
+
 const styles = StyleSheet.create({
   pending: {
     width: '100%',
@@ -154,4 +201,11 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   hint: { textAlign: 'center' },
+  onItsWay: { overflow: 'hidden' },
+  light: {
+    color: LIGHT,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowRadius: 4,
+    textShadowOffset: { width: 0, height: 1 },
+  },
 });

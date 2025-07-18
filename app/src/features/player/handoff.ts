@@ -4,6 +4,8 @@ export type Handoff = {
   muted: boolean;
   /** Where the clip was, for players that cannot be shared (the web starts its own at this point). */
   positionMs: number;
+  /** Which of the post's clips was in view; the post page starts on it. */
+  clipKey: string;
   at: number;
 };
 
@@ -22,12 +24,15 @@ export function forgetPosition(key: string) {
   positions.delete(key);
 }
 
-/** Called by the feed as it opens a post. */
-export function recordHandoff(key: string, muted: boolean, now = Date.now()) {
-  handoffs.set(key, { muted, positionMs: positions.get(key) ?? 0, at: now });
+/**
+ * Called by the feed as it opens a post: `key` is the post's, `clipKey` the player's of the clip in
+ * view (the post's own key for a post without clips).
+ */
+export function recordHandoff(key: string, muted: boolean, clipKey = key, now = Date.now()) {
+  handoffs.set(key, { muted, positionMs: positions.get(clipKey) ?? 0, clipKey, at: now });
 }
 
-/** What the feed handed over for this clip, if it did so just now. Reading it twice is harmless. */
+/** What the feed handed over for this post, if it did so just now. Reading it twice is harmless. */
 export function handoffFor(key: string, now = Date.now()): Handoff | undefined {
   const handoff = handoffs.get(key);
   if (!handoff || now - handoff.at > HANDOFF_TTL_MS) {

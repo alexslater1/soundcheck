@@ -4,7 +4,8 @@ import type { Post, Reason } from '@/api/generated/model';
 import { spacing } from '@/theme/tokens';
 
 import { PostActions } from './PostActions';
-import { aspectOf, PostMedia } from './PostMedia';
+import { ClipCarousel } from './ClipCarousel';
+import { aspectOf } from './PostMedia';
 import { PostMeta } from './PostMeta';
 
 type Props = {
@@ -20,11 +21,14 @@ type Props = {
   onComment?: () => void;
   /** Where the feed's clip was, when the post was opened from it (the web player starts there). */
   startAtMs?: number;
+  /** The clip to start on. */
+  clipId?: string;
 };
 
 /**
- * One post on its own page: the clip, who posted it, the caption, the gig and artists it is tagged
- * with, and the actions under it. (In the feeds the same parts are laid over the clip: FeedPage.)
+ * One post on its own page: its clips (a carousel with an act bar above it), who posted it, the
+ * caption, the gig and artists it is tagged with, and the actions under it. (In the feeds the same
+ * parts are laid over the clip: FeedPage.)
  */
 export function PostCard({
   post,
@@ -34,17 +38,20 @@ export function PostCard({
   reasons,
   onComment,
   startAtMs,
+  clipId,
 }: Props) {
   return (
     <View style={styles.card} testID={`post-${post.id}`}>
       <View style={aspectOf(post) < 1 ? styles.portrait : undefined}>
         {/* A TextureView: the page scrolls, and a SurfaceView would lose the rounded corners. */}
-        <PostMedia
+        <ClipCarousel
           post={post}
           active={active}
           live={live}
           surface="textureView"
           startAtMs={startAtMs}
+          initialClipId={clipId}
+          actBar="above"
         />
       </View>
       <PostMeta post={post} />

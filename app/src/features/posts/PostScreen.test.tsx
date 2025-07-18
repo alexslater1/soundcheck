@@ -22,6 +22,10 @@ const post = {
     width: 1080,
     height: 1920,
   },
+  // A post from before clips existed in the API (one clip, played under the post's id).
+  clips: [],
+  clipCount: 1,
+  withUsers: [],
 } as unknown as Post;
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
