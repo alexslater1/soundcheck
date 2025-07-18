@@ -2,6 +2,7 @@ package app.soundcheck.content.internal;
 
 import static app.soundcheck.shared.jooq.content.Tables.COMMENT;
 import static app.soundcheck.shared.jooq.content.Tables.POST;
+import static app.soundcheck.shared.jooq.content.Tables.POST_CLIP;
 import static app.soundcheck.shared.jooq.content.Tables.POST_LIKE;
 import static app.soundcheck.shared.jooq.content.Tables.REPORT;
 
@@ -61,7 +62,10 @@ class ContentPurge implements AccountPurgeStep {
 
         dsl.deleteFrom(REPORT).where(REPORT.REPORTER_ID.eq(userId)).execute();
 
-        // The user's own posts; post_artist, likes, comments, hides and reports on them cascade.
+        // Clips the user filmed in other people's posts: they refer to the user and to the clips.
+        dsl.deleteFrom(POST_CLIP).where(POST_CLIP.OWNER_ID.eq(userId)).execute();
+
+        // The user's own posts; post_artist, their clips, tags, likes, comments, hides and reports cascade.
         dsl.deleteFrom(POST).where(POST.AUTHOR_ID.eq(userId)).execute();
 
         // Nothing refers to the clips any more: remove the objects and the asset rows.

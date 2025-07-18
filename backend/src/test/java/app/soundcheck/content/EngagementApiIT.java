@@ -59,7 +59,10 @@ class EngagementApiIT extends IntegrationTest {
         data = new TestData(catalogIngest, dsl, tx, events);
         author = api.register("author");
         fan = api.register("fan");
-        postId = api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY")), author)
+        postId = api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY")))),
+                        author)
                 .getBody()
                 .path("id")
                 .asText("");
@@ -122,7 +125,10 @@ class EngagementApiIT extends IntegrationTest {
                 .isZero();
 
         // A post that is not published cannot be engaged with: it "does not exist".
-        String pending = api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "UPLOADED")), author)
+        String pending = api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "UPLOADED")))),
+                        author)
                 .getBody()
                 .path("id")
                 .asText("");

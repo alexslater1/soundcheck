@@ -15,6 +15,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -79,7 +80,7 @@ class AccountPurgeIT extends IntegrationTest {
         for (String key : new String[] {original, master, segment}) {
             storage.putFile(key, file, "application/octet-stream");
         }
-        String leaversPost = api.post("/api/v1/posts", Map.of("mediaId", clip), leaver)
+        String leaversPost = api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip))), leaver)
                 .getBody()
                 .path("id")
                 .asText("");
@@ -88,7 +89,7 @@ class AccountPurgeIT extends IntegrationTest {
         // What the leaver did to other people's things, and others to theirs.
         UUID stayersClip = data.video(stayer.id(), "READY");
         storage.putFile("media/" + stayersClip + "/v1/master.m3u8", file, "application/octet-stream");
-        String stayersPost = api.post("/api/v1/posts", Map.of("mediaId", stayersClip), stayer)
+        String stayersPost = api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", stayersClip))), stayer)
                 .getBody()
                 .path("id")
                 .asText("");

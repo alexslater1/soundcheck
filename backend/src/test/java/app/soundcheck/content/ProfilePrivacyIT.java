@@ -8,6 +8,7 @@ import app.soundcheck.support.TestApi;
 import app.soundcheck.support.TestData;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -74,7 +75,8 @@ class ProfilePrivacyIT extends IntegrationTest {
         venue = data.venue("Private Rooms " + tag);
         gig = data.gig("Private night " + tag, venue, Instant.parse("2026-09-12T19:30:00Z"), act);
         ownerClip1 = post(owner, "first");
-        ownerClip2 = post(owner, "second");
+        // The next day of the gig: one fan's clips from one day are one post.
+        ownerClip2 = post(owner, "second", 1);
         publicClip = post(stranger, "public");
         api.put("/api/v1/users/" + followee.id() + "/follow", null, owner);
         api.put("/api/v1/users/" + owner.id() + "/follow", null, follower);
@@ -283,15 +285,21 @@ class ProfilePrivacyIT extends IntegrationTest {
     }
 
     private String post(TestApi.User author, String caption) {
+        return post(author, caption, 0);
+    }
+
+    private String post(TestApi.User author, String caption, int dayOfGig) {
         return ok(api.post(
                         "/api/v1/posts",
                         Map.of(
-                                "mediaId",
-                                data.video(author.id(), "READY"),
+                                "clips",
+                                List.of(Map.of("mediaId", data.video(author.id(), "READY"))),
                                 "caption",
                                 caption,
                                 "gigId",
                                 gig,
+                                "day",
+                                LocalDate.of(2026, 9, 12).plusDays(dayOfGig).toString(),
                                 "artistIds",
                                 List.of(act)),
                         author))

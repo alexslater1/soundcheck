@@ -176,7 +176,10 @@ class EventIntakeIT extends IntegrationTest {
     void aHideEventAlsoHidesThePostAndAHideOfAnUnknownPostIsOnlyLogged() {
         TestData data = new TestData(catalogIngest, dsl, tx, events);
         TestApi.User author = api.register("clipmaker");
-        String postId = api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY")), author)
+        String postId = api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY")))),
+                        author)
                 .getBody()
                 .path("id")
                 .asText("");

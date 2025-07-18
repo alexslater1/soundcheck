@@ -15,6 +15,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -93,7 +94,8 @@ class PostWentIT extends IntegrationTest {
     void aPostWaitingForItsClipMarksNothingUntilItGoesLive() {
         UUID gig = pastGig(3);
         UUID clip = data.video(fan.id(), "PROCESSING");
-        String postId = created(api.post("/api/v1/posts", Map.of("mediaId", clip, "gigId", gig), fan))
+        String postId = created(
+                        api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip)), "gigId", gig), fan))
                 .path("id")
                 .asText("");
         assertThat(attendance(gig)).as("pending: not live yet").isNull();
@@ -109,7 +111,8 @@ class PostWentIT extends IntegrationTest {
     void aFailedClipNeverMarksAnything() {
         UUID gig = pastGig(3);
         UUID clip = data.video(fan.id(), "PROCESSING");
-        String postId = created(api.post("/api/v1/posts", Map.of("mediaId", clip, "gigId", gig), fan))
+        String postId = created(
+                        api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip)), "gigId", gig), fan))
                 .path("id")
                 .asText("");
 
@@ -126,18 +129,27 @@ class PostWentIT extends IntegrationTest {
         mark(going, "GOING");
         mark(interested, "INTERESTED");
 
+        // Two clips from one gig make one post.
         String first = post(going, "READY");
         String second = post(going, "READY");
+        assertThat(second).isEqualTo(first);
         post(interested, "READY");
         assertThat(attendance(going)).isEqualTo("WENT");
         assertThat(attendance(interested)).isEqualTo("WENT");
         assertThat(source(going)).isEqualTo("POST");
 
-        // One live post of the gig is left: still WENT.
-        delete(first);
+        // One live clip of the gig is left: still WENT.
+        String clip = api.get("/api/v1/posts/" + first, fan)
+                .getBody()
+                .path("clips")
+                .get(0)
+                .path("id")
+                .asText("");
+        assertThat(api.delete("/api/v1/posts/" + first + "/clips/" + clip, fan).getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(attendance(going)).isEqualTo("WENT");
-        // The last one: the mark only posts made is gone (the Going before it is not restored).
-        delete(second);
+        // The post with the last one: the mark only posts made is gone (the Going before it is not restored).
+        delete(first);
         assertThat(attendance(going)).isNull();
         assertThat(attendance(interested)).as("another gig's mark is untouched").isEqualTo("WENT");
     }
@@ -181,7 +193,9 @@ class PostWentIT extends IntegrationTest {
         UUID gig = pastGig(7);
         String mine = post(gig, "READY");
         String theirs = created(api.post(
-                        "/api/v1/posts", Map.of("mediaId", data.video(friend.id(), "READY"), "gigId", gig), friend))
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(friend.id(), "READY"))), "gigId", gig),
+                        friend))
                 .path("id")
                 .asText("");
 
@@ -199,13 +213,14 @@ class PostWentIT extends IntegrationTest {
                 data.gig("Keo " + tag, venue, tomorrow.atTime(1, 0).atZone(UK).toInstant(), act);
         UUID clip = data.video(fan.id(), "READY");
 
-        ResponseEntity<JsonNode> refused = api.post("/api/v1/posts", Map.of("mediaId", clip, "gigId", later), fan);
+        ResponseEntity<JsonNode> refused =
+                api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip)), "gigId", later), fan);
 
         assertThat(refused.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(refused.getBody().path("code").asText("")).isEqualTo("GIG_NOT_HAPPENED");
         assertThat(attendance(later)).isNull();
         // The clip was not used up: it can still be posted, to a gig that has happened.
-        created(api.post("/api/v1/posts", Map.of("mediaId", clip, "gigId", pastGig(1)), fan));
+        created(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip)), "gigId", pastGig(1)), fan));
     }
 
     @Test
@@ -264,7 +279,9 @@ class PostWentIT extends IntegrationTest {
     /** The fan's post of a clip in the given media status at the gig; its id. */
     private String post(UUID gig, String clipStatus) {
         return created(api.post(
-                        "/api/v1/posts", Map.of("mediaId", data.video(fan.id(), clipStatus), "gigId", gig), fan))
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(fan.id(), clipStatus))), "gigId", gig),
+                        fan))
                 .path("id")
                 .asText("");
     }

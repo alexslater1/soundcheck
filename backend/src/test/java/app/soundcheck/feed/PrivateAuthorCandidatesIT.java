@@ -98,7 +98,10 @@ class PrivateAuthorCandidatesIT extends IntegrationTest {
     }
 
     private static UUID post(TestApi api, TestData data, TestApi.User author) {
-        return UUID.fromString(api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY")), author)
+        return UUID.fromString(api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY")))),
+                        author)
                 .getBody()
                 .path("id")
                 .asText(""));

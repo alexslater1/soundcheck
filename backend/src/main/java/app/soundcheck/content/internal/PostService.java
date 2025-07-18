@@ -2,15 +2,11 @@ package app.soundcheck.content.internal;
 
 import app.soundcheck.catalog.Catalog;
 import app.soundcheck.catalog.CatalogViews;
-import app.soundcheck.catalog.PostAttendance;
 import app.soundcheck.content.Post;
 import app.soundcheck.content.PostDeleted;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostFeed;
-import app.soundcheck.content.PostPublished;
 import app.soundcheck.identity.Users;
-import app.soundcheck.media.MediaInfo;
-import app.soundcheck.media.MediaLibrary;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.idempotency.IdempotencyKeys;
 import app.soundcheck.shared.web.ApiException;
@@ -21,13 +17,12 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import java.io.UncheckedIOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,35 +37,41 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Posts: a clip becomes a post with a caption, the gig it was filmed at and the artists in it.
- * A post is created as soon as the upload is complete, usually before the clip has been transcoded: it
- * waits in PENDING_MEDIA and is published when the worker's {@code MediaReady} arrives.
+ * Posts: one fan's clips from one gig and day, with a caption, the acts in them and
+ * the people they went with. The app creates the post when Post is pressed, announcing each clip as a
+ * slot; a clip joins its slot when its upload is complete ({@link PostEditService#attach}), usually before
+ * it has been transcoded. The post waits in PENDING_MEDIA and is published when its first clip's
+ * {@code MediaReady} arrives; the other slots show "on its way" until theirs do.
  */
 @Service
 @Transactional
 public class PostService implements PostFeed {
 
-    public static final int MAX_ARTISTS = 10;
-
     /** How often a page is topped up after invisible posts were dropped from it. */
     private static final int MAX_FILL_ROUNDS = 5;
+
+    /** A slot whose clip has not arrived after this long is dropped (the upload was given up). */
+    static final Duration SLOT_EXPIRY = Duration.ofHours(24);
 
     static final int DEFAULT_LIMIT = 20;
     static final int MAX_LIMIT = 50;
 
-    /** Gig days are UK calendar days. */
-    private static final ZoneId UK = ZoneId.of("Europe/London");
-
-    /** What the client sends to create a post. */
+    /** What the client sends to create a post (or to add clips to its open post from the same gig and day). */
     public record CreatePost(
-            UUID mediaId, @Nullable String caption, @Nullable UUID gigId, @Nullable List<UUID> artistIds) {}
+            List<NewClip> clips,
+            @Nullable String caption,
+            @Nullable UUID gigId,
+            @Nullable LocalDate day,
+            @Nullable List<UUID> artistIds,
+            @Nullable List<UUID> taggedUserIds) {}
 
     private final PostRepository posts;
+    private final ClipRepository clips;
+    private final TagRepository tags;
+    private final PostRules rules;
     private final PostAssembler assembler;
-    private final MediaLibrary media;
     private final Catalog catalog;
     private final CatalogViews catalogViews;
-    private final PostAttendance attendance;
     private final Users users;
     private final SocialGraph social;
     private final AuthorVisibility visibility;
@@ -81,11 +82,12 @@ public class PostService implements PostFeed {
 
     PostService(
             PostRepository posts,
+            ClipRepository clips,
+            TagRepository tags,
+            PostRules rules,
             PostAssembler assembler,
-            MediaLibrary media,
             Catalog catalog,
             CatalogViews catalogViews,
-            PostAttendance attendance,
             Users users,
             SocialGraph social,
             AuthorVisibility visibility,
@@ -93,15 +95,16 @@ public class PostService implements PostFeed {
             ApplicationEventPublisher events,
             JsonMapper json,
             Clock clock) {
-        this.visibility = visibility;
         this.posts = posts;
+        this.clips = clips;
+        this.tags = tags;
+        this.rules = rules;
         this.assembler = assembler;
-        this.media = media;
         this.catalog = catalog;
         this.catalogViews = catalogViews;
-        this.attendance = attendance;
         this.users = users;
         this.social = social;
+        this.visibility = visibility;
         this.idempotency = idempotency;
         this.events = events;
         this.json = json;
@@ -111,9 +114,11 @@ public class PostService implements PostFeed {
     // ── create ───────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Creates the post for an uploaded clip. With an {@code Idempotency-Key}, repeating the request
-     * returns the post created the first time. PUBLISHED at once if the clip is already READY,
-     * otherwise PENDING_MEDIA.
+     * Creates the post for the announced clips, or, when the author already has an open post from the
+     * same gig and day, adds the clips to it (one post per fan, gig and day), with its acts and
+     * tagged people added and the caption kept unless it had none. With an {@code Idempotency-Key},
+     * repeating the request returns the post created the first time. PUBLISHED at once if a clip is
+     * already READY, otherwise PENDING_MEDIA.
      */
     public Post create(UUID authorId, CreatePost request, @Nullable String idempotencyKey) {
         if (idempotencyKey != null) {
@@ -141,146 +146,130 @@ public class PostService implements PostFeed {
                                 .orElseThrow(PostService::notFound));
             }
         }
-        // One answer for "no such clip", "not yours" and "not a video": ids cannot be probed.
-        MediaInfo clip = media.find(request.mediaId())
-                .filter(m -> m.ownerId().equals(authorId) && m.video())
-                .orElseThrow(() -> ApiException.badRequest("MEDIA_INVALID", "mediaId must be a video you uploaded"));
-        if (clip.status().equals("AWAITING_UPLOAD")) {
-            throw ApiException.conflict("MEDIA_NOT_UPLOADED", "Complete the upload before posting it");
-        }
-        if (clip.unusable()) {
-            throw ApiException.conflict("MEDIA_NOT_USABLE", "This clip could not be processed");
-        }
-        if (posts.findByMedia(clip.id()).isPresent()) {
-            throw alreadyPosted();
-        }
-        if (request.gigId() != null) {
-            LocalDate day = catalog.gigDay(request.gigId())
-                    .orElseThrow(() -> ApiException.badRequest("GIG_UNKNOWN", "Unknown gig " + request.gigId()));
-            // A clip is filmed at a gig that has happened or is on today (H43): a later one is a mistake.
-            if (day.isAfter(LocalDate.now(clock.withZone(UK)))) {
-                throw ApiException.badRequest(
-                        "GIG_NOT_HAPPENED", "Clips can be posted only from a gig that has happened or is on today");
-            }
-        }
-        List<UUID> artistIds = artistsFor(authorId, request);
-
-        Instant now = Instant.now(clock);
-        boolean ready = clip.ready();
+        rules.checkNewClips(authorId, request.clips());
+        LocalDate day = rules.dayFor(request.gigId(), request.day());
+        List<UUID> artistIds = rules.postArtists(authorId, request.gigId(), request.artistIds(), request.clips());
+        List<UUID> tagged = rules.checkTaggable(authorId, request.taggedUserIds());
         String caption = request.caption() == null || request.caption().isBlank()
                 ? null
                 : request.caption().strip();
-        PostRow row = new PostRow(
-                Ids.newId(),
-                authorId,
-                clip.id(),
-                request.gigId(),
-                caption,
-                ready ? "PUBLISHED" : "PENDING_MEDIA",
-                0,
-                0,
-                now,
-                ready ? now : null);
+
+        Instant now = Instant.now(clock);
+        PostRow post = openPost(authorId, request.gigId(), day).orElse(null);
+        List<UUID> newlyTagged = new ArrayList<>();
+        if (post == null) {
+            PostRow fresh =
+                    new PostRow(Ids.newId(), authorId, request.gigId(), day, caption, "PENDING_MEDIA", 0, 0, now, null);
+            if (posts.insertUnlessOpen(fresh, artistIds)) {
+                post = fresh;
+            } else {
+                // Another request made the open post for this gig and day in the meantime: join it.
+                post = openPost(authorId, request.gigId(), day).orElseThrow();
+                posts.addArtists(post.id(), artistIds);
+            }
+        } else {
+            posts.addArtists(post.id(), artistIds);
+            if (post.caption() == null && caption != null) {
+                posts.setCaption(post.id(), caption, now);
+            }
+        }
+        rules.checkRoom(clips.of(post.id()), authorId, request.clips());
         try {
-            posts.insert(row, artistIds);
+            rules.addClips(post.id(), authorId, request.clips(), now);
         } catch (DataIntegrityViolationException e) {
             // Two requests for the same clip passed the check together; the unique constraint decided.
-            if (String.valueOf(e.getMostSpecificCause().getMessage()).contains("post_media_id_key")) {
-                throw alreadyPosted();
+            if (String.valueOf(e.getMostSpecificCause().getMessage()).contains("post_clip_media_id_key")) {
+                throw PostRules.alreadyPosted();
             }
             throw e;
         }
-        if (ready) {
-            wentLive(row);
-            events.publishEvent(new PostPublished(row.id(), authorId, now, false));
+        for (UUID userId : tagged) {
+            if (tags.tag(post.id(), userId, now)) {
+                newlyTagged.add(userId);
+            }
         }
+        // A live post tells new tags now; a pending one tells them all when it goes live.
+        if (post.published()) {
+            rules.announceTags(post.id(), authorId, newlyTagged);
+        }
+        rules.settle(post, false);
         if (idempotencyKey != null) {
             String responseJson;
             try {
-                responseJson = json.writeValueAsString(Map.of("postId", row.id().toString()));
+                responseJson =
+                        json.writeValueAsString(Map.of("postId", post.id().toString()));
             } catch (JsonProcessingException e) {
                 throw new UncheckedIOException(e);
             }
             idempotency.complete(authorId, idempotencyKey, 201, responseJson);
         }
-        return view(authorId, row);
+        return view(authorId, posts.find(post.id()).orElseThrow());
     }
 
-    /**
-     * The given artists (each must exist). When the field is left out, the gig's bill; an explicit
-     * empty list means "tag nobody" (the user unticked every act).
-     */
-    private List<UUID> artistsFor(UUID viewerId, CreatePost request) {
-        if (request.artistIds() == null) {
-            if (request.gigId() == null) {
-                return List.of();
-            }
-            List<UUID> lineup = catalogViews.lineup(request.gigId());
-            return lineup.subList(0, Math.min(lineup.size(), MAX_ARTISTS));
-        }
-        List<UUID> requested = List.copyOf(new LinkedHashSet<>(request.artistIds()));
-        if (requested.size() > MAX_ARTISTS) {
-            throw ApiException.badRequest("TOO_MANY_ARTISTS", "A post can tag at most " + MAX_ARTISTS + " artists");
-        }
-        var known = catalogViews.artists(viewerId, requested).keySet();
-        for (UUID id : requested) {
-            if (!known.contains(id)) {
-                throw ApiException.badRequest("ARTIST_UNKNOWN", "Unknown artist " + id);
-            }
-        }
-        return requested;
+    private Optional<PostRow> openPost(UUID authorId, @Nullable UUID gigId, @Nullable LocalDate day) {
+        return gigId == null || day == null ? Optional.empty() : posts.lockOpen(authorId, gigId, day);
     }
 
     // ── media events ─────────────────────────────────────────────────────────────────────────────
 
     /**
-     * The clip is READY: publish the post that was waiting for it, if there is one. Safe to repeat.
+     * The clip is READY: the post waiting for it is published, or, if it is live already, the clip just
+     * shows in it (and marks its owner Went). Safe to repeat.
      *
      * @return true when a post was published by this call
      */
     public boolean mediaReady(UUID mediaId) {
-        Optional<PostRow> post = posts.findByMedia(mediaId);
-        Instant now = Instant.now(clock);
-        if (post.isEmpty() || !posts.publish(post.get().id(), now)) {
-            return false;
-        }
-        wentLive(post.get());
-        events.publishEvent(new PostPublished(post.get().id(), post.get().authorId(), now, true));
-        return true;
+        return clips.findByMedia(mediaId)
+                .flatMap(clip -> posts.lock(clip.postId()))
+                .map(post -> rules.settle(post, true))
+                .orElse(false);
     }
 
     /**
-     * The clip can never be played: the post waiting for it is FAILED. Safe to repeat.
+     * The clip can never be played: a pending post with no other clip that could still play is FAILED.
+     * Safe to repeat.
      *
      * @return true when a post was failed by this call
      */
     public boolean mediaFailed(UUID mediaId) {
-        Optional<PostRow> post = posts.findByMedia(mediaId);
-        if (post.isEmpty() || !posts.fail(post.get().id(), Instant.now(clock))) {
-            return false;
-        }
-        events.publishEvent(new PostFailed(post.get().id(), post.get().authorId()));
-        return true;
+        return clips.findByMedia(mediaId)
+                .flatMap(clip -> posts.lock(clip.postId()))
+                .filter(post -> post.status().equals("PENDING_MEDIA"))
+                .map(post -> rules.settle(post, true))
+                .orElse(false);
     }
 
     /**
      * Catches up posts whose media event was missed (a crash between the worker's commit and the
-     * listener, or a post created in the instant the clip became READY).
+     * listener, or a clip attached in the instant it became READY), and drops slots whose clip never
+     * arrived within {@link #SLOT_EXPIRY} (the upload was given up), settling their posts.
      *
-     * @return how many posts changed
+     * @return how many posts and slots changed
      */
     public int reconcilePending(Instant createdBefore, int limit) {
-        List<PostRow> pending = posts.pendingCreatedBefore(createdBefore, limit);
-        Map<UUID, MediaInfo> clips =
-                media.findAll(pending.stream().map(PostRow::mediaId).toList());
         int changed = 0;
-        for (PostRow post : pending) {
-            MediaInfo clip = clips.get(post.mediaId());
-            if (clip == null || clip.unusable()) {
-                changed += mediaFailed(post.mediaId()) ? 1 : 0;
-            } else if (clip.ready()) {
-                changed += mediaReady(post.mediaId()) ? 1 : 0;
+        for (ClipRow slot : clips.waitingSince(Instant.now(clock).minus(SLOT_EXPIRY), limit)) {
+            Optional<PostRow> post = posts.lock(slot.postId());
+            if (post.isEmpty() || !clips.delete(slot.id())) {
+                continue;
             }
+            changed++;
+            if (clips.of(post.get().id()).isEmpty()) {
+                // Nothing ever arrived: the post had never been live (a live post has a playable clip).
+                if (posts.fail(post.get().id(), Instant.now(clock))) {
+                    events.publishEvent(
+                            new PostFailed(post.get().id(), post.get().authorId()));
+                }
+            } else {
+                rules.settle(post.get(), true);
+            }
+        }
+        for (PostRow pending : posts.pendingCreatedBefore(createdBefore, limit)) {
+            changed += posts.lock(pending.id())
+                            .map(post -> rules.settle(post, true))
+                            .orElse(false)
+                    ? 1
+                    : 0;
         }
         return changed;
     }
@@ -428,38 +417,20 @@ public class PostService implements PostFeed {
                 .filter(p -> admin || p.authorId().equals(actorId))
                 .orElseThrow(PostService::notFound);
         if (posts.markDeleted(row.id(), Instant.now(clock))) {
-            UUID gigId = row.gigId();
-            if (gigId != null && !posts.hasLivePost(row.authorId(), gigId)) {
-                attendance.lastPostGone(row.authorId(), gigId);
-            }
+            rules.clipsGone(clips.of(row.id()).stream().map(ClipRow::ownerId).toList(), row.gigId());
             events.publishEvent(new PostDeleted(row.id(), row.authorId()));
         }
     }
 
-    /**
-     * A post went live: its author went to its gig, in the same transaction, so a live post
-     * and the WENT it made are never seen apart.
-     */
-    private void wentLive(PostRow post) {
-        UUID gigId = post.gigId();
-        if (gigId != null) {
-            attendance.postWentLive(post.authorId(), gigId);
-        }
-    }
-
-    private Post view(UUID viewerId, PostRow row) {
+    Post view(UUID viewerId, PostRow row) {
         return assembler.assemble(viewerId, List.of(row)).stream().findFirst().orElseThrow(PostService::notFound);
     }
 
-    private static int limit(@Nullable Integer limit) {
+    static int limit(@Nullable Integer limit) {
         return limit == null ? DEFAULT_LIMIT : Math.max(1, Math.min(limit, MAX_LIMIT));
     }
 
     static ApiException notFound() {
         return ApiException.notFound("POST_NOT_FOUND", "No such post");
-    }
-
-    private static ApiException alreadyPosted() {
-        return ApiException.conflict("MEDIA_ALREADY_POSTED", "This clip has already been posted");
     }
 }

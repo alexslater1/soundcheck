@@ -173,11 +173,13 @@ class CandidateGenerationIT extends IntegrationTest {
         UUID pHidden = post(followed, null, List.of(), now);
         assertThat(api.post("/api/v1/posts/" + pHidden + "/hide", null, viewer).getStatusCode())
                 .isEqualTo(HttpStatus.NO_CONTENT);
-        UUID pPending = UUID.fromString(
-                api.post("/api/v1/posts", Map.of("mediaId", data.video(followed.id(), "UPLOADED")), followed)
-                        .getBody()
-                        .path("id")
-                        .asText(""));
+        UUID pPending = UUID.fromString(api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(followed.id(), "UPLOADED")))),
+                        followed)
+                .getBody()
+                .path("id")
+                .asText(""));
         UUID pDeleted = post(leaver, null, List.of(), now);
         assertThat(api.call(HttpMethod.DELETE, "/api/v1/me", Map.of("password", "correct horse battery"), leaver)
                         .getStatusCode())
@@ -345,7 +347,7 @@ class CandidateGenerationIT extends IntegrationTest {
     /** A published post (READY clip) with the given tags, published at the given moment. */
     private UUID post(TestApi.User author, UUID gig, List<UUID> artists, Instant publishedAt) {
         Map<String, Object> body = new HashMap<>();
-        body.put("mediaId", data.video(author.id(), "READY"));
+        body.put("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))));
         body.put("artistIds", artists);
         if (gig != null) {
             body.put("gigId", gig);

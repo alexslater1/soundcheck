@@ -230,7 +230,7 @@ class NotificationsIT extends IntegrationTest {
     void realFollowsLikesAndCommentsArriveInTheInboxAndCanBeMarkedRead() {
         TestData data = new TestData(catalogIngest, dsl, tx, events);
         UUID clip = data.video(author.id(), "UPLOADED");
-        String postId = api.post("/api/v1/posts", Map.of("mediaId", clip), author)
+        String postId = api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip))), author)
                 .getBody()
                 .path("id")
                 .asText("");

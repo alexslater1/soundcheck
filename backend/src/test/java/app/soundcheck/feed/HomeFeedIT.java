@@ -106,11 +106,13 @@ class HomeFeedIT extends IntegrationTest {
         Instant now = Instant.now(clock);
         for (int i = 0; i < 30; i++) {
             TestApi.User author = authors.get(i % authors.size());
-            UUID post = UUID.fromString(
-                    api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY")), author)
-                            .getBody()
-                            .path("id")
-                            .asText(""));
+            UUID post = UUID.fromString(api.post(
+                            "/api/v1/posts",
+                            Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY")))),
+                            author)
+                    .getBody()
+                    .path("id")
+                    .asText(""));
             dsl.execute(
                     "update content.post set published_at = ?::timestamptz where id = ?",
                     now.minus(Duration.ofMinutes(90L * i)).toString(),
@@ -139,7 +141,7 @@ class HomeFeedIT extends IntegrationTest {
 
         // Things change while the user scrolls: a new post, and one of the later posts gets very popular.
         TestApi.User late = api.register("latecomer");
-        api.post("/api/v1/posts", Map.of("mediaId", data.video(late.id(), "READY")), late);
+        api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", data.video(late.id(), "READY")))), late);
         dsl.execute(
                 "insert into signals.post_stats (post_id, impressions, likes) values (?, 10, 10)"
                         + " on conflict (post_id) do update set likes = 10000",

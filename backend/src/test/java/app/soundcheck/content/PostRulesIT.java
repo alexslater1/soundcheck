@@ -9,6 +9,7 @@ import app.soundcheck.support.TestApi;
 import app.soundcheck.support.TestData;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -75,14 +76,16 @@ class PostRulesIT extends IntegrationTest {
         api.put("/api/v1/users/" + author.id() + "/follow", null, viewer);
         api.put("/api/v1/users/" + leaver.id() + "/follow", null, viewer);
 
-        // Oldest first: two posts the viewer may see, then newer ones by a blocker and by a leaver.
+        // Oldest first: two posts the viewer may see, then newer ones by a blocker and by a leaver. One
+        // fan's clips from a gig and day are one post, so each post is from another day of it.
+        LocalDate first = LocalDate.of(2026, 8, 3);
         List<String> visible = new ArrayList<>();
         for (int i = 0; i < 2; i++) {
-            visible.add(0, post(author, gig));
+            visible.add(0, post(author, gig, first.plusDays(i)));
         }
         for (int i = 0; i < 3; i++) {
-            post(blocker, gig);
-            post(leaver, gig);
+            post(blocker, gig, first.plusDays(i));
+            post(leaver, gig, first.plusDays(i));
         }
         // The gig counts its published clips (GigDetail.postsCount).
         assertThat(api.get("/api/v1/gigs/" + gig, viewer)
@@ -160,7 +163,13 @@ class PostRulesIT extends IntegrationTest {
 
         JsonNode none = created(api.post(
                 "/api/v1/posts",
-                Map.of("mediaId", data.video(author.id(), "READY"), "gigId", gig, "artistIds", List.of()),
+                Map.of(
+                        "clips",
+                        List.of(Map.of("mediaId", data.video(author.id(), "READY"))),
+                        "gigId",
+                        gig,
+                        "artistIds",
+                        List.of()),
                 author));
         assertThat(none.path("artists").size()).isZero();
         assertThat(ids(api.get("/api/v1/artists/" + headliner + "/posts", viewer)
@@ -168,15 +177,17 @@ class PostRulesIT extends IntegrationTest {
                         .path("items")))
                 .isEmpty();
 
-        JsonNode bill = created(
-                api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY"), "gigId", gig), author));
+        JsonNode bill = created(api.post(
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))), "gigId", gig),
+                author));
         assertThat(ids(bill.path("artists"))).containsExactly(headliner.toString());
     }
 
     @Test
     void aRetryAfterTheDeletionOfWhatItCreatedFindsNothing() {
         String postKey = UUID.randomUUID().toString();
-        Map<String, Object> body = Map.of("mediaId", data.video(author.id(), "READY"));
+        Map<String, Object> body = Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))));
         String postId = created(withKey("/api/v1/posts", body, postKey, author))
                 .path("id")
                 .asText("");
@@ -231,11 +242,13 @@ class PostRulesIT extends IntegrationTest {
         for (int round = 0; round < 5; round++) {
             UUID clip = data.video(author.id(), "READY");
 
-            List<HttpStatus> statuses = Parallel.run(2, i -> (HttpStatus)
-                    api.post("/api/v1/posts", Map.of("mediaId", clip), author).getStatusCode());
+            List<HttpStatus> statuses =
+                    Parallel.run(2, i -> (HttpStatus)
+                            api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip))), author)
+                                    .getStatusCode());
 
             assertThat(statuses).containsExactlyInAnyOrder(HttpStatus.CREATED, HttpStatus.CONFLICT);
-            assertThat(dsl.fetchCount(dsl.selectFrom("content.post").where("media_id = ?", clip)))
+            assertThat(dsl.fetchCount(dsl.selectFrom("content.post_clip").where("media_id = ?", clip)))
                     .isEqualTo(1);
         }
     }
@@ -244,22 +257,48 @@ class PostRulesIT extends IntegrationTest {
     void textTheDatabaseCannotStoreIsABadRequest() {
         UUID clip = data.video(author.id(), "READY");
 
-        ResponseEntity<JsonNode> refused =
-                api.post("/api/v1/posts", Map.of("mediaId", clip, "caption", "nul \u0000 inside"), author);
+        ResponseEntity<JsonNode> refused = api.post(
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "nul \u0000 inside"),
+                author);
 
         assertThat(refused.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(refused.getBody().path("code").asText("")).isEqualTo("INVALID_TEXT");
         // Nothing was kept: the clip can still be posted.
-        created(api.post("/api/v1/posts", Map.of("mediaId", clip, "caption", "fine"), author));
+        created(api.post(
+                "/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "fine"), author));
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────────────────────────
 
     /** A published post by the user (its clip is READY), optionally at a gig, tagging nobody. */
+    private String post(TestApi.User user, UUID gig, LocalDate day) {
+        return created(api.post(
+                        "/api/v1/posts",
+                        Map.of(
+                                "clips",
+                                List.of(Map.of("mediaId", data.video(user.id(), "READY"))),
+                                "gigId",
+                                gig,
+                                "day",
+                                day.toString(),
+                                "artistIds",
+                                List.of()),
+                        user))
+                .path("id")
+                .asText("");
+    }
+
     private String post(TestApi.User user, UUID gig) {
         Map<String, Object> body = gig == null
-                ? Map.of("mediaId", data.video(user.id(), "READY"))
-                : Map.of("mediaId", data.video(user.id(), "READY"), "gigId", gig, "artistIds", List.of());
+                ? Map.of("clips", List.of(Map.of("mediaId", data.video(user.id(), "READY"))))
+                : Map.of(
+                        "clips",
+                        List.of(Map.of("mediaId", data.video(user.id(), "READY"))),
+                        "gigId",
+                        gig,
+                        "artistIds",
+                        List.of());
         return created(api.post("/api/v1/posts", body, user)).path("id").asText("");
     }
 

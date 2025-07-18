@@ -12,6 +12,20 @@
         "required" : [ "name" ],
         "type" : "object"
       },
+      "AddClipsRequest" : {
+        "properties" : {
+          "clips" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NewClipRequest"
+            },
+            "maxItems" : 60,
+            "minItems" : 0,
+            "type" : "array"
+          }
+        },
+        "required" : [ "clips" ],
+        "type" : "object"
+      },
       "AddGigRequest" : {
         "properties" : {
           "artistIds" : {
@@ -258,6 +272,20 @@
         "required" : [ "id", "lat", "lng", "name" ],
         "type" : "object"
       },
+      "ClipPlacementRequest" : {
+        "properties" : {
+          "artistId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "id" ],
+        "type" : "object"
+      },
       "CommentRequest" : {
         "properties" : {
           "body" : {
@@ -357,6 +385,7 @@
       "CreatePostRequest" : {
         "properties" : {
           "artistIds" : {
+            "description" : "The post's acts; left out: the gig's bill",
             "items" : {
               "format" : "uuid",
               "type" : "string"
@@ -370,16 +399,34 @@
             "minLength" : 0,
             "type" : [ "string", "null" ]
           },
+          "clips" : {
+            "items" : {
+              "$ref" : "#/components/schemas/NewClipRequest"
+            },
+            "maxItems" : 60,
+            "minItems" : 0,
+            "type" : "array"
+          },
+          "day" : {
+            "description" : "UK day the clips are from; default: the gig's day",
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
           "gigId" : {
             "format" : "uuid",
             "type" : [ "string", "null" ]
           },
-          "mediaId" : {
-            "format" : "uuid",
-            "type" : "string"
+          "taggedUserIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
           }
         },
-        "required" : [ "mediaId" ],
+        "required" : [ "clips" ],
         "type" : "object"
       },
       "CreateUploadRequest" : {
@@ -447,6 +494,50 @@
           }
         },
         "required" : [ "password" ],
+        "type" : "object"
+      },
+      "EditPostRequest" : {
+        "properties" : {
+          "artistIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
+          "caption" : {
+            "maxLength" : 2200,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "clips" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ClipPlacementRequest"
+            },
+            "maxItems" : 60,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
+          "day" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "gigId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "taggedUserIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          }
+        },
         "type" : "object"
       },
       "EventIn" : {
@@ -527,6 +618,19 @@
           }
         },
         "required" : [ "position", "post", "reasons" ],
+        "type" : "object"
+      },
+      "FillClipRequest" : {
+        "properties" : {
+          "mediaId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "previewMediaId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
         "type" : "object"
       },
       "FollowResponse" : {
@@ -965,6 +1069,15 @@
         "required" : [ "counts", "displayName", "email", "genres", "handle", "id", "onboarded", "profileVisibility", "role" ],
         "type" : "object"
       },
+      "MyTagRequest" : {
+        "properties" : {
+          "onProfile" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "onProfile" ],
+        "type" : "object"
+      },
       "NamedArtist" : {
         "properties" : {
           "id" : {
@@ -992,6 +1105,23 @@
           }
         },
         "required" : [ "id", "name" ],
+        "type" : "object"
+      },
+      "NewClipRequest" : {
+        "properties" : {
+          "artistId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "mediaId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "previewMediaId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
         "type" : "object"
       },
       "NewVenueRequest" : {
@@ -1068,7 +1198,7 @@
             "type" : [ "boolean", "null" ]
           },
           "type" : {
-            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "NEW_GIGS", "FOLLOW_REQUEST", "FOLLOW_ACCEPTED" ],
+            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "POST_TAGGED", "NEW_GIGS", "FOLLOW_REQUEST", "FOLLOW_ACCEPTED" ],
             "type" : "string"
           }
         },
@@ -1331,9 +1461,23 @@
           "caption" : {
             "type" : [ "string", "null" ]
           },
+          "clipCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "clips" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PostClip"
+            },
+            "type" : "array"
+          },
           "commentCount" : {
             "format" : "int32",
             "type" : "integer"
+          },
+          "day" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
           },
           "gig" : {
             "$ref" : "#/components/schemas/GigSummary",
@@ -1350,6 +1494,10 @@
           "likedByMe" : {
             "type" : "boolean"
           },
+          "myTag" : {
+            "enum" : [ "TAGGED", "ON_PROFILE" ],
+            "type" : [ "string", "null" ]
+          },
           "playback" : {
             "$ref" : "#/components/schemas/Playback"
           },
@@ -1360,9 +1508,46 @@
           "status" : {
             "enum" : [ "PENDING_MEDIA", "PUBLISHED", "FAILED", "HIDDEN", "DELETED" ],
             "type" : "string"
+          },
+          "withUsers" : {
+            "items" : {
+              "$ref" : "#/components/schemas/UserSummary"
+            },
+            "type" : "array"
           }
         },
-        "required" : [ "artists", "author", "commentCount", "id", "likeCount", "likedByMe", "playback", "status" ],
+        "required" : [ "artists", "author", "clipCount", "clips", "commentCount", "id", "likeCount", "likedByMe", "playback", "status", "withUsers" ],
+        "type" : "object"
+      },
+      "PostClip" : {
+        "properties" : {
+          "act" : {
+            "$ref" : "#/components/schemas/ArtistSummary",
+            "type" : "null"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "owner" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          },
+          "playback" : {
+            "$ref" : "#/components/schemas/Playback"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "previewUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "status" : {
+            "enum" : [ "WAITING", "PROCESSING", "READY", "FAILED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "owner", "playback", "position", "status" ],
         "type" : "object"
       },
       "ProfileResponse" : {
@@ -3535,6 +3720,73 @@
         "tags" : [ "catalog" ]
       }
     },
+    "/api/v1/me/gigs/to-post" : {
+      "get" : {
+        "operationId" : "listGigsToPost",
+        "parameters" : [ {
+          "description" : "Where the viewer is (with fromLng): distances are measured from here instead of the home city's centre. Rounded to 0.01° (about 1 km) by the server; never stored",
+          "in" : "query",
+          "name" : "fromLat",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 90.0,
+            "minimum" : -90.0,
+            "type" : "number"
+          }
+        }, {
+          "description" : "Where the viewer is (with fromLat); see fromLat",
+          "in" : "query",
+          "name" : "fromLng",
+          "required" : false,
+          "schema" : {
+            "format" : "double",
+            "maximum" : 180.0,
+            "minimum" : -180.0,
+            "type" : "number"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GigSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Create's gig suggestions: gigs you marked Going or Went and gigs of acts you follow near home, from the last 7 days up to today, newest first",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/me/gigs/unposted" : {
+      "get" : {
+        "operationId" : "listUnpostedGigs",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GigSummary"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first",
+        "tags" : [ "posts" ]
+      }
+    },
     "/api/v1/me/onboarding/complete" : {
       "post" : {
         "operationId" : "completeOnboarding",
@@ -3919,7 +4171,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "Post an uploaded clip (PENDING_MEDIA until it is transcoded, PUBLISHED if it already is)",
+        "summary" : "Post clips from a gig and day: each clip is a slot, filled now (mediaId) or when its upload is complete. Joins the caller's open post from the same gig and day if there is one. PENDING_MEDIA until a clip is playable",
         "tags" : [ "posts" ]
       }
     },
@@ -3967,6 +4219,153 @@
           }
         },
         "summary" : "One post",
+        "tags" : [ "posts" ]
+      },
+      "patch" : {
+        "operationId" : "editPost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EditPostRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Post"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edit your post: caption (\"\" clears it), gig and day, acts, tagged people, and the clips' order and acts (clips left out are removed). A field left out is unchanged",
+        "tags" : [ "posts" ]
+      }
+    },
+    "/api/v1/posts/{id}/clips" : {
+      "post" : {
+        "operationId" : "addPostClips",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/AddClipsRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Post"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Add clips to a post: its author, or someone tagged in it (which puts it on their profile)",
+        "tags" : [ "posts" ]
+      }
+    },
+    "/api/v1/posts/{id}/clips/{clipId}" : {
+      "delete" : {
+        "operationId" : "removePostClip",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "clipId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Remove a clip: its owner or the post's author; never the last one",
+        "tags" : [ "posts" ]
+      },
+      "patch" : {
+        "operationId" : "fillPostClip",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "path",
+          "name" : "clipId",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/FillClipRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Post"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Fill your clip's slot: its video once the upload is complete, and/or its preview frame",
         "tags" : [ "posts" ]
       }
     },
@@ -4162,6 +4561,63 @@
         },
         "summary" : "Report a post to the moderators",
         "tags" : [ "engagement" ]
+      }
+    },
+    "/api/v1/posts/{id}/tags/me" : {
+      "delete" : {
+        "operationId" : "leavePost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Take your tag off a post, with any clips you added; you cannot be tagged on it again",
+        "tags" : [ "posts" ]
+      },
+      "put" : {
+        "operationId" : "setPostOnProfile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MyTagRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Post"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Put a post you are tagged in on your profile, or take it off",
+        "tags" : [ "posts" ]
       }
     },
     "/api/v1/search" : {
