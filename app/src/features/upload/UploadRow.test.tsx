@@ -37,6 +37,12 @@ const entry = (patch: Partial<UploadEntry>): UploadEntry => ({
   draft: null,
   postIdempotencyKey: 'pk1',
   postId: null,
+  clipId: null,
+  attached: false,
+  artistId: null,
+  previewMediaId: null,
+  previewState: 'NONE',
+  previewSent: false,
   postError: null,
   ...patch,
 });

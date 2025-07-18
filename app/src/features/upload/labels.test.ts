@@ -1,3 +1,4 @@
+import { testDraft } from './testDrafts';
 import {
   canPostAgain,
   compressionNote,
@@ -37,21 +38,21 @@ describe('upload labels', () => {
   });
 
   describe('the post that goes with an upload', () => {
-    const draft = { caption: 'x', gigId: null, artistIds: [] };
-    const base = { draft, postId: null, postError: null };
+    const draft = testDraft({ caption: 'x' });
+    const base = { draft, postId: null, postError: null, attached: false };
 
     it('says nothing until something was written', () => {
       expect(postNote({ ...base, draft: null, state: 'UPLOADING' })).toBeNull();
       expect(postOnItsWay({ ...base, draft: null, state: 'UPLOADING' })).toBe(false);
     });
 
-    it('is on its way while the upload or the post request is still running', () => {
-      expect(postNote({ ...base, state: 'UPLOADING' })?.text).toBe(
-        'Will be posted when the upload finishes',
+    it('is on its way while the post request runs, or until the clip is in its slot', () => {
+      expect(postNote({ ...base, state: 'UPLOADING' })?.text).toBe('Posting…');
+      expect(postNote({ ...base, postId: 'p1', state: 'UPLOADING' })?.text).toBe(
+        'In the post: it shows there once it has uploaded',
       );
-      expect(postNote({ ...base, state: 'READY' })?.text).toBe('Posting…');
       expect(postOnItsWay({ ...base, state: 'UPLOADING' })).toBe(true);
-      expect(postOnItsWay({ ...base, state: 'PROCESSING' })).toBe(true);
+      expect(postOnItsWay({ ...base, postId: 'p1', state: 'PROCESSING' })).toBe(true);
     });
 
     it('does not promise a post for a clip that was rejected or an upload that failed', () => {
@@ -59,27 +60,32 @@ describe('upload labels', () => {
         text: 'Not posted: this clip could not be used.',
         problem: true,
       });
+      expect(postNote({ ...base, postId: 'p1', state: 'REJECTED' })?.text).toBe(
+        'Left out of the post: this clip could not be used.',
+      );
       expect(postOnItsWay({ ...base, state: 'REJECTED' })).toBe(false);
       expect(postOnItsWay({ ...base, state: 'FAILED' })).toBe(false);
       expect(canPostAgain({ ...base, state: 'REJECTED', postError: 'x' })).toBe(false);
     });
 
-    it('offers to post again when the request failed and the server has the clip', () => {
+    it('offers to post again when a request failed: the post at any time, its slot once uploaded', () => {
       const failed = { ...base, postError: 'Network request failed' };
       expect(postNote({ ...failed, state: 'READY' })).toEqual({
         text: 'Not posted: Network request failed',
         problem: true,
       });
-      expect(canPostAgain({ ...failed, state: 'READY' })).toBe(true);
-      expect(canPostAgain({ ...failed, state: 'PROCESSING' })).toBe(true);
-      expect(canPostAgain({ ...failed, state: 'UPLOADING' })).toBe(false);
+      expect(canPostAgain({ ...failed, state: 'UPLOADING' })).toBe(true);
+      expect(canPostAgain({ ...failed, postId: 'p1', state: 'READY' })).toBe(true);
+      expect(canPostAgain({ ...failed, postId: 'p1', state: 'UPLOADING' })).toBe(false);
       expect(canPostAgain({ ...base, state: 'READY' })).toBe(false);
       expect(postOnItsWay({ ...failed, state: 'READY' })).toBe(false);
     });
 
-    it('is done once the post exists', () => {
-      expect(postNote({ ...base, postId: 'p1', state: 'READY' })?.text).toBe('Posted');
-      expect(canPostAgain({ ...base, postId: 'p1', postError: 'old', state: 'READY' })).toBe(false);
+    it('is done once the clip is in its post', () => {
+      expect(postNote({ ...base, postId: 'p1', attached: true, state: 'READY' })?.text).toBe(
+        'Posted',
+      );
+      expect(postOnItsWay({ ...base, postId: 'p1', attached: true, state: 'READY' })).toBe(false);
     });
   });
 });

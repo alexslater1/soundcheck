@@ -5,6 +5,7 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { CreateScreen } from './CreateScreen';
 import type { PickResult } from './pickVideo';
+import { testDraft } from './testDrafts';
 import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
 
@@ -215,7 +216,7 @@ describe('CreateScreen', () => {
   });
 
   it('offers Post again when the post request failed, and Write post when nothing was written', async () => {
-    const draft = { caption: 'Encore', gigId: null, artistIds: [] };
+    const draft = testDraft({ caption: 'Encore' });
     const unposted = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
     const unwritten = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
     const rejected = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });

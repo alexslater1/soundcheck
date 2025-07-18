@@ -2,18 +2,27 @@ import { Platform } from 'react-native';
 
 import { completeUpload, createUpload, getMedia } from '@/api/generated/media/media';
 import type { CompleteRequest, CompleteResponse } from '@/api/generated/model';
-import { createPost, deletePost } from '@/api/generated/posts/posts';
+import {
+  addPostClips,
+  createPost,
+  deletePost,
+  fillPostClip,
+  removePostClip,
+} from '@/api/generated/posts/posts';
 import { ApiError } from '@/api/http';
 
 import { compressVideo, discardFile } from './compress';
 import { currentConnection } from './connection';
-import { ensurePost } from './postDraft';
+import { serialiser, syncGroup } from './postDraft';
+import { previewFrame } from './previewFrame';
 import { prepareClip } from './prepareClip';
 import { oneAtATime, serially } from './serially';
 import { transport } from './transport';
-import type { PostDraft, UploadEntry } from './types';
+import type { PostRequest, UploadEntry } from './types';
+import { uploadImage } from './uploadImage';
 import { runUpload } from './uploadMachine';
 import { useUploadQueue } from './uploadQueue';
+import { newUuid } from './uuid';
 
 /** Entries with a machine running, so a second tap on Retry (or a screen re-mount) cannot start another. */
 const running = new Set<string>();
@@ -91,7 +100,7 @@ export async function startUpload(localId: string): Promise<void> {
       update,
       sleep: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
       random: Math.random,
-      onAccepted: () => ensurePostFor(localId),
+      onAccepted: () => syncPostOf(localId),
       oneAtATime: sendOneAtATime,
     });
   } finally {
@@ -100,32 +109,106 @@ export async function startUpload(localId: string): Promise<void> {
   discardWhenDone(localId);
 }
 
-async function ensurePostFor(localId: string): Promise<void> {
-  const find = () => useUploadQueue.getState().entries.find((e) => e.localId === localId);
-  if (!find()) {
+/** One request at a time per post: an upload completing and a preview being made never overlap. */
+const perPost = serialiser();
+
+/** Brings the post an entry belongs to in step with its uploads (see `syncGroup`). */
+async function syncPostOf(localId: string): Promise<void> {
+  const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  const groupKey = entry?.draft?.groupKey;
+  if (!entry || !groupKey) {
     return;
   }
-  await ensurePost({
-    current: () => {
-      const entry = find();
-      if (!entry) {
-        throw new Error('The upload was removed.');
-      }
-      return entry;
-    },
-    update: (patch) => useUploadQueue.getState().patch(localId, patch),
-    createPost: (body, idempotencyKey) =>
-      createPost(body, { headers: { 'Idempotency-Key': idempotencyKey } }),
-  });
+  await perPost(groupKey, () =>
+    syncGroup({
+      ownerId: entry.ownerId,
+      entries: () =>
+        useUploadQueue.getState().entries.filter((e) => e.draft?.groupKey === groupKey),
+      update: (id, patch) => useUploadQueue.getState().patch(id, patch),
+      createPost: (body, idempotencyKey) =>
+        createPost(body, { headers: { 'Idempotency-Key': idempotencyKey } }),
+      addPostClips: (postId, body: PostRequest) => addPostClips(postId, { clips: body.clips }),
+      fillPostClip: (postId, clipId, body) => fillPostClip(postId, clipId, body),
+      removePostClip: (postId, clipId) => removePostClip(postId, clipId),
+    }),
+  );
+}
+
+/** What the user chose on the Create tab for one post. */
+export type PostInput = {
+  caption: string;
+  gigId: string | null;
+  day: string | null;
+  taggedUserIds: string[];
+  /** Add the clips to this existing post instead of making one. */
+  joinPostId: string | null;
+  /** The clips in the order they are announced (running order), each with its act. */
+  clips: { localId: string; artistId: string | null }[];
+};
+
+/**
+ * The user pressed Post: the clips become one post. Each entry remembers the post's draft (one key for
+ * the whole post), and the post is created at once, with a slot for each clip: clips still uploading
+ * fill their slot when they complete. Resolves once the first request has been answered (or failed).
+ */
+export async function submitPost(input: PostInput): Promise<void> {
+  const groupKey = newUuid();
+  const artistIds = [
+    ...new Set(input.clips.map((clip) => clip.artistId).filter((id): id is string => id !== null)),
+  ].slice(0, 10);
+  input.clips.forEach((clip, order) =>
+    useUploadQueue.getState().patch(clip.localId, {
+      artistId: clip.artistId,
+      postError: null,
+      draft: {
+        groupKey,
+        order,
+        caption: input.caption,
+        gigId: input.gigId,
+        day: input.day,
+        artistIds,
+        taggedUserIds: input.taggedUserIds,
+        joinPostId: input.joinPostId,
+        request: null,
+      },
+    }),
+  );
+  const first = input.clips[0];
+  if (first) {
+    await syncPostOf(first.localId);
+  }
+}
+
+/** "Post again" on a clip whose post request failed: the same request, with the same key. */
+export async function retryPost(localId: string): Promise<void> {
+  await syncPostOf(localId);
 }
 
 /**
- * The user pressed Post: remember what they wrote, and create the post now if the upload is already
- * complete (otherwise the upload does it the moment it completes).
+ * Makes the clip's preview frame and uploads it as an image, then hands it to the post if the
+ * clip is already in one. A preview that cannot be made or sent is simply left out.
  */
-export async function submitPost(localId: string, draft: PostDraft): Promise<void> {
-  useUploadQueue.getState().patch(localId, { draft, postError: null });
-  await ensurePostFor(localId);
+export async function makePreview(localId: string): Promise<void> {
+  const find = () => useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  const entry = find();
+  if (!entry || entry.previewState !== 'NONE') {
+    return;
+  }
+  useUploadQueue.getState().patch(localId, { previewState: 'MAKING' });
+  try {
+    const frame = await previewFrame(entry.previewUri);
+    if (!frame) {
+      throw new Error('No frame');
+    }
+    const previewMediaId = await uploadImage(frame);
+    useUploadQueue.getState().patch(localId, { previewMediaId, previewState: 'READY' });
+  } catch {
+    useUploadQueue.getState().patch(localId, { previewState: 'FAILED' });
+    return;
+  }
+  if (find()?.draft) {
+    await syncPostOf(localId);
+  }
 }
 
 /** States in which the server has the bytes: the local copy is no longer needed. */
@@ -150,18 +233,31 @@ function forget(localId: string): void {
 }
 
 /**
- * Removes an upload from the list. An upload that has become a post is the post's clip: removing it
- * deletes the post as well (the screen asks first), so the Create list and the profile never disagree.
- * A post that is already gone (404) counts as deleted. Rejects, leaving the entry, when the server
- * could not be reached.
+ * Removes an upload from the list. An upload that is in a post is one of the post's clips: removing it
+ * removes that clip from the post, or deletes the post when it is its last clip (the screen asks
+ * first), so the Create list and the profile never disagree. A post or clip that is already gone (404)
+ * counts as removed. Rejects, leaving the entry, when the server could not be reached.
  */
 export async function removeUpload(localId: string): Promise<void> {
   const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  const gone = (error: unknown) => error instanceof ApiError && error.status === 404;
   if (entry?.postId) {
     try {
-      await deletePost(entry.postId);
+      if (entry.clipId) {
+        try {
+          await removePostClip(entry.postId, entry.clipId);
+        } catch (error) {
+          // 409: the post's last clip; the post goes with it.
+          if (!(error instanceof ApiError && error.status === 409)) {
+            throw error;
+          }
+          await deletePost(entry.postId);
+        }
+      } else {
+        await deletePost(entry.postId);
+      }
     } catch (error) {
-      if (!(error instanceof ApiError && error.status === 404)) {
+      if (!gone(error)) {
         throw error;
       }
     }
@@ -183,7 +279,7 @@ export function forgetPost(postId: string): void {
  * the profile is the place to see it. Such entries leave the Create list (`pruneFinished`).
  */
 export function isFinished(entry: UploadEntry): boolean {
-  return entry.postId !== null && entry.state === 'READY';
+  return entry.postId !== null && entry.attached && entry.state === 'READY';
 }
 
 /** Drops the finished uploads of one account; returns how many went. */
@@ -197,8 +293,8 @@ export function pruneFinished(ownerId: string): number {
 
 /**
  * Uploads waiting on the worker pick their polling back up (after a restart, or a five-minute give-up),
- * and a post that was written but never created (the request failed, or the app was closed first) is
- * sent again; its idempotency key makes that safe.
+ * and a post that was written but never created, or a clip not yet in its slot (the request failed, or
+ * the app was closed first), is sent again; the post's key and the slot's state make that safe.
  */
 export function resumeProcessing(ownerId: string): void {
   for (const entry of useUploadQueue.getState().entries) {
@@ -208,8 +304,9 @@ export function resumeProcessing(ownerId: string): void {
     if (entry.state === 'PROCESSING') {
       void startUpload(entry.localId);
     }
-    if (entry.draft && !entry.postId && (entry.state === 'PROCESSING' || entry.state === 'READY')) {
-      void ensurePostFor(entry.localId);
+    const unsent = !entry.postId || (!entry.attached && entry.mediaId !== null);
+    if (entry.draft && unsent && entry.state !== 'FAILED') {
+      void syncPostOf(entry.localId);
     }
   }
 }

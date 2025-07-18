@@ -72,7 +72,14 @@ describe('upload runner', () => {
 
   it('posts as soon as the upload completes when Post was pressed first, without waiting for READY', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
-    await submitPost(id, { caption: 'Encore', gigId: 'gig-1', artistIds: [] });
+    await submitPost({
+      caption: 'Encore',
+      gigId: 'gig-1',
+      day: null,
+      taggedUserIds: [],
+      joinPostId: null,
+      clips: [{ localId: id, artistId: null }],
+    });
     expect(mockCreatePost).not.toHaveBeenCalled(); // nothing uploaded yet
     // The worker is still busy when the post is created.
     mockGetMedia.mockImplementation(async () => {
@@ -98,8 +105,22 @@ describe('upload runner', () => {
     await startUpload(id);
     expect(mockCreatePost).not.toHaveBeenCalled(); // no draft yet
 
-    await submitPost(id, { caption: '', gigId: null, artistIds: [] });
-    await submitPost(id, { caption: '', gigId: null, artistIds: [] });
+    await submitPost({
+      caption: '',
+      gigId: null,
+      day: null,
+      taggedUserIds: [],
+      joinPostId: null,
+      clips: [{ localId: id, artistId: null }],
+    });
+    await submitPost({
+      caption: '',
+      gigId: null,
+      day: null,
+      taggedUserIds: [],
+      joinPostId: null,
+      clips: [{ localId: id, artistId: null }],
+    });
 
     expect(mockCreatePost).toHaveBeenCalledTimes(1);
     expect(useUploadQueue.getState().entries[0]!.postId).toBe('post-1');
@@ -108,10 +129,17 @@ describe('upload runner', () => {
   it('a post whose request failed is sent again with the same key, by Post again and when the queue resumes', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
     await startUpload(id);
-    const draft = { caption: 'Encore', gigId: null, artistIds: [] };
+    const draft = {
+      caption: 'Encore',
+      gigId: null,
+      day: null,
+      taggedUserIds: [],
+      joinPostId: null,
+      clips: [{ localId: id, artistId: null }],
+    };
     mockCreatePost.mockRejectedValueOnce(new Error('Network request failed'));
 
-    await submitPost(id, draft);
+    await submitPost(draft);
     expect(useUploadQueue.getState().entries[0]).toMatchObject({
       postId: null,
       postError: 'Network request failed',

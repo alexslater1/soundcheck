@@ -24,6 +24,7 @@ import {
   pruneFinished,
   removeUpload,
   resumeProcessing,
+  retryPost,
   startUpload,
   submitPost,
 } from './uploadRunner';
@@ -233,9 +234,17 @@ export function CreateScreen() {
               clips={composingEntries.length}
               gig={gig}
               onPost={(draft) => {
-                for (const entry of composingEntries) {
-                  void submitPost(entry.localId, draft);
-                }
+                void submitPost({
+                  caption: draft.caption,
+                  gigId: draft.gigId,
+                  day: null,
+                  taggedUserIds: [],
+                  joinPostId: null,
+                  clips: composingEntries.map((entry) => ({
+                    localId: entry.localId,
+                    artistId: null,
+                  })),
+                });
                 setComposing([]);
                 setLastGig(gig);
                 setGig(null);
@@ -261,11 +270,7 @@ export function CreateScreen() {
               entry={entry}
               onRetry={() => void startUpload(entry.localId)}
               onRemove={() => removeUpload(entry.localId)}
-              onPostAgain={() => {
-                if (entry.draft) {
-                  void submitPost(entry.localId, entry.draft);
-                }
-              }}
+              onPostAgain={() => void retryPost(entry.localId)}
               onWritePost={
                 composing.includes(entry.localId)
                   ? undefined

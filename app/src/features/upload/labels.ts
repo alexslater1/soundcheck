@@ -45,39 +45,50 @@ export function compressionNote(entry: Pick<UploadEntry, 'clientMeta'>): string 
   return `Compressed ${megabytes(originalBytes)} → ${megabytes(compressedBytes)} (${saved}% smaller)`;
 }
 
-type PostFields = Pick<UploadEntry, 'state' | 'draft' | 'postId' | 'postError'>;
+type PostFields = Pick<UploadEntry, 'state' | 'draft' | 'postId' | 'postError'> &
+  Partial<Pick<UploadEntry, 'attached'>>;
+
+/** In its post with its video: nothing left to do for it. */
+function inPost(entry: PostFields): boolean {
+  return entry.postId !== null && entry.attached !== false;
+}
 
 /** True while the post written for an upload can still come into being without the user doing anything. */
 export function postOnItsWay(entry: PostFields): boolean {
   return (
     entry.draft !== null &&
-    !entry.postId &&
+    !inPost(entry) &&
     !entry.postError &&
     entry.state !== 'REJECTED' &&
     entry.state !== 'FAILED'
   );
 }
 
-/** True when creating the post failed although the server has the clip: "Post again" can fix it. */
+/**
+ * True when a request for the post failed: "Post again" sends it again. Creating the post can be
+ * retried at any time; putting a clip into its slot only once the server has the clip.
+ */
 export function canPostAgain(entry: PostFields): boolean {
   return (
     entry.draft !== null &&
-    !entry.postId &&
     entry.postError !== null &&
-    (entry.state === 'PROCESSING' || entry.state === 'READY')
+    entry.state !== 'REJECTED' &&
+    (!entry.postId || entry.state === 'PROCESSING' || entry.state === 'READY')
   );
 }
 
 /** What the row says about the post that goes with an upload; null when nothing was written for it. */
 export function postNote(entry: PostFields): { text: string; problem: boolean } | null {
-  if (entry.postId) {
+  if (inPost(entry)) {
     return { text: 'Posted', problem: false };
   }
-  if (!entry.draft) {
+  if (!entry.draft && !entry.postId) {
     return null;
   }
   if (entry.state === 'REJECTED') {
-    return { text: 'Not posted: this clip could not be used.', problem: true };
+    return entry.postId
+      ? { text: 'Left out of the post: this clip could not be used.', problem: true }
+      : { text: 'Not posted: this clip could not be used.', problem: true };
   }
   if (entry.postError) {
     return { text: `Not posted: ${entry.postError}`, problem: true };
@@ -85,8 +96,8 @@ export function postNote(entry: PostFields): { text: string; problem: boolean } 
   if (entry.state === 'FAILED') {
     return { text: 'Will be posted once the upload succeeds. Retry it.', problem: false };
   }
-  if (entry.state === 'PROCESSING' || entry.state === 'READY') {
-    return { text: 'Posting…', problem: false };
+  if (entry.postId) {
+    return { text: 'In the post: it shows there once it has uploaded', problem: false };
   }
-  return { text: 'Will be posted when the upload finishes', problem: false };
+  return { text: 'Posting…', problem: false };
 }

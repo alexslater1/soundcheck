@@ -44,6 +44,40 @@ export function afterRestart<T extends UploadEntry>(entries: T[]): T[] {
 }
 
 /**
+ * An entry as an older version stored it, with today's fields. In older versions a clip was a post
+ * of its own: its draft becomes a group of one named by its old post key (so a retry is the same
+ * request key), and a clip already posted counts as in its slot.
+ */
+export function upgraded<T extends UploadEntry>(stored: T): T {
+  const entry = stored as T & Partial<UploadEntry>;
+  const draft = entry.draft as (Partial<NonNullable<UploadEntry['draft']>> | null) | undefined;
+  return {
+    ...entry,
+    prepared: entry.prepared ?? true,
+    previewUri: entry.previewUri ?? entry.fileUri,
+    clipId: entry.clipId ?? null,
+    attached: entry.attached ?? entry.postId != null,
+    artistId: entry.artistId ?? null,
+    previewMediaId: entry.previewMediaId ?? null,
+    previewState: entry.previewState ?? 'NONE',
+    previewSent: entry.previewSent ?? false,
+    draft: draft
+      ? {
+          groupKey: draft.groupKey ?? entry.postIdempotencyKey,
+          order: draft.order ?? 0,
+          caption: draft.caption ?? '',
+          gigId: draft.gigId ?? null,
+          day: draft.day ?? null,
+          artistIds: draft.artistIds ?? [],
+          taggedUserIds: draft.taggedUserIds ?? [],
+          joinPostId: draft.joinPostId ?? null,
+          request: draft.request ?? null,
+        }
+      : null,
+  };
+}
+
+/**
  * The upload queue: every upload this device has started, persisted after each change. What
  * survives a restart is enough to continue: the idempotency key (same ticket again), the ETags of
  * the parts already uploaded, and the file's location.
@@ -79,6 +113,12 @@ export const useUploadQueue = create<UploadQueueState>()(
           draft: null,
           postIdempotencyKey: newUuid(),
           postId: null,
+          clipId: null,
+          attached: false,
+          artistId: null,
+          previewMediaId: null,
+          previewState: 'NONE',
+          previewSent: false,
           postError: null,
         };
         set((state) => ({ entries: [entry, ...state.entries] }));
@@ -97,20 +137,15 @@ export const useUploadQueue = create<UploadQueueState>()(
       name: 'upload-queue',
       // 2: `prepared` and `previewUri`. Entries stored by version 1 were compressed
       // before they were queued, so they count as prepared, and their file is their preview.
-      version: 2,
+      // 3: posts of several clips: see `upgraded`.
+      version: 3,
       migrate: (persisted) => persisted as { entries: UploadQueueState['entries'] },
       storage,
       partialize: (state) => ({ entries: state.entries }),
       merge: (persisted, current) => ({
         ...current,
         entries: afterRestart(
-          ((persisted as { entries?: UploadQueueState['entries'] })?.entries ?? []).map(
-            (entry) => ({
-              ...entry,
-              prepared: entry.prepared ?? true,
-              previewUri: entry.previewUri ?? entry.fileUri,
-            }),
-          ),
+          ((persisted as { entries?: UploadQueueState['entries'] })?.entries ?? []).map(upgraded),
         ),
       }),
     },

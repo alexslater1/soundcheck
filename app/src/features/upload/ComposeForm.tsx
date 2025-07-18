@@ -25,7 +25,7 @@ export function ComposeForm({
 }: {
   clips?: number;
   gig: GigSummary | null;
-  onPost: (draft: PostDraft) => void;
+  onPost: (draft: Pick<PostDraft, 'caption' | 'gigId' | 'artistIds'>) => void;
 }) {
   const { colors } = useTheme();
   const [caption, setCaption] = useState('');

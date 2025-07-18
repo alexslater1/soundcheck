@@ -1,3 +1,4 @@
+import { testDraft } from '@/features/upload/testDrafts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 import type { PropsWithChildren } from 'react';
@@ -90,7 +91,7 @@ describe('MeScreen', () => {
 
   it('says a clip is on its way while its post does not exist yet, and refetches the grid when it does', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'web' });
-    useUploadQueue.getState().patch(id, { draft: { caption: '', gigId: null, artistIds: [] } });
+    useUploadQueue.getState().patch(id, { draft: testDraft() });
     await render(<MeScreen />, { wrapper: Providers });
 
     expect(screen.getByTestId('me-uploading')).toBeTruthy();
