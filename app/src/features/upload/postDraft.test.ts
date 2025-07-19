@@ -104,10 +104,7 @@ describe('syncGroup', () => {
   });
 
   it('fills a slot once its upload completes, and its preview while it is still on its way', async () => {
-    const h = harness(
-      [entry('a', 0, { postId: 'post-1', clipId: 'slot-a' })],
-      [clip('slot-a', 0)],
-    );
+    const h = harness([entry('a', 0, { postId: 'post-1', clipId: 'slot-a' })], [clip('slot-a', 0)]);
     await syncGroup(h.deps);
     expect(h.deps.fillPostClip).not.toHaveBeenCalled(); // nothing to send yet
 
@@ -180,9 +177,11 @@ describe('serialiser', () => {
     const run = serialiser();
     const log: string[] = [];
     let release: () => void = () => undefined;
-    const first = run('p', () => new Promise<void>((resolve) => (release = resolve)).then(() => {
-      log.push('p1');
-    }));
+    const first = run('p', () =>
+      new Promise<void>((resolve) => (release = resolve)).then(() => {
+        log.push('p1');
+      }),
+    );
     const second = run('p', async () => {
       log.push('p2');
     });

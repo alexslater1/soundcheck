@@ -46,13 +46,14 @@ describe('upload labels', () => {
       expect(postOnItsWay({ ...base, draft: null, state: 'UPLOADING' })).toBe(false);
     });
 
-    it('is on its way while the post request runs, or until the clip is in its slot', () => {
+    it('is on its way until the post exists; then the row says the clip joins it', () => {
       expect(postNote({ ...base, state: 'UPLOADING' })?.text).toBe('Posting…');
       expect(postNote({ ...base, postId: 'p1', state: 'UPLOADING' })?.text).toBe(
         'In the post: it shows there once it has uploaded',
       );
       expect(postOnItsWay({ ...base, state: 'UPLOADING' })).toBe(true);
-      expect(postOnItsWay({ ...base, postId: 'p1', state: 'PROCESSING' })).toBe(true);
+      // Once the post exists it is on the profile (its clip shows as on its way there).
+      expect(postOnItsWay({ ...base, postId: 'p1', state: 'PROCESSING' })).toBe(false);
     });
 
     it('does not promise a post for a clip that was rejected or an upload that failed', () => {

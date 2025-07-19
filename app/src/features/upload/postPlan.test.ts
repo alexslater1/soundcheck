@@ -35,7 +35,14 @@ describe('runningOrder', () => {
       { localId: '5', artistId: 'opener' },
       { localId: '6', artistId: 'head' },
     ];
-    expect(runningOrder(clips, gig()).map((c) => c.localId)).toEqual(['5', '3', '1', '6', '4', '2']);
+    expect(runningOrder(clips, gig()).map((c) => c.localId)).toEqual([
+      '5',
+      '3',
+      '1',
+      '6',
+      '4',
+      '2',
+    ]);
   });
 
   it('keeps the picked order without a gig', () => {

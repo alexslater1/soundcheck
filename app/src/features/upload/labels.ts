@@ -57,7 +57,7 @@ function inPost(entry: PostFields): boolean {
 export function postOnItsWay(entry: PostFields): boolean {
   return (
     entry.draft !== null &&
-    !inPost(entry) &&
+    !entry.postId &&
     !entry.postError &&
     entry.state !== 'REJECTED' &&
     entry.state !== 'FAILED'

@@ -90,9 +90,7 @@ export async function syncGroup(deps: GroupDeps): Promise<void> {
   if (!group.some((entry) => entry.postId)) {
     const request = head.request ?? requestFor(group);
     if (!head.request) {
-      group.forEach((entry) =>
-        deps.update(entry.localId, { draft: { ...entry.draft!, request } }),
-      );
+      group.forEach((entry) => deps.update(entry.localId, { draft: { ...entry.draft!, request } }));
     }
     let post: Post;
     try {
@@ -140,7 +138,12 @@ export async function syncGroup(deps: GroupDeps): Promise<void> {
     if (!entry.attached && accepted(entry)) {
       body.mediaId = entry.mediaId!;
     }
-    if (!entry.previewSent && !entry.attached && entry.previewState === 'READY' && entry.previewMediaId) {
+    if (
+      !entry.previewSent &&
+      !entry.attached &&
+      entry.previewState === 'READY' &&
+      entry.previewMediaId
+    ) {
       body.previewMediaId = entry.previewMediaId;
     }
     if (body.mediaId === undefined && body.previewMediaId === undefined) {

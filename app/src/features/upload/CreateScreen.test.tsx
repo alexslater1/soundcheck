@@ -1,6 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { act, render, screen, waitFor } from '@testing-library/react-native';
 
 import { useAuthStore } from '@/features/auth/store';
+import { fireEvent } from '@/test/fireEvent';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { CreateScreen } from './CreateScreen';
@@ -8,14 +10,39 @@ import type { PickResult } from './pickVideo';
 import { testDraft } from './testDrafts';
 import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
+import type { PostInput } from './uploadRunner';
 
 const mockPick = jest.fn<Promise<PickResult>, []>();
 const mockStartUpload = jest.fn(async (_localId: string) => undefined);
+const mockMakePreview = jest.fn(async (_localId: string) => undefined);
 const mockResume = jest.fn();
-const mockSubmit = jest.fn(async (_localId: string, _draft: unknown) => undefined);
+const mockSubmit = jest.fn(async (_input: PostInput) => undefined);
+const mockRetry = jest.fn(async (_localId: string) => undefined);
 const mockPush = jest.fn();
+const mockSetParams = jest.fn();
 const mockRemove = jest.fn(async (localId: string) => useUploadQueue.getState().remove(localId));
 const mockPrune = jest.fn();
+const mockAttend = jest.fn();
+const mockParams: { gigId?: string; postId?: string } = {};
+const mockPost = jest.fn();
+const mockGig = jest.fn();
+
+const festival = {
+  id: 'fest',
+  title: 'Green Man Festival',
+  startsAt: '2026-08-01T11:00:00Z',
+  headliner: { id: 'fest-h', name: 'Big Act' },
+  support: [],
+  venue: { id: 'v', name: 'Glanusk Park' },
+};
+const paleKites = {
+  id: 'gig-1',
+  title: 'Pale Kites',
+  startsAt: '2026-09-30T19:00:00Z',
+  headliner: { id: 'head', name: 'Pale Kites' },
+  support: [{ id: 'opener', name: 'Opener' }],
+  venue: { id: 'v', name: 'Band on the Wall' },
+};
 
 jest.mock('./pickVideo', () => ({
   pickFromLibrary: () => mockPick(),
@@ -23,37 +50,64 @@ jest.mock('./pickVideo', () => ({
 }));
 jest.mock('./uploadRunner', () => ({
   startUpload: (localId: string) => mockStartUpload(localId),
+  makePreview: (localId: string) => mockMakePreview(localId),
   resumeProcessing: (ownerId: string) => mockResume(ownerId),
   removeUpload: (localId: string) => mockRemove(localId),
   pruneFinished: (ownerId: string) => mockPrune(ownerId),
-  submitPost: (localId: string, draft: unknown) => mockSubmit(localId, draft),
+  submitPost: (input: PostInput) => mockSubmit(input),
+  retryPost: (localId: string) => mockRetry(localId),
 }));
-// The compose form has its own test; here it is a button that posts a fixed draft, showing how many
-// clips it was opened for and the gig it was given.
+jest.mock('@/api/generated/catalog/catalog', () => ({
+  useGetGig: (...args: unknown[]) => mockGig(...args),
+  useSetGigAttendance: () => ({ mutateAsync: mockAttend, isPending: false }),
+  getListGigsToPostQueryKey: () => ['/api/v1/me/gigs/to-post'],
+  useListArtists: () => ({ data: undefined }),
+}));
+jest.mock('@/api/generated/posts/posts', () => ({
+  useGetPost: (...args: unknown[]) => mockPost(...args),
+  getListUnpostedGigsQueryKey: () => ['/api/v1/me/gigs/unposted'],
+}));
+// The Pending list has its own data; here it offers one gig.
+jest.mock('./PendingGigs', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    PendingGigs: ({ onPick }: { onPick: (gig: unknown) => void }) =>
+      React.createElement(Text, { onPress: () => onPick(paleKites) }, 'pending-stub'),
+  };
+});
+// The compose form has its own test; here it is a button that posts when it may, showing how many
+// clips it holds and why it cannot post yet.
 jest.mock('./ComposeForm', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     ComposeForm: ({
       clips,
-      gig,
+      hint,
+      joining,
       onPost,
     }: {
       clips: number;
-      gig: { title: string } | null;
-      onPost: (draft: unknown) => void;
+      hint: string | null;
+      joining: boolean;
+      onPost: (result: unknown) => void;
     }) =>
       React.createElement(
         Text,
-        { onPress: () => onPost({ caption: 'Encore', gigId: 'gig-1', artistIds: ['artist-1'] }) },
-        `compose-stub ${clips} ${gig?.title ?? 'no-gig'}`,
+        {
+          testID: 'compose-stub',
+          onPress: () => (hint ? undefined : onPost({ caption: 'Encore', taggedUserIds: ['u9'] })),
+        },
+        `compose ${clips} ${joining ? 'joining' : 'new'} ${hint ?? 'ready'}`,
       ),
   };
 });
-// The gig picker has its own test; here one tap chooses a fixed gig, and a chosen gig can be changed.
+// The gig picker has its own test; here one tap chooses a fixed gig (or a festival), and a chosen gig
+// can be changed.
 jest.mock('./GigPicker', () => {
   const React = jest.requireActual<typeof import('react')>('react');
-  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  const { Text, View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     GigPicker: ({
       value,
@@ -65,9 +119,10 @@ jest.mock('./GigPicker', () => {
       value
         ? React.createElement(Text, { onPress: () => onChange(null) }, `gig: ${value.title}`)
         : React.createElement(
-            Text,
-            { onPress: () => onChange({ id: 'gig-1', title: 'Pale Kites' }) },
-            'pick-gig-stub',
+            View,
+            null,
+            React.createElement(Text, { onPress: () => onChange(paleKites) }, 'pick-gig-stub'),
+            React.createElement(Text, { onPress: () => onChange(festival) }, 'pick-festival-stub'),
           ),
   };
 });
@@ -94,7 +149,8 @@ jest.mock('expo-router', () => {
   return {
     Link: ({ children }: { children: React.ReactNode }) =>
       React.createElement(React.Fragment, null, children),
-    useRouter: () => ({ push: mockPush }),
+    useRouter: () => ({ push: mockPush, setParams: mockSetParams }),
+    useLocalSearchParams: () => mockParams,
     useFocusEffect: (effect: () => void) => React.useEffect(effect, [effect]),
   };
 });
@@ -110,18 +166,32 @@ const video: PickedVideo = {
 };
 
 function renderScreen() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <ThemeProvider>
-      <CreateScreen />
-    </ThemeProvider>,
+    <QueryClientProvider client={client}>
+      <ThemeProvider>
+        <CreateScreen />
+      </ThemeProvider>
+    </QueryClientProvider>,
   );
+}
+
+async function pickClips(...videos: PickedVideo[]) {
+  mockPick.mockResolvedValue({ kind: 'picked', videos });
+  const before = mockStartUpload.mock.calls.length;
+  await fireEvent.press(screen.getByTestId('choose-video'));
+  await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(before + videos.length));
 }
 
 describe('CreateScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    delete mockParams.gigId;
+    delete mockParams.postId;
     useUploadQueue.setState({ entries: [] });
     useAuthStore.setState({ me: { id: 'user-1' } as never });
+    mockPost.mockReturnValue({ isPending: true });
+    mockGig.mockReturnValue({ data: undefined });
   });
 
   it('starts with an empty list and resumes polling for uploads still being processed', async () => {
@@ -131,35 +201,38 @@ describe('CreateScreen', () => {
     expect(mockResume).toHaveBeenCalledWith('user-1');
   });
 
-  it('asks for the gig first: the clips step opens once a gig is chosen (G18)', async () => {
+  it('takes the gig and the clips in either order; Post says what is missing until both are set', async () => {
     await renderScreen();
-    expect(screen.getByTestId('choose-video')).toBeDisabled();
+    expect(screen.getByTestId('choose-video')).toBeEnabled();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(
+      'compose 0 new Choose the gig and add your clips to post.',
+    );
+
+    await pickClips(video);
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(/compose 1 new Choose the gig/);
 
     await fireEvent.press(screen.getByText('pick-gig-stub'));
-
-    expect(screen.getByTestId('choose-video')).toBeEnabled();
-    expect(screen.getByText('gig: Pale Kites')).toBeTruthy();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent('compose 1 new ready');
   });
 
   it('can go on without a gig, and back', async () => {
     await renderScreen();
+    await pickClips(video);
 
     await fireEvent.press(screen.getByTestId('no-gig'));
-    expect(screen.getByTestId('choose-video')).toBeEnabled();
     expect(screen.getByText(/Not from a gig/)).toBeTruthy();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(/ready$/);
 
     await fireEvent.press(screen.getByText('Choose a gig'));
-    expect(screen.getByTestId('choose-video')).toBeDisabled();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(/Choose the gig/);
   });
 
-  it('queues picked clips at once to be prepared in the background, and previews them (G19, G20)', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', videos: [video] });
+  it('queues picked clips at once, makes their preview frames, and previews them', async () => {
     await renderScreen();
     await fireEvent.press(screen.getByText('pick-gig-stub'));
 
-    await fireEvent.press(screen.getByText('Choose videos'));
+    await pickClips(video);
 
-    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
     const [entry] = useUploadQueue.getState().entries;
     expect(entry).toMatchObject({
       ownerId: 'user-1',
@@ -170,90 +243,175 @@ describe('CreateScreen', () => {
       temporary: false,
     });
     expect(mockStartUpload).toHaveBeenCalledWith(entry!.localId);
+    expect(mockMakePreview).toHaveBeenCalledWith(entry!.localId);
     expect(screen.getByText('preview file:///DCIM/clip.mp4')).toBeTruthy();
     // Its state under the preview, and in full in the uploads list below.
     expect(screen.getAllByText('Getting ready…')).toHaveLength(2);
-    expect(screen.getByText('compose-stub 1 Pale Kites')).toBeTruthy();
   });
 
-  it('Post hands the draft over for each clip, returns to the profile, and offers more from the gig', async () => {
+  it('Post makes one post of the clips in running order, each with its act, then offers more from the gig', async () => {
     const second = { ...video, uri: 'file:///DCIM/clip2.mp4', fileName: 'clip2.mp4' };
-    mockPick.mockResolvedValue({ kind: 'picked', videos: [video, second] });
     await renderScreen();
     await fireEvent.press(screen.getByText('pick-gig-stub'));
-    await fireEvent.press(screen.getByText('Choose videos'));
-    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(2));
-    const ids = useUploadQueue.getState().entries.map((entry) => entry.localId);
+    await pickClips(video, second);
+    const [secondId, firstId] = useUploadQueue.getState().entries.map((entry) => entry.localId);
 
-    await fireEvent.press(await screen.findByText('compose-stub 2 Pale Kites'));
+    // Each clip starts as the headliner's; the second is the opener's.
+    expect(screen.getByTestId(`act-${firstId}`)).toHaveTextContent('Pale Kites');
+    await fireEvent.press(screen.getByTestId(`act-${secondId}`));
+    await fireEvent.press(screen.getByText('Opener'));
+    expect(screen.getByTestId(`act-${secondId}`)).toHaveTextContent('Opener');
 
-    const draft = { caption: 'Encore', gigId: 'gig-1', artistIds: ['artist-1'] };
-    expect(mockSubmit.mock.calls.map(([id]) => id).sort()).toEqual([...ids].sort());
-    expect(
-      mockSubmit.mock.calls.every(([, sent]) => JSON.stringify(sent) === JSON.stringify(draft)),
-    ).toBe(true);
+    await fireEvent.press(screen.getByTestId('compose-stub'));
+
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(mockSubmit).toHaveBeenCalledWith({
+      caption: 'Encore',
+      gigId: 'gig-1',
+      day: null,
+      taggedUserIds: ['u9'],
+      joinPostId: null,
+      // The opener plays first.
+      clips: [
+        { localId: secondId, artistId: 'opener' },
+        { localId: firstId, artistId: 'head' },
+      ],
+    });
     expect(mockPush).toHaveBeenCalledWith('/me');
-    expect(screen.queryByText(/compose-stub/)).toBeNull();
-    expect(screen.getByTestId('choose-video')).toBeDisabled(); // a new post starts at the gig again
 
     await fireEvent.press(screen.getByText('Add more clips from Pale Kites'));
     expect(screen.getByText('gig: Pale Kites')).toBeTruthy();
-    expect(screen.getByTestId('choose-video')).toBeEnabled();
+  });
+
+  it('a clip can have no act, and more than ten of one act stops Post', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-gig-stub'));
+    await pickClips(
+      ...Array.from({ length: 11 }, (_, i) => ({ ...video, uri: `file:///c${i}.mp4` })),
+    );
+
+    expect(screen.getByTestId('act-limit')).toBeTruthy();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(/10 of your clips/);
+
+    const one = useUploadQueue.getState().entries[0]!.localId;
+    await fireEvent.press(screen.getByTestId(`act-${one}`));
+    await fireEvent.press(screen.getByText('No act'));
+    expect(screen.queryByTestId('act-limit')).toBeNull();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(/ready$/);
+  });
+
+  it('asks which day of a festival the clips are from', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-festival-stub'));
+    await pickClips(video);
+
+    expect(screen.getByTestId('festival-days')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Day 2 · Sun 2 Aug'));
+    await fireEvent.press(screen.getByTestId('compose-stub'));
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ gigId: 'fest', day: '2026-08-02' }),
+    );
+  });
+
+  it('"I was there" marks the gig Went without posting', async () => {
+    mockAttend.mockResolvedValue({ myAttendance: 'WENT' });
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-gig-stub'));
+
+    await fireEvent.press(screen.getByTestId('was-there'));
+
+    expect(mockAttend).toHaveBeenCalledWith({ id: 'gig-1', data: { status: 'WENT' } });
+    expect(await screen.findByTestId('was-there-done')).toHaveTextContent(/Pending list/);
+    expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it('a pending gig, or one picked on Me, becomes the post’s gig', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pending-stub'));
+    expect(screen.getByText('gig: Pale Kites')).toBeTruthy();
+    expect(screen.queryByText('pending-stub')).toBeNull();
+  });
+
+  it('a gigId param from Me’s Pending list preselects the gig', async () => {
+    mockParams.gigId = 'gig-1';
+    mockGig.mockReturnValue({ data: { gig: paleKites } });
+    await renderScreen();
+    expect(mockGig).toHaveBeenCalledWith('gig-1', undefined, { query: { enabled: true } });
+    expect(screen.getByText('gig: Pale Kites')).toBeTruthy();
+  });
+
+  it('adds clips to an existing post with a postId param, and goes back to it', async () => {
+    mockParams.postId = 'post-9';
+    mockParams.gigId = 'gig-1';
+    mockPost.mockReturnValue({
+      isPending: false,
+      data: { id: 'post-9', author: { id: 'sam', handle: 'sam' }, gig: paleKites },
+    });
+    await renderScreen();
+
+    expect(screen.getByTestId('joining')).toHaveTextContent(
+      "Adding to @sam's post from Pale Kites",
+    );
+    expect(screen.queryByText('pick-gig-stub')).toBeNull();
+    await pickClips(video);
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent('compose 1 joining ready');
+
+    await fireEvent.press(screen.getByTestId('compose-stub'));
+
+    expect(mockSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({ joinPostId: 'post-9', gigId: null }),
+    );
+    expect(mockSetParams).toHaveBeenCalledWith({ postId: undefined, gigId: undefined });
+    expect(mockPush).toHaveBeenCalledWith({ pathname: '/post/[id]', params: { id: 'post-9' } });
   });
 
   it('removes a clip from the post (and its upload) with its cross', async () => {
-    mockPick.mockResolvedValue({ kind: 'picked', videos: [video] });
     await renderScreen();
-    await fireEvent.press(screen.getByText('pick-gig-stub'));
-    await fireEvent.press(screen.getByText('Choose videos'));
-    await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
+    await pickClips(video);
     const localId = useUploadQueue.getState().entries[0]!.localId;
 
     await fireEvent.press(screen.getByLabelText('Remove clip.mp4'));
 
     expect(mockRemove).toHaveBeenCalledWith(localId);
-    expect(screen.queryByText(/compose-stub/)).toBeNull();
+    expect(screen.getByTestId('compose-stub')).toHaveTextContent(/^compose 0 /);
   });
 
-  it('offers Post again when the post request failed, and Write post when nothing was written', async () => {
+  it('offers Post again when a post request failed, and Write post for clips from On their way', async () => {
     const draft = testDraft({ caption: 'Encore' });
     const unposted = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
-    const unwritten = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
-    const rejected = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const one = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    const two = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
     useUploadQueue.getState().patch(unposted, {
       state: 'READY',
       mediaId: 'media-1',
       draft,
       postError: 'Network request failed',
     });
-    useUploadQueue.getState().patch(unwritten, { state: 'READY', mediaId: 'media-2' });
-    useUploadQueue.getState().patch(rejected, { state: 'REJECTED', mediaId: 'media-3', draft });
+    useUploadQueue.getState().patch(one, { state: 'READY', mediaId: 'media-2' });
+    useUploadQueue.getState().patch(two, { state: 'READY', mediaId: 'media-3' });
     await renderScreen();
 
     expect(screen.getByTestId(`upload-${unposted}-post`).props.children).toBe(
       'Not posted: Network request failed',
     );
-    expect(screen.getByTestId(`upload-${rejected}-post`).props.children).toBe(
-      'Not posted: this clip could not be used.',
-    );
-    // One of each: the rejected clip can neither be posted again nor written for.
     await fireEvent.press(screen.getByText('Post again'));
-    expect(mockSubmit).toHaveBeenCalledWith(unposted, draft);
+    expect(mockRetry).toHaveBeenCalledWith(unposted);
 
-    expect(screen.queryByText(/compose-stub/)).toBeNull();
-    await fireEvent.press(screen.getByText('Write post'));
-    await fireEvent.press(await screen.findByText(/compose-stub/));
-    expect(mockSubmit).toHaveBeenLastCalledWith(unwritten, {
-      caption: 'Encore',
-      gigId: 'gig-1',
-      artistIds: ['artist-1'],
-    });
+    // Two clips from the list join one post.
+    await fireEvent.press(screen.getAllByText('Write post')[0]!);
+    await fireEvent.press(screen.getAllByText('Write post')[0]!);
+    await fireEvent.press(screen.getByTestId('no-gig'));
+    await fireEvent.press(screen.getByTestId('compose-stub'));
+    expect(mockSubmit).toHaveBeenCalledTimes(1);
+    expect(mockSubmit.mock.calls[0]![0].clips.map((c) => c.localId).sort()).toEqual(
+      [one, two].sort(),
+    );
   });
 
   it('refuses a clip that is too long without uploading anything', async () => {
     mockPick.mockResolvedValue({ kind: 'picked', videos: [{ ...video, durationMs: 195_000 }] });
     await renderScreen();
-    await fireEvent.press(screen.getByText('pick-gig-stub'));
 
     await fireEvent.press(screen.getByText('Choose videos'));
 
@@ -266,7 +424,6 @@ describe('CreateScreen', () => {
     const tooLong = { ...video, fileName: 'long.mp4', durationMs: 195_000 };
     mockPick.mockResolvedValue({ kind: 'picked', videos: [video, tooLong] });
     await renderScreen();
-    await fireEvent.press(screen.getByText('pick-gig-stub'));
 
     await fireEvent.press(screen.getByText('Choose videos'));
 
@@ -279,7 +436,6 @@ describe('CreateScreen', () => {
   it('does nothing when the picker is cancelled, and explains a denied camera permission', async () => {
     mockPick.mockResolvedValueOnce({ kind: 'cancelled' });
     await renderScreen();
-    await fireEvent.press(screen.getByText('pick-gig-stub'));
     await fireEvent.press(screen.getByText('Choose videos'));
     await waitFor(() => expect(mockPick).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('create-problem')).toBeNull();

@@ -46,9 +46,7 @@ export function actsOverLimit(clips: ClipAct[]): (string | null)[] {
  * long. The catalog has no end dates, so this decides when Create asks "Which day?".
  */
 export function looksMultiDay(gig: GigSummary): boolean {
-  return (
-    /festival|fest\b|weekender|all-?dayer/i.test(gig.title) || 1 + gig.support.length >= 6
-  );
+  return /festival|fest\b|weekender|all-?dayer/i.test(gig.title) || 1 + gig.support.length >= 6;
 }
 
 function addDays(date: string, days: number): string {

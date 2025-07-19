@@ -207,7 +207,11 @@ describe('upload runner', () => {
   it('uploads a preview frame and gives it to the clip’s slot; a frame that cannot be made is left out', async () => {
     const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
     await submitPost(input([id]));
-    mockPreviewFrame.mockResolvedValue({ uri: 'file:///thumb.jpg', contentType: 'image/jpeg', bytes: 9 });
+    mockPreviewFrame.mockResolvedValue({
+      uri: 'file:///thumb.jpg',
+      contentType: 'image/jpeg',
+      bytes: 9,
+    });
     mockUploadImage.mockResolvedValue('img-1');
 
     await makePreview(id);
@@ -360,7 +364,11 @@ describe('upload runner', () => {
   });
 
   describe('keeping the Create list and the profile in step', () => {
-    const posted = (postId: string, state: 'PROCESSING' | 'READY', clipId: string | null = null) => {
+    const posted = (
+      postId: string,
+      state: 'PROCESSING' | 'READY',
+      clipId: string | null = null,
+    ) => {
       const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
       useUploadQueue
         .getState()

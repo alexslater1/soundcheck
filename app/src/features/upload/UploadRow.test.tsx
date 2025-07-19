@@ -81,6 +81,18 @@ describe('UploadRow removal', () => {
     expect(onRemove).toHaveBeenCalledTimes(1);
   });
 
+  it('removing a clip of a post of several takes only it out of the post', async () => {
+    const onRemove = jest.fn(() => Promise.reject(new Error('offline')));
+    await renderRow(entry({ postId: 'p1', clipId: 'c1', attached: true }), onRemove);
+
+    await fireEvent.press(screen.getByText('Remove'));
+    expect(screen.getByText(/takes it out of the post/)).toBeTruthy();
+    await fireEvent.press(screen.getByText('Remove from post'));
+
+    expect(onRemove).toHaveBeenCalledTimes(1);
+    expect(await screen.findByText('Could not take it out of the post. Try again.')).toBeTruthy();
+  });
+
   it('says so when the post could not be deleted', async () => {
     await renderRow(entry({ postId: 'p1' }), () => Promise.reject(new Error('offline')));
 

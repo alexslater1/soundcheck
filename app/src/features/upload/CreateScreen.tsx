@@ -1,26 +1,43 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import {
+  getListGigsToPostQueryKey,
+  useGetGig,
+  useSetGigAttendance,
+} from '@/api/generated/catalog/catalog';
 import type { GigSummary } from '@/api/generated/model';
+import { getListUnpostedGigsQueryKey, useGetPost } from '@/api/generated/posts/posts';
 import { Button } from '@/components/ui/Button';
+import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
+import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { isGigList } from '@/features/gigs/AttendanceButtons';
+import { formatGigDate } from '@/features/gigs/format';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
+import { ActPicker } from './ActPicker';
+import type { TaggedArtist } from './ArtistTagger';
 import { ClipPreview } from './ClipPreview';
-import { ComposeForm } from './ComposeForm';
+import { ComposeForm, type ComposeResult } from './ComposeForm';
+import { billOf } from './composeDraft';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
+import { PendingGigs } from './PendingGigs';
 import { pickFromLibrary, type PickResult } from './pickVideo';
+import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, postHint, runningOrder } from './postPlan';
 import { RecordClipButton } from './RecordClipButton';
 import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';
 import { useUploadQueue } from './uploadQueue';
 import {
+  makePreview,
   pruneFinished,
   removeUpload,
   resumeProcessing,
@@ -30,27 +47,49 @@ import {
 } from './uploadRunner';
 import { CLIP_LENGTH, problemWith } from './validate';
 
+export { CREATE_ROUTE } from './routes';
+
+/** "Fri 1 Aug" for a festival day chip. */
+function dayLabel(day: string): string {
+  return formatGigDate(`${day}T12:00:00Z`).split(' ').slice(0, 3).join(' ');
+}
+
 /**
- * Create tab, in the order a fan thinks about it: 1. which gig, 2. the clips from it,
- * 3. who is in them and a caption, then Post (one post per clip). Picked clips are queued at once and
- * play straight from the phone while the queue prepares them (compressing only off Wi-Fi)
- * and uploads them, so nothing is waited for before writing. After posting, "Add more clips from
- * <gig>" starts again on the same gig. The list at the bottom shows this device's uploads still on
- * their way.
+ * Create tab: which gig and the clips from it, in either order, the act on stage in each clip and
+ * on stage in each clip, who the user was with and a caption, then Post: the clips become one post.
+ * post. Picked clips are queued at once and play straight from the phone while the queue prepares
+ * them (compressing only off Wi-Fi) and uploads them; the post is made at once and each clip fills
+ * its place in it as its upload completes. "I was there" marks a gig Went without posting, and the
+ * Pending list offers the gigs still without clips. With a `postId` param the clips join that post.
  */
 export function CreateScreen() {
   const { colors } = useTheme();
   const ownerId = useAuthStore((state) => state.me?.id ?? null);
   const all = useUploadQueue((state) => state.entries);
   const router = useRouter();
+  const client = useQueryClient();
+  const params = useLocalSearchParams<{ gigId?: string; postId?: string }>();
+  const joinPostId = typeof params.postId === 'string' && params.postId ? params.postId : null;
+  const paramGigId =
+    !joinPostId && typeof params.gigId === 'string' && params.gigId ? params.gigId : null;
+  const joinPost = useGetPost(joinPostId ?? '', { query: { enabled: joinPostId !== null } });
+  const paramGig = useGetGig(paramGigId ?? '', undefined, {
+    query: { enabled: paramGigId !== null },
+  });
+  const attend = useSetGigAttendance();
+
   const [problem, setProblem] = useState<string | null>(null);
-  // Step 1: the gig (null with `gigChosen` = "not from a gig").
+  // The gig (null with `gigChosen` = "not from a gig"), and the day of a festival.
   const [gig, setGig] = useState<GigSummary | null>(null);
   const [gigChosen, setGigChosen] = useState(false);
-  // Step 2: the uploads this post is for.
+  const [day, setDay] = useState<string | null>(null);
+  // The uploads this post is for, the act chosen for each, and the clip whose act is being chosen.
   const [composing, setComposing] = useState<string[]>([]);
+  const [acts, setActs] = useState<Record<string, TaggedArtist | null>>({});
+  const [choosingAct, setChoosingAct] = useState<string | null>(null);
   // The gig of the last post from this screen, offered for more clips.
   const [lastGig, setLastGig] = useState<GigSummary | null>(null);
+  const [marked, setMarked] = useState<string | null>(null);
 
   // Uploads the worker had not finished when the app was last open: ask about them again.
   useEffect(() => {
@@ -67,6 +106,18 @@ export function CreateScreen() {
       }
     }, [ownerId]),
   );
+  // A gig picked on Me's Pending list arrives as a param: it becomes this post's gig, once.
+  const applied = useRef<string | null>(null);
+  useEffect(() => {
+    const picked = paramGig.data?.gig;
+    if (picked && paramGigId && applied.current !== paramGigId) {
+      applied.current = paramGigId;
+      setGig(picked);
+      setGigChosen(true);
+      setDay(null);
+      setMarked(null);
+    }
+  }, [paramGig.data, paramGigId]);
 
   if (!ownerId) {
     return null;
@@ -75,6 +126,30 @@ export function CreateScreen() {
   const composingEntries = entries.filter(
     (entry) => composing.includes(entry.localId) && !entry.draft,
   );
+  const joining = joinPostId !== null;
+  const postGig = joining ? (joinPost.data?.gig ?? null) : gig;
+  const bill = postGig ? billOf(postGig) : [];
+  const actOf = (localId: string): TaggedArtist | null =>
+    localId in acts ? (acts[localId] ?? null) : (bill[0] ?? null);
+  const clipActs = composingEntries.map((entry) => ({
+    localId: entry.localId,
+    artistId: actOf(entry.localId)?.id ?? null,
+  }));
+  const overLimit = actsOverLimit(clipActs).length > 0;
+  const hint = postHint({
+    gigChosen,
+    clips: composingEntries.length,
+    overLimit,
+    joining,
+  });
+  const days = !joining && gig ? festivalDays(gig, new Date()) : [];
+
+  function chooseGig(next: GigSummary | null) {
+    setGig(next);
+    setGigChosen(next !== null);
+    setDay(null);
+    setMarked(null);
+  }
 
   const add = async (pick: () => Promise<PickResult>) => {
     setProblem(null);
@@ -102,6 +177,8 @@ export function CreateScreen() {
           .getState()
           .enqueue(ownerId, video, { platform: Platform.OS }, false, false);
         void startUpload(localId);
+        // The frame shown blurred while the clip is on its way; never waited for.
+        void makePreview(localId);
         queued.push(localId);
       }
       if (refusals.length > 0) {
@@ -113,66 +190,165 @@ export function CreateScreen() {
     }
   };
 
-  const chooseGig = (next: GigSummary | null) => {
-    setGig(next);
-    setGigChosen(next !== null);
+  const wasThere = async () => {
+    if (!gig) {
+      return;
+    }
+    setMarked(null);
+    try {
+      const saved = await attend.mutateAsync({ id: gig.id, data: { status: 'WENT' } });
+      setGig({ ...gig, myAttendance: saved.myAttendance });
+      setMarked('Marked: you went. It is in your Pending list until you post clips from it.');
+      void client.invalidateQueries({
+        predicate: (query) =>
+          isGigList(query.queryKey) ||
+          query.queryKey[0] === getListUnpostedGigsQueryKey()[0] ||
+          query.queryKey[0] === getListGigsToPostQueryKey()[0],
+      });
+    } catch {
+      setMarked('That did not work. Try again.');
+    }
+  };
+
+  const post = ({ caption, taggedUserIds }: ComposeResult) => {
+    const clips = runningOrder(clipActs, postGig);
+    void submitPost({
+      caption,
+      gigId: joining ? null : (gig?.id ?? null),
+      day,
+      taggedUserIds,
+      joinPostId,
+      clips,
+    });
+    setComposing([]);
+    setActs({});
+    setChoosingAct(null);
+    if (joinPostId) {
+      router.setParams({ postId: undefined, gigId: undefined });
+      router.push({ pathname: '/post/[id]', params: { id: joinPostId } });
+      return;
+    }
+    setLastGig(gig);
+    chooseGig(null);
+    // Back to the profile, where the new post shows with its clips on their way.
+    router.push('/me');
   };
 
   return (
     <Screen keyboard>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text variant="title">Share clips</Text>
+        <Text variant="title">{joining ? 'Add clips' : 'Share clips'}</Text>
         <UploadProblems ownerId={ownerId} />
-        {lastGig && composingEntries.length === 0 && !gigChosen ? (
+        {!joining && lastGig && composingEntries.length === 0 && !gigChosen ? (
           <Button
             title={`Add more clips from ${lastGig.title}`}
             variant="secondary"
-            onPress={() => {
-              setGig(lastGig);
-              setGigChosen(true);
-            }}
+            onPress={() => chooseGig(lastGig)}
             testID="more-from-gig"
           />
         ) : null}
+        {!joining && !gigChosen ? <PendingGigs onPick={chooseGig} /> : null}
 
-        <Step number={1} title="Which gig?" done={gigChosen}>
-          {gigChosen && gig === null ? (
-            <View style={styles.row}>
-              <Text muted style={styles.grow}>
-                Not from a gig. Nobody will find these clips on a gig&apos;s page.
-              </Text>
-              <Button
-                title="Choose a gig"
-                variant="secondary"
-                onPress={() => setGigChosen(false)}
+        {joining ? (
+          <Step title="The post" done={joinPost.data !== undefined}>
+            {joinPost.isPending ? (
+              <Text muted>Loading the post…</Text>
+            ) : joinPost.isError ? (
+              <StateMessage
+                title="Could not load the post"
+                onRetry={() => void joinPost.refetch()}
+                testID="join-error"
               />
-            </View>
-          ) : (
-            <>
-              <GigPicker value={gig} onChange={chooseGig} />
-              {gig === null ? (
-                <Text
-                  variant="caption"
-                  muted
-                  accessibilityRole="button"
-                  onPress={() => setGigChosen(true)}
-                  testID="no-gig"
-                >
-                  These clips are not from a gig →
+            ) : (
+              <View style={styles.row}>
+                <Text style={styles.grow} testID="joining">
+                  {joinPost.data.author.id === ownerId
+                    ? 'Adding to your post'
+                    : `Adding to @${joinPost.data.author.handle}'s post`}
+                  {joinPost.data.gig ? ` from ${joinPost.data.gig.title}` : ''}
                 </Text>
-              ) : null}
-            </>
-          )}
-        </Step>
+                <Button
+                  title="Cancel"
+                  variant="secondary"
+                  size="small"
+                  onPress={() => router.setParams({ postId: undefined, gigId: undefined })}
+                />
+              </View>
+            )}
+          </Step>
+        ) : (
+          <Step title="Which gig?" done={gigChosen}>
+            {gigChosen && gig === null ? (
+              <View style={styles.row}>
+                <Text muted style={styles.grow}>
+                  Not from a gig. Nobody will find these clips on a gig&apos;s page.
+                </Text>
+                <Button
+                  title="Choose a gig"
+                  variant="secondary"
+                  onPress={() => setGigChosen(false)}
+                />
+              </View>
+            ) : (
+              <>
+                <GigPicker value={gig} onChange={chooseGig} />
+                {gig === null ? (
+                  <Text
+                    variant="caption"
+                    muted
+                    accessibilityRole="button"
+                    onPress={() => setGigChosen(true)}
+                    testID="no-gig"
+                  >
+                    These clips are not from a gig →
+                  </Text>
+                ) : null}
+              </>
+            )}
+            {gig && days.length > 1 ? (
+              <View style={styles.box} testID="festival-days">
+                <Text variant="label" muted>
+                  WHICH DAY?
+                </Text>
+                <View style={styles.wrap}>
+                  {days.map((d, i) => (
+                    <Chip
+                      key={d}
+                      label={`Day ${i + 1} · ${dayLabel(d)}`}
+                      selected={(day ?? days[0]) === d}
+                      onPress={() => setDay(i === 0 ? null : d)}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+            {gig ? (
+              gig.myAttendance === 'WENT' && !marked ? (
+                <Text variant="caption" muted testID="went-already">
+                  You went. No clips? It stays in your Pending list.
+                </Text>
+              ) : marked ? (
+                <Text variant="caption" muted testID="was-there-done">
+                  {marked}
+                </Text>
+              ) : (
+                <Button
+                  title="I was there (no clips)"
+                  variant="secondary"
+                  size="small"
+                  disabled={attend.isPending}
+                  onPress={() => void wasThere()}
+                  testID="was-there"
+                />
+              )
+            ) : null}
+          </Step>
+        )}
 
-        <Step
-          number={2}
-          title="Your clips"
-          done={composingEntries.length > 0}
-          disabled={!gigChosen}
-        >
+        <Step title="Your clips" done={composingEntries.length > 0}>
           <Text variant="caption" muted>
-            Up to {CLIP_LENGTH} each, up to ten at a time. They upload while you write.
+            Up to {CLIP_LENGTH} each, up to {MAX_CLIPS_PER_ACT} of each act. They upload while you
+            write.
           </Text>
           {composingEntries.length > 0 ? (
             <ScrollView
@@ -181,39 +357,77 @@ export function CreateScreen() {
               contentContainerStyle={styles.previews}
               testID="clip-previews"
             >
-              {composingEntries.map((entry) => (
-                <View key={entry.localId} style={styles.preview}>
-                  <ClipPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
-                  <View style={styles.previewFoot}>
-                    <Text variant="label" muted numberOfLines={1} style={styles.grow}>
-                      {stateLabel(entry)}
-                    </Text>
+              {composingEntries.map((entry) => {
+                const act = actOf(entry.localId);
+                return (
+                  <View key={entry.localId} style={styles.preview}>
+                    <ClipPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
+                    <View style={styles.previewFoot}>
+                      <Text variant="label" muted numberOfLines={1} style={styles.grow}>
+                        {stateLabel(entry)}
+                      </Text>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={`Remove ${entry.fileName ?? 'this clip'}`}
+                        hitSlop={8}
+                        onPress={() => {
+                          setComposing((current) => current.filter((id) => id !== entry.localId));
+                          void removeUpload(entry.localId).catch(() => undefined);
+                        }}
+                      >
+                        <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                      </Pressable>
+                    </View>
                     <Pressable
                       accessibilityRole="button"
-                      accessibilityLabel={`Remove ${entry.fileName ?? 'this clip'}`}
-                      hitSlop={8}
-                      onPress={() => {
-                        setComposing((current) => current.filter((id) => id !== entry.localId));
-                        void removeUpload(entry.localId).catch(() => undefined);
-                      }}
+                      accessibilityLabel={`Act in ${entry.fileName ?? 'this clip'}: ${act?.name ?? 'no act'}`}
+                      onPress={() =>
+                        setChoosingAct((now) => (now === entry.localId ? null : entry.localId))
+                      }
+                      style={[
+                        styles.actChip,
+                        {
+                          borderColor:
+                            choosingAct === entry.localId ? colors.accent : colors.border,
+                        },
+                      ]}
+                      testID={`act-${entry.localId}`}
                     >
-                      <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                      <Text variant="caption" numberOfLines={1} style={styles.grow}>
+                        {act?.name ?? 'No act'}
+                      </Text>
+                      <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
                     </Pressable>
                   </View>
-                </View>
-              ))}
+                );
+              })}
             </ScrollView>
+          ) : null}
+          {choosingAct && composing.includes(choosingAct) ? (
+            <ActPicker
+              bill={bill}
+              value={actOf(choosingAct)}
+              onChange={(act) => {
+                setActs((now) => ({ ...now, [choosingAct]: act }));
+                setChoosingAct(null);
+              }}
+            />
+          ) : null}
+          {overLimit ? (
+            <Text style={{ color: colors.danger }} testID="act-limit">
+              A post can hold {MAX_CLIPS_PER_ACT} of your clips of one act. Remove some, or give
+              them another act.
+            </Text>
           ) : null}
           <View style={styles.buttons}>
             <Button
               title={composingEntries.length > 0 ? 'Add more videos' : 'Choose videos'}
               variant={composingEntries.length > 0 ? 'secondary' : 'primary'}
-              disabled={!gigChosen}
               onPress={() => void add(pickFromLibrary)}
               testID="choose-video"
             />
             {Platform.OS !== 'web' ? (
-              <RecordClipButton disabled={!gigChosen} onPick={(pick) => void add(pick)} />
+              <RecordClipButton disabled={false} onPick={(pick) => void add(pick)} />
             ) : null}
           </View>
           {problem ? (
@@ -227,34 +441,14 @@ export function CreateScreen() {
           ) : null}
         </Step>
 
-        {composingEntries.length > 0 ? (
-          <Step number={3} title="Tags and caption" done={false}>
-            <ComposeForm
-              key={composingEntries[0]!.localId}
-              clips={composingEntries.length}
-              gig={gig}
-              onPost={(draft) => {
-                void submitPost({
-                  caption: draft.caption,
-                  gigId: draft.gigId,
-                  day: null,
-                  taggedUserIds: [],
-                  joinPostId: null,
-                  clips: composingEntries.map((entry) => ({
-                    localId: entry.localId,
-                    artistId: null,
-                  })),
-                });
-                setComposing([]);
-                setLastGig(gig);
-                setGig(null);
-                setGigChosen(false);
-                // Back to the profile, where the new posts show with a "Processing…" badge.
-                router.push('/me');
-              }}
-            />
-          </Step>
-        ) : null}
+        <ComposeForm
+          key={joinPostId ?? 'new'}
+          meId={ownerId}
+          clips={composingEntries.length}
+          hint={hint}
+          joining={joining}
+          onPost={post}
+        />
 
         <Text variant="label" muted style={styles.heading}>
           ON THEIR WAY
@@ -284,30 +478,21 @@ export function CreateScreen() {
   );
 }
 
-/** One numbered step of the Create tab; a later step is dimmed until the one before is done. */
+/** One part of the Create tab; a tick once it is done. Parts can be done in any order. */
 function Step({
-  number,
   title,
   done,
-  disabled = false,
   children,
 }: {
-  number: number;
   title: string;
   done: boolean;
-  disabled?: boolean;
   children: React.ReactNode;
 }) {
   const { colors } = useTheme();
   return (
     <View
-      style={[
-        styles.step,
-        { borderColor: colors.border, backgroundColor: colors.surface },
-        disabled ? styles.dim : null,
-      ]}
-      testID={`step-${number}`}
-      aria-disabled={disabled}
+      style={[styles.step, { borderColor: colors.border, backgroundColor: colors.surface }]}
+      testID={`step-${title}`}
     >
       <View style={styles.stepHead}>
         <View
@@ -316,9 +501,7 @@ function Step({
           {done ? (
             <Ionicons name="checkmark" size={14} color={colors.onAccent} />
           ) : (
-            <Text variant="label" style={{ color: colors.text }}>
-              {number}
-            </Text>
+            <Ionicons name="ellipse-outline" size={12} color={colors.textMuted} />
           )}
         </View>
         <Text variant="label" muted>
@@ -333,7 +516,6 @@ function Step({
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xl },
   step: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
-  dim: { opacity: 0.5 },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   badge: {
     width: 22,
@@ -342,11 +524,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  box: { gap: spacing.xs },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   grow: { flex: 1 },
   buttons: { gap: spacing.sm },
   previews: { gap: spacing.sm },
   preview: { width: 120, gap: spacing.xs },
   previewFoot: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
+  actChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+  },
   heading: { marginTop: spacing.md },
 });

@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { useListGigs, useListMyGigs } from '@/api/generated/catalog/catalog';
+import { useListGigs, useListGigsToPost } from '@/api/generated/catalog/catalog';
 import type { GigSummary } from '@/api/generated/model';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
@@ -18,13 +18,14 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
 import { AddGigForm } from './AddGigForm';
-import { pickerWindows, suggestedGigs } from './gigPicker';
+import { searchWindow } from './gigPicker';
 
 /**
- * "Which gig?" on the compose form. Before anything is typed it suggests the user's own
- * recent gigs and recent gigs near home. Typing searches every gig of the past year by artist, venue or
- * title, newest first and UK-wide; an artist or venue from the suggestions narrows it exactly. When
- * the gig is not there, "Add the gig" creates it.
+ * "Which gig?" on the Create tab. Before anything is typed it suggests the gigs a clip was most
+ * likely filmed at (`GET /me/gigs/to-post`): gigs the user marked Going or Went and gigs of acts
+ * they follow near home, from the last seven days, newest first. Typing searches every gig of the
+ * past year by artist, venue or title, newest first and UK-wide; an artist or venue from the
+ * suggestions narrows it exactly. When the gig is not there, "Add the gig" creates it.
  */
 export function GigPicker({
   value,
@@ -34,18 +35,17 @@ export function GigPicker({
   onChange: (gig: GigSummary | null) => void;
 }) {
   const { colors } = useTheme();
-  const [windows] = useState(() => pickerWindows(new Date()));
+  const [window] = useState(() => searchWindow(new Date()));
   const [text, setText] = useState('');
   const [filter, setFilter] = useState<PickedFilter | null>(null);
   const [adding, setAdding] = useState(false);
   const q = useDebounced(text.trim(), 300);
   const searching = q.length >= 2 || filter !== null;
 
-  const mine = useListMyGigs({ ...windows.mine, limit: 10 });
-  const recent = useListGigs({ ...windows.recent, order: 'desc', limit: 10 });
+  const suggested = useListGigsToPost();
   const found = useListGigs(
     {
-      ...windows.search,
+      ...window,
       ...(filter?.kind === 'artist' ? { artistIds: [filter.id] } : {}),
       ...(filter?.kind === 'venue' ? { venueIds: [filter.id] } : {}),
       ...(filter ? {} : { q }),
@@ -77,9 +77,9 @@ export function GigPicker({
     );
   }
 
-  const suggestions = suggestedGigs(mine.data?.items ?? [], recent.data?.items ?? []);
-  const results = searching ? (found.data?.items ?? []) : suggestions;
-  const loading = searching ? found.isFetching : mine.isPending || recent.isPending;
+  const results = searching ? (found.data?.items ?? []) : (suggested.data ?? []);
+  const loading = searching ? found.isFetching : suggested.isPending;
+  const failed = searching ? found.isError : suggested.isError;
 
   return (
     <View style={styles.box} testID="gig-picker">
@@ -106,18 +106,30 @@ export function GigPicker({
         </>
       )}
       <Text variant="label" muted>
-        {searching ? 'MATCHING GIGS, NEWEST FIRST' : 'YOUR RECENT GIGS AND GIGS NEAR YOU'}
+        {searching ? 'MATCHING GIGS, NEWEST FIRST' : 'THIS WEEK: YOUR GIGS AND YOUR ACTS’ GIGS'}
       </Text>
       {loading && results.length === 0 ? (
         <Text muted>Looking for gigs…</Text>
+      ) : failed && results.length === 0 ? (
+        <View style={styles.box} testID="compose-gigs-error">
+          <Text muted>The gigs could not be loaded.</Text>
+          <Button
+            title="Try again"
+            size="small"
+            variant="secondary"
+            onPress={() => void (searching ? found.refetch() : suggested.refetch())}
+          />
+        </View>
       ) : results.length === 0 ? (
         <Text muted testID="compose-no-gigs">
-          {searching ? 'No gig matches that.' : 'No recent gigs near you.'}
+          {searching
+            ? 'No gig matches that.'
+            : 'No gigs this week from you or the acts you follow. Search for it.'}
         </Text>
       ) : (
         <View accessibilityRole="radiogroup" style={styles.list}>
           {results.map((gig) => (
-            <GigRow key={gig.id} gig={gig} onPress={() => onChange(gig)} />
+            <GigRow key={gig.id} gig={gig} onPress={() => onChange(gig)} showMark />
           ))}
         </View>
       )}
@@ -141,13 +153,22 @@ export function GigRow({
   gig,
   selected = false,
   onPress,
+  showMark = false,
 }: {
   gig: GigSummary;
   selected?: boolean;
   onPress?: () => void;
+  /** Say when the user marked it Going or Went (Create's suggestions). */
+  showMark?: boolean;
 }) {
   const { colors } = useTheme();
   const when = dateParts(gig.startsAt);
+  const mark =
+    showMark && gig.myAttendance === 'WENT'
+      ? 'You went'
+      : showMark && gig.myAttendance === 'GOING'
+        ? 'You were going'
+        : null;
   return (
     <Pressable
       role={onPress ? 'radio' : undefined}
@@ -179,6 +200,11 @@ export function GigRow({
           {gig.venue.name}
           {gig.venue.city ? `, ${gig.venue.city}` : ''} · {formatGigDate(gig.startsAt)}
         </Text>
+        {mark ? (
+          <Text variant="caption" style={{ color: colors.accent }}>
+            {mark}
+          </Text>
+        ) : null}
       </View>
       {selected ? <Ionicons name="checkmark-circle" size={22} color={colors.accent} /> : null}
     </Pressable>
