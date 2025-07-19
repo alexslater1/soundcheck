@@ -23,7 +23,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
 import { ActPicker } from './ActPicker';
-import type { TaggedArtist } from './ArtistTagger';
+import type { TaggedArtist } from './composeDraft';
 import { ClipPreview } from './ClipPreview';
 import { ComposeForm, type ComposeResult } from './ComposeForm';
 import { billOf } from './composeDraft';

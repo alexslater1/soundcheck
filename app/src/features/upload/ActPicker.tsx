@@ -8,7 +8,7 @@ import { TextField } from '@/components/ui/TextField';
 import { useDebounced } from '@/lib/useDebounced';
 import { spacing } from '@/theme/tokens';
 
-import type { TaggedArtist } from './ArtistTagger';
+import type { TaggedArtist } from './composeDraft';
 
 /**
  * Who is on stage in one clip: an act from the gig's bill, another act found by name, or no
