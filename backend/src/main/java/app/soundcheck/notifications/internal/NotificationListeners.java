@@ -4,12 +4,14 @@ import app.soundcheck.content.CommentAdded;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostLiked;
 import app.soundcheck.content.PostPublished;
+import app.soundcheck.content.PostTagged;
 import app.soundcheck.social.FollowRequestAccepted;
 import app.soundcheck.social.FollowRequestWithdrawn;
 import app.soundcheck.social.FollowRequested;
 import app.soundcheck.social.NewGigsFound;
 import app.soundcheck.social.UserBlocked;
 import app.soundcheck.social.UserFollowed;
+import java.util.UUID;
 import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Component;
 
@@ -69,6 +71,14 @@ class NotificationListeners {
     void on(PostPublished event) {
         if (event.afterProcessing()) {
             notifications.record(event.authorId(), "POST_READY", null, event.postId(), null);
+        }
+    }
+
+    /** Each person tagged in a live post is told once, by its author. */
+    @ApplicationModuleListener
+    void on(PostTagged event) {
+        for (UUID userId : event.userIds()) {
+            notifications.record(userId, "POST_TAGGED", event.authorId(), event.postId(), null);
         }
     }
 

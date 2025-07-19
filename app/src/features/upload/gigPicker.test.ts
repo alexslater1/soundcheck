@@ -1,34 +1,19 @@
-import type { GigSummary } from '@/api/generated/model';
-
-import { addAct, parseTime, pickerWindows, postLabel, suggestedGigs } from './gigPicker';
-
-const gig = (id: string, startsAt: string) => ({ id, startsAt }) as GigSummary;
+import { addAct, parseTime, postLabel, searchWindow } from './gigPicker';
 
 describe('gig picker helpers', () => {
-  it('looks back from now: two weeks of mine, three days nearby, a year when searching', () => {
-    const w = pickerWindows(new Date('2026-10-02T20:00:00Z'));
+  it('searches a year back from now, up to the end of the UK day', () => {
     // Every window ends at midnight UK time (23:00 UTC in summer): no gig of a later day.
-    expect(w.mine).toEqual({ from: '2026-09-18T20:00:00.000Z', to: '2026-10-02T23:00:00.000Z' });
-    expect(w.recent).toEqual({ from: '2026-09-29T20:00:00.000Z', to: '2026-10-02T23:00:00.000Z' });
-    expect(w.search).toEqual({ from: '2025-10-02T20:00:00.000Z', to: '2026-10-02T23:00:00.000Z' });
+    expect(searchWindow(new Date('2026-10-02T20:00:00Z'))).toEqual({
+      from: '2025-10-02T20:00:00.000Z',
+      to: '2026-10-02T23:00:00.000Z',
+    });
   });
 
   it("ends at the UK day's midnight, after midnight UTC too, and in winter", () => {
     // 00:30 BST on 3 Oct: the day is the 3rd.
-    expect(pickerWindows(new Date('2026-10-02T23:30:00Z')).search.to).toBe(
-      '2026-10-03T23:00:00.000Z',
-    );
+    expect(searchWindow(new Date('2026-10-02T23:30:00Z')).to).toBe('2026-10-03T23:00:00.000Z');
     // GMT: midnight is midnight UTC.
-    expect(pickerWindows(new Date('2026-12-01T12:00:00Z')).mine.to).toBe(
-      '2026-12-02T00:00:00.000Z',
-    );
-  });
-
-  it("suggests the user's own gigs first, newest first, then recent ones nearby, each once", () => {
-    const mine = [gig('m-old', '2026-09-20T19:00:00Z'), gig('m-new', '2026-10-01T19:00:00Z')];
-    const recent = [gig('r1', '2026-09-30T19:00:00Z'), gig('m-new', '2026-10-01T19:00:00Z')];
-    expect(suggestedGigs(mine, recent).map((g) => g.id)).toEqual(['m-new', 'm-old', 'r1']);
-    expect(suggestedGigs(mine, recent, 2)).toHaveLength(2);
+    expect(searchWindow(new Date('2026-12-01T12:00:00Z')).to).toBe('2026-12-02T00:00:00.000Z');
   });
 
   it('reads a start time, or nothing', () => {

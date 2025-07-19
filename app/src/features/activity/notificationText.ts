@@ -20,6 +20,8 @@ export function notificationText(notification: NotificationView): string {
       return 'Your clip is ready';
     case 'POST_FAILED':
       return 'Your clip could not be processed';
+    case 'POST_TAGGED':
+      return `${who} tagged you in their post`;
     case 'NEW_GIGS':
       return newGigsText(notification);
     case 'FOLLOW_REQUEST':

@@ -13,7 +13,10 @@ import type { UploadEntry } from './types';
 type Props = {
   entry: UploadEntry;
   onRetry: () => void;
-  /** Removes the upload, and its post if it has one; rejects when that could not be done. */
+  /**
+   * Removes the upload, and its clip from its post (the post itself with its last clip);
+   * rejects when that could not be done.
+   */
   onRemove: () => Promise<void>;
   /** Sends the post request again (it failed although the server has the clip). */
   onPostAgain: () => void;
@@ -24,13 +27,21 @@ type Props = {
 /** One upload in the list: what it is, where it is, and what can be done about it. */
 export function UploadRow({ entry, onRetry, onRemove, onPostAgain, onWritePost }: Props) {
   const { colors } = useTheme();
-  // Removing an upload that is already a post deletes the post too: ask first.
+  // Removing an upload that is in a post takes its clip out of the post (or deletes a post of one
+  // clip): ask first. `clipId` is null for a clip posted before a post could hold several clips,
+  // which is a post of its own.
   const [confirming, setConfirming] = useState(false);
   const [removeProblem, setRemoveProblem] = useState<string | null>(null);
   const remove = () => {
     setConfirming(false);
     setRemoveProblem(null);
-    onRemove().catch(() => setRemoveProblem('Could not delete the post. Try again.'));
+    onRemove().catch(() =>
+      setRemoveProblem(
+        entry.clipId
+          ? 'Could not take it out of the post. Try again.'
+          : 'Could not delete the post. Try again.',
+      ),
+    );
   };
   const inFlight =
     entry.state === 'PREPARING' ||
@@ -128,9 +139,17 @@ export function UploadRow({ entry, onRetry, onRemove, onPostAgain, onWritePost }
       </View>
       {confirming ? (
         <View style={styles.confirm} testID={`upload-${entry.localId}-confirm`}>
-          <Text variant="caption">This clip is a post. Removing it deletes the post too.</Text>
+          <Text variant="caption">
+            {entry.clipId
+              ? 'This clip is in a post. Removing it takes it out of the post (a post of one clip is deleted).'
+              : 'This clip is a post. Removing it deletes the post too.'}
+          </Text>
           <View style={styles.actions}>
-            <Button title="Delete post" variant="danger" onPress={remove} />
+            <Button
+              title={entry.clipId ? 'Remove from post' : 'Delete post'}
+              variant="danger"
+              onPress={remove}
+            />
             <Button title="Keep it" variant="secondary" onPress={() => setConfirming(false)} />
           </View>
         </View>

@@ -18,7 +18,16 @@ import { PostCard } from './PostCard';
  * details and comments scroll as one page, so the clip goes off the top; the comment
  * button scrolls to the comments and opens the keyboard in the box.
  */
-export function PostScreen({ id, startAtMs }: { id: string; startAtMs?: number }) {
+export function PostScreen({
+  id,
+  clipId,
+  startAtMs,
+}: {
+  id: string;
+  /** The clip to start on: the one in view in the feed, or a shared link's. */
+  clipId?: string;
+  startAtMs?: number;
+}) {
   const router = useRouter();
   const scroll = useRef<ScrollView>(null);
   const commentsAt = useRef(0);
@@ -72,6 +81,7 @@ export function PostScreen({ id, startAtMs }: { id: string; startAtMs?: number }
         <PostCard
           post={post.data}
           active
+          clipId={clipId}
           startAtMs={startAtMs}
           onComment={published ? goToComments : undefined}
           onGone={() => (router.canGoBack() ? router.back() : router.replace('/'))}

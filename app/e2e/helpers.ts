@@ -48,11 +48,12 @@ export async function deleteAccount(page: Page, user: E2eUser): Promise<void> {
 }
 
 /**
- * Chooses a file through the Create tab's "Choose videos" button. The Create tab asks for the gig first
- *; unless a gig was chosen, the clip is posted as "not from a gig".
+ * Chooses a file through the Create tab's "Choose videos" button. The gig and the clips can be chosen in
+ * either order, and Post needs both; unless a gig was chosen, the clip is posted as "not
+ * from a gig".
  */
 export async function chooseVideo(page: Page, file: string): Promise<void> {
-  if (await page.getByTestId('choose-video').isDisabled()) {
+  if (await page.getByTestId('no-gig').isVisible()) {
     await page.getByTestId('no-gig').click();
   }
   const chooser = page.waitForEvent('filechooser');

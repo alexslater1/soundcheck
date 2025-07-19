@@ -105,7 +105,10 @@ class FollowingFeedIT extends IntegrationTest {
     }
 
     private static String postAt(TestApi api, TestData data, TestApi.User author, UUID gig) {
-        return api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY"), "gigId", gig), author)
+        return api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))), "gigId", gig),
+                        author)
                 .getBody()
                 .path("id")
                 .asText("");
@@ -114,7 +117,11 @@ class FollowingFeedIT extends IntegrationTest {
     private static String post(TestApi api, TestData data, TestApi.User author, String caption) {
         return api.post(
                         "/api/v1/posts",
-                        Map.of("mediaId", data.video(author.id(), "READY"), "caption", caption),
+                        Map.of(
+                                "clips",
+                                List.of(Map.of("mediaId", data.video(author.id(), "READY"))),
+                                "caption",
+                                caption),
                         author)
                 .getBody()
                 .path("id")

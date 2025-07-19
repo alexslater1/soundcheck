@@ -1,3 +1,4 @@
+import { testDraft } from './testDrafts';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ThemeProvider } from '@/theme/ThemeProvider';
@@ -9,10 +10,10 @@ import { useUploadQueue } from './uploadQueue';
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 
 const mockStartUpload = jest.fn();
-const mockSubmitPost = jest.fn();
+const mockRetryPost = jest.fn();
 jest.mock('./uploadRunner', () => ({
   startUpload: (...args: unknown[]) => mockStartUpload(...args),
-  submitPost: (...args: unknown[]) => mockSubmitPost(...args),
+  retryPost: (...args: unknown[]) => mockRetryPost(...args),
 }));
 
 const video: PickedVideo = {
@@ -77,14 +78,14 @@ describe('UploadProblems', () => {
   });
 
   it('sends a failed post again', async () => {
-    const draft = { caption: 'Encore', gigId: 'g1', artistIds: [] };
+    const draft = testDraft({ caption: 'Encore', gigId: 'g1' });
     const posted = queue('me', { state: 'READY', draft, postError: 'Could not reach the server' });
     await show();
     expect(screen.getByTestId('upload-problems-text')).toHaveTextContent(
       'Posting failed — the connection dropped. Try again',
     );
     await fireEvent.press(screen.getByTestId('upload-problems-retry'));
-    expect(mockSubmitPost).toHaveBeenCalledWith(posted, draft);
+    expect(mockRetryPost).toHaveBeenCalledWith(posted);
   });
 
   it('offers no retry for a clip the server rejected', async () => {

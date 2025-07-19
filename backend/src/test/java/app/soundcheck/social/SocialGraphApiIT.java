@@ -260,8 +260,8 @@ class SocialGraphApiIT extends IntegrationTest {
     }
 
     private String post(TestApi.User author) {
-        ResponseEntity<JsonNode> created =
-                api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY")), author);
+        ResponseEntity<JsonNode> created = api.post(
+                "/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY")))), author);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         return created.getBody().path("id").asText("");
     }

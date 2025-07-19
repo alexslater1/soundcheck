@@ -9,7 +9,7 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { bannerText, problemsOf, type UploadProblem } from './problems';
 import { useUploadQueue } from './uploadQueue';
-import { startUpload, submitPost } from './uploadRunner';
+import { retryPost, startUpload } from './uploadRunner';
 
 /** Try again: an upload continues from where it stopped; a post is sent again with its key. */
 function retry(problem: UploadProblem): void {
@@ -17,11 +17,8 @@ function retry(problem: UploadProblem): void {
     void startUpload(problem.localId);
     return;
   }
-  const entry = useUploadQueue
-    .getState()
-    .entries.find((candidate) => candidate.localId === problem.localId);
-  if (problem.kind === 'post' && entry?.draft) {
-    void submitPost(problem.localId, entry.draft);
+  if (problem.kind === 'post') {
+    void retryPost(problem.localId);
   }
 }
 

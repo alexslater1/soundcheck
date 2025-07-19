@@ -33,6 +33,12 @@ function setup(
     draft: null,
     postIdempotencyKey: 'pk1',
     postId: null,
+    clipId: null,
+    attached: false,
+    artistId: null,
+    previewMediaId: null,
+    previewState: 'NONE',
+    previewSent: false,
     postError: null,
   };
   const updates: Partial<UploadEntry>[] = [];

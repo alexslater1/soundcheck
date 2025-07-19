@@ -25,12 +25,17 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  AddClipsRequest,
   CreatePostRequest,
+  EditPostRequest,
+  FillClipRequest,
+  GigSummary,
   ListArtistPostsParams,
   ListGigPostsParams,
   ListMyPostsParams,
   ListUserPostsParams,
   ListVenuePostsParams,
+  MyTagRequest,
   PagePost,
   Post
 } from '.././model';
@@ -263,6 +268,101 @@ export function useListGigPosts<TData = Awaited<ReturnType<typeof listGigPosts>>
 
 
 /**
+ * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ */
+export const getListUnpostedGigsUrl = () => {
+
+
+  
+
+  return `/api/v1/me/gigs/unposted`
+}
+
+export const listUnpostedGigs = async ( options?: RequestInit): Promise<GigSummary[]> => {
+  
+  return customFetch<GigSummary[]>(getListUnpostedGigsUrl(),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListUnpostedGigsQueryKey = () => {
+    return [`/api/v1/me/gigs/unposted`] as const;
+    }
+
+    
+export const getListUnpostedGigsQueryOptions = <TData = Awaited<ReturnType<typeof listUnpostedGigs>>, TError = unknown>( options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUnpostedGigs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListUnpostedGigsQueryKey();
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listUnpostedGigs>>> = ({ signal }) => listUnpostedGigs({ signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listUnpostedGigs>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListUnpostedGigsQueryResult = NonNullable<Awaited<ReturnType<typeof listUnpostedGigs>>>
+export type ListUnpostedGigsQueryError = unknown
+
+
+export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpostedGigs>>, TError = unknown>(
+  options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUnpostedGigs>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listUnpostedGigs>>,
+          TError,
+          Awaited<ReturnType<typeof listUnpostedGigs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpostedGigs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUnpostedGigs>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listUnpostedGigs>>,
+          TError,
+          Awaited<ReturnType<typeof listUnpostedGigs>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpostedGigs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUnpostedGigs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ */
+
+export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpostedGigs>>, TError = unknown>(
+  options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listUnpostedGigs>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListUnpostedGigsQueryOptions(options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
  * @summary The caller's own posts in every status (processing and failed included), newest first
  */
 export const getListMyPostsUrl = (params?: ListMyPostsParams,) => {
@@ -365,7 +465,7 @@ export function useListMyPosts<TData = Awaited<ReturnType<typeof listMyPosts>>, 
 
 
 /**
- * @summary Post an uploaded clip (PENDING_MEDIA until it is transcoded, PUBLISHED if it already is)
+ * @summary Post clips from a gig and day: each clip is a slot, filled now (mediaId) or when its upload is complete. Joins the caller's open post from the same gig and day if there is one. PENDING_MEDIA until a clip is playable
  */
 export const getCreatePostUrl = () => {
 
@@ -420,7 +520,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type CreatePostMutationError = unknown
 
     /**
- * @summary Post an uploaded clip (PENDING_MEDIA until it is transcoded, PUBLISHED if it already is)
+ * @summary Post clips from a gig and day: each clip is a slot, filled now (mediaId) or when its upload is complete. Joins the caller's open post from the same gig and day if there is one. PENDING_MEDIA until a clip is playable
  */
 export const useCreatePost = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createPost>>, TError,{data: CreatePostRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -601,6 +701,438 @@ export function useGetPost<TData = Awaited<ReturnType<typeof getPost>>, TError =
 
 
 /**
+ * @summary Edit your post: caption ("" clears it), gig and day, acts, tagged people, and the clips' order and acts (clips left out are removed). A field left out is unchanged
+ */
+export const getEditPostUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${id}`
+}
+
+export const editPost = async (id: string,
+    editPostRequest: EditPostRequest, options?: RequestInit): Promise<Post> => {
+  
+  return customFetch<Post>(getEditPostUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      editPostRequest,)
+  }
+);}
+
+
+
+
+export const getEditPostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editPost>>, TError,{id: string;data: EditPostRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof editPost>>, TError,{id: string;data: EditPostRequest}, TContext> => {
+
+const mutationKey = ['editPost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof editPost>>, {id: string;data: EditPostRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  editPost(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EditPostMutationResult = NonNullable<Awaited<ReturnType<typeof editPost>>>
+    export type EditPostMutationBody = EditPostRequest
+    export type EditPostMutationError = unknown
+
+    /**
+ * @summary Edit your post: caption ("" clears it), gig and day, acts, tagged people, and the clips' order and acts (clips left out are removed). A field left out is unchanged
+ */
+export const useEditPost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editPost>>, TError,{id: string;data: EditPostRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof editPost>>,
+        TError,
+        {id: string;data: EditPostRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getEditPostMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Add clips to a post: its author, or someone tagged in it (which puts it on their profile)
+ */
+export const getAddPostClipsUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${id}/clips`
+}
+
+export const addPostClips = async (id: string,
+    addClipsRequest: AddClipsRequest, options?: RequestInit): Promise<Post> => {
+  
+  return customFetch<Post>(getAddPostClipsUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      addClipsRequest,)
+  }
+);}
+
+
+
+
+export const getAddPostClipsMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPostClips>>, TError,{id: string;data: AddClipsRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addPostClips>>, TError,{id: string;data: AddClipsRequest}, TContext> => {
+
+const mutationKey = ['addPostClips'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addPostClips>>, {id: string;data: AddClipsRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addPostClips(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddPostClipsMutationResult = NonNullable<Awaited<ReturnType<typeof addPostClips>>>
+    export type AddPostClipsMutationBody = AddClipsRequest
+    export type AddPostClipsMutationError = unknown
+
+    /**
+ * @summary Add clips to a post: its author, or someone tagged in it (which puts it on their profile)
+ */
+export const useAddPostClips = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addPostClips>>, TError,{id: string;data: AddClipsRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addPostClips>>,
+        TError,
+        {id: string;data: AddClipsRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getAddPostClipsMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Remove a clip: its owner or the post's author; never the last one
+ */
+export const getRemovePostClipUrl = (id: string,
+    clipId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${id}/clips/${clipId}`
+}
+
+export const removePostClip = async (id: string,
+    clipId: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getRemovePostClipUrl(id,clipId),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getRemovePostClipMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePostClip>>, TError,{id: string;clipId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removePostClip>>, TError,{id: string;clipId: string}, TContext> => {
+
+const mutationKey = ['removePostClip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removePostClip>>, {id: string;clipId: string}> = (props) => {
+          const {id,clipId} = props ?? {};
+
+          return  removePostClip(id,clipId,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemovePostClipMutationResult = NonNullable<Awaited<ReturnType<typeof removePostClip>>>
+    
+    export type RemovePostClipMutationError = unknown
+
+    /**
+ * @summary Remove a clip: its owner or the post's author; never the last one
+ */
+export const useRemovePostClip = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePostClip>>, TError,{id: string;clipId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removePostClip>>,
+        TError,
+        {id: string;clipId: string},
+        TContext
+      > => {
+
+      const mutationOptions = getRemovePostClipMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Fill your clip's slot: its video once the upload is complete, and/or its preview frame
+ */
+export const getFillPostClipUrl = (id: string,
+    clipId: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${id}/clips/${clipId}`
+}
+
+export const fillPostClip = async (id: string,
+    clipId: string,
+    fillClipRequest: FillClipRequest, options?: RequestInit): Promise<Post> => {
+  
+  return customFetch<Post>(getFillPostClipUrl(id,clipId),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      fillClipRequest,)
+  }
+);}
+
+
+
+
+export const getFillPostClipMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fillPostClip>>, TError,{id: string;clipId: string;data: FillClipRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof fillPostClip>>, TError,{id: string;clipId: string;data: FillClipRequest}, TContext> => {
+
+const mutationKey = ['fillPostClip'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof fillPostClip>>, {id: string;clipId: string;data: FillClipRequest}> = (props) => {
+          const {id,clipId,data} = props ?? {};
+
+          return  fillPostClip(id,clipId,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type FillPostClipMutationResult = NonNullable<Awaited<ReturnType<typeof fillPostClip>>>
+    export type FillPostClipMutationBody = FillClipRequest
+    export type FillPostClipMutationError = unknown
+
+    /**
+ * @summary Fill your clip's slot: its video once the upload is complete, and/or its preview frame
+ */
+export const useFillPostClip = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof fillPostClip>>, TError,{id: string;clipId: string;data: FillClipRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof fillPostClip>>,
+        TError,
+        {id: string;clipId: string;data: FillClipRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getFillPostClipMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Take your tag off a post, with any clips you added; you cannot be tagged on it again
+ */
+export const getLeavePostUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${id}/tags/me`
+}
+
+export const leavePost = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getLeavePostUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getLeavePostMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leavePost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof leavePost>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['leavePost'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof leavePost>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  leavePost(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type LeavePostMutationResult = NonNullable<Awaited<ReturnType<typeof leavePost>>>
+    
+    export type LeavePostMutationError = unknown
+
+    /**
+ * @summary Take your tag off a post, with any clips you added; you cannot be tagged on it again
+ */
+export const useLeavePost = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof leavePost>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof leavePost>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getLeavePostMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Put a post you are tagged in on your profile, or take it off
+ */
+export const getSetPostOnProfileUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/posts/${id}/tags/me`
+}
+
+export const setPostOnProfile = async (id: string,
+    myTagRequest: MyTagRequest, options?: RequestInit): Promise<Post> => {
+  
+  return customFetch<Post>(getSetPostOnProfileUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      myTagRequest,)
+  }
+);}
+
+
+
+
+export const getSetPostOnProfileMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPostOnProfile>>, TError,{id: string;data: MyTagRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setPostOnProfile>>, TError,{id: string;data: MyTagRequest}, TContext> => {
+
+const mutationKey = ['setPostOnProfile'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setPostOnProfile>>, {id: string;data: MyTagRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setPostOnProfile(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetPostOnProfileMutationResult = NonNullable<Awaited<ReturnType<typeof setPostOnProfile>>>
+    export type SetPostOnProfileMutationBody = MyTagRequest
+    export type SetPostOnProfileMutationError = unknown
+
+    /**
+ * @summary Put a post you are tagged in on your profile, or take it off
+ */
+export const useSetPostOnProfile = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPostOnProfile>>, TError,{id: string;data: MyTagRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setPostOnProfile>>,
+        TError,
+        {id: string;data: MyTagRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSetPostOnProfileMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary A user's published posts, newest first
  */
 export const getListUserPostsUrl = (id: string,

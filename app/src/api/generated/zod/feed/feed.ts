@@ -38,7 +38,39 @@ export const getFollowingFeedResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -80,6 +112,7 @@ export const getFollowingFeedResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -91,7 +124,14 @@ export const getFollowingFeedResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -136,7 +176,39 @@ export const getHomeFeedResponse = zod.object({
   "isFollowing": zod.boolean().nullish()
 }),
   "caption": zod.string().nullish(),
+  "clipCount": zod.number(),
+  "clips": zod.array(zod.object({
+  "act": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}).optional(),
+  "id": zod.string().uuid(),
+  "owner": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}),
+  "playback": zod.object({
+  "blurhash": zod.string().nullish(),
+  "durationMs": zod.number().nullish(),
+  "height": zod.number().nullish(),
+  "hlsUrl": zod.string().nullish(),
+  "posterUrl": zod.string().nullish(),
+  "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
+  "thumbUrl": zod.string().nullish(),
+  "width": zod.number().nullish()
+}),
+  "position": zod.number(),
+  "previewUrl": zod.string().nullish(),
+  "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
+})),
   "commentCount": zod.number(),
+  "day": zod.string().date().nullish(),
   "gig": zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -178,6 +250,7 @@ export const getHomeFeedResponse = zod.object({
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
   "likedByMe": zod.boolean(),
+  "myTag": zod.enum(['TAGGED', 'ON_PROFILE']).nullish(),
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
@@ -189,7 +262,14 @@ export const getHomeFeedResponse = zod.object({
   "width": zod.number().nullish()
 }),
   "publishedAt": zod.string().datetime({}).nullish(),
-  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED'])
+  "status": zod.enum(['PENDING_MEDIA', 'PUBLISHED', 'FAILED', 'HIDDEN', 'DELETED']),
+  "withUsers": zod.array(zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}))
 }),
   "reasons": zod.array(zod.object({
   "kind": zod.enum(['FOLLOWS_AUTHOR', 'FOLLOWS_ARTIST', 'WENT_TO_GIG', 'GOING_TO_GIG', 'GENRE_MATCH', 'NEARBY', 'TRENDING', 'FRIENDS_ENGAGED', 'NEW_FOR_YOU']),

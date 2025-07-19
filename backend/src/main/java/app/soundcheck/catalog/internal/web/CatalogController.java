@@ -234,6 +234,20 @@ public class CatalogController {
         return ResponseEntity.noContent().build();
     }
 
+    @GetMapping("/me/gigs/to-post")
+    @Operation(
+            operationId = "listGigsToPost",
+            summary =
+                    "Create's gig suggestions: gigs you marked Going or Went and gigs of acts you follow near home, from the last 7 days up to today, newest first")
+    public List<GigSummary> gigsToPost(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false) @DecimalMin("-90") @DecimalMax("90") @Parameter(description = FROM_LAT)
+                    Double fromLat,
+            @RequestParam(required = false) @DecimalMin("-180") @DecimalMax("180") @Parameter(description = FROM_LNG)
+                    Double fromLng) {
+        return catalog.gigsToPost(userId(jwt), ViewerPosition.approximate(fromLat, fromLng));
+    }
+
     @GetMapping("/me/gigs")
     @Operation(operationId = "listMyGigs", summary = "Gigs the viewer marked, upcoming (default) or past")
     public Page<GigSummary> myGigs(

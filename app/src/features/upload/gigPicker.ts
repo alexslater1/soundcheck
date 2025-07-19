@@ -1,43 +1,18 @@
-import type { GigSummary } from '@/api/generated/model';
 import { dayWindow, ukDate } from '@/features/calendar/monthGrid';
 
 const DAY = 24 * 60 * 60 * 1000;
 
 /**
- * The windows the clip picker asks for, fixed when the picker opens. A clip is filmed at a
- * gig that has happened (or is on today), so everything looks backwards from now and ends at midnight
- * UK time: a gig of a later day cannot be posted to (H43; the server refuses it too).
- * - mine: gigs the user marked in the last two weeks;
- * - recent: gigs near home from the last three days;
- * - search: a year back (a clip posted long after).
+ * The window the gig search looks in, fixed when the picker opens. A clip is filmed at a gig
+ * that has happened (or is on today), so it looks a year back from now and ends at midnight UK time: a
+ * gig of a later day cannot be posted to (the server refuses it too). The suggestions before
+ * anything is typed come from the server (`GET /me/gigs/to-post`).
  */
-export function pickerWindows(
-  now: Date,
-): Record<'mine' | 'recent' | 'search', { from: string; to: string }> {
-  const at = (offset: number) => new Date(now.getTime() + offset).toISOString();
-  const endOfToday = dayWindow(ukDate(now)).to;
+export function searchWindow(now: Date): { from: string; to: string } {
   return {
-    mine: { from: at(-14 * DAY), to: endOfToday },
-    recent: { from: at(-3 * DAY), to: endOfToday },
-    search: { from: at(-365 * DAY), to: endOfToday },
+    from: new Date(now.getTime() - 365 * DAY).toISOString(),
+    to: dayWindow(ukDate(now)).to,
   };
-}
-
-/**
- * The suggestions shown before anything is typed: the user's own gigs first (most recent first), then
- * recent gigs near home, each gig once.
- */
-export function suggestedGigs(mine: GigSummary[], recent: GigSummary[], limit = 8): GigSummary[] {
-  const newestFirst = (a: GigSummary, b: GigSummary) => b.startsAt.localeCompare(a.startsAt);
-  const seen = new Set<string>();
-  const out: GigSummary[] = [];
-  for (const gig of [...[...mine].sort(newestFirst), ...[...recent].sort(newestFirst)]) {
-    if (!seen.has(gig.id)) {
-      seen.add(gig.id);
-      out.push(gig);
-    }
-  }
-  return out.slice(0, limit);
 }
 
 /** "19:30" or "9:05" → "19:30" / "09:05"; anything else (including "") → null. */

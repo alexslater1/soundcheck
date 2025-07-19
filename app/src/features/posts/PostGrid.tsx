@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
@@ -21,7 +22,10 @@ export function badgeFor(status: Post['status']): string | null {
   }
 }
 
-/** A profile's clips as a three-column grid of thumbnails; a tile opens the post. */
+/**
+ * A profile's posts as a three-column grid of thumbnails, one tile per post (its cover, with the number of
+ * clips when there are several); a tile opens the post.
+ */
 export function PostGrid({ posts }: { posts: Post[] }) {
   const { colors } = useTheme();
   return (
@@ -43,6 +47,18 @@ export function PostGrid({ posts }: { posts: Post[] }) {
                 contentFit="cover"
                 style={StyleSheet.absoluteFill}
               />
+              {post.clipCount > 1 ? (
+                <View
+                  style={styles.count}
+                  accessibilityLabel={`${post.clipCount} clips`}
+                  testID="post-tile-clips"
+                >
+                  <Ionicons name="copy-outline" size={12} color="#FFFFFF" />
+                  <Text variant="caption" style={styles.badgeText}>
+                    {post.clipCount}
+                  </Text>
+                </View>
+              ) : null}
               {badge ? (
                 <View style={styles.badge}>
                   <Text variant="caption" style={styles.badgeText}>
@@ -69,4 +85,16 @@ const styles = StyleSheet.create({
   },
   badge: { backgroundColor: 'rgba(0,0,0,0.6)', padding: spacing.xs },
   badgeText: { color: '#FFFFFF' },
+  // A post of several clips: a stack and how many, in the top corner.
+  count: {
+    position: 'absolute',
+    top: spacing.xs,
+    right: spacing.xs,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.xs,
+  },
 });

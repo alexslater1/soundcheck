@@ -21,14 +21,18 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -319,6 +323,71 @@ public class CatalogService {
                         Cursor.decode(cursor),
                         Cursor.limit(limit)),
                 origin);
+    }
+
+    /** Gig days are UK calendar days. */
+    private static final ZoneId UK = ZoneId.of("Europe/London");
+
+    /** How far back Create's gig suggestions look. */
+    static final Duration TO_POST_WINDOW = Duration.ofDays(7);
+
+    /**
+     * {@code GET /me/gigs/to-post}: the gigs a clip being posted was most likely filmed at, newest
+     * first: gigs the viewer marked GOING or WENT in the last seven days, and gigs of acts they follow in the
+     * same days within {@value #DEFAULT_RADIUS_KM} km of their home city. Nothing later than today (a clip
+     * comes from a gig that has happened).
+     */
+    public List<GigSummary> gigsToPost(UUID viewer, @Nullable GeoPoint here) {
+        Instant now = Instant.now(clock);
+        Instant from = now.minus(TO_POST_WINDOW);
+        Instant to =
+                LocalDate.now(clock.withZone(UK)).plusDays(1).atStartOfDay(UK).toInstant();
+        GeoPoint origin = distancesFrom(viewer, here);
+        Map<UUID, GigRow> picked = new LinkedHashMap<>();
+        // Expected index: gig_attendance's primary key (user_id, gig_id), then gig's primary key.
+        for (GigRow row : repository.gigs(
+                new GigFilter(origin, null, from, to, null, null, null, null, viewer, null, true, null, 50), origin)) {
+            picked.put(row.id(), row);
+        }
+        Map<UUID, String> mine = repository.attendance(viewer, picked.keySet());
+        picked.keySet().removeIf(id -> !"GOING".equals(mine.get(id)) && !"WENT".equals(mine.get(id)));
+        Optional<GeoPoint> home = viewerHome.homeOf(viewer);
+        if (home.isPresent()) {
+            // Expected index: gig_location_gix (radius) with gig_starts_at (window): a week near one city.
+            List<GigRow> near = repository.gigs(
+                    new GigFilter(
+                            home.get(),
+                            DEFAULT_RADIUS_KM,
+                            from,
+                            to,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            null,
+                            true,
+                            null,
+                            300),
+                    origin);
+            Map<UUID, List<UUID>> bills = new LinkedHashMap<>();
+            for (LineupEntry entry :
+                    repository.lineups(near.stream().map(GigRow::id).toList())) {
+                bills.computeIfAbsent(entry.gigId(), id -> new ArrayList<>()).add(entry.artistId());
+            }
+            Set<UUID> followed = follows.followedBy(
+                    viewer, bills.values().stream().flatMap(List::stream).collect(Collectors.toSet()));
+            for (GigRow row : near) {
+                if (bills.getOrDefault(row.id(), List.of()).stream().anyMatch(followed::contains)) {
+                    picked.putIfAbsent(row.id(), row);
+                }
+            }
+        }
+        List<GigRow> newestFirst = picked.values().stream()
+                .sorted(Comparator.comparing(GigRow::startsAt).reversed().thenComparing(GigRow::id))
+                .limit(30)
+                .toList();
+        return summaries(viewer, newestFirst);
     }
 
     /**

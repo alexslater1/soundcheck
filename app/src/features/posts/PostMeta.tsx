@@ -27,7 +27,7 @@ const LIGHT = '#FFFFFF';
 const LIGHT_MUTED = 'rgba(255,255,255,0.8)';
 
 /**
- * Who posted the clip, the caption (two lines until tapped; in the feed a tap opens the post), the gig (its date and venue),
+ * Who posted the clip, the people they went with ("with @a, @b"; each opens their profile), the caption (two lines until tapped; in the feed a tap opens the post), the gig (its date and venue),
  * the venue and the artists. The author, the gig, the venue and each artist are links; tapping the
  * author or the gig is reported as a signal of interest.
  */
@@ -86,6 +86,32 @@ export function PostMeta({ post, onDark = false, onCaptionPress, showGig = true 
         >
           {post.caption}
         </Text>
+      ) : null}
+      {post.withUsers.length > 0 ? (
+        <View style={styles.with} testID="post-with">
+          <Ionicons
+            name="people-outline"
+            size={16}
+            color={onDark ? LIGHT_MUTED : colors.textMuted}
+          />
+          <Text variant="caption" style={mutedInk} muted={!onDark}>
+            with
+          </Text>
+          {post.withUsers.map((user, i) => (
+            <Link
+              key={user.id}
+              href={{ pathname: '/u/[handle]', params: { handle: user.handle } }}
+              asChild
+            >
+              <Pressable accessibilityRole="link" testID={`post-with-${user.handle}`}>
+                <Text variant="caption" style={[styles.bold, ink]}>
+                  @{user.handle}
+                  {i < post.withUsers.length - 1 ? ',' : ''}
+                </Text>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
       ) : null}
       {post.gig && showGig ? (
         <Link
@@ -158,6 +184,7 @@ const styles = StyleSheet.create({
   names: { flexShrink: 1 },
   bold: { fontWeight: '700' },
   gig: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, minHeight: 28 },
+  with: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.xs },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
   chip: {
     flexDirection: 'row',

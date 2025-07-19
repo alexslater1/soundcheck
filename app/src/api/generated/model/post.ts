@@ -8,7 +8,10 @@
 import type { ArtistSummary } from './artistSummary';
 import type { UserSummary } from './userSummary';
 import type { PostCaption } from './postCaption';
+import type { PostClip } from './postClip';
+import type { PostDay } from './postDay';
 import type { GigSummary } from './gigSummary';
+import type { PostMyTag } from './postMyTag';
 import type { Playback } from './playback';
 import type { PostPublishedAt } from './postPublishedAt';
 import type { PostStatus } from './postStatus';
@@ -17,12 +20,17 @@ export interface Post {
   artists: ArtistSummary[];
   author: UserSummary;
   caption?: PostCaption;
+  clipCount: number;
+  clips: PostClip[];
   commentCount: number;
+  day?: PostDay;
   gig?: GigSummary;
   id: string;
   likeCount: number;
   likedByMe: boolean;
+  myTag?: PostMyTag;
   playback: Playback;
   publishedAt?: PostPublishedAt;
   status: PostStatus;
+  withUsers: UserSummary[];
 }

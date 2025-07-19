@@ -1,8 +1,9 @@
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import type { Post, Reason } from '@/api/generated/model';
+import type { Post, PostClip, Reason } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { usePlayerSlot } from '@/features/player/playerManager';
 import { SEEK_BAR_HEIGHT } from '@/features/player/SeekBar';
@@ -12,7 +13,8 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { GigTicket, TICKET_HEIGHT } from './GigTicket';
 import { PostActions } from './PostActions';
-import { aspectOf, PostMedia } from './PostMedia';
+import { ClipCarousel } from './ClipCarousel';
+import { aspectOf } from './PostMedia';
 import { PostMeta } from './PostMeta';
 import { fitClip, pageFit } from './pageFit';
 import { useOpenPost } from './useOpenPost';
@@ -66,15 +68,17 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
   const feedStyle = useThemePrefs((state) => state.feedStyle);
   const { live, active } = usePlayerSlot(post.id);
   const aspect = aspectOf(post);
+  // The clip in view: the one that plays on when the post is opened.
+  const [inView, setInView] = useState<PostClip | undefined>(undefined);
   // The caption and the comment count open the post, with the clip playing on.
-  const open = useOpenPost(post);
+  const open = useOpenPost(post, inView?.id);
 
   if (width >= WIDE_FROM) {
     const clip = fitClip(aspect, width - PANEL_WIDTH - spacing.xl, height - spacing.lg);
     return (
       <View style={[styles.wide, { height }]} testID={`post-${post.id}`}>
         <View style={{ width: clip.width }}>
-          <PostMedia post={post} active={active} live={live} />
+          <ClipCarousel post={post} active={active} live={live} onClipChange={setInView} />
         </View>
         <View style={[styles.panel, { backgroundColor: colors.surface }]}>
           {post.gig ? <GigTicket gig={post.gig} postId={post.id} /> : null}
@@ -138,10 +142,12 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
           />
         )}
         <View style={{ width: clip.width }}>
-          <PostMedia
+          <ClipCarousel
             post={post}
             active={active}
             live={live}
+            onClipChange={setInView}
+            overlayTop={!ticketOnTop && post.gig ? TICKET_HEIGHT + spacing.sm : 0}
             soundAtTop
             frameAspect={clip.fill ? box.width / box.height : undefined}
             // The card rounds a clip that fills it; a fitted one keeps its own corners.

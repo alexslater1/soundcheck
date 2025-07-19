@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -10,17 +11,21 @@ import { monthOf, monthWindow, ukDate, type Month } from '@/features/calendar/mo
 import { formatGigDate } from '@/features/gigs/format';
 import { GigCard } from '@/features/gigs/GigCard';
 import { useDistanceOrigin } from '@/features/location/deviceLocation';
+import { CREATE_ROUTE } from '@/features/upload/routes';
+import { PendingGigs } from '@/features/upload/PendingGigs';
 import { spacing } from '@/theme/tokens';
 
 import { byDay } from './byDay';
 
 /**
  * The Me tab's My gigs: every gig the user marked (Going, Interested or Went), past and
- * upcoming, on a month grid; a day's gigs are listed under it when tapped, otherwise the month's.
+ * upcoming, on a month grid; a day's gigs are listed under it when tapped, otherwise the month's. Above
+ * it, H44's Pending list: gigs the user went to without posting; tapping one starts a post for it.
  */
 export function MyGigsCalendar() {
   const [month, setMonth] = useState<Month>(() => monthOf(new Date()));
   const [day, setDay] = useState<string | null>(null);
+  const router = useRouter();
   // A month of one person's gigs fits in one page (50); more than that shows the first 50.
   const origin = useDistanceOrigin(); // distances from the phone when allowed
   const gigs = useListMyGigs(
@@ -36,6 +41,10 @@ export function MyGigsCalendar() {
 
   return (
     <View style={styles.box} testID="my-gigs">
+      <PendingGigs
+        showEmpty
+        onPick={(gig) => router.push({ pathname: CREATE_ROUTE, params: { gigId: gig.id } })}
+      />
       <MonthCalendar
         month={month}
         onMonthChange={(next) => {

@@ -718,6 +718,62 @@ export const listMyGigsResponse = zod.object({
 })
 
 /**
+ * @summary Create's gig suggestions: gigs you marked Going or Went and gigs of acts you follow near home, from the last 7 days up to today, newest first
+ */
+export const listGigsToPostQueryFromLatMin = -90;
+
+export const listGigsToPostQueryFromLatMax = 90;
+export const listGigsToPostQueryFromLngMin = -180;
+
+export const listGigsToPostQueryFromLngMax = 180;
+
+
+export const listGigsToPostQueryParams = zod.object({
+  "fromLat": zod.number().min(listGigsToPostQueryFromLatMin).max(listGigsToPostQueryFromLatMax).optional().describe('Where the viewer is (with fromLng): distances are measured from here instead of the home city\'s centre. Rounded to 0.01° (about 1 km) by the server; never stored'),
+  "fromLng": zod.number().min(listGigsToPostQueryFromLngMin).max(listGigsToPostQueryFromLngMax).optional().describe('Where the viewer is (with fromLat); see fromLat')
+})
+
+export const listGigsToPostResponseItem = zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+})
+export const listGigsToPostResponse = zod.array(listGigsToPostResponseItem)
+
+/**
  * @summary Top results per type (artists, gigs, pastGigs; max 5 each); artists and gigs by default
  */
 export const searchQueryQMin = 0;

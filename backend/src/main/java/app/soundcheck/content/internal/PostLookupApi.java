@@ -7,6 +7,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,10 +18,12 @@ import org.springframework.transaction.annotation.Transactional;
 class PostLookupApi implements PostLookup {
 
     private final PostRepository posts;
+    private final ClipRepository clips;
     private final MediaLibrary media;
 
-    PostLookupApi(PostRepository posts, MediaLibrary media) {
+    PostLookupApi(PostRepository posts, ClipRepository clips, MediaLibrary media) {
         this.posts = posts;
+        this.clips = clips;
         this.media = media;
     }
 
@@ -29,11 +32,23 @@ class PostLookupApi implements PostLookup {
         List<PostRow> rows = posts.findAll(postIds).stream()
                 .filter(row -> !row.status().equals("DELETED"))
                 .toList();
-        Map<UUID, Playback> playbacks =
-                media.playbacks(rows.stream().map(PostRow::mediaId).toList());
+        Map<UUID, List<ClipRow>> clipsOf =
+                clips.of(rows.stream().map(PostRow::id).toList());
+        Map<UUID, Playback> playbacks = media.playbacks(clipsOf.values().stream()
+                .flatMap(List::stream)
+                .map(ClipRow::mediaId)
+                .filter(Objects::nonNull)
+                .toList());
         Map<UUID, PostBrief> byId = new LinkedHashMap<>();
         for (PostRow row : rows) {
-            Playback playback = playbacks.get(row.mediaId());
+            // The thumbnail of the first clip that has one (the post's cover).
+            Playback playback = clipsOf.getOrDefault(row.id(), List.of()).stream()
+                    .map(ClipRow::mediaId)
+                    .filter(Objects::nonNull)
+                    .map(playbacks::get)
+                    .filter(p -> p != null && p.thumbUrl() != null)
+                    .findFirst()
+                    .orElse(null);
             byId.put(
                     row.id(),
                     new PostBrief(

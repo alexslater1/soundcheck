@@ -1,3 +1,4 @@
+import { testDraft } from './testDrafts';
 import { bannerText, plainReason, problemOf, problemsOf, type UploadProblem } from './problems';
 import type { UploadEntry } from './types';
 
@@ -26,6 +27,12 @@ const entry = (patch: Partial<UploadEntry> = {}): UploadEntry & { ownerId: strin
   draft: null,
   postIdempotencyKey: 'pk1',
   postId: null,
+  clipId: null,
+  attached: false,
+  artistId: null,
+  previewMediaId: null,
+  previewState: 'NONE',
+  previewSent: false,
   postError: null,
   ...patch,
 });
@@ -72,7 +79,7 @@ describe('problemOf', () => {
 
   it('counts a rejected clip and a failed post, and nothing that is still going or done', () => {
     expect(problemOf(entry({ state: 'REJECTED' }))?.kind).toBe('rejected');
-    const draft = { caption: '', gigId: null, artistIds: [] };
+    const draft = testDraft();
     expect(
       problemOf(entry({ state: 'PROCESSING', draft, postError: 'Could not reach the server' })),
     ).toMatchObject({ kind: 'post', reason: 'the connection dropped' });

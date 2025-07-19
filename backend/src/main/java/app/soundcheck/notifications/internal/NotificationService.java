@@ -50,6 +50,7 @@ public class NotificationService {
                                 "POST_COMMENTED",
                                 "POST_READY",
                                 "POST_FAILED",
+                                "POST_TAGGED",
                                 "NEW_GIGS",
                                 "FOLLOW_REQUEST",
                                 "FOLLOW_ACCEPTED"

@@ -30,6 +30,12 @@ function entry(overrides: Partial<UploadEntry> = {}): UploadEntry {
     draft: null,
     postIdempotencyKey: 'post-key-1',
     postId: null,
+    clipId: null,
+    attached: false,
+    artistId: null,
+    previewMediaId: null,
+    previewState: 'NONE',
+    previewSent: false,
     postError: null,
     ...overrides,
   };

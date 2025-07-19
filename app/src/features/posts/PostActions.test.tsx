@@ -14,14 +14,21 @@ const mockDelete = jest.fn(async (_id: string) => undefined);
 const mockShare = jest.fn(async (_id: string) => 'copied');
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
-jest.mock('expo-router', () => ({ useRouter: () => ({ push: jest.fn() }) }));
+jest.mock('expo-router', () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock('@/api/generated/engagement/engagement', () => ({
   hidePost: (id: string) => mockHide(id),
   reportPost: (id: string, body: unknown) => mockReport(id, body),
   likePost: jest.fn(),
   unlikePost: jest.fn(),
 }));
-jest.mock('@/api/generated/posts/posts', () => ({ deletePost: (id: string) => mockDelete(id) }));
+const mockLeave = jest.fn(async (_id: string) => undefined);
+const mockOnProfile = jest.fn(async (_id: string, _body: unknown) => undefined);
+const mockPush = jest.fn();
+jest.mock('@/api/generated/posts/posts', () => ({
+  deletePost: (id: string) => mockDelete(id),
+  leavePost: (id: string) => mockLeave(id),
+  setPostOnProfile: (id: string, body: unknown) => mockOnProfile(id, body),
+}));
 jest.mock('./sharePost', () => ({ sharePost: (id: string) => mockShare(id) }));
 
 const post = {
@@ -37,11 +44,11 @@ const reasons: Reason[] = [
   { kind: 'WENT_TO_GIG', text: 'From a gig you went to' },
 ];
 
-function renderActions(onGone = jest.fn(), withReasons = true) {
+function renderActions(onGone = jest.fn(), withReasons = true, shown: Post = post) {
   return render(
     <ThemeProvider>
       <TelemetryScope place={{ surface: 'FOR_YOU', sessionId: 'session-1', position: 4 }}>
-        <PostActions post={post} reasons={withReasons ? reasons : undefined} onGone={onGone} />
+        <PostActions post={shown} reasons={withReasons ? reasons : undefined} onGone={onGone} />
       </TelemetryScope>
     </ThemeProvider>,
   );
@@ -167,5 +174,44 @@ describe('PostActions', () => {
     await fireEvent.press(screen.getByText('Delete'));
 
     await waitFor(() => expect(mockDelete).toHaveBeenCalledWith('post-1'));
+  });
+
+  it('lets the author edit the post', async () => {
+    useAuthStore.setState({ me: { id: 'author-1' } as never });
+    await renderActions();
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(screen.getByText('Edit post'));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/edit-post/[id]',
+      params: { id: 'post-1' },
+    });
+  });
+
+  it('gives someone tagged in the post their own rows', async () => {
+    const tagged = { ...post, myTag: 'TAGGED', gig: { id: 'gig-1' } } as Post;
+    await renderActions(jest.fn(), false, tagged);
+    await fireEvent.press(screen.getByLabelText('More'));
+    expect(screen.queryByText('Edit post')).toBeNull();
+
+    await fireEvent.press(screen.getByText('Add to my profile'));
+    await waitFor(() => expect(mockOnProfile).toHaveBeenCalledWith('post-1', { onProfile: true }));
+
+    await fireEvent.press(screen.getByLabelText('More'));
+    await fireEvent.press(screen.getByText('Add my clips'));
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: '/create',
+      params: { postId: 'post-1', gigId: 'gig-1' },
+    });
+  });
+
+  it('asks before taking someone off a post they are tagged in', async () => {
+    const tagged = { ...post, myTag: 'ON_PROFILE' } as Post;
+    await renderActions(jest.fn(), false, tagged);
+    await fireEvent.press(screen.getByLabelText('More'));
+    expect(screen.getByText('Take off my profile')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Remove me from this post'));
+    expect(mockLeave).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByText('Remove me'));
+    await waitFor(() => expect(mockLeave).toHaveBeenCalledWith('post-1'));
   });
 });

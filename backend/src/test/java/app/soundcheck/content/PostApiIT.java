@@ -77,8 +77,10 @@ class PostApiIT extends IntegrationTest {
         UUID clip = data.video(author.id(), "UPLOADED");
 
         // Posted straight after the upload: nothing to play yet.
-        ResponseEntity<JsonNode> created =
-                api.post("/api/v1/posts", Map.of("mediaId", clip, "caption", "  What a night  ", "gigId", gig), author);
+        ResponseEntity<JsonNode> created = api.post(
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "  What a night  ", "gigId", gig),
+                author);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         JsonNode post = created.getBody();
         String postId = post.path("id").asText("");
@@ -134,7 +136,7 @@ class PostApiIT extends IntegrationTest {
     @Test
     void aClipThatFailsFailsItsPostAndAReadyClipIsPublishedAtOnce() {
         UUID failing = data.video(author.id(), "UPLOADED");
-        String failed = created(api.post("/api/v1/posts", Map.of("mediaId", failing), author))
+        String failed = created(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", failing))), author))
                 .path("id")
                 .asText("");
 
@@ -153,7 +155,7 @@ class PostApiIT extends IntegrationTest {
 
         // Posting a clip that is already READY publishes immediately; no gig and no artists is fine.
         UUID ready = data.video(author.id(), "READY");
-        JsonNode post = created(api.post("/api/v1/posts", Map.of("mediaId", ready), author));
+        JsonNode post = created(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", ready))), author));
         assertThat(post.path("status").asText("")).isEqualTo("PUBLISHED");
         assertThat(post.path("publishedAt").isNull()).isFalse();
         assertThat(post.path("gig").isNull()).isTrue();
@@ -164,7 +166,7 @@ class PostApiIT extends IntegrationTest {
     @Test
     void aPostWhoseEventWasMissedIsCaughtUpByTheReconciler() {
         UUID clip = data.video(author.id(), "UPLOADED");
-        String postId = created(api.post("/api/v1/posts", Map.of("mediaId", clip), author))
+        String postId = created(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip))), author))
                 .path("id")
                 .asText("");
         // The clip became READY but no event reached the listener (the process died in between).
@@ -200,23 +202,34 @@ class PostApiIT extends IntegrationTest {
         // Someone else's clip, an unknown id and an image all get the same answer.
         for (UUID notMine :
                 List.of(data.video(viewer.id(), "READY"), UUID.randomUUID(), data.image(author.id(), "READY"))) {
-            assertThat(code(api.post("/api/v1/posts", Map.of("mediaId", notMine), author)))
+            assertThat(code(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", notMine))), author)))
                     .isEqualTo("MEDIA_INVALID");
         }
         UUID awaiting = data.video(author.id(), "UPLOADED");
         data.setStatus(awaiting, "AWAITING_UPLOAD");
-        assertThat(code(api.post("/api/v1/posts", Map.of("mediaId", awaiting), author)))
+        assertThat(code(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", awaiting))), author)))
                 .isEqualTo("MEDIA_NOT_UPLOADED");
-        assertThat(code(api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "REJECTED")), author)))
+        assertThat(code(api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "REJECTED")))),
+                        author)))
                 .isEqualTo("MEDIA_NOT_USABLE");
 
         UUID clip = data.video(author.id(), "READY");
-        assertThat(code(api.post("/api/v1/posts", Map.of("mediaId", clip, "gigId", UUID.randomUUID()), author)))
+        assertThat(code(api.post(
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", clip)), "gigId", UUID.randomUUID()),
+                        author)))
                 .isEqualTo("GIG_UNKNOWN");
         assertThat(code(api.post(
-                        "/api/v1/posts", Map.of("mediaId", clip, "artistIds", List.of(UUID.randomUUID())), author)))
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", clip)), "artistIds", List.of(UUID.randomUUID())),
+                        author)))
                 .isEqualTo("ARTIST_UNKNOWN");
-        assertThat(api.post("/api/v1/posts", Map.of("mediaId", clip, "caption", "x".repeat(2201)), author)
+        assertThat(api.post(
+                                "/api/v1/posts",
+                                Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "x".repeat(2201)),
+                                author)
                         .getStatusCode())
                 .isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(api.post("/api/v1/posts", Map.of("caption", "no clip"), author)
@@ -225,11 +238,14 @@ class PostApiIT extends IntegrationTest {
 
         // Explicit artists win over the gig's bill; duplicates are folded.
         JsonNode post = created(api.post(
-                "/api/v1/posts", Map.of("mediaId", clip, "gigId", gig, "artistIds", List.of(other, other)), author));
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", clip)), "gigId", gig, "artistIds", List.of(other, other)),
+                author));
         assertThat(ids(post.path("artists"))).containsExactly(other.toString());
 
         // One post per clip.
-        ResponseEntity<JsonNode> again = api.post("/api/v1/posts", Map.of("mediaId", clip), author);
+        ResponseEntity<JsonNode> again =
+                api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", clip))), author);
         assertThat(again.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(code(again)).isEqualTo("MEDIA_ALREADY_POSTED");
     }
@@ -238,7 +254,7 @@ class PostApiIT extends IntegrationTest {
     void anIdempotencyKeyReturnsTheSamePostAndRefusesADifferentRequest() {
         UUID clip = data.video(author.id(), "READY");
         String key = UUID.randomUUID().toString();
-        Map<String, Object> body = Map.of("mediaId", clip, "caption", "once");
+        Map<String, Object> body = Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "once");
 
         JsonNode first = created(postWithKey(body, key));
         ResponseEntity<JsonNode> replay = postWithKey(body, key);
@@ -247,10 +263,10 @@ class PostApiIT extends IntegrationTest {
         assertThat(replay.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(replay.getBody().path("id").asText(""))
                 .isEqualTo(first.path("id").asText(""));
-        assertThat(dsl.fetchCount(dsl.selectFrom("content.post").where("media_id = ?", clip)))
+        assertThat(dsl.fetchCount(dsl.selectFrom("content.post_clip").where("media_id = ?", clip)))
                 .isEqualTo(1);
 
-        assertThat(code(postWithKey(Map.of("mediaId", clip, "caption", "different"), key)))
+        assertThat(code(postWithKey(Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "different"), key)))
                 .isEqualTo("IDEMPOTENCY_KEY_REUSED");
         assertThat(code(postWithKey(body, "not-a-uuid"))).isEqualTo("IDEMPOTENCY_KEY_INVALID");
     }
@@ -261,7 +277,11 @@ class PostApiIT extends IntegrationTest {
         for (int i = 0; i < 3; i++) {
             postIds.add(created(api.post(
                             "/api/v1/posts",
-                            Map.of("mediaId", data.video(author.id(), "READY"), "caption", "clip " + i),
+                            Map.of(
+                                    "clips",
+                                    List.of(Map.of("mediaId", data.video(author.id(), "READY"))),
+                                    "caption",
+                                    "clip " + i),
                             author))
                     .path("id")
                     .asText(""));
@@ -314,7 +334,10 @@ class PostApiIT extends IntegrationTest {
                         .path("avatarUrl")
                         .asText(""))
                 .isEqualTo(url);
-        JsonNode post = created(api.post("/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY")), author));
+        JsonNode post = created(api.post(
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY")))),
+                author));
         assertThat(post.path("author").path("avatarUrl").asText("")).isEqualTo(url);
 
         // Not an image, not ready, or not the caller's: refused with one code.
@@ -351,11 +374,14 @@ class PostApiIT extends IntegrationTest {
         UUID headliner = data.artist("Keo " + UUID.randomUUID());
         UUID support = data.artist("Cardinals " + UUID.randomUUID());
         UUID gig = data.gig("Keo", venue, Instant.parse("2026-03-01T19:30:00Z"), headliner, support);
+        // Three fans: one fan's clips from a gig are one post.
+        TestApi.User second = api.register("second");
+        TestApi.User third = api.register("third");
         String supportSet = created(api.post(
                         "/api/v1/posts",
                         Map.of(
-                                "mediaId",
-                                data.video(author.id(), "READY"),
+                                "clips",
+                                List.of(Map.of("mediaId", data.video(author.id(), "READY"))),
                                 "gigId",
                                 gig,
                                 "artistIds",
@@ -366,18 +392,20 @@ class PostApiIT extends IntegrationTest {
         String headlineSet = created(api.post(
                         "/api/v1/posts",
                         Map.of(
-                                "mediaId",
-                                data.video(author.id(), "READY"),
+                                "clips",
+                                List.of(Map.of("mediaId", data.video(second.id(), "READY"))),
                                 "gigId",
                                 gig,
                                 "artistIds",
                                 List.of(headliner)),
-                        author))
+                        second))
                 .path("id")
                 .asText("");
         // No artists given: tagged with the whole bill, so it is in both acts' lists.
         String wholeNight = created(api.post(
-                        "/api/v1/posts", Map.of("mediaId", data.video(author.id(), "READY"), "gigId", gig), author))
+                        "/api/v1/posts",
+                        Map.of("clips", List.of(Map.of("mediaId", data.video(third.id(), "READY"))), "gigId", gig),
+                        third))
                 .path("id")
                 .asText("");
 

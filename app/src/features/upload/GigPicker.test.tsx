@@ -23,12 +23,12 @@ const gig = (id: string, title: string, support: string[] = []): GigSummary =>
     userAdded: false,
   }) as GigSummary;
 
-const mockMine = jest.fn();
+const mockToPost = jest.fn();
 const mockGigs = jest.fn();
 const mockArtists = jest.fn();
 const mockAddArtist = jest.fn();
 jest.mock('@/api/generated/catalog/catalog', () => ({
-  useListMyGigs: (...args: unknown[]) => mockMine(...args),
+  useListGigsToPost: (...args: unknown[]) => mockToPost(...args),
   useListGigs: (...args: unknown[]) => mockGigs(...args),
   useListArtists: (...args: unknown[]) => mockArtists(...args),
   useSearchVenues: () => ({ data: [] }),
@@ -79,28 +79,45 @@ function Harness({ onChange }: { onChange: (g: GigSummary | null) => void }) {
 describe('GigPicker (the first step of a post)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockMine.mockReturnValue({
+    mockToPost.mockReturnValue({
       isPending: false,
-      data: { items: [gig('g1', 'Went To', ['Opener'])] },
+      data: [{ ...gig('g1', 'Went To', ['Opener']), myAttendance: 'WENT' }, gig('g2', 'My Act')],
     });
     mockGigs.mockImplementation((params: { q?: string }) =>
       params.q
         ? { isFetching: false, data: { items: [gig('g9', 'Found By Search')] } }
-        : { isPending: false, data: { items: [gig('g2', 'Nearby')] } },
+        : { isFetching: false, data: undefined },
     );
     mockArtists.mockReturnValue({ data: { items: [] } });
   });
 
-  it('suggests recent gigs; choosing one shows it with a way to change it', async () => {
+  it('suggests this week’s gigs from the server, mine labelled; choosing one can be changed', async () => {
     const onChange = jest.fn();
     await render(<Harness onChange={onChange} />);
+
+    expect(mockToPost).toHaveBeenCalled();
+    expect(screen.getByText('You went')).toBeTruthy();
+    expect(screen.getByLabelText('My Act · The Venue')).toBeTruthy();
 
     await fireEvent.press(screen.getByLabelText('Went To · The Venue'));
 
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ id: 'g1' }));
     await fireEvent.press(screen.getByText('Change gig'));
     expect(onChange).toHaveBeenLastCalledWith(null);
-    expect(screen.getByLabelText('Nearby · The Venue')).toBeTruthy();
+    expect(screen.getByLabelText('My Act · The Venue')).toBeTruthy();
+  });
+
+  it('says when there is nothing to suggest, and offers a retry when the suggestions fail', async () => {
+    mockToPost.mockReturnValue({ isPending: false, data: [] });
+    const { unmount } = await render(<Harness onChange={jest.fn()} />);
+    expect(screen.getByTestId('compose-no-gigs')).toHaveTextContent(/Search for it/);
+    await unmount();
+
+    const refetch = jest.fn();
+    mockToPost.mockReturnValue({ isPending: false, isError: true, data: undefined, refetch });
+    await render(<Harness onChange={jest.fn()} />);
+    await fireEvent.press(screen.getByText('Try again'));
+    expect(refetch).toHaveBeenCalled();
   });
 
   it('searches every gig of the past year, newest first and UK-wide', async () => {

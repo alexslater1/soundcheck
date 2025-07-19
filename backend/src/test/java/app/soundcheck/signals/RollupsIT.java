@@ -340,7 +340,7 @@ class RollupsIT extends IntegrationTest {
 
     private UUID post(TestApi.User user, UUID gig) {
         Map<String, Object> body = new HashMap<>();
-        body.put("mediaId", data.video(user.id(), "READY"));
+        body.put("clips", List.of(Map.of("mediaId", data.video(user.id(), "READY"))));
         if (gig != null) {
             body.put("gigId", gig);
         }

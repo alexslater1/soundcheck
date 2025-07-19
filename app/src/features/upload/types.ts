@@ -72,15 +72,56 @@ export type UploadEntry = {
   error: string | null;
   /** What the user wrote on the compose form; null until they press Post. */
   draft: PostDraft | null;
-  /** Sent with `POST /posts`, so pressing Post twice (or a retry) cannot create two posts. */
+  /**
+   * A clip posted before a post could hold several clips used this as its post's key; it now names
+   * the clip's group then.
+   */
   postIdempotencyKey: string;
   /** Set once the post exists on the server. */
   postId: string | null;
+  /** The clip's slot in the post, set with `postId`. */
+  clipId: string | null;
+  /** Whether the slot has this clip's video (sent with the post, or filled once the upload completed). */
+  attached: boolean;
+  /** The act on stage in this clip (the act bar); null: no act. */
+  artistId: string | null;
+  /** A frame of the clip, uploaded as an image, shown blurred while the clip is on its way. */
+  previewMediaId: string | null;
+  previewState: 'NONE' | 'MAKING' | 'READY' | 'FAILED';
+  /** Whether the slot has the preview (no need once the clip itself is attached). */
+  previewSent: boolean;
   postError: string | null;
 };
 
-/** The post to create for a clip: caption, the gig it was filmed at, the artists in it. */
-export type PostDraft = { caption: string; gigId: string | null; artistIds: string[] };
+/**
+ * One post being made from several uploads. Every entry of the post carries the same draft:
+ * `groupKey` names the post (it is the `Idempotency-Key` of `POST /posts`), `order` is the entry's place
+ * among the clips announced (running order). `request` is the exact body sent the first time, kept so a
+ * retry sends the same request (a reused key with another body is refused).
+ */
+export type PostDraft = {
+  groupKey: string;
+  order: number;
+  caption: string;
+  gigId: string | null;
+  /** The UK day the clips are from (a festival day); null: the gig's day. */
+  day: string | null;
+  artistIds: string[];
+  taggedUserIds: string[];
+  /** Adding clips to an existing post (`POST /posts/{id}/clips`) instead of creating one. */
+  joinPostId: string | null;
+  request: PostRequest | null;
+};
+
+/** What was sent for a draft: a whole post, or clips for an existing one. */
+export type PostRequest = {
+  clips: { mediaId: string | null; artistId: string | null; previewMediaId: string | null }[];
+  caption?: string | null;
+  gigId?: string | null;
+  day?: string | null;
+  artistIds?: string[];
+  taggedUserIds?: string[];
+};
 
 /** The file to send: where it is and how long it is. */
 export type UploadSource = { uri: string; bytes: number };
