@@ -247,8 +247,10 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   input: { flex: 1, fontSize: 16, minHeight: touchTarget },
-  chipRow: { flexGrow: 0, marginVertical: spacing.sm },
-  chips: { gap: spacing.sm },
+  // flexShrink 0: a ScrollView shrinks by default, so long results squeezed the chip row below the
+  // chips' height and the results drew over them. Chip already carries its own marginRight.
+  chipRow: { flexGrow: 0, flexShrink: 0, marginVertical: spacing.sm },
+  chips: { alignItems: 'center' },
   results: { gap: spacing.lg, paddingBottom: spacing.xxl },
   section: { gap: spacing.sm },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
