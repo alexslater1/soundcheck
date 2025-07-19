@@ -93,6 +93,17 @@ class PeopleSearchIT extends IntegrationTest {
     }
 
     @Test
+    void theSearcherNeverFindsThemselves() {
+        TestApi.User named = person(word + "_me", "Me Myself");
+        TestApi.User other = person(word + "_you", "Someone Else");
+        // Both match the word; the caller's own account is left out, anyone else's is not.
+        assertThat(handles(ok(api.get("/api/v1/search/people?q=" + word, named))))
+                .containsExactly(other.handle());
+        assertThat(handles(ok(api.get("/api/v1/search/people?q=" + word, other))))
+                .containsExactly(named.handle());
+    }
+
+    @Test
     void privateProfilesAreFoundAndMarkedAndDeletedAccountsAreNot() {
         TestApi.User owner = person(word + "_p", "Private Person");
         TestApi.User gone = person(word + "_x", "Gone Person");

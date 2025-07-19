@@ -34,7 +34,8 @@ public interface Users {
     /**
      * Live users whose handle or display name matches {@code q} (a leading {@code @} is ignored), best
      * match first, at most {@code limit}; none for fewer than three characters. Private profiles are included: they can be
-     * found, only their content is withheld.
+     * found, only their content is withheld. {@code excludedUserId} (the person searching) is never
+     * returned: nobody searches for themselves.
      */
-    List<UserMatch> search(String q, int limit);
+    List<UserMatch> search(String q, int limit, UUID excludedUserId);
 }

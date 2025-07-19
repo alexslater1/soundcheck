@@ -147,7 +147,7 @@ public class UserRepository {
      * serves it. Expected index: app_user_search_key_trgm (V095), the same expression; 0.1 ms over 50,000
      * users where separate handle and name indexes were passed over for a 0.5 s sequential scan.
      */
-    public List<UserMatch> search(String text, int limit) {
+    public List<UserMatch> search(String text, int limit, UUID excludedUserId) {
         Field<String> handle = DSL.field("{0}::text", String.class, APP_USER.HANDLE);
         Field<String> name = DSL.lower(APP_USER.DISPLAY_NAME);
         Field<String> key =
@@ -161,6 +161,7 @@ public class UserRepository {
         return dsl.select(APP_USER.ID, tier, similarity)
                 .from(APP_USER)
                 .where(APP_USER.DELETED_AT.isNull())
+                .and(APP_USER.ID.ne(excludedUserId))
                 .and(key.like("%" + escaped + "%", '!').or(DSL.condition("{0} <% {1}", DSL.val(text), key)))
                 .orderBy(tier, similarity.desc(), APP_USER.HANDLE)
                 .limit(limit)

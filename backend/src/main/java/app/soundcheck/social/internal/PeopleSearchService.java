@@ -62,7 +62,7 @@ public class PeopleSearchService {
 
     @Transactional(readOnly = true)
     public List<PersonResult> search(UUID viewerId, String q, int limit) {
-        List<UserMatch> matches = users.search(q, POOL);
+        List<UserMatch> matches = users.search(q, POOL, viewerId);
         if (matches.isEmpty()) {
             return List.of();
         }

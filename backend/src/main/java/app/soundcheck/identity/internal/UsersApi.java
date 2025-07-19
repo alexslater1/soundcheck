@@ -78,10 +78,10 @@ public class UsersApi implements Users {
     }
 
     @Override
-    public List<UserMatch> search(String q, int limit) {
+    public List<UserMatch> search(String q, int limit, UUID excludedUserId) {
         String text = q.strip();
         text = (text.startsWith("@") ? text.substring(1) : text).strip().toLowerCase(Locale.ROOT);
         // Fewer than three characters hold no trigram, so the index could not narrow the match.
-        return text.length() < MIN_SEARCH_LENGTH ? List.of() : users.search(text, limit);
+        return text.length() < MIN_SEARCH_LENGTH ? List.of() : users.search(text, limit, excludedUserId);
     }
 }
