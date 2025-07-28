@@ -1,9 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react-native';
+import { fireEvent, render, renderHook, screen } from '@testing-library/react-native';
 
 import type { GigSummary } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { PendingGigs } from './PendingGigs';
+import { PendingGigs, usePendingGigCount } from './PendingGigs';
 
 const gig = (id: string): GigSummary =>
   ({
@@ -47,15 +47,17 @@ describe('PendingGigs', () => {
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: '4' }));
   });
 
-  it('is quiet on Create when nothing is pending, and says so on My gigs', async () => {
+  it('is quiet when nothing is pending', async () => {
     mockUnposted.mockReturnValue({ isPending: false, data: [] });
-    const { view } = await show();
+    await show();
     expect(screen.queryByTestId('pending-gigs')).toBeNull();
-    expect(screen.queryByTestId('pending-empty')).toBeNull();
-    await view.unmount();
+  });
 
-    await show({ showEmpty: true });
-    expect(screen.getByTestId('pending-empty')).toBeTruthy();
+  it('counts the pending gigs for the Create tab badge, and 0 while loading', async () => {
+    mockUnposted.mockReturnValue({ isPending: true });
+    expect((await renderHook(() => usePendingGigCount())).result.current).toBe(0);
+    mockUnposted.mockReturnValue({ isPending: false, data: [{ id: 'a' }, { id: 'b' }] });
+    expect((await renderHook(() => usePendingGigCount())).result.current).toBe(2);
   });
 
   it('offers a retry when the list cannot be loaded', async () => {

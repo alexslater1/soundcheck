@@ -9,30 +9,26 @@ import { spacing } from '@/theme/tokens';
 
 import { GigRow } from './GigPicker';
 
+/** The number on the Create tab's badge: gigs waiting for clips (0 while loading or on error). */
+export function usePendingGigCount(): number {
+  return useListUnpostedGigs().data?.length ?? 0;
+}
+
 /** How many pending gigs show before "Show all". */
 const FOLDED = 3;
 
 /**
  * H44's Pending list: gigs the user went to (said "I was there", or marked Went) and has not posted from
- * yet, newest first, with no time limit. Tapping one starts a post for it. On Create it is a quiet
- * section that disappears when there is nothing pending; on My gigs it says so.
+ * yet, newest first, with no time limit. Tapping one starts a post for it. It lives on Create only (it was
+ * also on My gigs). It disappears when there is nothing pending, and the Create tab's badge counts it
+ * (`usePendingGigCount`).
  */
-export function PendingGigs({
-  onPick,
-  showEmpty = false,
-}: {
-  onPick: (gig: GigSummary) => void;
-  showEmpty?: boolean;
-}) {
+export function PendingGigs({ onPick }: { onPick: (gig: GigSummary) => void }) {
   const pending = useListUnpostedGigs();
   const [open, setOpen] = useState(false);
 
   if (pending.isPending) {
-    return showEmpty ? (
-      <Text muted testID="pending-loading">
-        Looking for gigs you have not posted from…
-      </Text>
-    ) : null;
+    return null;
   }
   if (pending.isError) {
     return (
@@ -49,11 +45,7 @@ export function PendingGigs({
   }
   const gigs = pending.data;
   if (gigs.length === 0) {
-    return showEmpty ? (
-      <Text muted testID="pending-empty">
-        Nothing pending: every gig you went to has your clips.
-      </Text>
-    ) : null;
+    return null;
   }
   const shown = open ? gigs : gigs.slice(0, FOLDED);
   return (
