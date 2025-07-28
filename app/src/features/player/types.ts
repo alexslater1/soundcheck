@@ -12,6 +12,8 @@ export type VideoPlayerProps = {
   clipKey?: string;
   posterUrl?: string | null;
   blurhash?: string | null;
+  /** False when the original has no audio track: the frame says "No sound" instead of a toggle. */
+  hasAudio?: boolean | null;
   /** Width divided by height; clips are mostly portrait. */
   aspectRatio?: number;
   /** False shows the poster only, without creating a player (see `playerWindow`). */

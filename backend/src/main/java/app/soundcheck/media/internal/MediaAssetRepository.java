@@ -2,6 +2,11 @@ package app.soundcheck.media.internal;
 
 import static app.soundcheck.shared.jooq.media.Tables.MEDIA_ASSET;
 
+import app.soundcheck.shared.config.JsonMappers;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -149,9 +154,29 @@ public class MediaAssetRepository {
                 r.get(MEDIA_ASSET.POSTER_KEY),
                 r.get(MEDIA_ASSET.THUMB_KEY),
                 r.get(MEDIA_ASSET.BLURHASH),
+                hasAudio(r.get(MEDIA_ASSET.PROBE)),
                 r.get(MEDIA_ASSET.ATTEMPTS),
                 r.get(MEDIA_ASSET.FAILURE_REASON),
                 r.get(MEDIA_ASSET.CREATED_AT).toInstant());
+    }
+
+    private static final JsonMapper PROBE_JSON = JsonMappers.builder().build();
+
+    /**
+     * Whether the original had an audio track, read from the stored probe. The transcoder adds silence to
+     * a clip without audio, so the HLS output cannot tell the app: only the probe can.
+     */
+    static @Nullable Boolean hasAudio(@Nullable JSONB probe) {
+        if (probe == null) {
+            return null;
+        }
+        JsonNode flag;
+        try {
+            flag = PROBE_JSON.readTree(probe.data()).path("hasAudio");
+        } catch (JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+        return flag.isBoolean() ? flag.asBoolean() : null;
     }
 
     static OffsetDateTime at(Instant instant) {

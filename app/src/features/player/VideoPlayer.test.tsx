@@ -234,7 +234,7 @@ describe('VideoPlayer (native)', () => {
     expect(player.play).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps each screen's sound to itself", async () => {
+  it('shares one sound setting between screens: unmuting in one unmutes every player', async () => {
     await render(
       <ThemeProvider>
         <PlaybackScope>
@@ -250,8 +250,38 @@ describe('VideoPlayer (native)', () => {
     await fireEvent.press(screen.getByTestId('post-sound'));
 
     expect(post!.muted).toBe(false);
-    expect(feed!.muted).toBe(true);
-    expect(usePlayerPrefs.getState().muted).toBe(true);
+    expect(feed!.muted).toBe(false);
+    expect(usePlayerPrefs.getState().muted).toBe(false);
+  });
+
+  it('starts unmuted on a first launch, and remembers the choice on the device', () => {
+    expect(usePlayerPrefs.getInitialState().muted).toBe(false);
+    usePlayerPrefs.getState().setMuted(true);
+    expect(usePlayerPrefs.persist.getOptions().partialize?.(usePlayerPrefs.getState())).toEqual({
+      muted: true,
+    });
+  });
+
+  it('shows "No sound" instead of a toggle for a clip with no audio track', async () => {
+    await render(
+      <ThemeProvider>
+        <VideoPlayer
+          testID="player"
+          hlsUrl="http://localhost:8088/media/abc/v1/master.m3u8"
+          active
+          hasAudio={false}
+        />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('player-no-sound')).toBeTruthy();
+    expect(screen.getByLabelText('No sound')).toBeTruthy();
+    expect(screen.queryByLabelText('Turn sound on')).toBeNull();
+  });
+
+  it('keeps the toggle when the clip has audio or it is not known', async () => {
+    await renderPlayer();
+    expect(screen.queryByTestId('player-no-sound')).toBeNull();
+    expect(screen.getByLabelText('Turn sound on')).toBeTruthy();
   });
 
   it('pauses on a tap with a play sign, plays on the next, and plays again after a swipe away', async () => {

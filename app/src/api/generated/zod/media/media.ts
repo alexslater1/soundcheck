@@ -87,6 +87,7 @@ export const getMediaParams = zod.object({
 export const getMediaResponse = zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),

@@ -117,6 +117,7 @@ export function PostMedia({
           hlsUrl={playback.hlsUrl}
           posterUrl={playback.posterUrl}
           blurhash={playback.blurhash}
+          hasAudio={playback.hasAudio}
           aspectRatio={aspectRatio}
           active={active}
           live={live}

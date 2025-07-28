@@ -52,13 +52,24 @@ export function HomeScreen() {
         <Wordmark />
       </View>
       <View style={styles.tabs} accessibilityRole="radiogroup">
-        <Chip label="For You" selected={tab === 'forYou'} onPress={() => choose('forYou')} />
         <Chip
+          icon="sparkles"
+          label="For You"
+          selected={tab === 'forYou'}
+          onPress={() => choose('forYou')}
+        />
+        <Chip
+          icon="people"
           label="Following"
           selected={tab === 'following'}
           onPress={() => choose('following')}
         />
-        <Chip label="Search" selected={tab === 'search'} onPress={() => choose('search')} />
+        <Chip
+          icon="search"
+          label="Search"
+          selected={tab === 'search'}
+          onPress={() => choose('search')}
+        />
       </View>
       <View style={styles.feed}>
         <Layer shown={tab === 'forYou'} testID="feed-layer-for-you">

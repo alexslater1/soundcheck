@@ -35,10 +35,11 @@ import org.springframework.stereotype.Component;
 class PostAssembler {
 
     /** A slot that has no clip yet: nothing to play, only its preview. */
-    private static final Playback WAITING = new Playback("AWAITING_UPLOAD", null, null, null, null, null, null, null);
+    private static final Playback WAITING =
+            new Playback("AWAITING_UPLOAD", null, null, null, null, null, null, null, null);
 
     /** The cover of a post with no clip left (its author's view of a failed post). */
-    private static final Playback NOTHING = new Playback("FAILED", null, null, null, null, null, null, null);
+    private static final Playback NOTHING = new Playback("FAILED", null, null, null, null, null, null, null, null);
 
     private final PostRepository posts;
     private final ClipRepository clips;

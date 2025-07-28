@@ -1,7 +1,5 @@
 /** What the post page takes over from the feed when a post is opened from it. */
 export type Handoff = {
-  /** The feed's sound setting: a clip playing with sound keeps its sound on the post page. */
-  muted: boolean;
   /** Where the clip was, for players that cannot be shared (the web starts its own at this point). */
   positionMs: number;
   /** Which of the post's clips was in view; the post page starts on it. */
@@ -28,8 +26,8 @@ export function forgetPosition(key: string) {
  * Called by the feed as it opens a post: `key` is the post's, `clipKey` the player's of the clip in
  * view (the post's own key for a post without clips).
  */
-export function recordHandoff(key: string, muted: boolean, clipKey = key, now = Date.now()) {
-  handoffs.set(key, { muted, positionMs: positions.get(clipKey) ?? 0, clipKey, at: now });
+export function recordHandoff(key: string, clipKey = key, now = Date.now()) {
+  handoffs.set(key, { positionMs: positions.get(clipKey) ?? 0, clipKey, at: now });
 }
 
 /** What the feed handed over for this post, if it did so just now. Reading it twice is harmless. */

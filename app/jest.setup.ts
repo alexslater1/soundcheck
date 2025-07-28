@@ -52,4 +52,6 @@ jest.mock('expo-location', () => ({
   getCurrentPositionAsync: jest.fn(() => new Promise(() => undefined)),
 }));
 
-export {};
+// Chip can show an icon, so most screens load Ionicons, whose font loader needs expo-asset (not available
+// under Jest). Tests that look at an icon's props mock it themselves, as before.
+jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
