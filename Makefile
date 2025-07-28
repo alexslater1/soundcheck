@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
-	openapi openapi-check ingest venue-coverage venue-preview record-fixtures purge-fixtures prune-local seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage venue-preview record-fixtures purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -172,7 +172,12 @@ e2e: ## Playwright web journeys through the edge (needs `make up`, `make api`, `
 	curl -sf -o /dev/null http://localhost:8081/ || { echo "Expo web server not running — run 'make app'"; exit 1; }
 	ls $(CURDIR)/fixtures/clips/clip-*.mp4 >/dev/null 2>&1 || { echo "No synthetic clips — run 'make clips' (the upload journey needs them)"; exit 1; }
 	cd $(CURDIR)/app
-	CI=1 npx playwright test
+	# The journeys leave @example.com accounts and their (partly silent) clips in the shared database;
+	# soft-delete those posts afterwards so they never reach a feed.
+	status=0
+	CI=1 npx playwright test || status=$$?
+	$(CURDIR)/ops/scripts/prune-test-posts.sh --apply || true
+	exit $$status
 
 openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT -PopenapiWrite=true
@@ -199,6 +204,8 @@ purge-fixtures: ## Remove the synthetic fixture gigs, venues and artists from th
 	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -v ON_ERROR_STOP=1 -f - < $(CURDIR)/ops/scripts/purge-synthetic.sql
 prune-local: ## Mark local posts whose clip files LocalStack lost as deleted (needs `make up`)
 	$(CURDIR)/ops/scripts/prune-local.sh
+prune-test-posts: ## Soft-delete the posts of @example.com test accounts (dry run; APPLY=1 to do it; needs `make up`)
+	$(CURDIR)/ops/scripts/prune-test-posts.sh $(if $(APPLY),--apply)
 venue-coverage: ## For each venue read from its own site: its shows in the next 60 days that Ticketmaster misses (after an ingest)
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 $(GRADLE) bootRun -q --args='--spring.profiles.active=local --soundcheck.ingestion.cli=venue-coverage'
 
