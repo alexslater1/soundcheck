@@ -23,6 +23,8 @@ public record MediaAsset(
         @Nullable String posterKey,
         @Nullable String thumbKey,
         @Nullable String blurhash,
+        /** From the stored probe: false = the original had no audio track; null = not probed yet. */
+        @Nullable Boolean hasAudio,
         int attempts,
         @Nullable String failureReason,
         Instant createdAt) {

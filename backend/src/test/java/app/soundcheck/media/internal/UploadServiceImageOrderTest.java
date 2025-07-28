@@ -186,6 +186,7 @@ class UploadServiceImageOrderTest {
                 null,
                 null,
                 null,
+                null,
                 0,
                 null,
                 Instant.EPOCH);

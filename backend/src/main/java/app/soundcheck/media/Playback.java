@@ -21,4 +21,6 @@ public record Playback(
         @Schema(nullable = true) String blurhash,
         @Schema(nullable = true) Integer durationMs,
         @Schema(nullable = true) Integer width,
-        @Schema(nullable = true) Integer height) {}
+        @Schema(nullable = true) Integer height,
+        /** False when the original clip has no sound; null when unknown (not processed yet, images). */
+        @Schema(nullable = true) Boolean hasAudio) {}

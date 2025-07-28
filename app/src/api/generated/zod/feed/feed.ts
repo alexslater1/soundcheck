@@ -58,6 +58,7 @@ export const getFollowingFeedResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -116,6 +117,7 @@ export const getFollowingFeedResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -196,6 +198,7 @@ export const getHomeFeedResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -254,6 +257,7 @@ export const getHomeFeedResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),

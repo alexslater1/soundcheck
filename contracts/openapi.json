@@ -1422,6 +1422,9 @@
             "format" : "int32",
             "type" : [ "integer", "null" ]
           },
+          "hasAudio" : {
+            "type" : [ "boolean", "null" ]
+          },
           "height" : {
             "format" : "int32",
             "type" : [ "integer", "null" ]

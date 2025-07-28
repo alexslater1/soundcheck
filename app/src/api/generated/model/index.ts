@@ -195,6 +195,7 @@ export * from './placeLng';
 export * from './playback';
 export * from './playbackBlurhash';
 export * from './playbackDurationMs';
+export * from './playbackHasAudio';
 export * from './playbackHeight';
 export * from './playbackHlsUrl';
 export * from './playbackPosterUrl';

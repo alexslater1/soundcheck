@@ -165,6 +165,7 @@ public class UploadService {
                 null,
                 null,
                 null,
+                null,
                 0,
                 null,
                 Instant.now(clock));
@@ -413,7 +414,8 @@ public class UploadService {
                 ready ? asset.blurhash() : null,
                 asset.durationMs(),
                 asset.width(),
-                asset.height());
+                asset.height(),
+                ready && asset.video() ? asset.hasAudio() : null);
     }
 
     private UploadTicket ticket(MediaAsset asset) {

@@ -7,6 +7,7 @@
  */
 import type { PlaybackBlurhash } from './playbackBlurhash';
 import type { PlaybackDurationMs } from './playbackDurationMs';
+import type { PlaybackHasAudio } from './playbackHasAudio';
 import type { PlaybackHeight } from './playbackHeight';
 import type { PlaybackHlsUrl } from './playbackHlsUrl';
 import type { PlaybackPosterUrl } from './playbackPosterUrl';
@@ -17,6 +18,7 @@ import type { PlaybackWidth } from './playbackWidth';
 export interface Playback {
   blurhash?: PlaybackBlurhash;
   durationMs?: PlaybackDurationMs;
+  hasAudio?: PlaybackHasAudio;
   height?: PlaybackHeight;
   hlsUrl?: PlaybackHlsUrl;
   posterUrl?: PlaybackPosterUrl;

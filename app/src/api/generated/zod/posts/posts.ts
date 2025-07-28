@@ -62,6 +62,7 @@ export const listArtistPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -120,6 +121,7 @@ export const listArtistPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -193,6 +195,7 @@ export const listGigPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -251,6 +254,7 @@ export const listGigPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -362,6 +366,7 @@ export const listMyPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -420,6 +425,7 @@ export const listMyPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -510,6 +516,7 @@ export const createPostResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -568,6 +575,7 @@ export const createPostResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -636,6 +644,7 @@ export const getPostResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -694,6 +703,7 @@ export const getPostResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -781,6 +791,7 @@ export const editPostResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -839,6 +850,7 @@ export const editPostResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -913,6 +925,7 @@ export const addPostClipsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -971,6 +984,7 @@ export const addPostClipsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1046,6 +1060,7 @@ export const fillPostClipResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1104,6 +1119,7 @@ export const fillPostClipResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1176,6 +1192,7 @@ export const setPostOnProfileResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1234,6 +1251,7 @@ export const setPostOnProfileResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1304,6 +1322,7 @@ export const listUserPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1362,6 +1381,7 @@ export const listUserPostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1434,6 +1454,7 @@ export const listVenuePostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
@@ -1492,6 +1513,7 @@ export const listVenuePostsResponse = zod.object({
   "playback": zod.object({
   "blurhash": zod.string().nullish(),
   "durationMs": zod.number().nullish(),
+  "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
   "posterUrl": zod.string().nullish(),
