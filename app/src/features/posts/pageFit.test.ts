@@ -1,4 +1,4 @@
-import { fitClip, pageFit } from './pageFit';
+import { clipInBox, fitClip, pageFit } from './pageFit';
 
 describe('pageFit', () => {
   // A Pixel's feed area: a 20:9 screen less the header and the tab bar.
@@ -24,5 +24,27 @@ describe('pageFit', () => {
 
   it('fitClip keeps the shape inside the box', () => {
     expect(fitClip(9 / 16, 412, 600)).toEqual({ width: 337.5, height: 600 });
+  });
+});
+
+describe('clipInBox', () => {
+  const portraitBox = 9 / 16;
+
+  it('lets a clip of the box’s shape (or close) fill it, and an unknown shape too', () => {
+    expect(clipInBox(9 / 16, portraitBox)).toBeNull();
+    expect(clipInBox(0.6, portraitBox)).toBeNull();
+    expect(clipInBox(null, portraitBox)).toBeNull();
+  });
+
+  it('fits a landscape clip into a portrait box by width, centred', () => {
+    const fit = clipInBox(16 / 9, portraitBox);
+    expect(fit?.width).toBe(1);
+    expect(fit?.height).toBeCloseTo(portraitBox / (16 / 9));
+  });
+
+  it('fits a portrait clip into a landscape box by height', () => {
+    const fit = clipInBox(9 / 16, 16 / 9);
+    expect(fit?.height).toBe(1);
+    expect(fit?.width).toBeCloseTo(9 / 16 / (16 / 9));
   });
 });
