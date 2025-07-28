@@ -62,6 +62,7 @@ function LivePlayer({
   aspectRatio = DEFAULT_ASPECT,
   active,
   loop = true,
+  hasAudio,
   soundAtTop,
   rounded,
   onDoubleTap,
@@ -162,6 +163,7 @@ function LivePlayer({
       aspectRatio={aspectRatio}
       showPoster={!firstFrame}
       showSound
+      noSound={hasAudio === false}
       soundAtTop={soundAtTop}
       rounded={rounded}
       paused={userPaused}

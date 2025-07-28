@@ -177,6 +177,7 @@ function HeldPlayer({
   aspectRatio = DEFAULT_ASPECT,
   active,
   loop = true,
+  hasAudio,
   soundAtTop,
   rounded,
   surface = 'surfaceView',
@@ -239,6 +240,7 @@ function HeldPlayer({
       aspectRatio={aspectRatio}
       showPoster={!shows}
       showSound
+      noSound={hasAudio === false}
       soundAtTop={soundAtTop}
       rounded={rounded}
       failed={failed}

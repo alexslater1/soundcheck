@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Image } from 'expo-image';
+import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import {
   FlatList,
   Platform,
@@ -18,6 +19,7 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { ActBar } from './ActBar';
 import { actAt, actSegments, firstClipOf, showsActBar } from './actBar';
+import { clipInBox } from './pageFit';
 import { aspectOf, PostMedia } from './PostMedia';
 
 type Props = {
@@ -151,17 +153,23 @@ export function ClipCarousel({
             testID="clip-list"
             renderItem={({ item, index: i }) => (
               <View style={{ width }} testID={`clip-${item.id}`}>
-                <PostMedia
-                  post={post}
+                <ShapedClip
                   clip={item}
-                  active={active && i === index}
-                  live={live && Math.abs(i - index) <= 1}
-                  soundAtTop={soundAtTop}
-                  frameAspect={boxAspect}
+                  boxAspect={boxAspect}
                   rounded={rounded ?? frameAspect === undefined}
-                  surface={surface}
-                  startAtMs={i === initial ? startAtMs : undefined}
-                />
+                >
+                  <PostMedia
+                    post={post}
+                    clip={item}
+                    active={active && i === index}
+                    live={live && Math.abs(i - index) <= 1}
+                    soundAtTop={soundAtTop}
+                    frameAspect={shapeOf(item) ?? boxAspect}
+                    rounded={rounded ?? frameAspect === undefined}
+                    surface={surface}
+                    startAtMs={i === initial ? startAtMs : undefined}
+                  />
+                </ShapedClip>
               </View>
             )}
           />
@@ -219,6 +227,47 @@ export function ClipCarousel({
   );
 }
 
+/** A clip's own shape (width over height), or null while its size is unknown. */
+function shapeOf(clip: PostClip): number | null {
+  const { width, height } = clip.playback;
+  return width && height ? width / height : null;
+}
+
+/**
+ * Keeps every clip of a post in the post's one box, so swiping never makes the box jump. A clip of
+ * another shape is shown whole, centred, over a blurred, scaled-up copy of its own poster (the usual
+ * short-video treatment) instead of being cropped hard or left with black bars.
+ */
+function ShapedClip({
+  clip,
+  boxAspect,
+  rounded,
+  children,
+}: PropsWithChildren<{ clip: PostClip; boxAspect: number; rounded: boolean }>) {
+  const fit = clipInBox(shapeOf(clip), boxAspect);
+  if (!fit) {
+    return <>{children}</>;
+  }
+  const own = shapeOf(clip) ?? boxAspect;
+  return (
+    <View
+      style={[styles.shaped, { aspectRatio: boxAspect }, rounded ? styles.shapedRounded : null]}
+      testID={`clip-${clip.id}-shaped`}
+    >
+      <Image
+        source={clip.playback.posterUrl ? { uri: clip.playback.posterUrl } : null}
+        placeholder={clip.playback.blurhash ? { blurhash: clip.playback.blurhash } : null}
+        blurRadius={30}
+        contentFit="cover"
+        style={StyleSheet.absoluteFill}
+        accessibilityIgnoresInvertColors
+        testID={`clip-${clip.id}-backdrop`}
+      />
+      <View style={{ width: `${fit.width * 100}%`, aspectRatio: own }}>{children}</View>
+    </View>
+  );
+}
+
 /** A mouse has no swipe: the web gets buttons for the previous and next clip. */
 function Arrow({ side, onPress }: { side: 'left' | 'right'; onPress: () => void }) {
   return (
@@ -242,6 +291,8 @@ function Arrow({ side, onPress }: { side: 'left' | 'right'; onPress: () => void 
 const SOUND_ROOM = 64;
 
 const styles = StyleSheet.create({
+  shaped: { width: '100%', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  shapedRounded: { borderRadius: radius.md },
   above: { marginBottom: spacing.sm },
   measuring: { width: '100%', borderRadius: radius.md },
   overlay: {

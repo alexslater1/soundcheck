@@ -27,6 +27,8 @@ type Props = PropsWithChildren<{
   showPoster: boolean;
   /** Hides the sound button (a poster-only clip has no sound to toggle). */
   showSound: boolean;
+  /** The clip has no audio track: a crossed-out speaker and "No sound" replace the toggle. */
+  noSound?: boolean;
   /** The sound button in the top corner instead of the bottom one. */
   soundAtTop?: boolean;
   /** False: square corners (a clip filling a feed page). */
@@ -81,6 +83,7 @@ export function PlayerFrame({
   aspectRatio,
   showPoster,
   showSound,
+  noSound = false,
   soundAtTop = false,
   rounded = true,
   failed = false,
@@ -164,7 +167,24 @@ export function PlayerFrame({
           ) : null}
         </Pressable>
       ) : null}
-      {controls ? (
+      {controls && noSound ? (
+        <View
+          style={[
+            styles.soundBadge,
+            styles.noSound,
+            soundAtTop ? styles.soundAtTop : { bottom: spacing.sm + (seek ? SEEK_BAR_HEIGHT : 0) },
+          ]}
+          accessible
+          accessibilityLabel="No sound"
+          testID={testID ? `${testID}-no-sound` : undefined}
+        >
+          <Ionicons name="volume-mute" size={16} color="#FFFFFF" />
+          <Text variant="caption" style={styles.onVideo}>
+            No sound
+          </Text>
+        </View>
+      ) : null}
+      {controls && !noSound ? (
         <Pressable
           style={[
             styles.soundBadge,
@@ -195,6 +215,13 @@ const styles = StyleSheet.create({
   frame: { width: '100%', borderRadius: radius.md, overflow: 'hidden' },
   square: { borderRadius: 0 },
   center: { alignItems: 'center', justifyContent: 'center' },
+  noSound: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    width: 'auto',
+    paddingHorizontal: spacing.sm,
+  },
   failed: {
     alignItems: 'center',
     justifyContent: 'center',

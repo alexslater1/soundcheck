@@ -134,7 +134,7 @@ describe('FeedPage', () => {
     await fireEvent.press(screen.getByText('Front row for the encore'));
 
     expect(mockHandOver).toHaveBeenCalledWith('post-1');
-    expect(handoffFor('post-1')?.muted).toBe(true);
+    expect(handoffFor('post-1')?.positionMs).toBe(0);
     expect(client.getQueryData(['/api/v1/posts/post-1'])).toBe(post);
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/post/[id]', params: { id: 'post-1' } });
   });
