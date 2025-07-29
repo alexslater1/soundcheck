@@ -17,6 +17,8 @@ const gig = (id: string, headliner = 'Headliner', support: string[] = []): GigSu
       isFollowing: false,
     })),
     userAdded: false,
+    wentUnconfirmed: false,
+    myActsMissed: [],
   }) as GigSummary;
 
 describe('compose form helpers', () => {
@@ -24,5 +26,10 @@ describe('compose form helpers', () => {
     expect(billOf(gig('a', 'Main Act', ['Opener', 'Second'])).map((artist) => artist.name)).toEqual(
       ['Main Act', 'Opener', 'Second'],
     );
+  });
+
+  it('offers only the acts the fan saw', () => {
+    const night = { ...gig('b', 'Main Act', ['Opener', 'Second']), myActsMissed: ['b-s0'] };
+    expect(billOf(night).map((artist) => artist.name)).toEqual(['Main Act', 'Second']);
   });
 });

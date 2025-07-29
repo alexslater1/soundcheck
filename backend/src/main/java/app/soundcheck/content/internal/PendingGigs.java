@@ -2,6 +2,7 @@ package app.soundcheck.content.internal;
 
 import app.soundcheck.catalog.CatalogViews;
 import app.soundcheck.catalog.GigSummary;
+import app.soundcheck.catalog.GigTime;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.Comparator;
@@ -14,8 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The Pending list: gigs the fan went to (WENT, from "I was there", the attendance buttons or a post that
- * has since gone) that have started and that no open post of theirs comes from yet, newest first, with no
- * time limit. Tapping one starts a post for it.
+ * has since gone) whose day has come and that no open post of theirs comes from yet, newest first, with no
+ * time limit. Tapping one starts a post for it. A Going on a gig that is over reads as Went and is
+ * listed too, with {@code wentUnconfirmed} set, so the app asks "Did you go?".
  */
 @Service
 @Transactional(readOnly = true)
@@ -44,7 +46,9 @@ public class PendingGigs {
                 .gigs(userId, went.stream().filter(id -> !posted.contains(id)).toList())
                 .values()
                 .stream()
-                .filter(gig -> !gig.startsAt().isAfter(now))
+                .filter(gig -> GigTime.dayHasCome(gig.startsAt(), now))
+                // An older Went may sit on a cancelled gig (no longer allowed): there are no clips to ask for.
+                .filter(gig -> !"CANCELLED".equals(gig.status()))
                 .sorted(Comparator.comparing(GigSummary::startsAt).reversed())
                 .limit(MAX)
                 .toList();

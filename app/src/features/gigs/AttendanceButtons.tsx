@@ -8,12 +8,20 @@ import {
   useSetGigAttendance,
 } from '@/api/generated/catalog/catalog';
 import type { GigDetail } from '@/api/generated/model';
+import { Button } from '@/components/ui/Button';
 import { Chip } from '@/components/ui/Chip';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
-import { applyAttendance, ATTENDANCE_OPTIONS, type AttendanceStatus } from './attendance';
+import {
+  applyAttendance,
+  attendanceOptions,
+  countsLine,
+  gigPhase,
+  nextAttendance,
+  type AttendanceStatus,
+} from './attendance';
 
 /**
  * Query keys a new mark makes stale: every gig list (`/gigs`, `/me/gigs`, an artist's or a venue's gigs,
@@ -28,7 +36,9 @@ export const isGigList = (key: readonly unknown[]) =>
 /**
  * Interested / Going / Went with an optimistic update: the button and the counts change
  * the moment it is pressed; if the request fails, the previous state is put back and a message shown.
- * Pressing the selected status again clears it.
+ * Pressing the selected status again clears it. Only the statuses the gig's day allows are offered:
+ * Interested and Going before it, Went after it, all three on the day, none once cancelled.
+ * A Going whose gig is over reads as Went, and the fan is asked "Did you go?".
  */
 export function AttendanceButtons({ detail }: { detail: GigDetail }) {
   const { colors } = useTheme();
@@ -44,9 +54,9 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
   // late failure would overwrite the result of the newer one.
   const busy = set.isPending || clear.isPending;
 
-  async function choose(status: AttendanceStatus) {
+  async function choose(status: AttendanceStatus | null, tapped = true) {
     if (busy) return;
-    const next = detail.gig.myAttendance === status ? null : status;
+    const next = tapped && status ? nextAttendance(detail.gig, status) : status;
     setFailed(false);
     await client.cancelQueries({ queryKey: key });
     const previous = client.getQueriesData<GigDetail>({ queryKey: key });
@@ -61,7 +71,7 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
           old
             ? {
                 ...old,
-                gig: { ...old.gig, myAttendance: saved.myAttendance },
+                gig: { ...old.gig, myAttendance: saved.myAttendance, wentUnconfirmed: false },
                 attendanceCounts: saved.attendanceCounts,
               }
             : old,
@@ -76,22 +86,32 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
     }
   }
 
-  const counts = detail.attendanceCounts;
+  const phase = gigPhase(detail.gig.startsAt);
+  const options = attendanceOptions(phase, detail.gig.status);
   return (
     <View style={styles.box}>
-      <View style={styles.row}>
-        {ATTENDANCE_OPTIONS.map((option) => (
-          <Chip
-            key={option.status}
-            label={option.label}
-            selected={detail.gig.myAttendance === option.status}
-            disabled={busy}
-            onPress={() => void choose(option.status)}
-          />
-        ))}
-      </View>
+      {options.length > 0 ? (
+        <View style={styles.row}>
+          {options.map((option) => (
+            <Chip
+              key={option.status}
+              label={option.label}
+              selected={detail.gig.myAttendance === option.status}
+              disabled={busy}
+              onPress={() => void choose(option.status)}
+            />
+          ))}
+        </View>
+      ) : null}
+      {detail.gig.wentUnconfirmed ? (
+        <DidYouGo
+          busy={busy}
+          onYes={() => void choose('WENT', false)}
+          onNo={() => void choose(null, false)}
+        />
+      ) : null}
       <Text variant="caption" muted testID="attendance-counts">
-        {counts.going} going · {counts.interested} interested · {counts.went} went
+        {countsLine(detail.attendanceCounts, phase)}
       </Text>
       {failed ? (
         <Text variant="caption" style={{ color: colors.danger }} testID="attendance-error">
@@ -102,7 +122,33 @@ export function AttendanceButtons({ detail }: { detail: GigDetail }) {
   );
 }
 
+/**
+ * "You said Going. Did you go?" for a Going whose gig is over: Yes keeps it as Went (now the
+ * fan's own word), No removes it. Shown on the gig page and in Pending.
+ */
+export function DidYouGo({
+  busy,
+  onYes,
+  onNo,
+}: {
+  busy: boolean;
+  onYes: () => void;
+  onNo: () => void;
+}) {
+  return (
+    <View style={styles.ask} testID="did-you-go">
+      <Text variant="caption" muted style={styles.askText}>
+        You said Going. Did you go?
+      </Text>
+      <Button title="Yes, I went" size="small" disabled={busy} onPress={onYes} />
+      <Button title="No" size="small" variant="secondary" disabled={busy} onPress={onNo} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
+  ask: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
+  askText: { flexShrink: 1 },
   box: { gap: spacing.sm },
   row: { flexDirection: 'row', flexWrap: 'wrap' },
 });

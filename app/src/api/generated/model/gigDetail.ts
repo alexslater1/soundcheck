@@ -11,6 +11,8 @@ import type { ArtistSummary } from './artistSummary';
 import type { SourceLink } from './sourceLink';
 
 export interface GigDetail {
+  /** The viewer added this gig: they may change its date and venue */
+  addedByMe: boolean;
   attendanceCounts: AttendanceCounts;
   gig: GigSummary;
   lineup: ArtistSummary[];

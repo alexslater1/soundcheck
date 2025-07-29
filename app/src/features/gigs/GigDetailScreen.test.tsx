@@ -68,6 +68,8 @@ const DETAIL = {
     myAttendance: null,
     distanceKm: null,
     userAdded: false,
+    wentUnconfirmed: false,
+    myActsMissed: [],
   },
   lineup: [KEO, CARDINALS],
   attendanceCounts: { interested: 0, going: 0, went: 3 },
@@ -247,6 +249,61 @@ describe('GigDetailScreen act bar', () => {
     await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
     expect(await screen.findByTestId('gig-no-clips')).toBeOnTheScreen();
     expect(screen.queryByTestId('gig-private-clips')).toBeNull();
+  });
+
+  it('shows no clips section on a gig still to come, and asks who is going', async () => {
+    const routed = fetchMock.getMockImplementation()!;
+    const future = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input), 'http://x').pathname.endsWith('/gigs/g1')
+        ? json(200, {
+            ...DETAIL,
+            gig: { ...DETAIL.gig, startsAt: future },
+            attendanceCounts: { interested: 1, going: 4, went: 0 },
+          })
+        : routed(input, init),
+    );
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+
+    expect(await screen.findByTestId('gig-not-yet')).toHaveTextContent(/^Going\?/);
+    expect(screen.queryByText('CLIPS FROM THIS GIG')).toBeNull();
+    expect(screen.getByTestId('attendance-counts')).toHaveTextContent('4 going · 1 interested');
+    expect(screen.queryByRole('radio', { name: 'Went' })).toBeNull();
+    expect(requested('/gigs/g1/posts')).toEqual([]);
+
+    await fireEvent.press(screen.getByRole('tab', { name: 'Cardinals, support' }));
+    expect(screen.queryByText('CLIPS OF CARDINALS')).toBeNull();
+    expect(requested('/gigs/g1/posts')).toEqual([]);
+  });
+
+  it('links to tickets before the gig, not after it', async () => {
+    const routed = fetchMock.getMockImplementation()!;
+    let startsAt = PAST;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input), 'http://x').pathname.endsWith('/gigs/g1')
+        ? json(200, {
+            ...DETAIL,
+            gig: { ...DETAIL.gig, startsAt, ticketUrl: 'https://tickets.example.com/g1' },
+          })
+        : routed(input, init),
+    );
+    const past = await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    expect(await screen.findByText('CLIPS FROM THIS GIG')).toBeOnTheScreen();
+    expect(screen.queryByText('Tickets')).toBeNull();
+    await past.unmount();
+
+    startsAt = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    expect(await screen.findByText('Tickets')).toBeOnTheScreen();
+  });
+
+  it('shows the clips and only "went" on a gig that is over', async () => {
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    expect(await screen.findByText('CLIPS FROM THIS GIG')).toBeOnTheScreen();
+    expect(screen.getByTestId('attendance-counts')).toHaveTextContent(/^3 went$/);
+    expect(screen.getByRole('radio', { name: 'Went' })).toBeOnTheScreen();
+    expect(screen.queryByRole('radio', { name: 'Going' })).toBeNull();
+    expect(screen.queryByTestId('gig-not-yet')).toBeNull();
   });
 
   it('shows no note for a venue whose listings are read or listed', async () => {

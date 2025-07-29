@@ -77,7 +77,10 @@ export function GigPicker({
     );
   }
 
-  const results = searching ? (found.data?.items ?? []) : (suggested.data ?? []);
+  // A cancelled gig did not happen: there are no clips from it (the server refuses them too).
+  const results = (searching ? (found.data?.items ?? []) : (suggested.data ?? [])).filter(
+    (gig) => gig.status !== 'CANCELLED',
+  );
   const loading = searching ? found.isFetching : suggested.isPending;
   const failed = searching ? found.isError : suggested.isError;
 

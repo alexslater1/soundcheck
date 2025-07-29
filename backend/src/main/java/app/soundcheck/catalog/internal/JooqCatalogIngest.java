@@ -552,8 +552,26 @@ class JooqCatalogIngest implements CatalogIngest {
                 .where(GIG.ID.eq(gigId))
                 .execute();
         copyVenueLocation(gigId, gig.venueId());
+        // Acts fans added stay on the bill after the source's, unless the source lists them.
+        var fanActs = dsl.select(GIG_ARTIST.ARTIST_ID, GIG_ARTIST.ADDED_BY)
+                .from(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                .and(GIG_ARTIST.ADDED_BY.isNotNull())
+                .orderBy(GIG_ARTIST.BILLING_ORDER)
+                .fetch();
         dsl.deleteFrom(GIG_ARTIST).where(GIG_ARTIST.GIG_ID.eq(gigId)).execute();
         insertLineup(gigId, gig.artistIds());
+        int order = gig.artistIds().size();
+        for (var act : fanActs) {
+            if (!gig.artistIds().contains(act.value1())) {
+                dsl.insertInto(GIG_ARTIST)
+                        .set(GIG_ARTIST.GIG_ID, gigId)
+                        .set(GIG_ARTIST.ARTIST_ID, act.value1())
+                        .set(GIG_ARTIST.BILLING_ORDER, (short) order++)
+                        .set(GIG_ARTIST.ADDED_BY, act.value2())
+                        .execute();
+            }
+        }
     }
 
     @Override

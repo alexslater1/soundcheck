@@ -88,6 +88,7 @@ export const listArtistPostsResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -112,7 +113,8 @@ export const listArtistPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -221,6 +223,7 @@ export const listGigPostsResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -245,7 +248,8 @@ export const listGigPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -276,7 +280,7 @@ export const listGigPostsResponse = zod.object({
 })
 
 /**
- * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ * @summary Your Pending list: gigs you went to (or said Going to, once over: wentUnconfirmed) whose day has come and that you have not posted from yet, newest first
  */
 export const listUnpostedGigsResponseItem = zod.object({
   "currency": zod.string().nullish(),
@@ -290,6 +294,7 @@ export const listUnpostedGigsResponseItem = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -314,7 +319,8 @@ export const listUnpostedGigsResponseItem = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })
 export const listUnpostedGigsResponse = zod.array(listUnpostedGigsResponseItem)
 
@@ -392,6 +398,7 @@ export const listMyPostsResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -416,7 +423,8 @@ export const listMyPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -542,6 +550,7 @@ export const createPostResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -566,7 +575,8 @@ export const createPostResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -670,6 +680,7 @@ export const getPostResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -694,7 +705,8 @@ export const getPostResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -817,6 +829,7 @@ export const editPostResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -841,7 +854,8 @@ export const editPostResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -951,6 +965,7 @@ export const addPostClipsResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -975,7 +990,8 @@ export const addPostClipsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1086,6 +1102,7 @@ export const fillPostClipResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -1110,7 +1127,8 @@ export const fillPostClipResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1218,6 +1236,7 @@ export const setPostOnProfileResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -1242,7 +1261,8 @@ export const setPostOnProfileResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1348,6 +1368,7 @@ export const listUserPostsResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -1372,7 +1393,8 @@ export const listUserPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1480,6 +1502,7 @@ export const listVenuePostsResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -1504,7 +1527,8 @@ export const listVenuePostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),

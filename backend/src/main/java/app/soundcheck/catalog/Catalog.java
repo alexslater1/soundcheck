@@ -17,6 +17,9 @@ public interface Catalog {
      */
     Optional<LocalDate> gigDay(UUID gigId);
 
+    /** Whether the gig was cancelled: nothing can be posted from it or marked on it. */
+    boolean gigCancelled(UUID gigId);
+
     boolean venueExists(UUID venueId);
 
     /** A gig's date, place, acts and setlist.fm id, for looking it up elsewhere; empty if no such gig. */

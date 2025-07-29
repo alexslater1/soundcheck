@@ -240,7 +240,7 @@ public class PostRepository {
             return new Scope(null, null, null, id);
         }
 
-        /** A gig's posts tagged with one act. */
+        /** A gig's posts with a clip of one act. */
         public static Scope gigAndArtist(UUID gigId, UUID artistId) {
             return new Scope(null, gigId, null, artistId);
         }
@@ -249,8 +249,8 @@ public class PostRepository {
     /**
      * One page of PUBLISHED posts, newest first, in {@code (published_at, id)} order; {@code limit + 1}
      * rows so the caller can tell whether a next page exists. Expected indexes: {@code post_author_pub}
-     * (author), {@code post_gig_pub} (gig and venue; a gig and an act: the gig's posts, then the
-     * {@code post_artist} primary key per post), {@code post_artist_artist} then the primary key (artist).
+     * (author), {@code post_gig_pub} (gig and venue; a gig and an act: the gig's posts, then
+     * {@code post_clip_post} per post), {@code post_clip_artist} then the primary key (artist).
      */
     public List<PostRow> published(Scope scope, @Nullable Cursor cursor, int limit) {
         List<Condition> where = new ArrayList<>();
@@ -268,10 +268,13 @@ public class PostRepository {
             where.add(POST.GIG_ID.in(scope.gigIds()));
         }
         if (scope.artistId() != null) {
+            // A post with a clip of the act on stage, not one only tagged with it: a KEO
+            // clip from a KEO + Tooth night is on KEO's page, not Tooth's.
             where.add(DSL.exists(DSL.selectOne()
-                    .from(POST_ARTIST)
-                    .where(POST_ARTIST.POST_ID.eq(POST.ID))
-                    .and(POST_ARTIST.ARTIST_ID.eq(scope.artistId()))));
+                    .from(POST_CLIP)
+                    .where(POST_CLIP.POST_ID.eq(POST.ID))
+                    .and(POST_CLIP.ARTIST_ID.eq(scope.artistId()))
+                    .and(POST_CLIP.MEDIA_ID.isNotNull())));
         }
         if (cursor != null) {
             where.add(DSL.row(POST.PUBLISHED_AT, POST.ID).lt(DSL.row(at(cursor.at()), cursor.id())));

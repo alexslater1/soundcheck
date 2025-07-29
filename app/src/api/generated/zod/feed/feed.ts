@@ -84,6 +84,7 @@ export const getFollowingFeedResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -108,7 +109,8 @@ export const getFollowingFeedResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -224,6 +226,7 @@ export const getHomeFeedResponse = zod.object({
 }),
   "id": zod.string().uuid(),
   "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
   "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
   "priceMax": zod.number().nullish(),
   "priceMin": zod.number().nullish(),
@@ -248,7 +251,8 @@ export const getHomeFeedResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),

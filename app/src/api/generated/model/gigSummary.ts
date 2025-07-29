@@ -22,6 +22,8 @@ export interface GigSummary {
   headliner: ArtistSummary;
   id: string;
   imageUrl?: GigSummaryImageUrl;
+  /** Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went */
+  myActsMissed: string[];
   myAttendance?: GigSummaryMyAttendance;
   priceMax?: GigSummaryPriceMax;
   priceMin?: GigSummaryPriceMin;
@@ -34,4 +36,6 @@ export interface GigSummary {
   /** Added by a fan, not from a ticketing source */
   userAdded: boolean;
   venue: VenueSummary;
+  /** myAttendance reads WENT only because the viewer said Going and the gig's day is over: Pending asks "Did you go?" */
+  wentUnconfirmed: boolean;
 }

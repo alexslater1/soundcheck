@@ -90,9 +90,12 @@ class CreateGigListsIT extends IntegrationTest {
         UUID wentFar = data.gig("F " + tag, far, now.minus(Duration.ofDays(4)), unknown);
         UUID interestedNear = data.gig("G " + tag, far, now.minus(Duration.ofDays(3)), unknown);
         UUID goingFar = data.gig("H " + tag, far, now.minus(Duration.ofHours(5)), unknown);
+        UUID cancelledNear = data.gig("I " + tag, near, now.minus(Duration.ofDays(1)), followed);
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelledNear);
         mark(wentFar, "WENT");
-        mark(interestedNear, "INTERESTED");
-        mark(goingFar, "GOING");
+        // Marked before those gigs (the API refuses Going and Interested once a gig is over).
+        markedBefore(interestedNear, "INTERESTED");
+        markedBefore(goingFar, "GOING");
 
         List<String> suggested = ids(ok(api.get("/api/v1/me/gigs/to-post", fan)));
         assertThat(suggested).containsExactly(goingFar.toString(), followedNear.toString(), wentFar.toString());
@@ -102,7 +105,8 @@ class CreateGigListsIT extends IntegrationTest {
                         notFollowed.toString(),
                         followedOld.toString(),
                         followedLater.toString(),
-                        interestedNear.toString());
+                        interestedNear.toString(),
+                        cancelledNear.toString());
     }
 
     @Test
@@ -116,7 +120,11 @@ class CreateGigListsIT extends IntegrationTest {
         mark(lastYear, "WENT");
         mark(lastWeek, "WENT");
         mark(posted, "WENT");
-        mark(going, "GOING");
+        markedBefore(going, "GOING");
+        // A Went from before the rules on a gig that was then cancelled: no clips to ask for.
+        UUID cancelled = data.gig("Cancelled " + tag, venue, now.minus(Duration.ofDays(1)), act);
+        mark(cancelled, "WENT");
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelled);
         assertThat(api.post(
                                 "/api/v1/posts",
                                 Map.of(
@@ -128,8 +136,21 @@ class CreateGigListsIT extends IntegrationTest {
                         .getStatusCode())
                 .isEqualTo(HttpStatus.CREATED);
 
-        assertThat(ids(ok(api.get("/api/v1/me/gigs/unposted", fan))))
-                .containsExactly(lastWeek.toString(), lastYear.toString());
+        // A Going whose gig is over is listed too, to ask "Did you go?".
+        JsonNode pending = ok(api.get("/api/v1/me/gigs/unposted", fan));
+        assertThat(ids(pending)).containsExactly(going.toString(), lastWeek.toString(), lastYear.toString());
+        assertThat(pending.path(0).path("wentUnconfirmed").asBoolean()).isTrue();
+        assertThat(pending.path(1).path("wentUnconfirmed").asBoolean()).isFalse();
+    }
+
+    /** A mark the fan made before the gig, stored as it was then. */
+    private void markedBefore(UUID gig, String status) {
+        dsl.execute(
+                "insert into catalog.gig_attendance (user_id, gig_id, status, source, created_at, updated_at)"
+                        + " values (?, ?, ?, 'USER', now(), now())",
+                fan.id(),
+                gig,
+                status);
     }
 
     private void mark(UUID gig, String status) {

@@ -21,6 +21,8 @@ const gig = (id: string, title: string, support: string[] = []): GigSummary =>
       isFollowing: false,
     })),
     userAdded: false,
+    wentUnconfirmed: false,
+    myActsMissed: [],
   }) as GigSummary;
 
 const mockToPost = jest.fn();

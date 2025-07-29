@@ -25,6 +25,8 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActsSeen,
+  ActsSeenRequest,
   AddArtistRequest,
   AddGigRequest,
   AddedArtistSummary,
@@ -32,6 +34,7 @@ import type {
   ArtistDetail,
   Attendance,
   AttendanceRequest,
+  EditGigRequest,
   GetArtistParams,
   GetGigParams,
   GigDay,
@@ -862,6 +865,78 @@ export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = u
 
 
 /**
+ * @summary J9: add acts to the bill and fix the start time (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author
+ */
+export const getEditGigUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/gigs/${id}`
+}
+
+export const editGig = async (id: string,
+    editGigRequest: EditGigRequest, options?: RequestInit): Promise<GigDetail> => {
+  
+  return customFetch<GigDetail>(getEditGigUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      editGigRequest,)
+  }
+);}
+
+
+
+
+export const getEditGigMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editGig>>, TError,{id: string;data: EditGigRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof editGig>>, TError,{id: string;data: EditGigRequest}, TContext> => {
+
+const mutationKey = ['editGig'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof editGig>>, {id: string;data: EditGigRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  editGig(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type EditGigMutationResult = NonNullable<Awaited<ReturnType<typeof editGig>>>
+    export type EditGigMutationBody = EditGigRequest
+    export type EditGigMutationError = unknown
+
+    /**
+ * @summary J9: add acts to the bill and fix the start time (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author
+ */
+export const useEditGig = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editGig>>, TError,{id: string;data: EditGigRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof editGig>>,
+        TError,
+        {id: string;data: EditGigRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getEditGigMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Remove the viewer's attendance (idempotent)
  */
 export const getClearGigAttendanceUrl = (id: string,) => {
@@ -1000,6 +1075,78 @@ export const useSetGigAttendance = <TError = unknown,
       > => {
 
       const mutationOptions = getSetGigAttendanceMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary The acts on the bill you saw at a gig you went to (the rest count as missed); at least one
+ */
+export const getSetGigActsSeenUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/gigs/${id}/attendance/acts`
+}
+
+export const setGigActsSeen = async (id: string,
+    actsSeenRequest: ActsSeenRequest, options?: RequestInit): Promise<ActsSeen> => {
+  
+  return customFetch<ActsSeen>(getSetGigActsSeenUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      actsSeenRequest,)
+  }
+);}
+
+
+
+
+export const getSetGigActsSeenMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setGigActsSeen>>, TError,{id: string;data: ActsSeenRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setGigActsSeen>>, TError,{id: string;data: ActsSeenRequest}, TContext> => {
+
+const mutationKey = ['setGigActsSeen'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setGigActsSeen>>, {id: string;data: ActsSeenRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setGigActsSeen(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetGigActsSeenMutationResult = NonNullable<Awaited<ReturnType<typeof setGigActsSeen>>>
+    export type SetGigActsSeenMutationBody = ActsSeenRequest
+    export type SetGigActsSeenMutationError = unknown
+
+    /**
+ * @summary The acts on the bill you saw at a gig you went to (the rest count as missed); at least one
+ */
+export const useSetGigActsSeen = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setGigActsSeen>>, TError,{id: string;data: ActsSeenRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setGigActsSeen>>,
+        TError,
+        {id: string;data: ActsSeenRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSetGigActsSeenMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }

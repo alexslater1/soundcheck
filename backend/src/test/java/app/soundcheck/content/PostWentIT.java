@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import app.soundcheck.catalog.CatalogIngest;
+import app.soundcheck.catalog.GigTime;
 import app.soundcheck.support.IntegrationTest;
 import app.soundcheck.support.TestApi;
 import app.soundcheck.support.TestData;
@@ -126,8 +127,9 @@ class PostWentIT extends IntegrationTest {
     void goingOrInterestedBecomesWentAndDeletingTheLastPostRemovesIt() {
         UUID going = pastGig(5);
         UUID interested = pastGig(6);
-        mark(going, "GOING");
-        mark(interested, "INTERESTED");
+        // Marked before the gig (the API refuses Going and Interested once a gig is over).
+        markedBefore(going, "GOING");
+        markedBefore(interested, "INTERESTED");
 
         // Two clips from one gig make one post.
         String first = post(going, "READY");
@@ -177,7 +179,12 @@ class PostWentIT extends IntegrationTest {
 
     @Test
     void choosingGoingAfterAPostMadeTheMarkKeepsTheFansChoice() {
-        UUID gig = pastGig(2);
+        // On the gig's day both are allowed: a post and choosing Going.
+        UUID gig = data.gig(
+                "Keo " + tag + " today",
+                venue,
+                GigTime.startOfToday(Instant.now()).plus(Duration.ofMinutes(1)),
+                act);
         String postId = post(gig, "READY");
         mark(gig, "GOING");
         assertThat(source(gig)).isEqualTo("USER");
@@ -224,6 +231,21 @@ class PostWentIT extends IntegrationTest {
     }
 
     @Test
+    void aCancelledGigCannotBePostedTo() {
+        UUID gig = pastGig(2);
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", gig);
+
+        ResponseEntity<JsonNode> refused = api.post(
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", data.video(fan.id(), "READY"))), "gigId", gig),
+                fan);
+
+        assertThat(refused.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(refused.getBody().path("code").asText("")).isEqualTo("GIG_CANCELLED");
+        assertThat(attendance(gig)).isNull();
+    }
+
+    @Test
     void aGigThatHasStartedCanBePostedTo() {
         UUID tonight = data.gig("Keo " + tag, venue, Instant.now().minus(Duration.ofMinutes(5)), act);
 
@@ -248,7 +270,7 @@ class PostWentIT extends IntegrationTest {
         dsl.execute("update content.post set gig_id = ? where id = ?", later, UUID.fromString(early));
         // The state before the rule: no marks from posts; a Going and a Went the fan set.
         dsl.execute("delete from catalog.gig_attendance where user_id = ?", fan.id());
-        mark(going, "GOING");
+        markedBefore(going, "GOING");
         mark(ownWent, "WENT");
 
         dsl.execute(backfill());
@@ -296,6 +318,16 @@ class PostWentIT extends IntegrationTest {
         assertThat(api.put("/api/v1/gigs/" + gig + "/attendance", Map.of("status", status), fan)
                         .getStatusCode())
                 .isEqualTo(HttpStatus.OK);
+    }
+
+    /** A mark the fan made before the gig, stored as it was then. */
+    private void markedBefore(UUID gig, String status) {
+        dsl.execute(
+                "insert into catalog.gig_attendance (user_id, gig_id, status, source, created_at, updated_at)"
+                        + " values (?, ?, ?, 'USER', now(), now())",
+                fan.id(),
+                gig,
+                status);
     }
 
     /** The fan's attendance as the gig page shows it; null when unmarked. */

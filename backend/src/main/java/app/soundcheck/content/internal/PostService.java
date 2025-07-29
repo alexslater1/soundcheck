@@ -148,7 +148,8 @@ public class PostService implements PostFeed {
         }
         rules.checkNewClips(authorId, request.clips());
         LocalDate day = rules.dayFor(request.gigId(), request.day());
-        List<UUID> artistIds = rules.postArtists(authorId, request.gigId(), request.artistIds(), request.clips());
+        List<NewClip> newClips = rules.withSoleAct(request.gigId(), request.artistIds(), request.clips());
+        List<UUID> artistIds = rules.postArtists(authorId, request.gigId(), request.artistIds(), newClips);
         List<UUID> tagged = rules.checkTaggable(authorId, request.taggedUserIds());
         String caption = request.caption() == null || request.caption().isBlank()
                 ? null
@@ -173,9 +174,9 @@ public class PostService implements PostFeed {
                 posts.setCaption(post.id(), caption, now);
             }
         }
-        rules.checkRoom(clips.of(post.id()), authorId, request.clips());
+        rules.checkRoom(clips.of(post.id()), authorId, newClips);
         try {
-            rules.addClips(post.id(), authorId, request.clips(), now);
+            rules.addClips(post.id(), authorId, newClips, now);
         } catch (DataIntegrityViolationException e) {
             // Two requests for the same clip passed the check together; the unique constraint decided.
             if (String.valueOf(e.getMostSpecificCause().getMessage()).contains("post_clip_media_id_key")) {

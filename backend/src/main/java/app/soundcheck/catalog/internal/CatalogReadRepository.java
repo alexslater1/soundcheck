@@ -6,13 +6,16 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GENRE;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE_MISSED;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
 
 import app.soundcheck.catalog.GeoPoint;
+import app.soundcheck.catalog.GigTime;
 import app.soundcheck.catalog.NameNormaliser;
 import app.soundcheck.shared.web.Cursor;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
@@ -149,10 +152,18 @@ class CatalogReadRepository {
 
     record SourceLink(String source, @Nullable String url) {}
 
-    private final DSLContext dsl;
+    /**
+     * A fan's mark as it reads now: the stored status, except that a Going on a gig whose day is
+     * over, and that was not called off, reads as {@code assumed} Went until the fan confirms or removes it.
+     */
+    record Mark(String status, boolean assumed) {}
 
-    CatalogReadRepository(DSLContext dsl) {
+    private final DSLContext dsl;
+    private final Clock clock;
+
+    CatalogReadRepository(DSLContext dsl, Clock clock) {
         this.dsl = dsl;
+        this.clock = clock;
     }
 
     // ── gigs ────────────────────────────────────────────────────────────────
@@ -219,16 +230,50 @@ class CatalogReadRepository {
     }
 
     /**
-     * A gig that had happened by {@code now}: it has started, it was neither cancelled nor postponed
-     * (Ticketmaster keeps a postponed gig's old date until a new one is set), and it has a bill (no list
-     * shows a gig without one). The one rule behind a fan's stats and the gigs behind each line
-     *, so the two always agree.
+     * A gig that had happened by {@code now}: its UK day has come ({@link GigTime#dayHasCome}), it
+     * was neither cancelled nor postponed (Ticketmaster keeps a postponed gig's old date until a new one is
+     * set), and it has a bill (no list shows a gig without one). The one rule behind a fan's stats and the
+     * gigs behind each line, so the two always agree.
      */
     static Condition happened(Instant now) {
         return GIG.STARTS_AT
-                .lt(at(now))
+                .lt(at(GigTime.startOfTomorrow(now)))
                 .and(GIG.STATUS.notIn("CANCELLED", "POSTPONED"))
                 .and(DSL.exists(DSL.selectOne().from(GIG_ARTIST).where(GIG_ARTIST.GIG_ID.eq(GIG.ID))));
+    }
+
+    /**
+     * A Going that reads as Went: the gig's day is over and it was not called off. Refers to
+     * {@code GIG}, so the query must have the gig in scope.
+     */
+    static Condition assumedWent(Instant now) {
+        return GIG_ATTENDANCE
+                .STATUS
+                .eq("GOING")
+                .and(GIG.STARTS_AT.lt(at(GigTime.startOfToday(now))))
+                .and(GIG.STATUS.notIn("CANCELLED", "POSTPONED"));
+    }
+
+    /** The status a mark reads as now ({@link #assumedWent}); the gig must be in scope. */
+    static Field<String> readStatus(Instant now) {
+        return DSL.when(assumedWent(now), DSL.inline("WENT")).otherwise(GIG_ATTENDANCE.STATUS);
+    }
+
+    /** Marked Went, or Going on a gig that is over ({@link #assumedWent}); the gig must be in scope. */
+    static Condition wentOrAssumed(Instant now) {
+        return GIG_ATTENDANCE.STATUS.eq("WENT").or(assumedWent(now));
+    }
+
+    /**
+     * The fan did not untick this act of the bill: a Went counts every act but the ones they
+     * missed. Refers to {@code GIG_ARTIST}. Expected index: gig_attendance_missed's primary key.
+     */
+    static Condition seenBy(UUID userId) {
+        return DSL.notExists(DSL.selectOne()
+                .from(GIG_ATTENDANCE_MISSED)
+                .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE_MISSED.GIG_ID.eq(GIG_ARTIST.GIG_ID))
+                .and(GIG_ATTENDANCE_MISSED.ARTIST_ID.eq(GIG_ARTIST.ARTIST_ID)));
     }
 
     /** The WHERE clause of a gig filter (everything but the keyset cursor). */
@@ -269,10 +314,12 @@ class CatalogReadRepository {
                             .and(ARTIST.NAME_NORM.like(norm, '!')))));
         }
         if (filter.artistIds() != null && !filter.artistIds().isEmpty()) {
-            where.add(DSL.exists(DSL.selectOne()
-                    .from(GIG_ARTIST)
-                    .where(GIG_ARTIST.GIG_ID.eq(GIG.ID))
-                    .and(GIG_ARTIST.ARTIST_ID.in(filter.artistIds()))));
+            Condition onBill = GIG_ARTIST.GIG_ID.eq(GIG.ID).and(GIG_ARTIST.ARTIST_ID.in(filter.artistIds()));
+            if (filter.attendeeId() != null) {
+                // Someone's gigs with an act: only where they saw it.
+                onBill = onBill.and(seenBy(filter.attendeeId()));
+            }
+            where.add(DSL.exists(DSL.selectOne().from(GIG_ARTIST).where(onBill)));
         }
         if (filter.venueIds() != null && !filter.venueIds().isEmpty()) {
             where.add(GIG.VENUE_ID.in(filter.venueIds()));
@@ -287,7 +334,8 @@ class CatalogReadRepository {
         if (filter.attendeeId() != null) {
             Condition mine = GIG_ATTENDANCE.GIG_ID.eq(GIG.ID).and(GIG_ATTENDANCE.USER_ID.eq(filter.attendeeId()));
             if (filter.attendanceStatus() != null) {
-                mine = mine.and(GIG_ATTENDANCE.STATUS.eq(filter.attendanceStatus()));
+                // As the mark reads now: a past Going is listed with the Went gigs.
+                mine = mine.and(readStatus(clock.instant()).eq(filter.attendanceStatus()));
             }
             where.add(DSL.exists(DSL.selectOne().from(GIG_ATTENDANCE).where(mine)));
         }
@@ -460,23 +508,36 @@ class CatalogReadRepository {
                 .fetchOptional(GIG_SOURCE.EXTERNAL_ID);
     }
 
-    Map<UUID, String> attendance(UUID userId, Collection<UUID> gigIds) {
-        Map<UUID, String> byGig = new HashMap<>();
+    /**
+     * The user's marks on the gigs, as they read now ({@link Mark}). Expected index: the gig_attendance
+     * primary key, then the gig's.
+     */
+    Map<UUID, Mark> attendance(UUID userId, Collection<UUID> gigIds) {
+        Map<UUID, Mark> byGig = new HashMap<>();
         if (!gigIds.isEmpty()) {
-            dsl.select(GIG_ATTENDANCE.GIG_ID, GIG_ATTENDANCE.STATUS)
+            Instant now = clock.instant();
+            Field<Boolean> assumed = DSL.field(assumedWent(now));
+            dsl.select(GIG_ATTENDANCE.GIG_ID, readStatus(now), assumed)
                     .from(GIG_ATTENDANCE)
+                    .join(GIG)
+                    .on(GIG.ID.eq(GIG_ATTENDANCE.GIG_ID))
                     .where(GIG_ATTENDANCE.USER_ID.eq(userId))
                     .and(GIG_ATTENDANCE.GIG_ID.in(gigIds))
-                    .forEach(r -> byGig.put(r.value1(), r.value2()));
+                    .forEach(r -> byGig.put(r.value1(), new Mark(r.value2(), r.value3())));
         }
         return byGig;
     }
 
-    /** Every gig the user has marked, newest mark first. Expected index: the gig_attendance primary key. */
+    /**
+     * Every gig the user has marked, newest mark first, as the marks read now (a past Going reads WENT).
+     * Expected index: the gig_attendance primary key, then the gig's.
+     */
     Map<UUID, String> attendanceOf(UUID userId, int limit) {
         Map<UUID, String> byGig = new HashMap<>();
-        dsl.select(GIG_ATTENDANCE.GIG_ID, GIG_ATTENDANCE.STATUS)
+        dsl.select(GIG_ATTENDANCE.GIG_ID, readStatus(clock.instant()))
                 .from(GIG_ATTENDANCE)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_ATTENDANCE.GIG_ID))
                 .where(GIG_ATTENDANCE.USER_ID.eq(userId))
                 .orderBy(GIG_ATTENDANCE.UPDATED_AT.desc())
                 .limit(limit)
@@ -484,15 +545,89 @@ class CatalogReadRepository {
         return byGig;
     }
 
-    /** Status → number of users. Expected index: gig_attendance_gig (gig_id, status). */
+    /**
+     * Status → number of users, as the marks read now (a past Going counts as went). Expected
+     * index: gig_attendance_gig (gig_id, status).
+     */
     Map<String, Long> attendanceCounts(UUID gigId) {
-        Map<String, Long> counts = new HashMap<>();
-        dsl.select(GIG_ATTENDANCE.STATUS, DSL.count())
+        Instant now = clock.instant();
+        // Filtered aggregates rather than GROUP BY the CASE: its bound timestamp would make the grouped
+        // expression differ from the selected one.
+        var row = dsl.select(
+                        DSL.count().filterWhere(GIG_ATTENDANCE.STATUS.eq("INTERESTED")),
+                        DSL.count()
+                                .filterWhere(GIG_ATTENDANCE.STATUS.eq("GOING").andNot(assumedWent(now))),
+                        DSL.count().filterWhere(wentOrAssumed(now)))
                 .from(GIG_ATTENDANCE)
+                .join(GIG)
+                .on(GIG.ID.eq(GIG_ATTENDANCE.GIG_ID))
                 .where(GIG_ATTENDANCE.GIG_ID.eq(gigId))
-                .groupBy(GIG_ATTENDANCE.STATUS)
-                .forEach(r -> counts.put(r.value1(), r.value2().longValue()));
-        return counts;
+                .fetchOne();
+        return Map.of(
+                "INTERESTED", row.value1().longValue(),
+                "GOING", row.value2().longValue(),
+                "WENT", row.value3().longValue());
+    }
+
+    /**
+     * When a gig starts and its status, for the attendance rules; empty if no such gig.
+     * Expected index: the gig primary key.
+     */
+    Optional<GigTiming> timing(UUID gigId) {
+        return dsl.select(GIG.STARTS_AT, GIG.STATUS)
+                .from(GIG)
+                .where(GIG.ID.eq(gigId))
+                .fetchOptional(r -> new GigTiming(r.value1().toInstant(), r.value2()));
+    }
+
+    record GigTiming(Instant startsAt, String status) {}
+
+    /** Whether this user added the gig. Expected index: the gig primary key. */
+    boolean addedBy(UUID gigId, UUID userId) {
+        return dsl.fetchExists(GIG, GIG.ID.eq(gigId).and(GIG.CREATED_BY.eq(userId)));
+    }
+
+    /** The acts of each gig the user marked as missed. Expected index: the primary key. */
+    Map<UUID, List<UUID>> missed(UUID userId, Collection<UUID> gigIds) {
+        Map<UUID, List<UUID>> byGig = new HashMap<>();
+        if (!gigIds.isEmpty()) {
+            dsl.select(GIG_ATTENDANCE_MISSED.GIG_ID, GIG_ATTENDANCE_MISSED.ARTIST_ID)
+                    .from(GIG_ATTENDANCE_MISSED)
+                    .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                    .and(GIG_ATTENDANCE_MISSED.GIG_ID.in(gigIds))
+                    .orderBy(GIG_ATTENDANCE_MISSED.ARTIST_ID)
+                    .forEach(r -> byGig.computeIfAbsent(r.value1(), id -> new ArrayList<>())
+                            .add(r.value2()));
+        }
+        return byGig;
+    }
+
+    /** Replaces the acts the user missed at the gig; their mark must exist (the foreign key). */
+    void setMissed(UUID userId, UUID gigId, Collection<UUID> artistIds, Instant now) {
+        dsl.deleteFrom(GIG_ATTENDANCE_MISSED)
+                .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE_MISSED.GIG_ID.eq(gigId))
+                .execute();
+        for (UUID artistId : artistIds) {
+            dsl.insertInto(GIG_ATTENDANCE_MISSED)
+                    .set(GIG_ATTENDANCE_MISSED.USER_ID, userId)
+                    .set(GIG_ATTENDANCE_MISSED.GIG_ID, gigId)
+                    .set(GIG_ATTENDANCE_MISSED.ARTIST_ID, artistId)
+                    .set(GIG_ATTENDANCE_MISSED.CREATED_AT, at(now))
+                    .execute();
+        }
+    }
+
+    /** The acts count as seen again (a clip of them was posted). Safe to repeat. */
+    void unmiss(UUID userId, UUID gigId, Collection<UUID> artistIds) {
+        if (artistIds.isEmpty()) {
+            return;
+        }
+        dsl.deleteFrom(GIG_ATTENDANCE_MISSED)
+                .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE_MISSED.GIG_ID.eq(gigId))
+                .and(GIG_ATTENDANCE_MISSED.ARTIST_ID.in(artistIds))
+                .execute();
     }
 
     /**

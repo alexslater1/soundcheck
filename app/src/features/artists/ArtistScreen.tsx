@@ -110,7 +110,9 @@ const styles = StyleSheet.create({
   credit: { marginTop: spacing.md },
 });
 
-/** Clips tagged with this artist, newest first. */
+/**
+ * Clips of this artist on stage (each clip's act), newest first; a tile opens at the act's clip.
+ */
 function ArtistClips({ artistId, name }: { artistId: string; name: string }) {
   const posts = useListArtistPosts(artistId, { limit: 12 });
   if (posts.isPending) {
@@ -122,5 +124,5 @@ function ArtistClips({ artistId, name }: { artistId: string; name: string }) {
   if (posts.data.items.length === 0) {
     return <Text muted>No clips of {name} yet.</Text>;
   }
-  return <PostGrid posts={posts.data.items} />;
+  return <PostGrid posts={posts.data.items} actId={artistId} />;
 }

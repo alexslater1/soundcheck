@@ -186,7 +186,7 @@ public class PostController {
     @Operation(
             operationId = "listUnpostedGigs",
             summary =
-                    "H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first")
+                    "Your Pending list: gigs you went to (or said Going to, once over: wentUnconfirmed) whose day has come and that you have not posted from yet, newest first")
     public List<GigSummary> unposted(@AuthenticationPrincipal Jwt jwt) {
         return pending.of(userId(jwt));
     }

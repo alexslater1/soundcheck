@@ -79,7 +79,13 @@ class PostApiIT extends IntegrationTest {
         // Posted straight after the upload: nothing to play yet.
         ResponseEntity<JsonNode> created = api.post(
                 "/api/v1/posts",
-                Map.of("clips", List.of(Map.of("mediaId", clip)), "caption", "  What a night  ", "gigId", gig),
+                Map.of(
+                        "clips",
+                        List.of(Map.of("mediaId", clip, "artistId", headliner)),
+                        "caption",
+                        "  What a night  ",
+                        "gigId",
+                        gig),
                 author);
         assertThat(created.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         JsonNode post = created.getBody();
@@ -89,8 +95,8 @@ class PostApiIT extends IntegrationTest {
         assertThat(post.path("caption").asText("")).isEqualTo("What a night");
         assertThat(post.path("author").path("handle").asText("")).isEqualTo(author.handle());
         assertThat(post.path("gig").path("title").asText("")).isEqualTo("A night out");
-        // No artists given: the gig's bill, headliner first.
-        assertThat(ids(post.path("artists"))).containsExactly(headliner.toString(), support.toString());
+        // No artists given: the clips' acts, no longer the gig's whole bill.
+        assertThat(ids(post.path("artists"))).containsExactly(headliner.toString());
         assertThat(post.path("playback").path("status").asText("")).isEqualTo("UPLOADED");
         assertThat(post.path("likeCount").asInt()).isZero();
         assertThat(post.path("likedByMe").asBoolean()).isFalse();
@@ -118,10 +124,11 @@ class PostApiIT extends IntegrationTest {
                 "/api/v1/users/" + author.id() + "/posts",
                 "/api/v1/gigs/" + gig + "/posts",
                 "/api/v1/artists/" + headliner + "/posts",
-                "/api/v1/artists/" + support + "/posts",
                 "/api/v1/venues/" + venue + "/posts")) {
             assertThat(ids(pageOf(list, viewer))).as(list).containsExactly(postId);
         }
+        // Not the support act's: no clip of them.
+        assertThat(ids(pageOf("/api/v1/artists/" + support + "/posts", viewer))).isEmpty();
         // A second MediaReady (at-least-once delivery) changes nothing.
         String publishedAt = published.path("publishedAt").asText("");
         data.workerFinishes(clip, author.id());
@@ -377,15 +384,14 @@ class PostApiIT extends IntegrationTest {
         // Three fans: one fan's clips from a gig are one post.
         TestApi.User second = api.register("second");
         TestApi.User third = api.register("third");
+        // Each clip carries its act; the narrowed list goes by the clips' acts.
         String supportSet = created(api.post(
                         "/api/v1/posts",
                         Map.of(
                                 "clips",
-                                List.of(Map.of("mediaId", data.video(author.id(), "READY"))),
+                                List.of(Map.of("mediaId", data.video(author.id(), "READY"), "artistId", support)),
                                 "gigId",
-                                gig,
-                                "artistIds",
-                                List.of(support)),
+                                gig),
                         author))
                 .path("id")
                 .asText("");
@@ -393,18 +399,22 @@ class PostApiIT extends IntegrationTest {
                         "/api/v1/posts",
                         Map.of(
                                 "clips",
-                                List.of(Map.of("mediaId", data.video(second.id(), "READY"))),
+                                List.of(Map.of("mediaId", data.video(second.id(), "READY"), "artistId", headliner)),
                                 "gigId",
-                                gig,
-                                "artistIds",
-                                List.of(headliner)),
+                                gig),
                         second))
                 .path("id")
                 .asText("");
-        // No artists given: tagged with the whole bill, so it is in both acts' lists.
+        // A clip of each act: in both acts' lists.
         String wholeNight = created(api.post(
                         "/api/v1/posts",
-                        Map.of("clips", List.of(Map.of("mediaId", data.video(third.id(), "READY"))), "gigId", gig),
+                        Map.of(
+                                "clips",
+                                List.of(
+                                        Map.of("mediaId", data.video(third.id(), "READY"), "artistId", headliner),
+                                        Map.of("mediaId", data.video(third.id(), "READY"), "artistId", support)),
+                                "gigId",
+                                gig),
                         third))
                 .path("id")
                 .asText("");

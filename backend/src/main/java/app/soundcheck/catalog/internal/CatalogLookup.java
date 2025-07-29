@@ -42,6 +42,11 @@ class CatalogLookup implements Catalog {
     }
 
     @Override
+    public boolean gigCancelled(UUID gigId) {
+        return repository.timing(gigId).map(t -> "CANCELLED".equals(t.status())).orElse(false);
+    }
+
+    @Override
     public boolean venueExists(UUID venueId) {
         return repository.venueExists(venueId);
     }
