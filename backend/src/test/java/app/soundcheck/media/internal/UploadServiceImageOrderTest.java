@@ -53,6 +53,7 @@ class UploadServiceImageOrderTest {
     static final UUID MEDIA = UUID.fromString("01a0fe00-0000-7000-8000-000000000002");
     static final String ORIGINAL = "uploads/" + OWNER + "/" + MEDIA + "/original";
     static final String SERVED = "media/" + MEDIA + "/v1/image.png";
+    static final String THUMB = "media/" + MEDIA + "/v1/thumb.png";
 
     @TempDir
     Path dir;
@@ -87,6 +88,12 @@ class UploadServiceImageOrderTest {
                 })
                 .when(storage)
                 .putFile(eq(SERVED), any(Path.class), eq("image/png"), anyString());
+        doAnswer(inv -> {
+                    log.add("store thumbnail " + transactions.state());
+                    return null;
+                })
+                .when(storage)
+                .putFile(eq(THUMB), any(Path.class), eq("image/png"), anyString());
         when(assets.markUploaded(eq(MEDIA), eq("UPLOADED"), anyLong(), any())).thenAnswer(inv -> {
             log.add("mark uploaded " + transactions.state());
             return 1;
@@ -96,7 +103,7 @@ class UploadServiceImageOrderTest {
                     return null;
                 })
                 .when(assets)
-                .markImageReady(eq(MEDIA), anyString(), eq(SERVED), any());
+                .markImageReady(eq(MEDIA), anyString(), eq(SERVED), eq(THUMB), any(), any());
 
         service = new UploadService(
                 assets,
@@ -133,6 +140,7 @@ class UploadServiceImageOrderTest {
                         "head outside a transaction",
                         "download outside a transaction",
                         "store cleaned copy outside a transaction",
+                        "store thumbnail outside a transaction",
                         "begin",
                         "lock row in a transaction",
                         "mark uploaded in a transaction",
@@ -150,6 +158,7 @@ class UploadServiceImageOrderTest {
                 .hasMessage("No such media");
 
         verify(storage).delete(SERVED);
+        verify(storage).delete(THUMB);
         assertThat(log).endsWith("rollback");
     }
 

@@ -1,5 +1,6 @@
 package app.soundcheck.media.internal;
 
+import app.soundcheck.media.internal.transcode.BlurHash;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.geom.AffineTransform;
@@ -22,50 +23,86 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.ImageInputStream;
 import javax.imageio.stream.ImageOutputStream;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What an uploaded image becomes before anyone is shown it:
  * a copy with none of the file's metadata. A phone photo carries EXIF (the camera, the time and often
- * the GPS position) and XMP; an avatar served as uploaded would publish them.
+ * the GPS position) and XMP; an avatar or a photo in a post served as uploaded would publish them.
  *
  * <ul>
  *   <li><b>JPEG and PNG</b> are decoded and written again, which keeps only the pixels. Large photos are
  *       decoded with subsampling (never the full 8192-pixel canvas {@link ImageCheck} allows) and scaled
- *       so the long edge is at most {@link #MAX_EDGE}: avatars are shown small. The EXIF orientation is
- *       applied to the pixels first, otherwise a portrait photo would come out on its side once the tag
- *       that rotated it is gone.
+ *       so the long edge is at most {@link #MAX_EDGE}, enough for a photo filling a phone screen.
+ *       The EXIF orientation is applied to the pixels first, otherwise a portrait photo would come out
+ *       on its side once the tag that rotated it is gone. A second, small copy (long edge at most
+ *       {@link #THUMB_EDGE}) is the thumbnail for grids and avatars, and a BlurHash of it is the
+ *       placeholder; the size returned is the served copy's, upright.
  *   <li><b>WebP</b> cannot be decoded by the JDK, so its container is rewritten without the {@code EXIF}
  *       and {@code XMP } chunks (and their flags in {@code VP8X}); the image data is copied unchanged.
+ *       There is no thumbnail, BlurHash or measured size: the served copy is its own thumbnail.
  * </ul>
  */
 final class ImageScrub {
 
-    /** The longest edge of a served image, in pixels. */
-    static final int MAX_EDGE = 1024;
+    /** The longest edge of a served image, in pixels (was 1024 for avatars only; photos are now shown full screen). */
+    static final int MAX_EDGE = 1600;
+
+    /** The longest edge of the thumbnail: a grid tile or an avatar. */
+    static final int THUMB_EDGE = 480;
 
     static final float JPEG_QUALITY = 0.9f;
 
     private static final Set<String> WEBP_METADATA = Set.of("EXIF", "XMP ");
 
+    /** A decoded image's served copy: its size (upright) and the BlurHash of its thumbnail. */
+    record Served(int width, int height, String blurhash) {}
+
     private ImageScrub() {}
 
-    /** Writes the scrubbed copy of {@code source} (an image already accepted by {@link ImageCheck}). */
-    static void scrub(Path source, String contentType, Path target) throws IOException {
-        switch (contentType) {
-            case "image/jpeg" -> reencode(source, target, "jpeg", JpegOrientation.of(source));
-            case "image/png" -> reencode(source, target, "png", 1);
-            case "image/webp" -> Files.write(target, withoutWebpMetadata(Files.readAllBytes(source)));
+    /**
+     * Writes the scrubbed copy of {@code source} (an image already accepted by {@link ImageCheck}) to
+     * {@code target} and, for JPEG and PNG, its thumbnail to {@code thumb}.
+     *
+     * @return what was served, or null for a WebP (nothing decoded, no thumbnail written)
+     */
+    static @Nullable Served scrub(Path source, String contentType, Path target, Path thumb) throws IOException {
+        return switch (contentType) {
+            case "image/jpeg" -> reencode(source, target, thumb, "jpeg", JpegOrientation.of(source));
+            case "image/png" -> reencode(source, target, thumb, "png", 1);
+            case "image/webp" -> {
+                Files.write(target, withoutWebpMetadata(Files.readAllBytes(source)));
+                yield null;
+            }
             default -> throw new IllegalArgumentException("not an image type: " + contentType);
-        }
+        };
     }
 
-    private static void reencode(Path source, Path target, String format, int orientation) throws IOException {
-        BufferedImage image = upright(fit(read(source)), orientation);
+    private static Served reencode(Path source, Path target, Path thumb, String format, int orientation)
+            throws IOException {
+        BufferedImage image = upright(fit(read(source), MAX_EDGE), orientation);
+        BufferedImage small = fit(image, THUMB_EDGE);
+        write(image, target, format);
+        write(small, thumb, format);
+        return new Served(image.getWidth(), image.getHeight(), blurhash(small));
+    }
+
+    private static void write(BufferedImage image, Path target, String format) throws IOException {
         if (format.equals("jpeg")) {
             writeJpeg(withoutAlpha(image), target);
         } else if (!ImageIO.write(image, "png", target.toFile())) {
             throw new IOException("no PNG writer");
         }
+    }
+
+    /** 4×3 components, as the worker gives a clip's poster, from a copy at most 64 pixels wide. */
+    private static String blurhash(BufferedImage image) {
+        BufferedImage tiny = fit(image, 64);
+        BufferedImage rgb = new BufferedImage(tiny.getWidth(), tiny.getHeight(), BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = rgb.createGraphics();
+        g.drawImage(tiny, 0, 0, null);
+        g.dispose();
+        return BlurHash.encode(rgb, 4, 3);
     }
 
     /** Decodes with subsampling, so the decoded image is at most about twice {@link #MAX_EDGE} wide. */
@@ -79,8 +116,8 @@ final class ImageScrub {
             try {
                 reader.setInput(in, true, true);
                 int longEdge = Math.max(reader.getWidth(0), reader.getHeight(0));
-                // Rounded up, so the decoded edge is at most 2 × MAX_EDGE (a 4095-pixel photo is read at
-                // 2048, not in full) and still at least MAX_EDGE, which the scaling then brings down.
+                // Rounded up, so the decoded edge is at most 2 × MAX_EDGE (a 4032-pixel phone photo is read
+                // at 2016, not in full) and still at least MAX_EDGE, which the scaling then brings down.
                 int step = Math.max(1, Math.ceilDiv(longEdge, 2 * MAX_EDGE));
                 ImageReadParam param = reader.getDefaultReadParam();
                 param.setSourceSubsampling(step, step, 0, 0);
@@ -91,13 +128,13 @@ final class ImageScrub {
         }
     }
 
-    /** Scales down (never up) so the long edge is at most {@link #MAX_EDGE}. */
-    private static BufferedImage fit(BufferedImage image) {
+    /** Scales down (never up) so the long edge is at most {@code maxEdge}. */
+    private static BufferedImage fit(BufferedImage image, int maxEdge) {
         int longEdge = Math.max(image.getWidth(), image.getHeight());
-        if (longEdge <= MAX_EDGE) {
+        if (longEdge <= maxEdge) {
             return image;
         }
-        double scale = (double) MAX_EDGE / longEdge;
+        double scale = (double) maxEdge / longEdge;
         int width = Math.max(1, (int) Math.round(image.getWidth() * scale));
         int height = Math.max(1, (int) Math.round(image.getHeight() * scale));
         BufferedImage scaled = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);

@@ -111,17 +111,31 @@ public class MediaAssetRepository {
                 .execute();
     }
 
-    /** Marks an image READY with where it is served from. */
-    public void markImageReady(UUID id, String outputPrefix, String imageKey, Instant now) {
-        dsl.update(MEDIA_ASSET)
+    /**
+     * Marks an image READY with where it is served from: the photo is its own poster, and its small copy
+     * the thumbnail. A decoded image also gets its measured size, which replaces the size the client
+     * declared (a phone may report a portrait photo's stored, sideways size), and its BlurHash.
+     */
+    public void markImageReady(
+            UUID id,
+            String outputPrefix,
+            String imageKey,
+            String thumbKey,
+            ImageScrub.@Nullable Served served,
+            Instant now) {
+        var update = dsl.update(MEDIA_ASSET)
                 .set(MEDIA_ASSET.STATUS, "READY")
                 .set(MEDIA_ASSET.OUTPUT_PREFIX, outputPrefix)
                 .set(MEDIA_ASSET.POSTER_KEY, imageKey)
-                .set(MEDIA_ASSET.THUMB_KEY, imageKey)
+                .set(MEDIA_ASSET.THUMB_KEY, thumbKey)
                 .set(MEDIA_ASSET.READY_AT, at(now))
-                .set(MEDIA_ASSET.UPDATED_AT, at(now))
-                .where(MEDIA_ASSET.ID.eq(id))
-                .execute();
+                .set(MEDIA_ASSET.UPDATED_AT, at(now));
+        if (served != null) {
+            update = update.set(MEDIA_ASSET.WIDTH, served.width())
+                    .set(MEDIA_ASSET.HEIGHT, served.height())
+                    .set(MEDIA_ASSET.BLURHASH, served.blurhash());
+        }
+        update.where(MEDIA_ASSET.ID.eq(id)).execute();
     }
 
     /** Terminal state from the upload side: REJECTED (with why) or DELETED. */

@@ -50,12 +50,17 @@ class MediaLibraryService implements MediaLibrary, PublicImages {
         return byId;
     }
 
+    /**
+     * The thumbnail: avatars and a clip's blurred preview frame are shown small, so they need not load
+     * the full photo (up to {@link ImageScrub#MAX_EDGE} pixels). Images stored before thumbnails existed
+     * have their one copy as both.
+     */
     @Override
     public Map<UUID, String> urls(Collection<UUID> mediaIds) {
         Map<UUID, String> byId = new LinkedHashMap<>();
         for (MediaAsset asset : assets.findAll(mediaIds)) {
             if (readyImage(asset)) {
-                byId.put(asset.id(), properties.publicBaseUrl() + "/" + asset.posterKey());
+                byId.put(asset.id(), properties.publicBaseUrl() + "/" + asset.thumbKey());
             }
         }
         return byId;
@@ -83,7 +88,7 @@ class MediaLibraryService implements MediaLibrary, PublicImages {
     }
 
     private static boolean readyImage(MediaAsset asset) {
-        return !asset.video() && asset.status().equals("READY") && asset.posterKey() != null;
+        return !asset.video() && asset.status().equals("READY") && asset.thumbKey() != null;
     }
 
     private static MediaInfo info(MediaAsset asset) {
