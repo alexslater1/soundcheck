@@ -937,6 +937,14 @@ class CatalogReadRepository {
     // ── venues ──────────────────────────────────────────────────────────────
 
     Optional<VenueRow> venue(UUID id) {
+        return venues(List.of(id)).stream().findFirst();
+    }
+
+    /** The venues that exist among the ids (primary key). */
+    List<VenueRow> venues(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
         return dsl.select(
                         VENUE.ID,
                         VENUE.NAME,
@@ -948,8 +956,8 @@ class CatalogReadRepository {
                         VENUE.TIMEZONE,
                         VENUE.COVERAGE_NOTE)
                 .from(VENUE)
-                .where(VENUE.ID.eq(id))
-                .fetchOptional(r -> new VenueRow(
+                .where(VENUE.ID.in(ids))
+                .fetch(r -> new VenueRow(
                         r.value1(),
                         r.value2(),
                         r.value3(),

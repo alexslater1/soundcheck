@@ -358,6 +358,51 @@ class UserGigsIT extends IntegrationTest {
                 .doesNotContain(gig.path("id").asText(""));
     }
 
+    @Test
+    void myGigsListAllTimeNewestFirstInPagesAndAMonthOfThemNewestFirst() {
+        // My gigs opens on every gig marked, newest first; a month (then a day) narrows it.
+        LocalDate today = LocalDate.now(UK);
+        List<String> ids = new ArrayList<>();
+        for (int daysAgo : List.of(70, 10, 40)) {
+            ids.add(item(api.post(
+                            "/api/v1/gigs",
+                            gig(
+                                    List.of("Era " + daysAgo + " " + tag),
+                                    newVenue("Room " + daysAgo + " " + tag, manchester),
+                                    today.minusDays(daysAgo)),
+                            fan))
+                    .path("id")
+                    .asText(""));
+        }
+        String ten = ids.get(1);
+        String forty = ids.get(2);
+        String seventy = ids.get(0);
+
+        assertThat(gigIds(ok(api.get("/api/v1/me/gigs?when=all", fan)))).containsExactly(ten, forty, seventy);
+        JsonNode first = ok(api.get("/api/v1/me/gigs?when=all&limit=2", fan));
+        assertThat(gigIds(first)).containsExactly(ten, forty);
+        assertThat(gigIds(ok(api.get(
+                        "/api/v1/me/gigs?when=all&limit=2&cursor="
+                                + first.path("nextCursor").asText(""),
+                        fan))))
+                .containsExactly(seventy);
+        assertThat(gigIds(ok(api.get("/api/v1/me/gigs?when=past", fan)))).containsExactly(ten, forty, seventy);
+        assertThat(gigIds(ok(api.get("/api/v1/me/gigs?when=upcoming", fan)))).isEmpty();
+
+        // A window with when=all: only its gigs, newest first.
+        String window = "from=" + today.minusDays(45).atStartOfDay(UK).toInstant() + "&to="
+                + today.minusDays(5).atStartOfDay(UK).toInstant();
+        assertThat(gigIds(ok(api.get("/api/v1/me/gigs?when=all&" + window, fan))))
+                .containsExactly(ten, forty);
+        assertThat(code(api.get("/api/v1/me/gigs?when=sometime", fan))).isEqualTo("WHEN_INVALID");
+    }
+
+    private static List<String> gigIds(JsonNode page) {
+        List<String> ids = new ArrayList<>();
+        page.path("items").forEach(g -> ids.add(g.path("id").asText("")));
+        return ids;
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     @Test

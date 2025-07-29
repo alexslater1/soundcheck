@@ -182,6 +182,10 @@
             "format" : "uuid",
             "type" : [ "string", "null" ]
           },
+          "notifyLevel" : {
+            "enum" : [ "ALL", "POSTS", "GIGS", "NONE" ],
+            "type" : [ "string", "null" ]
+          },
           "upcomingGigs" : {
             "items" : {
               "$ref" : "#/components/schemas/GigSummary"
@@ -401,6 +405,10 @@
       },
       "Counts" : {
         "properties" : {
+          "artists" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
           "followers" : {
             "format" : "int64",
             "type" : "integer"
@@ -414,7 +422,7 @@
             "type" : "integer"
           }
         },
-        "required" : [ "followers", "following", "posts" ],
+        "required" : [ "artists", "followers", "following", "posts" ],
         "type" : "object"
       },
       "CreatePostRequest" : {
@@ -715,6 +723,37 @@
         "required" : [ "state" ],
         "type" : "object"
       },
+      "FollowedArtist" : {
+        "properties" : {
+          "artist" : {
+            "$ref" : "#/components/schemas/ArtistSummary"
+          },
+          "notifyLevel" : {
+            "description" : "The owner's level for this follow; only on one's own profile",
+            "enum" : [ "ALL", "POSTS", "GIGS", "NONE" ],
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "artist" ],
+        "type" : "object"
+      },
+      "FollowedVenue" : {
+        "properties" : {
+          "isFollowing" : {
+            "type" : "boolean"
+          },
+          "notifyLevel" : {
+            "description" : "The owner's level for this follow; only on one's own profile",
+            "enum" : [ "ALL", "POSTS", "GIGS", "NONE" ],
+            "type" : [ "string", "null" ]
+          },
+          "venue" : {
+            "$ref" : "#/components/schemas/VenueSummary"
+          }
+        },
+        "required" : [ "isFollowing", "venue" ],
+        "type" : "object"
+      },
       "FoundOnRequest" : {
         "properties" : {
           "artistMbid" : {
@@ -825,6 +864,34 @@
           }
         },
         "required" : [ "lat", "lng" ],
+        "type" : "object"
+      },
+      "GigCommentView" : {
+        "properties" : {
+          "author" : {
+            "$ref" : "#/components/schemas/UserSummary",
+            "type" : "null"
+          },
+          "body" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "fromPrivateProfile" : {
+            "type" : "boolean"
+          },
+          "gigId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "createdAt", "fromPrivateProfile", "gigId", "id" ],
         "type" : "object"
       },
       "GigCount" : {
@@ -1272,6 +1339,10 @@
             "format" : "int32",
             "type" : [ "integer", "null" ]
           },
+          "postCount" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
           "postId" : {
             "format" : "uuid",
             "type" : [ "string", "null" ]
@@ -1285,12 +1356,29 @@
           "requestPending" : {
             "type" : [ "boolean", "null" ]
           },
+          "subjectId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "subjectName" : {
+            "type" : [ "string", "null" ]
+          },
           "type" : {
-            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "POST_TAGGED", "NEW_GIGS", "FOLLOW_REQUEST", "FOLLOW_ACCEPTED" ],
+            "enum" : [ "NEW_FOLLOWER", "POST_LIKED", "POST_COMMENTED", "POST_READY", "POST_FAILED", "POST_TAGGED", "NEW_GIGS", "NEW_POSTS_ARTIST", "NEW_POSTS_VENUE", "FOLLOW_REQUEST", "FOLLOW_ACCEPTED" ],
             "type" : "string"
           }
         },
         "required" : [ "createdAt", "id", "read", "type" ],
+        "type" : "object"
+      },
+      "NotifyRequest" : {
+        "properties" : {
+          "level" : {
+            "enum" : [ "ALL", "POSTS", "GIGS", "NONE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "level" ],
         "type" : "object"
       },
       "PageArtistSummary" : {
@@ -1313,6 +1401,51 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/CommentView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageFollowedArtist" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FollowedArtist"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageFollowedVenue" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FollowedVenue"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageGigCommentView" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigCommentView"
             },
             "type" : "array"
           },
@@ -2212,6 +2345,10 @@
           "name" : {
             "type" : "string"
           },
+          "notifyLevel" : {
+            "enum" : [ "ALL", "POSTS", "GIGS", "NONE" ],
+            "type" : [ "string", "null" ]
+          },
           "postcode" : {
             "type" : [ "string", "null" ]
           },
@@ -2445,6 +2582,37 @@
           }
         },
         "summary" : "Follow an artist (idempotent)",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/artists/{id}/follow/notify" : {
+      "put" : {
+        "operationId" : "setArtistNotify",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NotifyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "What you hear about a artist you follow: ALL, POSTS, GIGS or NONE; 409 when not following",
         "tags" : [ "social" ]
       }
     },
@@ -2929,6 +3097,27 @@
         },
         "summary" : "Canonical genre list",
         "tags" : [ "reference" ]
+      }
+    },
+    "/api/v1/gig-comments/{id}" : {
+      "delete" : {
+        "operationId" : "deleteGigComment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Delete a gig comment (its author or an admin)",
+        "tags" : [ "engagement" ]
       }
     },
     "/api/v1/gigs" : {
@@ -3422,6 +3611,94 @@
         },
         "summary" : "The acts on the bill you saw at a gig you went to (the rest count as missed); at least one",
         "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/gigs/{id}/comments" : {
+      "get" : {
+        "operationId" : "listGigComments",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageGigCommentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A gig's comments, oldest first",
+        "tags" : [ "engagement" ]
+      },
+      "post" : {
+        "operationId" : "addGigComment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "header",
+          "name" : "Idempotency-Key",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CommentRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigCommentView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Comment on a gig",
+        "tags" : [ "engagement" ]
       }
     },
     "/api/v1/gigs/{id}/posts" : {
@@ -5121,6 +5398,96 @@
         "tags" : [ "social" ]
       }
     },
+    "/api/v1/users/{id}/following/artists" : {
+      "get" : {
+        "operationId" : "listFollowedArtists",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFollowedArtist"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The artists this user follows, newest first",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/users/{id}/following/venues" : {
+      "get" : {
+        "operationId" : "listFollowedVenues",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFollowedVenue"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The venues this user follows, newest first",
+        "tags" : [ "social" ]
+      }
+    },
     "/api/v1/users/{id}/gigs/going" : {
       "get" : {
         "operationId" : "listUserGoingGigs",
@@ -5451,6 +5818,37 @@
           }
         },
         "summary" : "Follow a venue: its new gigs alert you (idempotent)",
+        "tags" : [ "social" ]
+      }
+    },
+    "/api/v1/venues/{id}/follow/notify" : {
+      "put" : {
+        "operationId" : "setVenueNotify",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/NotifyRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "What you hear about a venue you follow: ALL, POSTS, GIGS or NONE; 409 when not following",
         "tags" : [ "social" ]
       }
     },

@@ -9,6 +9,7 @@ import type { VenueDetailAddress } from './venueDetailAddress';
 import type { VenueDetailCity } from './venueDetailCity';
 import type { VenueDetailCoverageNote } from './venueDetailCoverageNote';
 import type { GeoPoint } from './geoPoint';
+import type { VenueDetailNotifyLevel } from './venueDetailNotifyLevel';
 import type { VenueDetailPostcode } from './venueDetailPostcode';
 
 export interface VenueDetail {
@@ -20,6 +21,7 @@ export interface VenueDetail {
   id: string;
   location?: GeoPoint;
   name: string;
+  notifyLevel?: VenueDetailNotifyLevel;
   postcode?: VenueDetailPostcode;
   timezone: string;
 }

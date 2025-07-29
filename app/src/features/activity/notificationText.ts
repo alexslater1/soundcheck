@@ -28,7 +28,20 @@ export function notificationText(notification: NotificationView): string {
       return `${who} asked to follow you`;
     case 'FOLLOW_ACCEPTED':
       return `${who} accepted your follow request`;
+    case 'NEW_POSTS_ARTIST':
+      return newPostsText(notification, 'from');
+    case 'NEW_POSTS_VENUE':
+      return newPostsText(notification, 'at');
   }
+}
+
+/** "New post from KEO" or "3 new posts at Band on the Wall" (one entry per hour, rolled up). */
+function newPostsText(notification: NotificationView, preposition: 'from' | 'at'): string {
+  const count = notification.postCount ?? 1;
+  const name = notification.subjectName ?? (preposition === 'from' ? 'an artist' : 'a venue');
+  return count <= 1
+    ? `New post ${preposition} ${name}`
+    : `${count} new posts ${preposition} ${name}`;
 }
 
 /** "New gig: Keo at The Social" or "3 new gigs: Keo at The Social, …". */

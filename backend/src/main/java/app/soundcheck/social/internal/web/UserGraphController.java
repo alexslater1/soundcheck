@@ -4,6 +4,9 @@ import app.soundcheck.identity.UserSummary;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Page;
+import app.soundcheck.social.internal.FollowListService;
+import app.soundcheck.social.internal.FollowListService.FollowedArtist;
+import app.soundcheck.social.internal.FollowListService.FollowedVenue;
 import app.soundcheck.social.internal.UserGraphService;
 import app.soundcheck.social.internal.UserGraphService.FollowState;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,9 +35,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserGraphController {
 
     private final UserGraphService graph;
+    private final FollowListService lists;
 
-    public UserGraphController(UserGraphService graph) {
+    public UserGraphController(UserGraphService graph, FollowListService lists) {
         this.graph = graph;
+        this.lists = lists;
     }
 
     @PutMapping("/follow")
@@ -70,6 +75,26 @@ public class UserGraphController {
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
         return graph.following(userId(jwt), id, cursor, limit);
+    }
+
+    @GetMapping("/following/artists")
+    @Operation(operationId = "listFollowedArtists", summary = "The artists this user follows, newest first")
+    public Page<FollowedArtist> followedArtists(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
+        return lists.artists(userId(jwt), id, cursor, limit);
+    }
+
+    @GetMapping("/following/venues")
+    @Operation(operationId = "listFollowedVenues", summary = "The venues this user follows, newest first")
+    public Page<FollowedVenue> followedVenues(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
+        return lists.venues(userId(jwt), id, cursor, limit);
     }
 
     @PutMapping("/block")

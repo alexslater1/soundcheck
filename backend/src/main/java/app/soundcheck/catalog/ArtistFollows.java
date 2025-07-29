@@ -1,6 +1,7 @@
 package app.soundcheck.catalog;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,4 +16,7 @@ public interface ArtistFollows {
     Set<UUID> followedBy(UUID userId, Collection<UUID> artistIds);
 
     long followerCount(UUID artistId);
+
+    /** How much the user hears about the artist (ALL, POSTS, GIGS or NONE); empty when not following. */
+    Optional<String> notifyLevel(UUID userId, UUID artistId);
 }

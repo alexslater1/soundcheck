@@ -5,10 +5,12 @@ import static app.soundcheck.shared.jooq.social.Tables.GIG_ALERT_SENT;
 import static app.soundcheck.shared.jooq.social.Tables.GIG_ALERT_STATE;
 import static app.soundcheck.shared.jooq.social.Tables.VENUE_FOLLOW;
 
+import app.soundcheck.social.NotifyLevel;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -46,6 +48,12 @@ class GigAlertRepository {
                 .execute();
     }
 
+    /** The follow levels that hear about new gigs ({@link NotifyLevel#gigs()}). */
+    static final List<String> GIG_LEVELS = Arrays.stream(NotifyLevel.values())
+            .filter(NotifyLevel::gigs)
+            .map(NotifyLevel::name)
+            .toList();
+
     /** Artist id → the users who follow it. Expected index: artist_follow_artist (artist_id). */
     Map<UUID, List<UUID>> artistFollowers(Collection<UUID> artistIds) {
         Map<UUID, List<UUID>> out = new HashMap<>();
@@ -53,6 +61,7 @@ class GigAlertRepository {
             dsl.select(ARTIST_FOLLOW.ARTIST_ID, ARTIST_FOLLOW.USER_ID)
                     .from(ARTIST_FOLLOW)
                     .where(ARTIST_FOLLOW.ARTIST_ID.in(artistIds))
+                    .and(ARTIST_FOLLOW.NOTIFY.in(GIG_LEVELS)) // a follow set to POSTS or NONE hears of no gigs
                     .forEach(r -> out.computeIfAbsent(r.value1(), k -> new ArrayList<>())
                             .add(r.value2()));
         }
@@ -66,6 +75,7 @@ class GigAlertRepository {
             dsl.select(VENUE_FOLLOW.VENUE_ID, VENUE_FOLLOW.USER_ID)
                     .from(VENUE_FOLLOW)
                     .where(VENUE_FOLLOW.VENUE_ID.in(venueIds))
+                    .and(VENUE_FOLLOW.NOTIFY.in(GIG_LEVELS)) // a follow set to POSTS or NONE hears of no gigs
                     .forEach(r -> out.computeIfAbsent(r.value1(), k -> new ArrayList<>())
                             .add(r.value2()));
         }

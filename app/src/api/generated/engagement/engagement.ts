@@ -27,9 +27,12 @@ import type {
 import type {
   CommentRequest,
   CommentView,
+  GigCommentView,
   LikeState,
   ListCommentsParams,
+  ListGigCommentsParams,
   PageCommentView,
+  PageGigCommentView,
   ReportRequest
 } from '.././model';
 
@@ -107,6 +110,258 @@ export const useDeleteComment = <TError = unknown,
       > => {
 
       const mutationOptions = getDeleteCommentMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Delete a gig comment (its author or an admin)
+ */
+export const getDeleteGigCommentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/gig-comments/${id}`
+}
+
+export const deleteGigComment = async (id: string, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getDeleteGigCommentUrl(id),
+  {      
+    ...options,
+    method: 'DELETE'
+    
+    
+  }
+);}
+
+
+
+
+export const getDeleteGigCommentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGigComment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteGigComment>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['deleteGigComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteGigComment>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteGigComment(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteGigCommentMutationResult = NonNullable<Awaited<ReturnType<typeof deleteGigComment>>>
+    
+    export type DeleteGigCommentMutationError = unknown
+
+    /**
+ * @summary Delete a gig comment (its author or an admin)
+ */
+export const useDeleteGigComment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteGigComment>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof deleteGigComment>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getDeleteGigCommentMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary A gig's comments, oldest first
+ */
+export const getListGigCommentsUrl = (id: string,
+    params?: ListGigCommentsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/gigs/${id}/comments?${stringifiedParams}` : `/api/v1/gigs/${id}/comments`
+}
+
+export const listGigComments = async (id: string,
+    params?: ListGigCommentsParams, options?: RequestInit): Promise<PageGigCommentView> => {
+  
+  return customFetch<PageGigCommentView>(getListGigCommentsUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListGigCommentsQueryKey = (id: string,
+    params?: ListGigCommentsParams,) => {
+    return [`/api/v1/gigs/${id}/comments`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListGigCommentsQueryOptions = <TData = Awaited<ReturnType<typeof listGigComments>>, TError = unknown>(id: string,
+    params?: ListGigCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListGigCommentsQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listGigComments>>> = ({ signal }) => listGigComments(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listGigComments>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListGigCommentsQueryResult = NonNullable<Awaited<ReturnType<typeof listGigComments>>>
+export type ListGigCommentsQueryError = unknown
+
+
+export function useListGigComments<TData = Awaited<ReturnType<typeof listGigComments>>, TError = unknown>(
+ id: string,
+    params: undefined |  ListGigCommentsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigComments>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGigComments>>,
+          TError,
+          Awaited<ReturnType<typeof listGigComments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGigComments<TData = Awaited<ReturnType<typeof listGigComments>>, TError = unknown>(
+ id: string,
+    params?: ListGigCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigComments>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listGigComments>>,
+          TError,
+          Awaited<ReturnType<typeof listGigComments>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListGigComments<TData = Awaited<ReturnType<typeof listGigComments>>, TError = unknown>(
+ id: string,
+    params?: ListGigCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary A gig's comments, oldest first
+ */
+
+export function useListGigComments<TData = Awaited<ReturnType<typeof listGigComments>>, TError = unknown>(
+ id: string,
+    params?: ListGigCommentsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listGigComments>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListGigCommentsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Comment on a gig
+ */
+export const getAddGigCommentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/gigs/${id}/comments`
+}
+
+export const addGigComment = async (id: string,
+    commentRequest: CommentRequest, options?: RequestInit): Promise<GigCommentView> => {
+  
+  return customFetch<GigCommentView>(getAddGigCommentUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      commentRequest,)
+  }
+);}
+
+
+
+
+export const getAddGigCommentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addGigComment>>, TError,{id: string;data: CommentRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addGigComment>>, TError,{id: string;data: CommentRequest}, TContext> => {
+
+const mutationKey = ['addGigComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addGigComment>>, {id: string;data: CommentRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  addGigComment(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddGigCommentMutationResult = NonNullable<Awaited<ReturnType<typeof addGigComment>>>
+    export type AddGigCommentMutationBody = CommentRequest
+    export type AddGigCommentMutationError = unknown
+
+    /**
+ * @summary Comment on a gig
+ */
+export const useAddGigComment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addGigComment>>, TError,{id: string;data: CommentRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof addGigComment>>,
+        TError,
+        {id: string;data: CommentRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getAddGigCommentMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }

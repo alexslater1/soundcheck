@@ -18,6 +18,81 @@ export const deleteCommentParams = zod.object({
 })
 
 /**
+ * @summary Delete a gig comment (its author or an admin)
+ */
+export const deleteGigCommentParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+/**
+ * @summary A gig's comments, oldest first
+ */
+export const listGigCommentsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const listGigCommentsQueryLimitMax = 50;
+
+
+export const listGigCommentsQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(listGigCommentsQueryLimitMax).optional()
+})
+
+export const listGigCommentsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}).optional(),
+  "body": zod.string().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "fromPrivateProfile": zod.boolean(),
+  "gigId": zod.string().uuid(),
+  "id": zod.string().uuid()
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
+ * @summary Comment on a gig
+ */
+export const addGigCommentParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const addGigCommentHeader = zod.object({
+  "Idempotency-Key": zod.string().optional()
+})
+
+export const addGigCommentBodyBodyMin = 0;
+
+export const addGigCommentBodyBodyMax = 500;
+
+
+export const addGigCommentBody = zod.object({
+  "body": zod.string().min(addGigCommentBodyBodyMin).max(addGigCommentBodyBodyMax)
+})
+
+export const addGigCommentResponse = zod.object({
+  "author": zod.object({
+  "avatarUrl": zod.string().nullish(),
+  "displayName": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "isFollowing": zod.boolean().nullish()
+}).optional(),
+  "body": zod.string().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "fromPrivateProfile": zod.boolean(),
+  "gigId": zod.string().uuid(),
+  "id": zod.string().uuid()
+})
+
+/**
  * @summary A post's comments, oldest first
  */
 export const listCommentsParams = zod.object({

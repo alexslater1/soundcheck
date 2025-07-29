@@ -92,6 +92,7 @@ export const getArtistResponse = zod.object({
 }),
   "followerCount": zod.number(),
   "mbid": zod.string().uuid().nullish(),
+  "notifyLevel": zod.enum(['ALL', 'POSTS', 'GIGS', 'NONE']).nullish(),
   "upcomingGigs": zod.array(zod.object({
   "currency": zod.string().nullish(),
   "distanceKm": zod.number().nullish(),
@@ -1070,6 +1071,7 @@ export const getVenueResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string(),
+  "notifyLevel": zod.enum(['ALL', 'POSTS', 'GIGS', 'NONE']).nullish(),
   "postcode": zod.string().nullish(),
   "timezone": zod.string()
 })

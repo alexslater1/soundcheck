@@ -2,6 +2,8 @@ package app.soundcheck.notifications.internal;
 
 import app.soundcheck.content.PostLookup;
 import app.soundcheck.content.PostLookup.PostBrief;
+import app.soundcheck.content.PostLookup.PostSubjects;
+import app.soundcheck.content.PostLookup.Subject;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.notifications.internal.NotificationRepository.Row;
@@ -9,6 +11,9 @@ import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.social.NewGigsFound;
+import app.soundcheck.social.PostWatchers;
+import app.soundcheck.social.PostWatchers.Kind;
+import app.soundcheck.social.PostWatchers.Watcher;
 import app.soundcheck.social.SocialGraph;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -16,6 +21,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.io.UncheckedIOException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,6 +58,8 @@ public class NotificationService {
                                 "POST_FAILED",
                                 "POST_TAGGED",
                                 "NEW_GIGS",
+                                "NEW_POSTS_ARTIST",
+                                "NEW_POSTS_VENUE",
                                 "FOLLOW_REQUEST",
                                 "FOLLOW_ACCEPTED"
                             })
@@ -70,6 +78,12 @@ public class NotificationService {
              *. False for a moment after an answer, until its event has updated the entry.
              */
             @Schema(nullable = true) Boolean requestPending,
+            /** NEW_POSTS_ARTIST / NEW_POSTS_VENUE: the artist or venue followed. */
+            @Schema(nullable = true) UUID subjectId,
+            /** NEW_POSTS_*: its name when the entry was written. */
+            @Schema(nullable = true) String subjectName,
+            /** NEW_POSTS_*: how many new posts the entry stands for (at most one entry per hour). */
+            @Schema(nullable = true) Integer postCount,
             Instant createdAt,
             boolean read) {}
 
@@ -97,6 +111,7 @@ public class NotificationService {
     private final Users users;
     private final PostLookup posts;
     private final SocialGraph social;
+    private final PostWatchers watchers;
     private final JsonMapper json;
     private final Clock clock;
 
@@ -105,12 +120,14 @@ public class NotificationService {
             Users users,
             PostLookup posts,
             SocialGraph social,
+            PostWatchers watchers,
             JsonMapper json,
             Clock clock) {
         this.notifications = notifications;
         this.users = users;
         this.posts = posts;
         this.social = social;
+        this.watchers = watchers;
         this.json = json;
         this.clock = clock;
     }
@@ -153,6 +170,36 @@ public class NotificationService {
         }
         notifications.insert(
                 new Row(alert.alertId(), alert.userId(), "NEW_GIGS", null, null, null, alert.at(), null, snapshot));
+    }
+
+    /**
+     * A post went live. Everyone following one of its acts or its venue at POSTS or ALL hears about
+     * it once (the first act they follow, else the venue), rolled up per hour; social says who, and leaves
+     * out the author, blocks both ways and, for a private author, non-followers.
+     */
+    void recordNewPost(UUID postId) {
+        PostSubjects post = posts.subjects(postId).orElse(null);
+        if (post == null) {
+            return; // deleted or hidden again before the listener ran
+        }
+        Map<UUID, String> names = new HashMap<>();
+        post.artists().forEach(a -> names.put(a.id(), a.name()));
+        if (post.venue() != null) {
+            names.put(post.venue().id(), post.venue().name());
+        }
+        Instant now = Instant.now(clock);
+        for (Watcher watcher : watchers.of(
+                post.authorId(),
+                post.artists().stream().map(Subject::id).toList(),
+                post.venue() == null ? null : post.venue().id())) {
+            notifications.newPost(
+                    watcher.userId(),
+                    watcher.kind() == Kind.ARTIST ? "NEW_POSTS_ARTIST" : "NEW_POSTS_VENUE",
+                    watcher.subjectId(),
+                    names.get(watcher.subjectId()),
+                    postId,
+                    now);
+        }
     }
 
     /** The owner accepted, so their request entry becomes "started following you" (read). */
@@ -234,6 +281,9 @@ public class NotificationService {
                             gigs == null ? null : gigs.items(),
                             gigs == null ? null : gigs.total(),
                             row.type().equals("FOLLOW_REQUEST") ? waiting.contains(row.actorId()) : null,
+                            row.newPosts() == null ? null : row.newPosts().subjectId(),
+                            row.newPosts() == null ? null : row.newPosts().subjectName(),
+                            row.newPosts() == null ? null : row.newPosts().postCount(),
                             row.createdAt(),
                             row.readAt() != null);
                 })

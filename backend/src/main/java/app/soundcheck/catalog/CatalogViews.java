@@ -33,6 +33,9 @@ public interface CatalogViews {
 
     boolean venueExists(UUID venueId);
 
+    /** Summaries of the venues that exist among the ids. */
+    Map<UUID, VenueSummary> venues(Collection<UUID> venueIds);
+
     /** Every gig at a venue (ids only), newest first, at most {@code limit}. */
     List<UUID> gigIdsAtVenue(UUID venueId, int limit);
 }

@@ -7,11 +7,13 @@
  */
 import type { ArtistSummary } from './artistSummary';
 import type { ArtistDetailMbid } from './artistDetailMbid';
+import type { ArtistDetailNotifyLevel } from './artistDetailNotifyLevel';
 import type { GigSummary } from './gigSummary';
 
 export interface ArtistDetail {
   artist: ArtistSummary;
   followerCount: number;
   mbid?: ArtistDetailMbid;
+  notifyLevel?: ArtistDetailNotifyLevel;
   upcomingGigs: GigSummary[];
 }

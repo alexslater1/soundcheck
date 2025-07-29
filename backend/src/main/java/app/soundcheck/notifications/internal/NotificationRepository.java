@@ -2,7 +2,9 @@ package app.soundcheck.notifications.internal;
 
 import static app.soundcheck.shared.jooq.notify.Tables.NOTIFICATION;
 
+import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.web.Cursor;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -30,7 +32,22 @@ class NotificationRepository {
             Instant createdAt,
             @Nullable Instant readAt,
             /** NEW_GIGS only: the snapshot of the new gigs, as JSON. */
-            @Nullable String gigs) {
+            @Nullable String gigs,
+            /** NEW_POSTS_ARTIST / NEW_POSTS_VENUE only: the artist or venue, its name, how many posts. */
+            @Nullable NewPosts newPosts) {
+
+        Row(
+                UUID id,
+                UUID userId,
+                String type,
+                @Nullable UUID actorId,
+                @Nullable UUID postId,
+                @Nullable UUID commentId,
+                Instant createdAt,
+                @Nullable Instant readAt,
+                @Nullable String gigs) {
+            this(id, userId, type, actorId, postId, commentId, createdAt, readAt, gigs, null);
+        }
 
         Row(
                 UUID id,
@@ -41,9 +58,15 @@ class NotificationRepository {
                 @Nullable UUID commentId,
                 Instant createdAt,
                 @Nullable Instant readAt) {
-            this(id, userId, type, actorId, postId, commentId, createdAt, readAt, null);
+            this(id, userId, type, actorId, postId, commentId, createdAt, readAt, null, null);
         }
     }
+
+    /** What a new-posts entry is about. */
+    record NewPosts(UUID subjectId, String subjectName, int postCount) {}
+
+    /** A new-posts entry stands for every post about its subject within this long of the first. */
+    static final Duration ROLL_UP = Duration.ofHours(1);
 
     private final DSLContext dsl;
 
@@ -74,6 +97,57 @@ class NotificationRepository {
                         .onConflictDoNothing()
                         .execute()
                 == 1;
+    }
+
+    /**
+     * Tells the user about a new post of an artist or venue they follow, at most one entry per
+     * (user, type, subject) per {@link #ROLL_UP}: an entry from the last hour counts the post instead
+     * (and points at it, the newest), otherwise a new entry starts. The unique index on the subject and
+     * the clock hour (V112) stops two posts published at the same moment from both starting one. The
+     * same post delivered twice (the listener's retry) is counted once.
+     *
+     * <p>Expected indexes: notification_new_posts_recent for the look-back; notification_new_posts_once
+     * for the insert.
+     */
+    void newPost(UUID userId, String type, UUID subjectId, String subjectName, UUID postId, Instant now) {
+        var recent = dsl.select(NOTIFICATION.ID, NOTIFICATION.POST_ID)
+                .from(NOTIFICATION)
+                .where(NOTIFICATION.USER_ID.eq(userId))
+                .and(NOTIFICATION.TYPE.eq(type))
+                .and(NOTIFICATION.SUBJECT_ID.eq(subjectId))
+                .and(NOTIFICATION.CREATED_AT.gt(at(now.minus(ROLL_UP))))
+                .orderBy(NOTIFICATION.CREATED_AT.desc())
+                .limit(1)
+                .forUpdate()
+                .fetchOptional();
+        if (recent.isPresent()) {
+            if (!postId.equals(recent.get().value2())) {
+                dsl.update(NOTIFICATION)
+                        .set(NOTIFICATION.POST_COUNT, NOTIFICATION.POST_COUNT.plus(1))
+                        .set(NOTIFICATION.POST_ID, postId)
+                        .set(NOTIFICATION.SUBJECT_NAME, subjectName)
+                        .where(NOTIFICATION.ID.eq(recent.get().value1()))
+                        .execute();
+            }
+            return;
+        }
+        dsl.insertInto(NOTIFICATION)
+                .set(NOTIFICATION.ID, Ids.newId())
+                .set(NOTIFICATION.USER_ID, userId)
+                .set(NOTIFICATION.TYPE, type)
+                .set(NOTIFICATION.POST_ID, postId)
+                .set(NOTIFICATION.CREATED_AT, at(now))
+                .set(NOTIFICATION.SUBJECT_ID, subjectId)
+                .set(NOTIFICATION.SUBJECT_NAME, subjectName)
+                .set(NOTIFICATION.POST_COUNT, 1)
+                .set(NOTIFICATION.ROLLUP_KEY, subjectId + ":" + now.getEpochSecond() / 3600)
+                .onConflict(NOTIFICATION.USER_ID, NOTIFICATION.TYPE, NOTIFICATION.ROLLUP_KEY)
+                .where(NOTIFICATION.ROLLUP_KEY.isNotNull())
+                .doUpdate()
+                .set(NOTIFICATION.POST_COUNT, NOTIFICATION.POST_COUNT.plus(1))
+                .set(NOTIFICATION.POST_ID, DSL.excluded(NOTIFICATION.POST_ID))
+                .where(NOTIFICATION.POST_ID.ne(DSL.excluded(NOTIFICATION.POST_ID)))
+                .execute();
     }
 
     /** The inbox, newest first; {@code limit + 1} rows. Expected index: notification_user. */
@@ -165,7 +239,13 @@ class NotificationRepository {
                         : r.get(NOTIFICATION.READ_AT).toInstant(),
                 r.get(NOTIFICATION.GIGS) == null
                         ? null
-                        : r.get(NOTIFICATION.GIGS).data());
+                        : r.get(NOTIFICATION.GIGS).data(),
+                r.get(NOTIFICATION.SUBJECT_ID) == null
+                        ? null
+                        : new NewPosts(
+                                r.get(NOTIFICATION.SUBJECT_ID),
+                                r.get(NOTIFICATION.SUBJECT_NAME),
+                                r.get(NOTIFICATION.POST_COUNT)));
     }
 
     private static OffsetDateTime at(Instant instant) {

@@ -7,6 +7,7 @@
  */
 
 export interface Counts {
+  artists: number;
   followers: number;
   following: number;
   posts: number;

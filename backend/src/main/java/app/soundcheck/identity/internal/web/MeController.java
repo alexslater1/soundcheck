@@ -137,9 +137,10 @@ public class MeController {
 
     public record GenreWeight(int genreId, float weight) {}
 
-    public record Counts(long followers, long following, long posts) {
+    /** {@code artists}: how many artists the user follows (the profile's Artists tab). */
+    public record Counts(long followers, long following, long posts, long artists) {
         static Counts from(ProfileFacts.Counts counts) {
-            return new Counts(counts.followers(), counts.following(), counts.posts());
+            return new Counts(counts.followers(), counts.following(), counts.posts(), counts.artists());
         }
     }
 

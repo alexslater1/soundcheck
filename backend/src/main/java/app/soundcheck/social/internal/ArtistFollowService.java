@@ -6,11 +6,13 @@ import app.soundcheck.catalog.ArtistFollows;
 import app.soundcheck.catalog.Catalog;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.social.ArtistFollowed;
+import app.soundcheck.social.NotifyLevel;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -62,6 +64,32 @@ public class ArtistFollowService implements ArtistFollows {
                 .where(ARTIST_FOLLOW.USER_ID.eq(userId))
                 .and(ARTIST_FOLLOW.ARTIST_ID.eq(artistId))
                 .execute();
+    }
+
+    /**
+     * Sets what the follower hears about the artist. Only a follower has a level: 409
+     * {@code NOT_FOLLOWING} otherwise.
+     */
+    public void setNotify(UUID userId, UUID artistId, NotifyLevel level) {
+        int updated = dsl.update(ARTIST_FOLLOW)
+                .set(ARTIST_FOLLOW.NOTIFY, level.name())
+                .where(ARTIST_FOLLOW.USER_ID.eq(userId))
+                .and(ARTIST_FOLLOW.ARTIST_ID.eq(artistId))
+                .execute();
+        if (updated == 0) {
+            throw ApiException.conflict("NOT_FOLLOWING", "Follow this artist first");
+        }
+    }
+
+    /** Expected index: the primary key (user_id, artist_id). */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> notifyLevel(UUID userId, UUID artistId) {
+        return dsl.select(ARTIST_FOLLOW.NOTIFY)
+                .from(ARTIST_FOLLOW)
+                .where(ARTIST_FOLLOW.USER_ID.eq(userId))
+                .and(ARTIST_FOLLOW.ARTIST_ID.eq(artistId))
+                .fetchOptional(ARTIST_FOLLOW.NOTIFY);
     }
 
     @Override

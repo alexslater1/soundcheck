@@ -3,6 +3,7 @@ package app.soundcheck.catalog.internal;
 import app.soundcheck.catalog.ArtistSummary;
 import app.soundcheck.catalog.CatalogViews;
 import app.soundcheck.catalog.GigSummary;
+import app.soundcheck.catalog.VenueSummary;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +48,11 @@ class CatalogViewsApi implements CatalogViews {
     @Override
     public boolean venueExists(UUID venueId) {
         return catalog.venueExists(venueId);
+    }
+
+    @Override
+    public Map<UUID, VenueSummary> venues(Collection<UUID> venueIds) {
+        return catalog.venuesByIds(venueIds);
     }
 
     @Override

@@ -187,6 +187,11 @@ class UserGraphRepository {
                 .fetch(ARTIST_FOLLOW.ARTIST_ID));
     }
 
+    /** The header's Artists count. Expected index: the artist_follow primary key (user_id, artist_id). */
+    long followedArtistCount(UUID userId) {
+        return dsl.fetchCount(ARTIST_FOLLOW, ARTIST_FOLLOW.USER_ID.eq(userId));
+    }
+
     /** Expected indexes: the user_block primary key (as blocker) and user_block_blocked (as blocked). */
     Set<UUID> blockedEitherWay(UUID userId) {
         Set<UUID> blocked = new HashSet<>(dsl.select(USER_BLOCK.BLOCKED_ID)

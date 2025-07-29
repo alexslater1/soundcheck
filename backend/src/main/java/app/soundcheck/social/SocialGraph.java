@@ -44,4 +44,7 @@ public interface SocialGraph {
     long followerCount(UUID userId);
 
     long followingCount(UUID userId);
+
+    /** How many artists the user follows (the profile header's Artists count). */
+    long followedArtistCount(UUID userId);
 }

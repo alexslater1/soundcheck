@@ -24,6 +24,7 @@ export const getMeResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "bio": zod.string().nullish(),
   "counts": zod.object({
+  "artists": zod.number(),
   "followers": zod.number(),
   "following": zod.number(),
   "posts": zod.number()
@@ -73,6 +74,7 @@ export const updateMeResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "bio": zod.string().nullish(),
   "counts": zod.object({
+  "artists": zod.number(),
   "followers": zod.number(),
   "following": zod.number(),
   "posts": zod.number()
@@ -120,6 +122,7 @@ export const setMyGenresResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "bio": zod.string().nullish(),
   "counts": zod.object({
+  "artists": zod.number(),
   "followers": zod.number(),
   "following": zod.number(),
   "posts": zod.number()
@@ -151,6 +154,7 @@ export const completeOnboardingResponse = zod.object({
   "avatarUrl": zod.string().nullish(),
   "bio": zod.string().nullish(),
   "counts": zod.object({
+  "artists": zod.number(),
   "followers": zod.number(),
   "following": zod.number(),
   "posts": zod.number()
@@ -187,6 +191,7 @@ export const getUserByHandleResponse = zod.object({
   "bio": zod.string().nullish(),
   "contentVisible": zod.boolean(),
   "counts": zod.object({
+  "artists": zod.number(),
   "followers": zod.number(),
   "following": zod.number(),
   "posts": zod.number()

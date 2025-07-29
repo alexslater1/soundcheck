@@ -29,6 +29,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -50,6 +51,7 @@ public class CatalogService {
     public static final int DEFAULT_RADIUS_KM = 25;
     public static final int MAX_RADIUS_KM = 200;
     static final Set<String> ATTENDANCE = Set.of("INTERESTED", "GOING", "WENT");
+    static final Set<String> MY_GIGS_WHEN = Set.of("upcoming", "past", "all");
     static final int SEARCH_PER_TYPE = 5;
 
     /**
@@ -126,7 +128,12 @@ public class CatalogService {
             ArtistSummary artist,
             @Schema(nullable = true) UUID mbid,
             long followerCount,
-            List<GigSummary> upcomingGigs) {}
+            List<GigSummary> upcomingGigs,
+            /** What the viewer hears about this artist; null when they do not follow it. */
+            @Schema(
+                            nullable = true,
+                            allowableValues = {"ALL", "POSTS", "GIGS", "NONE"})
+                    String notifyLevel) {}
 
     public record VenueDetail(
             UUID id,
@@ -140,7 +147,12 @@ public class CatalogService {
             @Schema(nullable = true) String coverageNote,
             /** Whether the viewer follows this venue (new gigs here then alert them). */
             boolean following,
-            long followerCount) {}
+            long followerCount,
+            /** What the viewer hears about this venue; null when they do not follow it. */
+            @Schema(
+                            nullable = true,
+                            allowableValues = {"ALL", "POSTS", "GIGS", "NONE"})
+                    String notifyLevel) {}
 
     /**
      * {@code GET /search}: top results per requested type. People are searched in social and posts are
@@ -355,30 +367,38 @@ public class CatalogService {
         if (status != null && !ATTENDANCE.contains(status)) {
             throw ApiException.badRequest("ATTENDANCE_INVALID", "status must be INTERESTED, GOING or WENT");
         }
-        boolean past = "past".equalsIgnoreCase(when);
-        if (when != null && !past && !"upcoming".equalsIgnoreCase(when)) {
-            throw ApiException.badRequest("WHEN_INVALID", "when must be upcoming or past");
+        String mode = when == null ? null : when.toLowerCase(Locale.ROOT);
+        if (mode != null && !MY_GIGS_WHEN.contains(mode)) {
+            throw ApiException.badRequest("WHEN_INVALID", "when must be upcoming, past or all");
         }
         Instant now = Instant.now(clock);
         GeoPoint origin = distancesFrom(viewer, here);
         boolean window = windowFrom != null || windowTo != null;
-        if (window) {
-            past = false;
+        // A window alone (the calendar's month) keeps its old meaning: that window, soonest
+        // first. Without a window, no `when` means upcoming. Past and all list newest first, inside
+        // the window when one is given; past also stops at now and upcoming starts at now.
+        Instant from = windowFrom;
+        Instant to = windowTo;
+        if ("upcoming".equals(mode) || (mode == null && !window)) {
+            from = from == null || from.isBefore(now) ? now : from;
+        } else if ("past".equals(mode)) {
+            to = to == null || to.isAfter(now) ? now : to;
         }
+        boolean newestFirst = "past".equals(mode) || "all".equals(mode);
         return page(
                 viewer,
                 new GigFilter(
                         origin,
                         null,
-                        window ? windowFrom : past ? null : now,
-                        window ? windowTo : past ? now : null,
+                        from,
+                        to,
                         null,
                         null,
                         null,
                         null,
                         viewer,
                         status,
-                        past,
+                        newestFirst,
                         Cursor.decode(cursor),
                         Cursor.limit(limit)),
                 origin);
@@ -547,7 +567,12 @@ public class CatalogService {
         ArtistSummary summary = artistSummaries(viewer, List.of(artistId)).getFirst();
         List<GigSummary> upcoming =
                 artistGigs(viewer, artistId, null, ARTIST_UPCOMING_GIGS, here).items();
-        return new ArtistDetail(summary, row.mbid(), follows.followerCount(artistId), upcoming);
+        return new ArtistDetail(
+                summary,
+                row.mbid(),
+                follows.followerCount(artistId),
+                upcoming,
+                follows.notifyLevel(viewer, artistId).orElse(null));
     }
 
     public Page<GigSummary> artistGigs(
@@ -581,6 +606,7 @@ public class CatalogService {
         VenueRow v = repository
                 .venue(venueId)
                 .orElseThrow(() -> ApiException.notFound("VENUE_NOT_FOUND", "No venue " + venueId));
+        String notify = venueFollows.notifyLevel(viewer, venueId).orElse(null);
         return new VenueDetail(
                 v.id(),
                 v.name(),
@@ -590,8 +616,25 @@ public class CatalogService {
                 v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng()),
                 v.timezone(),
                 v.coverageNote(),
-                !venueFollows.followedBy(viewer, List.of(venueId)).isEmpty(),
-                venueFollows.followerCount(venueId));
+                notify != null,
+                venueFollows.followerCount(venueId),
+                notify);
+    }
+
+    /** Summaries of the venues that exist among the ids (a profile's followed venues). */
+    public Map<UUID, VenueSummary> venuesByIds(Collection<UUID> venueIds) {
+        Map<UUID, VenueSummary> out = new LinkedHashMap<>();
+        for (VenueRow v : repository.venues(venueIds)) {
+            out.put(
+                    v.id(),
+                    new VenueSummary(
+                            v.id(),
+                            v.name(),
+                            v.city(),
+                            v.lat() == null || v.lng() == null ? null : new GeoPoint(v.lat(), v.lng()),
+                            v.coverageNote()));
+        }
+        return out;
     }
 
     /** {@code GET /venues?q=}: venues by name, the ones near the viewer's home first. */

@@ -28,7 +28,11 @@ class ProfileFactsProvider implements ProfileFacts {
 
     @Override
     public Counts counts(UUID userId) {
-        return new Counts(social.followerCount(userId), social.followingCount(userId), posts.countPublished(userId));
+        return new Counts(
+                social.followerCount(userId),
+                social.followingCount(userId),
+                posts.countPublished(userId),
+                social.followedArtistCount(userId));
     }
 
     @Override

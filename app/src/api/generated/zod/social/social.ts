@@ -25,6 +25,17 @@ export const followArtistParams = zod.object({
 })
 
 /**
+ * @summary What you hear about a artist you follow: ALL, POSTS, GIGS or NONE; 409 when not following
+ */
+export const setArtistNotifyParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const setArtistNotifyBody = zod.object({
+  "level": zod.enum(['ALL', 'POSTS', 'GIGS', 'NONE'])
+})
+
+/**
  * @summary Decline a follow request (idempotent; not told)
  */
 export const declineFollowRequestParams = zod.object({
@@ -156,6 +167,68 @@ export const listFollowingResponse = zod.object({
 })
 
 /**
+ * @summary The artists this user follows, newest first
+ */
+export const listFollowedArtistsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const listFollowedArtistsQueryLimitMax = 50;
+
+
+export const listFollowedArtistsQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(listFollowedArtistsQueryLimitMax).optional()
+})
+
+export const listFollowedArtistsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "artist": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "notifyLevel": zod.enum(['ALL', 'POSTS', 'GIGS', 'NONE']).nullish().describe('The owner\'s level for this follow; only on one\'s own profile')
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
+ * @summary The venues this user follows, newest first
+ */
+export const listFollowedVenuesParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const listFollowedVenuesQueryLimitMax = 50;
+
+
+export const listFollowedVenuesQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(listFollowedVenuesQueryLimitMax).optional()
+})
+
+export const listFollowedVenuesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "isFollowing": zod.boolean(),
+  "notifyLevel": zod.enum(['ALL', 'POSTS', 'GIGS', 'NONE']).nullish().describe('The owner\'s level for this follow; only on one\'s own profile'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+})
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
  * @summary Unfollow a venue (idempotent)
  */
 export const unfollowVenueParams = zod.object({
@@ -167,5 +240,16 @@ export const unfollowVenueParams = zod.object({
  */
 export const followVenueParams = zod.object({
   "id": zod.string().uuid()
+})
+
+/**
+ * @summary What you hear about a venue you follow: ALL, POSTS, GIGS or NONE; 409 when not following
+ */
+export const setVenueNotifyParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const setVenueNotifyBody = zod.object({
+  "level": zod.enum(['ALL', 'POSTS', 'GIGS', 'NONE'])
 })
 

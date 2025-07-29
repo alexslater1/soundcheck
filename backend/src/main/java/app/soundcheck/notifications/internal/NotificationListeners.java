@@ -72,6 +72,7 @@ class NotificationListeners {
         if (event.afterProcessing()) {
             notifications.record(event.authorId(), "POST_READY", null, event.postId(), null);
         }
+        notifications.recordNewPost(event.postId()); // followers of its acts and venue, if they asked
     }
 
     /** Each person tagged in a live post is told once, by its author. */

@@ -227,6 +227,16 @@ public class UserGraphService implements SocialGraph {
     }
 
     /** The target must be a live account that has not blocked the viewer; otherwise it "does not exist". */
+    /**
+     * The user's lists (followers, following, the artists and venues they follow) are open to the
+     * viewer: 404 for a missing account or one that blocked the viewer, 403 for a private profile the
+     * viewer does not follow.
+     */
+    void listsOpenTo(UUID viewerId, UUID userId) {
+        visibleTo(viewerId, userId);
+        listsVisibleTo(viewerId, userId);
+    }
+
     private void visibleTo(UUID viewerId, UUID userId) {
         if (!users.exists(userId) || graph.hasBlocked(userId, viewerId)) {
             throw notFound();
@@ -315,6 +325,12 @@ public class UserGraphService implements SocialGraph {
     @Transactional(readOnly = true)
     public long followingCount(UUID userId) {
         return graph.followingCount(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public long followedArtistCount(UUID userId) {
+        return graph.followedArtistCount(userId);
     }
 
     private static int limit(@Nullable Integer limit) {

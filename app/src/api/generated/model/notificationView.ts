@@ -10,9 +10,12 @@ import type { NotificationViewCommentId } from './notificationViewCommentId';
 import type { NotificationViewGigCount } from './notificationViewGigCount';
 import type { NotificationViewGigs } from './notificationViewGigs';
 import type { NotificationViewLikeCount } from './notificationViewLikeCount';
+import type { NotificationViewPostCount } from './notificationViewPostCount';
 import type { NotificationViewPostId } from './notificationViewPostId';
 import type { NotificationViewPostThumbUrl } from './notificationViewPostThumbUrl';
 import type { NotificationViewRequestPending } from './notificationViewRequestPending';
+import type { NotificationViewSubjectId } from './notificationViewSubjectId';
+import type { NotificationViewSubjectName } from './notificationViewSubjectName';
 import type { NotificationViewType } from './notificationViewType';
 
 export interface NotificationView {
@@ -23,9 +26,12 @@ export interface NotificationView {
   gigs?: NotificationViewGigs;
   id: string;
   likeCount?: NotificationViewLikeCount;
+  postCount?: NotificationViewPostCount;
   postId?: NotificationViewPostId;
   postThumbUrl?: NotificationViewPostThumbUrl;
   read: boolean;
   requestPending?: NotificationViewRequestPending;
+  subjectId?: NotificationViewSubjectId;
+  subjectName?: NotificationViewSubjectName;
   type: NotificationViewType;
 }

@@ -13,7 +13,8 @@ public interface ProfileFacts {
 
     Relation relation(UUID viewerId, UUID profileUserId);
 
-    record Counts(long followers, long following, long posts) {}
+    /** {@code artists}: how many artists the user follows. */
+    record Counts(long followers, long following, long posts, long artists) {}
 
     /**
      * @param following the viewer follows this user (what lets the viewer see a private profile)

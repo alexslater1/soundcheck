@@ -5,11 +5,13 @@ import static app.soundcheck.shared.jooq.social.Tables.VENUE_FOLLOW;
 import app.soundcheck.catalog.Catalog;
 import app.soundcheck.catalog.VenueFollows;
 import app.soundcheck.shared.web.ApiException;
+import app.soundcheck.social.NotifyLevel;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -54,6 +56,32 @@ public class VenueFollowService implements VenueFollows {
                 .where(VENUE_FOLLOW.USER_ID.eq(userId))
                 .and(VENUE_FOLLOW.VENUE_ID.eq(venueId))
                 .execute();
+    }
+
+    /**
+     * Sets what the follower hears about the venue. Only a follower has a level: 409
+     * {@code NOT_FOLLOWING} otherwise.
+     */
+    public void setNotify(UUID userId, UUID venueId, NotifyLevel level) {
+        int updated = dsl.update(VENUE_FOLLOW)
+                .set(VENUE_FOLLOW.NOTIFY, level.name())
+                .where(VENUE_FOLLOW.USER_ID.eq(userId))
+                .and(VENUE_FOLLOW.VENUE_ID.eq(venueId))
+                .execute();
+        if (updated == 0) {
+            throw ApiException.conflict("NOT_FOLLOWING", "Follow this venue first");
+        }
+    }
+
+    /** Expected index: the primary key (user_id, venue_id). */
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<String> notifyLevel(UUID userId, UUID venueId) {
+        return dsl.select(VENUE_FOLLOW.NOTIFY)
+                .from(VENUE_FOLLOW)
+                .where(VENUE_FOLLOW.USER_ID.eq(userId))
+                .and(VENUE_FOLLOW.VENUE_ID.eq(venueId))
+                .fetchOptional(VENUE_FOLLOW.NOTIFY);
     }
 
     @Override

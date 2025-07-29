@@ -26,8 +26,13 @@ import type {
 
 import type {
   FollowResponse,
+  ListFollowedArtistsParams,
+  ListFollowedVenuesParams,
   ListFollowersParams,
   ListFollowingParams,
+  NotifyRequest,
+  PageFollowedArtist,
+  PageFollowedVenue,
   PageUserSummary,
   PersonResult,
   SearchPeopleParams
@@ -177,6 +182,78 @@ export const useFollowArtist = <TError = unknown,
       > => {
 
       const mutationOptions = getFollowArtistMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary What you hear about a artist you follow: ALL, POSTS, GIGS or NONE; 409 when not following
+ */
+export const getSetArtistNotifyUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/artists/${id}/follow/notify`
+}
+
+export const setArtistNotify = async (id: string,
+    notifyRequest: NotifyRequest, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getSetArtistNotifyUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      notifyRequest,)
+  }
+);}
+
+
+
+
+export const getSetArtistNotifyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setArtistNotify>>, TError,{id: string;data: NotifyRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setArtistNotify>>, TError,{id: string;data: NotifyRequest}, TContext> => {
+
+const mutationKey = ['setArtistNotify'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setArtistNotify>>, {id: string;data: NotifyRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setArtistNotify(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetArtistNotifyMutationResult = NonNullable<Awaited<ReturnType<typeof setArtistNotify>>>
+    export type SetArtistNotifyMutationBody = NotifyRequest
+    export type SetArtistNotifyMutationError = unknown
+
+    /**
+ * @summary What you hear about a artist you follow: ALL, POSTS, GIGS or NONE; 409 when not following
+ */
+export const useSetArtistNotify = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setArtistNotify>>, TError,{id: string;data: NotifyRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setArtistNotify>>,
+        TError,
+        {id: string;data: NotifyRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSetArtistNotifyMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }
@@ -993,6 +1070,226 @@ export function useListFollowing<TData = Awaited<ReturnType<typeof listFollowing
 
 
 /**
+ * @summary The artists this user follows, newest first
+ */
+export const getListFollowedArtistsUrl = (id: string,
+    params?: ListFollowedArtistsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/users/${id}/following/artists?${stringifiedParams}` : `/api/v1/users/${id}/following/artists`
+}
+
+export const listFollowedArtists = async (id: string,
+    params?: ListFollowedArtistsParams, options?: RequestInit): Promise<PageFollowedArtist> => {
+  
+  return customFetch<PageFollowedArtist>(getListFollowedArtistsUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListFollowedArtistsQueryKey = (id: string,
+    params?: ListFollowedArtistsParams,) => {
+    return [`/api/v1/users/${id}/following/artists`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListFollowedArtistsQueryOptions = <TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = unknown>(id: string,
+    params?: ListFollowedArtistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowedArtistsQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowedArtists>>> = ({ signal }) => listFollowedArtists(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListFollowedArtistsQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowedArtists>>>
+export type ListFollowedArtistsQueryError = unknown
+
+
+export function useListFollowedArtists<TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = unknown>(
+ id: string,
+    params: undefined |  ListFollowedArtistsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowedArtists>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowedArtists>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowedArtists<TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = unknown>(
+ id: string,
+    params?: ListFollowedArtistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowedArtists>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowedArtists>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowedArtists<TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = unknown>(
+ id: string,
+    params?: ListFollowedArtistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The artists this user follows, newest first
+ */
+
+export function useListFollowedArtists<TData = Awaited<ReturnType<typeof listFollowedArtists>>, TError = unknown>(
+ id: string,
+    params?: ListFollowedArtistsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedArtists>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListFollowedArtistsQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary The venues this user follows, newest first
+ */
+export const getListFollowedVenuesUrl = (id: string,
+    params?: ListFollowedVenuesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/users/${id}/following/venues?${stringifiedParams}` : `/api/v1/users/${id}/following/venues`
+}
+
+export const listFollowedVenues = async (id: string,
+    params?: ListFollowedVenuesParams, options?: RequestInit): Promise<PageFollowedVenue> => {
+  
+  return customFetch<PageFollowedVenue>(getListFollowedVenuesUrl(id,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getListFollowedVenuesQueryKey = (id: string,
+    params?: ListFollowedVenuesParams,) => {
+    return [`/api/v1/users/${id}/following/venues`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getListFollowedVenuesQueryOptions = <TData = Awaited<ReturnType<typeof listFollowedVenues>>, TError = unknown>(id: string,
+    params?: ListFollowedVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListFollowedVenuesQueryKey(id,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listFollowedVenues>>> = ({ signal }) => listFollowedVenues(id,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listFollowedVenues>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type ListFollowedVenuesQueryResult = NonNullable<Awaited<ReturnType<typeof listFollowedVenues>>>
+export type ListFollowedVenuesQueryError = unknown
+
+
+export function useListFollowedVenues<TData = Awaited<ReturnType<typeof listFollowedVenues>>, TError = unknown>(
+ id: string,
+    params: undefined |  ListFollowedVenuesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedVenues>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowedVenues>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowedVenues>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowedVenues<TData = Awaited<ReturnType<typeof listFollowedVenues>>, TError = unknown>(
+ id: string,
+    params?: ListFollowedVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedVenues>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof listFollowedVenues>>,
+          TError,
+          Awaited<ReturnType<typeof listFollowedVenues>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useListFollowedVenues<TData = Awaited<ReturnType<typeof listFollowedVenues>>, TError = unknown>(
+ id: string,
+    params?: ListFollowedVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The venues this user follows, newest first
+ */
+
+export function useListFollowedVenues<TData = Awaited<ReturnType<typeof listFollowedVenues>>, TError = unknown>(
+ id: string,
+    params?: ListFollowedVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof listFollowedVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getListFollowedVenuesQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
  * @summary Unfollow a venue (idempotent)
  */
 export const getUnfollowVenueUrl = (id: string,) => {
@@ -1129,6 +1426,78 @@ export const useFollowVenue = <TError = unknown,
       > => {
 
       const mutationOptions = getFollowVenueMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary What you hear about a venue you follow: ALL, POSTS, GIGS or NONE; 409 when not following
+ */
+export const getSetVenueNotifyUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/venues/${id}/follow/notify`
+}
+
+export const setVenueNotify = async (id: string,
+    notifyRequest: NotifyRequest, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getSetVenueNotifyUrl(id),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      notifyRequest,)
+  }
+);}
+
+
+
+
+export const getSetVenueNotifyMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setVenueNotify>>, TError,{id: string;data: NotifyRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setVenueNotify>>, TError,{id: string;data: NotifyRequest}, TContext> => {
+
+const mutationKey = ['setVenueNotify'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setVenueNotify>>, {id: string;data: NotifyRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setVenueNotify(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetVenueNotifyMutationResult = NonNullable<Awaited<ReturnType<typeof setVenueNotify>>>
+    export type SetVenueNotifyMutationBody = NotifyRequest
+    export type SetVenueNotifyMutationError = unknown
+
+    /**
+ * @summary What you hear about a venue you follow: ALL, POSTS, GIGS or NONE; 409 when not following
+ */
+export const useSetVenueNotify = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setVenueNotify>>, TError,{id: string;data: NotifyRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof setVenueNotify>>,
+        TError,
+        {id: string;data: NotifyRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getSetVenueNotifyMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }
