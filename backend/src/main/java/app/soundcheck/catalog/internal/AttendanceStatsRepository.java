@@ -22,7 +22,7 @@ import org.jooq.impl.DSL;
 import org.springframework.stereotype.Repository;
 
 /**
- * The counting behind a fan's stats, over their WENT rows of {@code catalog.gig_attendance}.
+ * The counting behind a fan's stats, over their WENT rows (and past GOING ones) of {@code catalog.gig_attendance}.
  * Expected indexes: the attendance primary key {@code (user_id, gig_id)} finds one user's rows; gigs,
  * venues and artists are joined by primary key and the bills by {@code gig_artist}'s primary key
  * {@code (gig_id, artist_id)}. One fan has at most a few hundred WENT gigs, so each query groups a few
@@ -135,12 +135,15 @@ class AttendanceStatsRepository {
                         r.value6().toInstant()));
     }
 
-    /** A fan's gigs: marked WENT, and happened ({@link CatalogReadRepository#happened}). */
+    /**
+     * A fan's gigs: marked WENT, or GOING on a gig that is over (it reads as Went), and happened
+     * ({@link CatalogReadRepository#happened}).
+     */
     private static Condition went(UUID userId, Instant now) {
         return GIG_ATTENDANCE
                 .USER_ID
                 .eq(userId)
-                .and(GIG_ATTENDANCE.STATUS.eq("WENT"))
+                .and(CatalogReadRepository.wentOrAssumed(now))
                 .and(CatalogReadRepository.happened(now));
     }
 }

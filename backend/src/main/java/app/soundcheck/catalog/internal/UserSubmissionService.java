@@ -7,6 +7,7 @@ import app.soundcheck.catalog.City;
 import app.soundcheck.catalog.GigDraft;
 import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.GigSummary;
+import app.soundcheck.catalog.GigTime;
 import app.soundcheck.catalog.ReferenceData;
 import app.soundcheck.catalog.VenueDraft;
 import app.soundcheck.shared.web.ApiException;
@@ -176,7 +177,7 @@ public class UserSubmissionService {
             // The same setlist added before (by anyone): that gig.
             var known = catalog.gigBySource(found.source(), found.externalId());
             if (known.isPresent()) {
-                return attendAndReturn(userId, known.get().id(), request.date(), today, false);
+                return attendAndReturn(userId, known.get().id(), false);
             }
         }
         List<UUID> acts = actsOf(userId, request);
@@ -218,15 +219,21 @@ public class UserSubmissionService {
             // Not primary: the fan's listing owns the fields; this one is the link back to setlist.fm.
             catalog.linkGig(found.source(), found.externalId(), gigId, found.url(), Instant.now(clock), false, false);
         }
-        return attendAndReturn(userId, gigId, request.date(), today, created);
+        return attendAndReturn(userId, gigId, created);
     }
 
-    /** Whoever adds a gig was (or will be) there: it goes on their calendar. */
-    private Added<GigSummary> attendAndReturn(
-            UUID userId, UUID gigId, LocalDate date, LocalDate today, boolean created) {
-        String status = date.isAfter(today) ? "GOING" : "WENT";
-        if (!reads.attendance(userId, List.of(gigId)).containsKey(gigId)) {
-            reads.setAttendance(userId, gigId, status, Instant.now(clock));
+    /**
+     * Whoever adds a gig was (or will be) there: it goes on their calendar, as Went once its day has come
+     * and Going before. The gig's own date decides, not the one asked for: an existing gig found
+     * by its setlist may be on another day. A cancelled gig is not marked.
+     */
+    private Added<GigSummary> attendAndReturn(UUID userId, UUID gigId, boolean created) {
+        Instant now = Instant.now(clock);
+        CatalogReadRepository.GigTiming timing = reads.timing(gigId).orElseThrow();
+        if (!"CANCELLED".equals(timing.status())
+                && !reads.attendance(userId, List.of(gigId)).containsKey(gigId)) {
+            String status = GigTime.dayHasCome(timing.startsAt(), now) ? "WENT" : "GOING";
+            reads.setAttendance(userId, gigId, status, now);
         }
         GigSummary summary = views.gigsByIds(userId, List.of(gigId)).get(gigId);
         return new Added<>(summary, created);

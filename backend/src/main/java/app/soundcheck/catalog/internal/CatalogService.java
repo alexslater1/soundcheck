@@ -5,6 +5,7 @@ import app.soundcheck.catalog.ArtistSummary;
 import app.soundcheck.catalog.GeoPoint;
 import app.soundcheck.catalog.GigClips;
 import app.soundcheck.catalog.GigSummary;
+import app.soundcheck.catalog.GigTime;
 import app.soundcheck.catalog.VenueFollows;
 import app.soundcheck.catalog.VenueSummary;
 import app.soundcheck.catalog.ViewerHome;
@@ -262,15 +263,34 @@ public class CatalogService {
                 summary, lineup, counts(gigId), clips.countAt(gigId), clips.privateAt(viewer, gigId), sources);
     }
 
-    /** Idempotent: marking the same status again changes nothing. */
+    /**
+     * Idempotent: marking the same status again changes nothing. The time rules ({@link GigTime}):
+     * Interested and Going until the gig's UK day ends, Went from its day on, nothing on a cancelled gig.
+     */
     @Transactional
     public Attendance setAttendance(UUID viewer, UUID gigId, String status) {
         if (!ATTENDANCE.contains(status)) {
             throw ApiException.badRequest("ATTENDANCE_INVALID", "status must be INTERESTED, GOING or WENT");
         }
-        requireGig(gigId);
-        repository.setAttendance(viewer, gigId, status, Instant.now(clock));
+        CatalogReadRepository.GigTiming gig =
+                repository.timing(gigId).orElseThrow(() -> ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId));
+        Instant now = Instant.now(clock);
+        checkAttendance(status, gig, now);
+        repository.setAttendance(viewer, gigId, status, now);
         return new Attendance(status, counts(gigId));
+    }
+
+    /** The time rules for a fan's own mark; a post's mark is checked by the post's own day rule. */
+    static void checkAttendance(String status, CatalogReadRepository.GigTiming gig, Instant now) {
+        if ("CANCELLED".equals(gig.status())) {
+            throw ApiException.unprocessable("GIG_CANCELLED", "This gig was cancelled");
+        }
+        if ("WENT".equals(status) && !GigTime.dayHasCome(gig.startsAt(), now)) {
+            throw ApiException.unprocessable("GIG_NOT_HAPPENED", "You can say you went once the gig's day has come");
+        }
+        if (!"WENT".equals(status) && GigTime.isOver(gig.startsAt(), now)) {
+            throw ApiException.unprocessable("GIG_IS_OVER", "This gig is over: you can only say you went");
+        }
     }
 
     /** Idempotent: clearing when nothing is set is still a success. */
@@ -349,8 +369,11 @@ public class CatalogService {
                 new GigFilter(origin, null, from, to, null, null, null, null, viewer, null, true, null, 50), origin)) {
             picked.put(row.id(), row);
         }
-        Map<UUID, String> mine = repository.attendance(viewer, picked.keySet());
-        picked.keySet().removeIf(id -> !"GOING".equals(mine.get(id)) && !"WENT".equals(mine.get(id)));
+        Map<UUID, CatalogReadRepository.Mark> mine = repository.attendance(viewer, picked.keySet());
+        picked.keySet()
+                .removeIf(id -> mine.get(id) == null
+                        || (!"GOING".equals(mine.get(id).status())
+                                && !"WENT".equals(mine.get(id).status())));
         Optional<GeoPoint> home = viewerHome.homeOf(viewer);
         if (home.isPresent()) {
             // Expected index: gig_location_gix (radius) with gig_starts_at (window): a week near one city.
@@ -406,9 +429,9 @@ public class CatalogService {
     }
 
     /**
-     * Someone's GOING gigs still to come, soonest first (H26: their profile's Gigs tab). No origin, so no
-     * distances. Expected index: the gig_attendance primary key bounds it to their gigs, as for
-     * {@link #myGigs}.
+     * Someone's GOING gigs from today on, soonest first (their profile's Gigs tab); a Going on a gig
+     * whose day is over reads as Went and is listed with those. No origin, so no distances.
+     * Expected index: the gig_attendance primary key bounds it to their gigs, as for {@link #myGigs}.
      */
     public Page<GigSummary> goingGigs(UUID viewer, UUID attendee, @Nullable String cursor, @Nullable Integer limit) {
         return page(
@@ -416,7 +439,7 @@ public class CatalogService {
                 new GigFilter(
                         null,
                         null,
-                        Instant.now(clock),
+                        GigTime.startOfToday(Instant.now(clock)),
                         null,
                         null,
                         null,
@@ -685,7 +708,7 @@ public class CatalogService {
         for (ArtistSummary artist : artistSummaries(viewer, List.copyOf(artistIds))) {
             artists.put(artist.id(), artist);
         }
-        Map<UUID, String> attendance = repository.attendance(viewer, gigIds);
+        Map<UUID, CatalogReadRepository.Mark> attendance = repository.attendance(viewer, gigIds);
         List<GigSummary> summaries = new ArrayList<>();
         for (GigRow row : rows) {
             List<ArtistSummary> bill = lineupByGig.getOrDefault(row.id(), List.of()).stream()
@@ -714,9 +737,10 @@ public class CatalogService {
                     row.priceMin(),
                     row.priceMax(),
                     row.currency(),
-                    attendance.get(row.id()),
+                    attendance.containsKey(row.id()) ? attendance.get(row.id()).status() : null,
                     row.distanceKm(),
-                    row.userAdded()));
+                    row.userAdded(),
+                    attendance.containsKey(row.id()) && attendance.get(row.id()).assumed()));
         }
         return summaries;
     }

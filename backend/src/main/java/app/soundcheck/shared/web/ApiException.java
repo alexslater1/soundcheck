@@ -37,6 +37,11 @@ public class ApiException extends RuntimeException {
         return new ApiException(HttpStatus.CONFLICT, code, detail);
     }
 
+    /** 422: the request is well formed but breaks a rule of the domain (a Went on a gig still to come). */
+    public static ApiException unprocessable(String code, String detail) {
+        return new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, code, detail);
+    }
+
     public static ApiException gone(String code, String detail) {
         return new ApiException(HttpStatus.GONE, code, detail);
     }

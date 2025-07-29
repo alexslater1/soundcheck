@@ -1,4 +1,5 @@
-import { fireEvent, render, renderHook, screen } from '@testing-library/react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react-native';
 
 import type { GigSummary } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
@@ -15,20 +16,31 @@ const gig = (id: string): GigSummary =>
     headliner: { id: 'h', name: 'Act', genres: [], isFollowing: false },
     support: [],
     userAdded: false,
+    wentUnconfirmed: false,
   }) as GigSummary;
 
 const mockUnposted = jest.fn();
 jest.mock('@/api/generated/posts/posts', () => ({
   useListUnpostedGigs: () => mockUnposted(),
+  getListUnpostedGigsQueryKey: () => ['/api/v1/me/gigs/unposted'],
+}));
+const mockSet = jest.fn();
+const mockClear = jest.fn();
+jest.mock('@/api/generated/catalog/catalog', () => ({
+  getGetGigQueryKey: (id: string) => [`/api/v1/gigs/${id}`],
+  useSetGigAttendance: () => ({ mutateAsync: mockSet, isPending: false }),
+  useClearGigAttendance: () => ({ mutateAsync: mockClear, isPending: false }),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 
 async function show(props: Partial<React.ComponentProps<typeof PendingGigs>> = {}) {
   const onPick = jest.fn();
   const view = await render(
-    <ThemeProvider>
-      <PendingGigs onPick={onPick} {...props} />
-    </ThemeProvider>,
+    <QueryClientProvider client={new QueryClient()}>
+      <ThemeProvider>
+        <PendingGigs onPick={onPick} {...props} />
+      </ThemeProvider>
+    </QueryClientProvider>,
   );
   return { onPick, view };
 }
@@ -45,6 +57,24 @@ describe('PendingGigs', () => {
     await fireEvent.press(screen.getByLabelText('Gig 4 · Venue'));
 
     expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ id: '4' }));
+  });
+
+  it('asks "Did you go?" about a Going whose gig is over', async () => {
+    mockUnposted.mockReturnValue({
+      isPending: false,
+      data: [{ ...gig('1'), myAttendance: 'WENT', wentUnconfirmed: true }, gig('2')],
+    });
+    mockSet.mockResolvedValue({});
+    mockClear.mockResolvedValue(undefined);
+    await show();
+
+    expect(screen.getAllByTestId('did-you-go')).toHaveLength(1);
+    await fireEvent.press(screen.getByText('Yes, I went'));
+    await waitFor(() =>
+      expect(mockSet).toHaveBeenCalledWith({ id: '1', data: { status: 'WENT' } }),
+    );
+    await fireEvent.press(screen.getByText('No'));
+    await waitFor(() => expect(mockClear).toHaveBeenCalledWith({ id: '1' }));
   });
 
   it('is quiet when nothing is pending', async () => {

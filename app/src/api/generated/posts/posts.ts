@@ -268,7 +268,7 @@ export function useListGigPosts<TData = Awaited<ReturnType<typeof listGigPosts>>
 
 
 /**
- * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ * @summary Your Pending list: gigs you went to (or said Going to, once over: wentUnconfirmed) whose day has come and that you have not posted from yet, newest first
  */
 export const getListUnpostedGigsUrl = () => {
 
@@ -343,7 +343,7 @@ export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpost
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ * @summary Your Pending list: gigs you went to (or said Going to, once over: wentUnconfirmed) whose day has come and that you have not posted from yet, newest first
  */
 
 export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpostedGigs>>, TError = unknown>(

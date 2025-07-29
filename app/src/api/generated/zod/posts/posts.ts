@@ -112,7 +112,8 @@ export const listArtistPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -245,7 +246,8 @@ export const listGigPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -276,7 +278,7 @@ export const listGigPostsResponse = zod.object({
 })
 
 /**
- * @summary H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first
+ * @summary Your Pending list: gigs you went to (or said Going to, once over: wentUnconfirmed) whose day has come and that you have not posted from yet, newest first
  */
 export const listUnpostedGigsResponseItem = zod.object({
   "currency": zod.string().nullish(),
@@ -314,7 +316,8 @@ export const listUnpostedGigsResponseItem = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })
 export const listUnpostedGigsResponse = zod.array(listUnpostedGigsResponseItem)
 
@@ -416,7 +419,8 @@ export const listMyPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -566,7 +570,8 @@ export const createPostResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -694,7 +699,8 @@ export const getPostResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -841,7 +847,8 @@ export const editPostResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -975,7 +982,8 @@ export const addPostClipsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1110,7 +1118,8 @@ export const fillPostClipResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1242,7 +1251,8 @@ export const setPostOnProfileResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1372,7 +1382,8 @@ export const listUserPostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),
@@ -1504,7 +1515,8 @@ export const listVenuePostsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }).optional(),
   "id": zod.string().uuid(),
   "likeCount": zod.number(),

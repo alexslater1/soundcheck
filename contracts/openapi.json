@@ -907,9 +907,13 @@
           },
           "venue" : {
             "$ref" : "#/components/schemas/VenueSummary"
+          },
+          "wentUnconfirmed" : {
+            "description" : "myAttendance reads WENT only because the viewer said Going and the gig's day is over: Pending asks \"Did you go?\"",
+            "type" : "boolean"
           }
         },
-        "required" : [ "headliner", "id", "startsAt", "status", "support", "title", "userAdded", "venue" ],
+        "required" : [ "headliner", "id", "startsAt", "status", "support", "title", "userAdded", "venue", "wentUnconfirmed" ],
         "type" : "object"
       },
       "HealthResponse" : {
@@ -3786,7 +3790,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "H44's Pending list: gigs you went to that have started and that you have not posted from yet, newest first",
+        "summary" : "Your Pending list: gigs you went to (or said Going to, once over: wentUnconfirmed) whose day has come and that you have not posted from yet, newest first",
         "tags" : [ "posts" ]
       }
     },

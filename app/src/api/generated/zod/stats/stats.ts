@@ -62,7 +62,8 @@ export const listUserGoingGigsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -167,7 +168,8 @@ export const listUserStatsGigsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "nextCursor": zod.string().nullish()
 })

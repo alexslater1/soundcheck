@@ -21,6 +21,7 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { ActBar, billingLabel } from './ActBar';
 import { AttendanceButtons } from './AttendanceButtons';
+import { dayHasCome } from './attendance';
 import { GigSetlist } from './GigSetlist';
 import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
 
@@ -28,7 +29,8 @@ import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } 
  * Gig page: line-up, venue, local date and time, price, attendance, ticket link out, and
  * for a past gig its setlist from setlist.fm. With more than one act, a bar of the acts
  * stays at the top: picking one shows that act's setlist and clips; "Whole night" shows
- * the line-up and every clip.
+ * the line-up and every clip. Clips show only once the gig's day has come:
+ * before it, the page asks who is going instead.
  */
 export function GigDetailScreen({ id }: { id: string }) {
   const { colors } = useTheme();
@@ -76,6 +78,7 @@ export function GigDetailScreen({ id }: { id: string }) {
   const showBar = acts.length > 1;
   const actIndex = acts.findIndex((artist) => artist.id === actId);
   const act = actIndex >= 0 ? acts[actIndex] : undefined;
+  const happened = dayHasCome(gig.startsAt) && gig.status !== 'CANCELLED';
   return (
     <Screen>
       <ScrollView
@@ -153,10 +156,14 @@ export function GigDetailScreen({ id }: { id: string }) {
             <ArtistRow artist={act} genreNames={genreNames} />
             <TimesSeen artistId={act.id} name={act.name} />
             <GigSetlist gigId={id} startsAt={gig.startsAt} artistId={act.id} actName={act.name} />
-            <Text variant="label" muted style={styles.heading}>
-              {`CLIPS OF ${act.name.toUpperCase()}`}
-            </Text>
-            <GigClips gigId={id} artistId={act.id} actName={act.name} />
+            {happened ? (
+              <>
+                <Text variant="label" muted style={styles.heading}>
+                  {`CLIPS OF ${act.name.toUpperCase()}`}
+                </Text>
+                <GigClips gigId={id} artistId={act.id} actName={act.name} />
+              </>
+            ) : null}
           </>
         ) : (
           <>
@@ -167,10 +174,20 @@ export function GigDetailScreen({ id }: { id: string }) {
             {acts.map((artist) => (
               <ArtistRow key={artist.id} artist={artist} genreNames={genreNames} />
             ))}
-            <Text variant="label" muted style={styles.heading}>
-              CLIPS FROM THIS GIG
-            </Text>
-            <GigClips gigId={id} privateCount={data.privatePostsCount} />
+            {happened ? (
+              <>
+                <Text variant="label" muted style={styles.heading}>
+                  CLIPS FROM THIS GIG
+                </Text>
+                <GigClips gigId={id} privateCount={data.privatePostsCount} />
+              </>
+            ) : gig.status === 'CANCELLED' ? null : (
+              <Text muted testID="gig-not-yet">
+                {gig.myAttendance
+                  ? 'Clips from this gig appear here once it has happened.'
+                  : 'Going? Mark it above so it is on your calendar; clips appear here once it has happened.'}
+              </Text>
+            )}
           </>
         )}
       </ScrollView>

@@ -128,7 +128,8 @@ export const getArtistResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }))
 })
 
@@ -191,7 +192,8 @@ export const listArtistGigsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -281,7 +283,8 @@ export const listGigsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -375,7 +378,8 @@ export const addGigResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })
 })
 
@@ -484,7 +488,8 @@ export const getGigResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 }),
   "lineup": zod.array(zod.object({
   "genres": zod.array(zod.string()),
@@ -712,7 +717,8 @@ export const listMyGigsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "nextCursor": zod.string().nullish()
 })
@@ -769,7 +775,8 @@ export const listGigsToPostResponseItem = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })
 export const listGigsToPostResponse = zod.array(listGigsToPostResponseItem)
 
@@ -838,7 +845,8 @@ export const searchResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "pastGigs": zod.array(zod.object({
   "currency": zod.string().nullish(),
@@ -876,7 +884,8 @@ export const searchResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })).describe('Gigs of the last 12 months, newest first; only with type pastGigs')
 })
 
@@ -1007,7 +1016,8 @@ export const listVenueGigsResponse = zod.object({
   "lng": zod.number()
 }).optional(),
   "name": zod.string()
-})
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
 })),
   "nextCursor": zod.string().nullish()
 })

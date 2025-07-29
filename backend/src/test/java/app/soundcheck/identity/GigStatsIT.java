@@ -30,8 +30,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Gig stats over HTTP against real PostGIS: a fan's stats counted from the gigs they marked WENT, the
  * gigs behind each line, and who may see them. The fan's history is built by hand, so every number is
  * known: Cardinals play two bills on one night (two times seen), Keo is seen once as support, two venue
- * spellings of one city count as one city, and GOING / INTERESTED rows, other fans' rows and Went shows
- * that did not happen (still to come, cancelled, postponed) or have no bill count for nothing.
+ * spellings of one city count as one city, a GOING on a gig that is over counts as Went, and
+ * INTERESTED rows, other fans' rows and Went shows that did not happen (still to come, cancelled,
+ * postponed) or have no bill count for nothing.
  */
 class GigStatsIT extends IntegrationTest {
 
@@ -69,6 +70,8 @@ class GigStatsIT extends IntegrationTest {
     UUID g2;
     UUID g3;
     UUID g4;
+    /** Keo at Scala last year, marked Going before it: it reads as Went now. */
+    UUID going;
 
     @BeforeEach
     void setUp() {
@@ -96,7 +99,7 @@ class GigStatsIT extends IntegrationTest {
         // Last year: Keo headlines Scala with Westside Cowboy, then supports Westside Cowboy.
         g3 = data.gig("Keo " + tag, scala, at(year - 1, 1, 10, 20), keo, westside);
         g4 = data.gig("Westside Cowboy " + tag, bandOnTheWall, at(year - 1, 2, 10, 20), westside, keo);
-        UUID going = data.gig("Keo " + tag, scala, at(year - 1, 2, 20, 20), keo);
+        going = data.gig("Keo " + tag, scala, at(year - 1, 2, 20, 20), keo);
         UUID interested = data.gig("Stranger " + tag, chalk, at(year - 1, 2, 21, 20), stranger);
         UUID othersOnly = data.gig("Stranger " + tag, scala, at(year - 1, 2, 22, 20), stranger);
         // Marked Went but never seen: a show still to come, and one that was cancelled.
@@ -108,11 +111,15 @@ class GigStatsIT extends IntegrationTest {
         dsl.execute("update catalog.gig set status = 'POSTPONED' where id = ?", postponed);
         UUID noBill = data.gig("Mystery night " + tag, bandOnTheWall, at(year - 1, 4, 2, 20));
 
-        for (UUID gig : List.of(g1, g2, g3, g4, notYet, cancelled, postponed, noBill)) {
+        for (UUID gig : List.of(g1, g2, g3, g4, postponed, noBill)) {
             mark(fan, gig, "WENT");
         }
-        mark(fan, going, "GOING");
-        mark(fan, interested, "INTERESTED");
+        // Rows the API now refuses but older data may hold: Went before the day, Went on a
+        // cancelled gig, and Going and Interested on gigs that are over (marked before them).
+        stored(fan, notYet, "WENT");
+        stored(fan, cancelled, "WENT");
+        stored(fan, going, "GOING");
+        stored(fan, interested, "INTERESTED");
         mark(other, g2, "WENT");
         mark(other, othersOnly, "WENT");
     }
@@ -122,7 +129,7 @@ class GigStatsIT extends IntegrationTest {
         JsonNode stats = ok(api.get("/api/v1/users/" + fan.id() + "/stats", fan));
 
         JsonNode totals = stats.path("totals");
-        assertThat(totals.path("gigs").asInt()).isEqualTo(4);
+        assertThat(totals.path("gigs").asInt()).isEqualTo(5);
         assertThat(totals.path("acts").asInt()).isEqualTo(3);
         assertThat(totals.path("venues").asInt()).isEqualTo(3);
         assertThat(totals.path("cities").asInt()).isEqualTo(2);
@@ -130,19 +137,19 @@ class GigStatsIT extends IntegrationTest {
 
         // Newest year first; distinct counts within each year; nothing for the gig still to come.
         assertThat(lines(stats.path("years"), "year", "gigs", "acts", "venues"))
-                .containsExactly((year - 1) + " 2 2 2", (year - 2) + " 2 2 2");
+                .containsExactly((year - 1) + " 3 2 2", (year - 2) + " 2 2 2");
 
-        // Keo three times (twice headlining, once supporting); Cardinals twice on one night; ties go to
-        // the act seen most recently.
+        // Keo four times (three headlining, one of them the Going that is over, once supporting);
+        // Cardinals twice on one night; ties go to the act seen most recently.
         assertThat(lines(stats.path("acts"), "name", "times"))
-                .containsExactly("Keo " + tag + " 3", "Westside Cowboy " + tag + " 2", "Cardinals " + tag + " 2");
+                .containsExactly("Keo " + tag + " 4", "Westside Cowboy " + tag + " 2", "Cardinals " + tag + " 2");
         JsonNode keoLine = stats.path("acts").path(0);
         assertThat(keoLine.path("id").asText("")).isEqualTo(keo.toString());
         // The cancelled show (5 March) and the one still to come are not Keo's "last".
         assertThat(keoLine.path("first").asText(""))
                 .isEqualTo(at(year - 2, 3, 1, 19).toString());
         assertThat(keoLine.path("last").asText(""))
-                .isEqualTo(at(year - 1, 2, 10, 20).toString());
+                .isEqualTo(at(year - 1, 2, 20, 20).toString());
         JsonNode cardinalsLine = stats.path("acts").path(2);
         assertThat(cardinalsLine.path("first").asText(""))
                 .isEqualTo(at(year - 2, 3, 1, 19).toString());
@@ -151,7 +158,7 @@ class GigStatsIT extends IntegrationTest {
 
         assertThat(lines(stats.path("venues"), "name", "city", "times"))
                 .containsExactly(
-                        "Scala " + tag + " Manchester 2",
+                        "Scala " + tag + " Manchester 3",
                         "Band on the Wall " + tag + "  manchester 1",
                         "CHALK " + tag + " Testville 1");
 
@@ -167,16 +174,16 @@ class GigStatsIT extends IntegrationTest {
         String base = "/api/v1/users/" + fan.id() + "/stats/gigs";
 
         assertThat(ids(ok(api.get(base + "?artistId=" + cardinals, fan)))).containsExactly(g2, g1);
-        assertThat(ids(ok(api.get(base + "?artistId=" + keo, fan)))).containsExactly(g4, g3, g1);
-        assertThat(ids(ok(api.get(base + "?venueId=" + scala, fan)))).containsExactly(g3, g1);
-        assertThat(ids(ok(api.get(base, fan)))).containsExactly(g4, g3, g2, g1);
+        assertThat(ids(ok(api.get(base + "?artistId=" + keo, fan)))).containsExactly(going, g4, g3, g1);
+        assertThat(ids(ok(api.get(base + "?venueId=" + scala, fan)))).containsExactly(going, g3, g1);
+        assertThat(ids(ok(api.get(base, fan)))).containsExactly(going, g4, g3, g2, g1);
 
         // Pages by cursor without repeats.
         JsonNode first = ok(api.get(base + "?limit=3", fan));
-        assertThat(ids(first)).containsExactly(g4, g3, g2);
+        assertThat(ids(first)).containsExactly(going, g4, g3);
         JsonNode second =
                 ok(api.get(base + "?limit=3&cursor=" + first.path("nextCursor").asText(""), fan));
-        assertThat(ids(second)).containsExactly(g1);
+        assertThat(ids(second)).containsExactly(g2, g1);
         assertThat(second.path("nextCursor").isNull()).isTrue();
 
         assertThat(ok(api.get(base + "?artistId=" + keo, fan))
@@ -193,14 +200,14 @@ class GigStatsIT extends IntegrationTest {
 
         // The same gigs as the lists above (the ones that happened), whatever the page size.
         assertThat(ok(api.get(count + "?artistId=" + keo, fan)).path("gigs").asInt())
-                .isEqualTo(3);
+                .isEqualTo(4);
         assertThat(ok(api.get(count + "?artistId=" + cardinals, fan))
                         .path("gigs")
                         .asInt())
                 .isEqualTo(2);
         assertThat(ok(api.get(count + "?venueId=" + scala, fan)).path("gigs").asInt())
-                .isEqualTo(2);
-        assertThat(ok(api.get(count, fan)).path("gigs").asInt()).isEqualTo(4);
+                .isEqualTo(3);
+        assertThat(ok(api.get(count, fan)).path("gigs").asInt()).isEqualTo(5);
 
         // More than a page (50) of Went gigs with one act: every one is counted.
         UUID busy = data.artist("Busy " + tag);
@@ -233,7 +240,7 @@ class GigStatsIT extends IntegrationTest {
                 .isEqualTo("PUBLIC");
         assertThat(contentVisible(other)).isTrue();
         assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
-                .isEqualTo(4);
+                .isEqualTo(5);
         // The other fan sees their own attendance in the list, not the owner's.
         JsonNode cardinalsGigs = ok(api.get(stats + "/gigs?artistId=" + cardinals, other));
         assertThat(ids(cardinalsGigs)).containsExactly(g2, g1);
@@ -248,7 +255,7 @@ class GigStatsIT extends IntegrationTest {
         assertThat(contentVisible(other)).isFalse();
         assertProblem(api.get(stats, other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
         assertProblem(api.get(stats + "/gigs", other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
-        assertThat(ok(api.get(stats, fan)).path("totals").path("gigs").asInt()).isEqualTo(4);
+        assertThat(ok(api.get(stats, fan)).path("totals").path("gigs").asInt()).isEqualTo(5);
 
         // Another edit of the profile leaves the choice alone.
         assertThat(ok(api.patch("/api/v1/me", Map.of("bio", "gig diary"), fan))
@@ -270,7 +277,7 @@ class GigStatsIT extends IntegrationTest {
                 .isEqualTo(HttpStatus.NO_CONTENT);
         assertThat(contentVisible(other)).isTrue();
         assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
-                .isEqualTo(4);
+                .isEqualTo(5);
 
         // The viewer blocked the owner: the profile is there, its stats are not (a block removes follows).
         assertThat(api.put("/api/v1/users/" + fan.id() + "/block", null, other).getStatusCode())
@@ -285,7 +292,7 @@ class GigStatsIT extends IntegrationTest {
         assertProblem(api.get(stats, other), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
         api.delete("/api/v1/users/" + other.id() + "/block", fan);
         assertThat(ok(api.get(stats, other)).path("totals").path("gigs").asInt())
-                .isEqualTo(4);
+                .isEqualTo(5);
     }
 
     /**
@@ -303,28 +310,28 @@ class GigStatsIT extends IntegrationTest {
         mark(fan, later, "GOING");
         mark(fan, maybe, "INTERESTED");
         mark(other, later, "GOING");
-        String going = "/api/v1/users/" + fan.id() + "/gigs/going";
+        String goingTab = "/api/v1/users/" + fan.id() + "/gigs/going";
 
         // setUp's Going gig of last year has happened and is not listed; nor is the Went one to come.
-        JsonNode page = ok(api.get(going, other));
+        JsonNode page = ok(api.get(goingTab, other));
         assertThat(ids(page)).containsExactly(soon, later);
         // The viewer's own attendance in the summaries, as in every list.
         assertThat(page.path("items").path(0).path("myAttendance").isNull()).isTrue();
         assertThat(page.path("items").path(1).path("myAttendance").asText("")).isEqualTo("GOING");
-        JsonNode first = ok(api.get(going + "?limit=1", other));
+        JsonNode first = ok(api.get(goingTab + "?limit=1", other));
         assertThat(ids(first)).containsExactly(soon);
         assertThat(ids(ok(api.get(
-                        going + "?limit=1&cursor=" + first.path("nextCursor").asText(""), other))))
+                        goingTab + "?limit=1&cursor=" + first.path("nextCursor").asText(""), other))))
                 .containsExactly(later);
 
         // Private: hidden like the stats, never from the owner.
         ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PRIVATE"), fan));
-        assertProblem(api.get(going, other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
-        assertThat(ids(ok(api.get(going, fan)))).containsExactly(soon, later);
+        assertProblem(api.get(goingTab, other), HttpStatus.FORBIDDEN, "PROFILE_PRIVATE");
+        assertThat(ids(ok(api.get(goingTab, fan)))).containsExactly(soon, later);
         // The owner blocked the viewer: no profile, so no gigs either.
         ok(api.patch("/api/v1/me", Map.of("profileVisibility", "PUBLIC"), fan));
         api.put("/api/v1/users/" + other.id() + "/block", null, fan);
-        assertProblem(api.get(going, other), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
+        assertProblem(api.get(goingTab, other), HttpStatus.NOT_FOUND, "USER_NOT_FOUND");
     }
 
     private boolean contentVisible(TestApi.User viewer) {
@@ -351,6 +358,16 @@ class GigStatsIT extends IntegrationTest {
                 .isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(api.get("/api/v1/users/" + fan.id() + "/stats?top=100", fan).getStatusCode())
                 .isEqualTo(HttpStatus.OK);
+    }
+
+    /** A mark stored as it is, without the API's time rules (rows from before those rules existed). */
+    private void stored(TestApi.User user, UUID gig, String status) {
+        dsl.execute(
+                "insert into catalog.gig_attendance (user_id, gig_id, status, source, created_at, updated_at)"
+                        + " values (?, ?, ?, 'USER', now(), now())",
+                user.id(),
+                gig,
+                status);
     }
 
     private void mark(TestApi.User user, UUID gig, String status) {

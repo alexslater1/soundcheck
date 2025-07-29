@@ -17,6 +17,7 @@ const gig = (id: string, headliner = 'Headliner', support: string[] = []): GigSu
       isFollowing: false,
     })),
     userAdded: false,
+    wentUnconfirmed: false,
   }) as GigSummary;
 
 describe('compose form helpers', () => {
