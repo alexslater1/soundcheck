@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
 import { Link } from 'expo-router';
+import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
 import type { ArtistSummary } from '@/api/generated/model';
@@ -17,11 +18,14 @@ export function ArtistRow({
   artist,
   genreNames,
   linked = true,
+  trailing,
 }: {
   artist: ArtistSummary;
   /** slug → display name, from `GET /genres`. */
   genreNames: ReadonlyMap<string, string>;
   linked?: boolean;
+  /** After the follow button, e.g. the notification bell on one's own Artists tab. */
+  trailing?: ReactNode;
 }) {
   const { colors } = useTheme();
   const genres = artist.genres.map((slug) => genreNames.get(slug) ?? slug).join(' · ');
@@ -71,6 +75,7 @@ export function ArtistRow({
         isFollowing={artist.isFollowing}
         compact
       />
+      {trailing}
     </View>
   );
 }

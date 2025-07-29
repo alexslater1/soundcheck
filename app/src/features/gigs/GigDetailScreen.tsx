@@ -24,6 +24,7 @@ import { ActsSeen } from './ActsSeen';
 import { AttendanceButtons } from './AttendanceButtons';
 import { dayHasCome, gigPhase } from './attendance';
 import { EditGigDetails } from './EditGigDetails';
+import { GigComments } from './GigComments';
 import { GigSetlist } from './GigSetlist';
 import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
 
@@ -196,6 +197,7 @@ export function GigDetailScreen({ id }: { id: string }) {
             )}
           </>
         )}
+        <GigComments gigId={id} startsAt={gig.startsAt} />
       </ScrollView>
     </Screen>
   );

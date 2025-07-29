@@ -10,6 +10,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { NotifyBell } from '@/features/follows/NotifyBell';
 import { PagedGigs } from '@/features/gigs/PagedGigs';
 import { useDistanceOrigin } from '@/features/location/deviceLocation';
 import { PostGrid } from '@/features/posts/PostGrid';
@@ -67,11 +68,19 @@ export function ArtistScreen({ id }: { id: string }) {
           {genres.length > 0 ? genres.join(' · ') : 'No genres yet'} · {data.followerCount}{' '}
           {data.followerCount === 1 ? 'follower' : 'followers'}
         </Text>
-        <FollowButton
-          artistId={artist.id}
-          artistName={artist.name}
-          isFollowing={artist.isFollowing}
-        />
+        <View style={styles.follow}>
+          <View style={styles.followButton}>
+            <FollowButton
+              artistId={artist.id}
+              artistName={artist.name}
+              isFollowing={artist.isFollowing}
+            />
+          </View>
+          {/* While following, the bell sets what you hear about this act. */}
+          {data.notifyLevel ? (
+            <NotifyBell kind="artist" id={artist.id} name={artist.name} level={data.notifyLevel} />
+          ) : null}
+        </View>
         <Text variant="label" muted style={styles.heading}>
           UPCOMING GIGS
         </Text>
@@ -108,6 +117,8 @@ const styles = StyleSheet.create({
   image: { width: '100%', aspectRatio: 16 / 9, borderRadius: radius.md },
   heading: { marginTop: spacing.md },
   credit: { marginTop: spacing.md },
+  follow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  followButton: { flex: 1 },
 });
 
 /**

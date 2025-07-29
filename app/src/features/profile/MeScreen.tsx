@@ -19,16 +19,17 @@ import { useUploadQueue } from '@/features/upload/uploadQueue';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing, touchTarget } from '@/theme/tokens';
 
+import { FollowedArtists } from './FollowedArtists';
 import { MyGigsCalendar } from './MyGigsCalendar';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabs, type ProfileTab } from './ProfileTabs';
 import { useChangeAvatar } from './useChangeAvatar';
 
 /**
- * Own profile (Me tab): the header with counts, a Settings gear (H25), and the photo, bio, city and
- * genres each opening what changes them (H36, H24). Under it three tabs (H26): Posts (every post of
- * one's own, including the ones still processing or failed, each with a badge), My gigs (a
- * calendar of the gigs the user marked) and Stats (with who else can see them).
+ * Own profile (Me tab): the header with counts, a Settings gear, and the photo, bio, city and genres
+ * each opening what changes them. Under it three tabs: Posts (every post of one's own, including the
+ * ones still processing or failed, each with a badge), My gigs (every gig the user marked), Artists
+ * (the artists and venues followed) and Stats (with who else can see them).
  */
 export function MeScreen() {
   const me = useAuthStore((state) => state.me);
@@ -135,6 +136,7 @@ export function MeScreen() {
           onEditPhoto={() => void photo.change()}
           photoBusy={photo.saving}
           onEditBio={() => router.push('/settings/profile')}
+          onArtistsPress={() => setTab('artists')}
           corner={
             <IconButton
               icon="settings-outline"
@@ -189,6 +191,8 @@ export function MeScreen() {
           )
         ) : tab === 'gigs' ? (
           <MyGigsCalendar />
+        ) : tab === 'artists' ? (
+          <FollowedArtists userId={me.id} own />
         ) : (
           <>
             <GigStatsSection userId={me.id} own />

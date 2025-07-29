@@ -84,8 +84,8 @@ export function ActivityScreen() {
         </View>
         {items.length === 0 ? (
           <Text muted testID="activity-empty">
-            Nothing yet. Likes, comments, new followers, follow requests and new gigs from the acts,
-            venues and searches you follow show up here.
+            Nothing yet. Likes, comments, new followers, follow requests, and new gigs and posts
+            from the acts, venues and searches you follow show up here.
           </Text>
         ) : (
           items.map((notification) => {

@@ -15,7 +15,7 @@ type Props = PropsWithChildren<{
   bio?: string | null;
   /** The line under the bio: the home city (and, on one's own, the genres, each a link). */
   detail?: ReactNode;
-  counts: { posts: number; followers: number; following: number };
+  counts: { posts: number; followers: number; following: number; artists: number };
   /** False for a private profile the viewer may not see: the counts show, the lists do not open. */
   listsOpen?: boolean;
   /** One's own profile: tapping the photo changes it. */
@@ -26,6 +26,8 @@ type Props = PropsWithChildren<{
   onEditBio?: () => void;
   /** Top-right corner, e.g. the Settings gear on Me. */
   corner?: ReactNode;
+  /** Tapping the Artists count opens the Artists tab. */
+  onArtistsPress?: () => void;
 }>;
 
 /** The top of a profile (one's own or someone else's): avatar, names, bio, counts; children are the buttons. */
@@ -41,6 +43,7 @@ export function ProfileHeader({
   photoBusy = false,
   onEditBio,
   corner,
+  onArtistsPress,
   children,
 }: Props) {
   const { colors } = useTheme();
@@ -123,11 +126,20 @@ export function ProfileHeader({
                 <Count label="Following" value={counts.following} testID="following-count" />
               </Pressable>
             </Link>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${counts.artists} artists followed`}
+              onPress={onArtistsPress}
+              disabled={!onArtistsPress}
+            >
+              <Count label="Artists" value={counts.artists} testID="artists-count" />
+            </Pressable>
           </>
         ) : (
           <>
             <Count label="Followers" value={counts.followers} testID="followers-count" />
             <Count label="Following" value={counts.following} testID="following-count" />
+            <Count label="Artists" value={counts.artists} testID="artists-count" />
           </>
         )}
       </View>

@@ -18,14 +18,16 @@ import { GigStatsSection } from '@/features/stats/GigStatsSection';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
+import { FollowedArtists } from './FollowedArtists';
 import { FollowUserButton } from './FollowUserButton';
 import { ProfileHeader } from './ProfileHeader';
 import { ProfileTabs, type ProfileTab } from './ProfileTabs';
 import { UserGigs } from './UserGigs';
 
 /**
- * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, then three tabs
- * (H26): their clips, their gigs (Going and Went) and their gig stats. A private profile
+ * Someone's profile (`/u/{handle}`): header with counts, follow, block in the More menu, then four tabs:
+ * their clips, their gigs (Going and Went), the artists and venues they follow, and their gig stats. A
+ * private profile the viewer does not follow shows only the header (name, picture, counts) and says it
  * is private; its clips, gigs and stats are not even asked for. Following it sends a request
  * (Requested).
  */
@@ -72,6 +74,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
           detail={user.homeCityName}
           counts={user.counts}
           listsOpen={user.contentVisible}
+          onArtistsPress={user.contentVisible ? () => setTab('artists') : undefined}
         >
           {mine ? null : (
             <View style={styles.buttons}>
@@ -132,6 +135,8 @@ export function ProfileScreen({ handle }: { handle: string }) {
               <UserPosts userId={user.id} />
             ) : tab === 'gigs' ? (
               <UserGigs userId={user.id} />
+            ) : tab === 'artists' ? (
+              <FollowedArtists userId={user.id} own={mine} />
             ) : (
               <GigStatsSection userId={user.id} own={mine} />
             )}

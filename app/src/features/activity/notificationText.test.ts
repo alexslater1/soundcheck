@@ -11,6 +11,31 @@ const base: NotificationView = {
 };
 
 describe('notificationText', () => {
+  it('rolls new posts of a followed act or venue into one line, opening the post or the page', () => {
+    const one = {
+      ...base,
+      actor: undefined,
+      type: 'NEW_POSTS_ARTIST' as const,
+      postId: 'p1',
+      subjectId: 'a1',
+      subjectName: 'KEO',
+      postCount: 1,
+    };
+    expect(notificationText(one)).toBe('New post from KEO');
+    expect(notificationTarget(one)).toEqual({ pathname: '/post/[id]', params: { id: 'p1' } });
+    const three = { ...one, postCount: 3 };
+    expect(notificationText(three)).toBe('3 new posts from KEO');
+    expect(notificationTarget(three)).toEqual({ pathname: '/artist/[id]', params: { id: 'a1' } });
+    const venue = {
+      ...three,
+      type: 'NEW_POSTS_VENUE' as const,
+      subjectId: 'v1',
+      subjectName: 'Band on the Wall',
+    };
+    expect(notificationText(venue)).toBe('3 new posts at Band on the Wall');
+    expect(notificationTarget(venue)).toEqual({ pathname: '/venue/[id]', params: { id: 'v1' } });
+  });
+
   it('names the actor for follows, likes and comments', () => {
     expect(notificationText(base)).toBe('@fan_one started following you');
     expect(notificationText({ ...base, type: 'POST_COMMENTED', postId: 'p1' })).toBe(

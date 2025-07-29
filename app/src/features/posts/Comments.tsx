@@ -10,7 +10,7 @@ import {
   getListCommentsQueryKey,
   useListComments,
 } from '@/api/generated/engagement/engagement';
-import type { CommentView } from '@/api/generated/model';
+import type { UserSummary } from '@/api/generated/model';
 import { getGetPostQueryKey } from '@/api/generated/posts/posts';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -34,19 +34,46 @@ function useRefreshComments(postId: string) {
   };
 }
 
+/** A comment in any thread: a post's (always with its author) or a gig's. */
+export type ThreadComment = {
+  id: string;
+  /** Null for a gig comment from a private profile the viewer does not follow. */
+  author?: UserSummary | null;
+  body?: string | null;
+  createdAt: string;
+  /** Written by a private profile the viewer does not follow, so only that it is there shows. */
+  fromPrivateProfile?: boolean;
+};
+
 /**
- * A post's comments, oldest first. Each shows who wrote it (avatar and name open their profile, H12)
- * and how long ago (H13); a small ⋯ offers Delete to the comment's author and to the post's author
- * (H11). The box to add one is {@link CommentBox}, pinned under the screen.
+ * A thread of comments, oldest first, shared by posts and gigs. Each shows who wrote it (avatar and
+ * name open their profile) and how long ago; a small ⋯ offers Delete where `canDelete` allows, and
+ * (H11). A private profile's comment the viewer may not read shows as "A private profile commented".
  */
-export function CommentList({ postId, postAuthorId }: { postId: string; postAuthorId: string }) {
+export function CommentThread({
+  title,
+  comments,
+  canDelete,
+  onDelete,
+  empty,
+  testID,
+}: {
+  title: string;
+  comments: {
+    isPending: boolean;
+    data?: { items: ThreadComment[] };
+    refetch: () => unknown;
+  };
+  canDelete: (comment: ThreadComment) => boolean;
+  /** Deletes the comment and refreshes the thread; a rejection shows a message. */
+  onDelete: (commentId: string) => Promise<unknown>;
+  empty: string;
+  testID?: string;
+}) {
   const { colors } = useTheme();
   const router = useRouter();
-  const myId = useAuthStore((state) => state.me?.id);
-  const comments = useListComments(postId, { limit: 50 });
-  const refresh = useRefreshComments(postId);
   const now = useNow();
-  const [menuFor, setMenuFor] = useState<CommentView | null>(null);
+  const [menuFor, setMenuFor] = useState<ThreadComment | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
 
   const openProfile = (handle: string) =>
@@ -55,17 +82,16 @@ export function CommentList({ postId, postAuthorId }: { postId: string; postAuth
   const remove = async (commentId: string) => {
     setProblem(null);
     try {
-      await deleteComment(commentId);
-      await refresh();
+      await onDelete(commentId);
     } catch {
       setProblem('That comment could not be deleted. Try again.');
     }
   };
 
   return (
-    <View style={styles.box}>
+    <View style={styles.box} testID={testID}>
       <Text variant="label" muted>
-        COMMENTS
+        {title.toUpperCase()}
       </Text>
       {problem ? (
         <Text variant="caption" style={{ color: colors.danger }} accessibilityRole="alert">
@@ -78,56 +104,75 @@ export function CommentList({ postId, postAuthorId }: { postId: string; postAuth
         <StateMessage title="Could not load comments" onRetry={() => void comments.refetch()} />
       ) : comments.data.items.length === 0 ? (
         <Text muted testID="comments-empty">
-          No comments yet.
+          {empty}
         </Text>
       ) : (
-        comments.data.items.map((comment) => (
-          <View key={comment.id} style={styles.comment} testID="comment">
-            <Pressable
-              accessibilityRole="link"
-              accessibilityLabel={`${comment.author.displayName}, @${comment.author.handle}`}
-              hitSlop={6}
-              onPress={() => openProfile(comment.author.handle)}
+        comments.data.items.map((comment) => {
+          const author = comment.author;
+          const time = (
+            <Text
+              variant="caption"
+              muted
+              accessibilityLabel={relativeTimeLabel(comment.createdAt, now)}
+              testID="comment-time"
             >
-              <Avatar
-                uri={comment.author.avatarUrl}
-                name={comment.author.displayName}
-                size={AVATAR}
-              />
-            </Pressable>
-            <View style={styles.commentText}>
-              <View style={styles.byline}>
-                <Pressable
-                  accessibilityRole="link"
-                  hitSlop={6}
-                  onPress={() => openProfile(comment.author.handle)}
+              {relativeTime(comment.createdAt, now)}
+            </Text>
+          );
+          if (!author) {
+            return (
+              <View key={comment.id} style={styles.comment} testID="comment-private">
+                <View
+                  style={[styles.lock, { backgroundColor: colors.surfaceRaised }]}
+                  accessibilityElementsHidden
+                  importantForAccessibility="no-hide-descendants"
                 >
-                  <Text style={styles.bold}>@{comment.author.handle}</Text>
-                </Pressable>
-                <Text
-                  variant="caption"
-                  muted
-                  accessibilityLabel={relativeTimeLabel(comment.createdAt, now)}
-                  testID="comment-time"
-                >
-                  {relativeTime(comment.createdAt, now)}
-                </Text>
+                  <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
+                </View>
+                <View style={[styles.commentText, styles.byline]}>
+                  <Text muted>A private profile commented</Text>
+                  {time}
+                </View>
               </View>
-              <Text>{comment.body}</Text>
-            </View>
-            {comment.author.id === myId || postAuthorId === myId ? (
+            );
+          }
+          return (
+            <View key={comment.id} style={styles.comment} testID="comment">
               <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`More for the comment by @${comment.author.handle}`}
-                hitSlop={(touchTarget - MORE) / 2}
-                style={styles.more}
-                onPress={() => setMenuFor(comment)}
+                accessibilityRole="link"
+                accessibilityLabel={`${author.displayName}, @${author.handle}`}
+                hitSlop={6}
+                onPress={() => openProfile(author.handle)}
               >
-                <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                <Avatar uri={author.avatarUrl} name={author.displayName} size={AVATAR} />
               </Pressable>
-            ) : null}
-          </View>
-        ))
+              <View style={styles.commentText}>
+                <View style={styles.byline}>
+                  <Pressable
+                    accessibilityRole="link"
+                    hitSlop={6}
+                    onPress={() => openProfile(author.handle)}
+                  >
+                    <Text style={styles.bold}>@{author.handle}</Text>
+                  </Pressable>
+                  {time}
+                </View>
+                <Text>{comment.body}</Text>
+              </View>
+              {canDelete(comment) ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`More for the comment by @${author.handle}`}
+                  hitSlop={(touchTarget - MORE) / 2}
+                  style={styles.more}
+                  onPress={() => setMenuFor(comment)}
+                >
+                  <Ionicons name="ellipsis-horizontal" size={18} color={colors.textMuted} />
+                </Pressable>
+              ) : null}
+            </View>
+          );
+        })
       )}
       <ActionSheet
         visible={menuFor !== null}
@@ -152,27 +197,52 @@ export function CommentList({ postId, postAuthorId }: { postId: string; postAuth
   );
 }
 
+/**
+ * A post's comments (H11-H13): the comment's author and the post's author can delete one. The box to
+ * add one is {@link CommentBox}, pinned under the screen.
+ */
+export function CommentList({ postId, postAuthorId }: { postId: string; postAuthorId: string }) {
+  const myId = useAuthStore((state) => state.me?.id);
+  const comments = useListComments(postId, { limit: 50 });
+  const refresh = useRefreshComments(postId);
+  return (
+    <CommentThread
+      title="Comments"
+      comments={comments}
+      canDelete={(comment) => comment.author?.id === myId || postAuthorId === myId}
+      onDelete={async (commentId) => {
+        await deleteComment(commentId);
+        await refresh();
+      }}
+      empty="No comments yet."
+    />
+  );
+}
+
 const AVATAR = 32;
 /** The ⋯ is drawn small; its touch area is still {@link touchTarget}. */
 const MORE = 28;
 
 /**
- * The box to add a comment. It sits at the foot of the post screen, outside the scrolling content, so
- * the keyboard pushes it up instead of covering it; `onSent` lets the screen scroll to the new comment,
- * and `inputRef` lets the post's comment button focus the box.
+ * The box to add a comment to any thread. It keeps one Idempotency-Key per text, so a retry of the
+ * same comment after a lost response is not posted twice; `inputRef` lets a button focus the box.
  */
-export function CommentBox({
-  postId,
+export function CommentComposer({
+  onSend,
   onSent,
   inputRef,
+  placeholder = 'Add a comment',
+  pinned = true,
 }: {
-  postId: string;
+  /** Posts the text with the key; rejects when it could not be posted. */
+  onSend: (text: string, idempotencyKey: string) => Promise<unknown>;
   onSent?: () => void;
   inputRef?: Ref<TextInput>;
+  placeholder?: string;
+  /** At the foot of a screen, with a rule above it (the post page); false inside a page (a gig's). */
+  pinned?: boolean;
 }) {
   const { colors } = useTheme();
-  const track = useTrack();
-  const refresh = useRefreshComments(postId);
   const [body, setBody] = useState('');
   const [sending, setSending] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
@@ -187,11 +257,9 @@ export function CommentBox({
     setSending(true);
     setProblem(null);
     try {
-      await addComment(postId, { body: text }, { headers: { 'Idempotency-Key': key } });
-      track('COMMENT', postId);
+      await onSend(text, key);
       setBody('');
       setKey(newUuid());
-      await refresh();
       onSent?.();
     } catch {
       setProblem('Your comment could not be posted. Try again.');
@@ -201,7 +269,7 @@ export function CommentBox({
   };
 
   return (
-    <View style={[styles.composer, { borderTopColor: colors.border }]}>
+    <View style={[styles.composer, pinned ? { borderTopColor: colors.border } : styles.inline]}>
       {problem ? (
         <Text variant="caption" style={{ color: colors.danger }} accessibilityRole="alert">
           {problem}
@@ -219,9 +287,9 @@ export function CommentBox({
             }
             setBody(text);
           }}
-          placeholder="Add a comment"
+          placeholder={placeholder}
           placeholderTextColor={colors.textMuted}
-          accessibilityLabel="Add a comment"
+          accessibilityLabel={placeholder}
           maxLength={500}
           multiline
           style={[
@@ -232,6 +300,35 @@ export function CommentBox({
         <Button title="Send" disabled={sending || body.trim() === ''} onPress={() => void send()} />
       </View>
     </View>
+  );
+}
+
+/**
+ * The box to add a comment to a post. It sits at the foot of the post screen, outside the scrolling
+ * content, so the keyboard pushes it up instead of covering it; `onSent` lets the screen scroll to the
+ * new comment, and `inputRef` lets the post's comment button focus the box.
+ */
+export function CommentBox({
+  postId,
+  onSent,
+  inputRef,
+}: {
+  postId: string;
+  onSent?: () => void;
+  inputRef?: Ref<TextInput>;
+}) {
+  const track = useTrack();
+  const refresh = useRefreshComments(postId);
+  return (
+    <CommentComposer
+      inputRef={inputRef}
+      onSent={onSent}
+      onSend={async (text, key) => {
+        await addComment(postId, { body: text }, { headers: { 'Idempotency-Key': key } });
+        track('COMMENT', postId);
+        await refresh();
+      }}
+    />
   );
 }
 
@@ -246,6 +343,14 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     paddingTop: spacing.sm,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  inline: { borderTopWidth: 0, paddingTop: 0 },
+  lock: {
+    width: AVATAR,
+    height: AVATAR,
+    borderRadius: AVATAR / 2,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   form: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-end' },
   input: {

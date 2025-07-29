@@ -57,8 +57,9 @@ function newGigsText(notification: NotificationView): string {
 }
 
 /**
- * Where tapping a notification goes: a new-gig alert's list of gigs, the post it is about, or the
- * profile of the person who did it (a follower, someone asking to follow, someone who accepted).
+ * Where tapping a notification goes: a new-gig alert's list of gigs, the post it is about (or, for
+ * several new posts, the artist's or venue's page), or the profile of the person who did it (a follower,
+ * someone asking to follow, someone who accepted).
  */
 export function notificationTarget(
   notification: NotificationView,
@@ -66,9 +67,18 @@ export function notificationTarget(
   | { pathname: '/alerts/[id]'; params: { id: string } }
   | { pathname: '/post/[id]'; params: { id: string } }
   | { pathname: '/u/[handle]'; params: { handle: string } }
+  | { pathname: '/artist/[id]'; params: { id: string } }
+  | { pathname: '/venue/[id]'; params: { id: string } }
   | null {
   if (notification.type === 'NEW_GIGS') {
     return { pathname: '/alerts/[id]', params: { id: notification.id } };
+  }
+  // One new post opens it; several open the artist's (or venue's) page, where their clips are.
+  const subject = notification.subjectId;
+  if (subject && (notification.postCount ?? 1) > 1) {
+    return notification.type === 'NEW_POSTS_VENUE'
+      ? { pathname: '/venue/[id]', params: { id: subject } }
+      : { pathname: '/artist/[id]', params: { id: subject } };
   }
   if (notification.postId) {
     return { pathname: '/post/[id]', params: { id: notification.postId } };

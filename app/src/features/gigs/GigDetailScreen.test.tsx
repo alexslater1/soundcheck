@@ -201,6 +201,7 @@ describe('GigDetailScreen act bar', () => {
       if (url.includes('/gigs/g1/setlist'))
         return json(404, { status: 404, code: 'SETLIST_NOT_FOUND' });
       if (url.includes('/gigs/g1/posts')) return json(200, { items: [], nextCursor: null });
+      if (url.includes('/gigs/g1/comments')) return json(200, { items: [], nextCursor: null });
       if (url.includes('/gigs/g1')) {
         return json(200, { ...DETAIL, lineup: [KEO], gig: { ...DETAIL.gig, support: [] } });
       }

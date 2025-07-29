@@ -16,10 +16,13 @@ export function VenueFollowButton({
   venueId,
   venueName,
   isFollowing,
+  compact = false,
 }: {
   venueId: string;
   venueName: string;
   isFollowing: boolean;
+  /** Inside a list row (the Artists tab): a small button. */
+  compact?: boolean;
 }) {
   const client = useQueryClient();
   const follow = useFollowVenue();
@@ -53,7 +56,8 @@ export function VenueFollowButton({
             ? `Unfollow ${venueName}`
             : `Follow ${venueName}: hear about its new gigs`
       }
-      variant={following ? 'secondary' : 'primary'}
+      variant={following ? 'secondary' : compact ? 'outline' : 'primary'}
+      size={compact ? 'small' : 'regular'}
       disabled={follow.isPending || unfollow.isPending}
       onPress={() => void toggle()}
     />
