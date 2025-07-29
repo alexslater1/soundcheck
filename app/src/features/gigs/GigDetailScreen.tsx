@@ -20,8 +20,10 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
 import { ActBar, billingLabel } from './ActBar';
+import { ActsSeen } from './ActsSeen';
 import { AttendanceButtons } from './AttendanceButtons';
 import { dayHasCome, gigPhase } from './attendance';
+import { EditGigDetails } from './EditGigDetails';
 import { GigSetlist } from './GigSetlist';
 import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
 
@@ -129,6 +131,7 @@ export function GigDetailScreen({ id }: { id: string }) {
         </Text>
 
         <AttendanceButtons detail={data} />
+        <ActsSeen detail={data} />
 
         {ticketUrl && onSale ? (
           <Button
@@ -176,6 +179,7 @@ export function GigDetailScreen({ id }: { id: string }) {
             {acts.map((artist) => (
               <ArtistRow key={artist.id} artist={artist} genreNames={genreNames} />
             ))}
+            <EditGigDetails detail={data} />
             {happened ? (
               <>
                 <Text variant="label" muted style={styles.heading}>
@@ -245,7 +249,7 @@ function GigClips({
   }
   return (
     <>
-      <PostGrid posts={posts.data.items} />
+      <PostGrid posts={posts.data.items} actId={artistId} />
       {privateLine}
     </>
   );

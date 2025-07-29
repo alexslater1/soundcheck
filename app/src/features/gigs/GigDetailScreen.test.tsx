@@ -69,6 +69,7 @@ const DETAIL = {
     distanceKm: null,
     userAdded: false,
     wentUnconfirmed: false,
+    myActsMissed: [],
   },
   lineup: [KEO, CARDINALS],
   attendanceCounts: { interested: 0, going: 0, went: 3 },

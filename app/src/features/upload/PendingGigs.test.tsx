@@ -17,6 +17,7 @@ const gig = (id: string): GigSummary =>
     support: [],
     userAdded: false,
     wentUnconfirmed: false,
+    myActsMissed: [],
   }) as GigSummary;
 
 const mockUnposted = jest.fn();

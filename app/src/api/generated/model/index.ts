@@ -6,6 +6,8 @@
  * OpenAPI spec version: v1
  */
 
+export * from './actsSeen';
+export * from './actsSeenRequest';
 export * from './addArtistRequest';
 export * from './addClipsRequest';
 export * from './addGigRequest';
@@ -58,6 +60,12 @@ export * from './createUploadRequestKind';
 export * from './createUploadRequestWidth';
 export * from './debug';
 export * from './deleteMeRequest';
+export * from './editGigRequest';
+export * from './editGigRequestAddArtistIds';
+export * from './editGigRequestAddArtistNames';
+export * from './editGigRequestDate';
+export * from './editGigRequestStartTime';
+export * from './editGigRequestVenueId';
 export * from './editPostRequest';
 export * from './editPostRequestArtistIds';
 export * from './editPostRequestCaption';

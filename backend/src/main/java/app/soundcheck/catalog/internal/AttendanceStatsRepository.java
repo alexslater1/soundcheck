@@ -68,6 +68,7 @@ class AttendanceStatsRepository {
                 .join(GIG_ARTIST)
                 .on(GIG_ARTIST.GIG_ID.eq(GIG.ID))
                 .where(went(userId, now))
+                .and(CatalogReadRepository.seenBy(userId))
                 .groupBy(DSL.rollup(YEAR))
                 .orderBy(YEAR.desc())
                 .fetch();
@@ -99,6 +100,8 @@ class AttendanceStatsRepository {
                 .join(ARTIST)
                 .on(ARTIST.ID.eq(GIG_ARTIST.ARTIST_ID))
                 .where(went(userId, now))
+                // Only the acts they saw.
+                .and(CatalogReadRepository.seenBy(userId))
                 .groupBy(ARTIST.ID)
                 .orderBy(times.desc(), last.desc(), ARTIST.NAME.asc(), ARTIST.ID.asc())
                 .limit(limit)

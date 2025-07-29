@@ -6,6 +6,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GENRE;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE_MISSED;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
 
@@ -263,6 +264,18 @@ class CatalogReadRepository {
         return GIG_ATTENDANCE.STATUS.eq("WENT").or(assumedWent(now));
     }
 
+    /**
+     * The fan did not untick this act of the bill: a Went counts every act but the ones they
+     * missed. Refers to {@code GIG_ARTIST}. Expected index: gig_attendance_missed's primary key.
+     */
+    static Condition seenBy(UUID userId) {
+        return DSL.notExists(DSL.selectOne()
+                .from(GIG_ATTENDANCE_MISSED)
+                .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE_MISSED.GIG_ID.eq(GIG_ARTIST.GIG_ID))
+                .and(GIG_ATTENDANCE_MISSED.ARTIST_ID.eq(GIG_ARTIST.ARTIST_ID)));
+    }
+
     /** The WHERE clause of a gig filter (everything but the keyset cursor). */
     private List<Condition> conditions(GigFilter filter) {
         List<Condition> where = new ArrayList<>();
@@ -301,10 +314,12 @@ class CatalogReadRepository {
                             .and(ARTIST.NAME_NORM.like(norm, '!')))));
         }
         if (filter.artistIds() != null && !filter.artistIds().isEmpty()) {
-            where.add(DSL.exists(DSL.selectOne()
-                    .from(GIG_ARTIST)
-                    .where(GIG_ARTIST.GIG_ID.eq(GIG.ID))
-                    .and(GIG_ARTIST.ARTIST_ID.in(filter.artistIds()))));
+            Condition onBill = GIG_ARTIST.GIG_ID.eq(GIG.ID).and(GIG_ARTIST.ARTIST_ID.in(filter.artistIds()));
+            if (filter.attendeeId() != null) {
+                // Someone's gigs with an act: only where they saw it.
+                onBill = onBill.and(seenBy(filter.attendeeId()));
+            }
+            where.add(DSL.exists(DSL.selectOne().from(GIG_ARTIST).where(onBill)));
         }
         if (filter.venueIds() != null && !filter.venueIds().isEmpty()) {
             where.add(GIG.VENUE_ID.in(filter.venueIds()));
@@ -566,6 +581,54 @@ class CatalogReadRepository {
     }
 
     record GigTiming(Instant startsAt, String status) {}
+
+    /** Whether this user added the gig. Expected index: the gig primary key. */
+    boolean addedBy(UUID gigId, UUID userId) {
+        return dsl.fetchExists(GIG, GIG.ID.eq(gigId).and(GIG.CREATED_BY.eq(userId)));
+    }
+
+    /** The acts of each gig the user marked as missed. Expected index: the primary key. */
+    Map<UUID, List<UUID>> missed(UUID userId, Collection<UUID> gigIds) {
+        Map<UUID, List<UUID>> byGig = new HashMap<>();
+        if (!gigIds.isEmpty()) {
+            dsl.select(GIG_ATTENDANCE_MISSED.GIG_ID, GIG_ATTENDANCE_MISSED.ARTIST_ID)
+                    .from(GIG_ATTENDANCE_MISSED)
+                    .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                    .and(GIG_ATTENDANCE_MISSED.GIG_ID.in(gigIds))
+                    .orderBy(GIG_ATTENDANCE_MISSED.ARTIST_ID)
+                    .forEach(r -> byGig.computeIfAbsent(r.value1(), id -> new ArrayList<>())
+                            .add(r.value2()));
+        }
+        return byGig;
+    }
+
+    /** Replaces the acts the user missed at the gig; their mark must exist (the foreign key). */
+    void setMissed(UUID userId, UUID gigId, Collection<UUID> artistIds, Instant now) {
+        dsl.deleteFrom(GIG_ATTENDANCE_MISSED)
+                .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE_MISSED.GIG_ID.eq(gigId))
+                .execute();
+        for (UUID artistId : artistIds) {
+            dsl.insertInto(GIG_ATTENDANCE_MISSED)
+                    .set(GIG_ATTENDANCE_MISSED.USER_ID, userId)
+                    .set(GIG_ATTENDANCE_MISSED.GIG_ID, gigId)
+                    .set(GIG_ATTENDANCE_MISSED.ARTIST_ID, artistId)
+                    .set(GIG_ATTENDANCE_MISSED.CREATED_AT, at(now))
+                    .execute();
+        }
+    }
+
+    /** The acts count as seen again (a clip of them was posted). Safe to repeat. */
+    void unmiss(UUID userId, UUID gigId, Collection<UUID> artistIds) {
+        if (artistIds.isEmpty()) {
+            return;
+        }
+        dsl.deleteFrom(GIG_ATTENDANCE_MISSED)
+                .where(GIG_ATTENDANCE_MISSED.USER_ID.eq(userId))
+                .and(GIG_ATTENDANCE_MISSED.GIG_ID.eq(gigId))
+                .and(GIG_ATTENDANCE_MISSED.ARTIST_ID.in(artistIds))
+                .execute();
+    }
 
     /**
      * The fan's own mark (source USER): an upsert on the primary key {@code (user_id, gig_id)},

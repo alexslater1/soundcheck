@@ -3,6 +3,7 @@ package app.soundcheck.catalog.internal.web;
 import app.soundcheck.catalog.ArtistSummary;
 import app.soundcheck.catalog.GigSummary;
 import app.soundcheck.catalog.internal.CatalogService;
+import app.soundcheck.catalog.internal.CatalogService.ActsSeen;
 import app.soundcheck.catalog.internal.CatalogService.ArtistDetail;
 import app.soundcheck.catalog.internal.CatalogService.Attendance;
 import app.soundcheck.catalog.internal.CatalogService.GigDay;
@@ -51,6 +52,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -225,6 +227,29 @@ public class CatalogController {
     public Attendance setAttendance(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody AttendanceRequest body) {
         return catalog.setAttendance(userId(jwt), id, body.status());
+    }
+
+    @PatchMapping("/gigs/{id}")
+    @Operation(
+            operationId = "editGig",
+            summary = "J9: add acts to the bill and fix the start time (Going or Went); change the date or venue "
+                    + "of a gig you added. Every edit is logged with its author")
+    public GigDetail editGig(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody EditGigRequest body) {
+        return submissions.editGig(
+                userId(jwt),
+                id,
+                new UserSubmissionService.EditGig(
+                        body.addArtistIds(), body.addArtistNames(), body.startTime(), body.date(), body.venueId()));
+    }
+
+    @PutMapping("/gigs/{id}/attendance/acts")
+    @Operation(
+            operationId = "setGigActsSeen",
+            summary = "The acts on the bill you saw at a gig you went to (the rest count as missed); at least one")
+    public ActsSeen setActsSeen(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody ActsSeenRequest body) {
+        return catalog.setActsSeen(userId(jwt), id, body.artistIds());
     }
 
     @DeleteMapping("/gigs/{id}/attendance")
@@ -411,6 +436,16 @@ public class CatalogController {
             @Schema(nullable = true) UUID artistMbid) {}
 
     public record AddArtistRequest(@NotBlank @Size(max = 120) String name) {}
+
+    /** Every field optional; {@code startTime} is UK wall-clock time on the gig's day. */
+    public record EditGigRequest(
+            @Size(max = 10) @Schema(nullable = true) List<@NotNull UUID> addArtistIds,
+            @Size(max = 10) @Schema(nullable = true) List<@NotBlank @Size(max = 120) String> addArtistNames,
+            @Schema(type = "string", format = "time", example = "19:30", nullable = true) LocalTime startTime,
+            @Schema(nullable = true) LocalDate date,
+            @Schema(nullable = true) UUID venueId) {}
+
+    public record ActsSeenRequest(@NotNull @Size(min = 1, max = 50) List<@NotNull UUID> artistIds) {}
 
     public record AttendanceRequest(
             @NotBlank @Size(min = 1, max = 20) @Schema(allowableValues = {"INTERESTED", "GOING", "WENT"})

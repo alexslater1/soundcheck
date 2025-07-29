@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -155,18 +156,13 @@ class PostRules {
     }
 
     /**
-     * The post's acts: the given ones (or, when the field is left out, the gig's bill; an explicit empty
-     * list means "tag nobody"), plus every act a clip is of.
+     * The post's acts: every act a clip is of, plus any given ones. Leaving the field out no longer tags
+     * the gig's whole bill: a clip of one act would then show on every act's page.
      */
     List<UUID> postArtists(
             UUID viewerId, @Nullable UUID gigId, @Nullable List<UUID> artistIds, Collection<NewClip> newClips) {
         Set<UUID> result = new LinkedHashSet<>();
-        if (artistIds == null) {
-            if (gigId != null) {
-                List<UUID> lineup = catalogViews.lineup(gigId);
-                result.addAll(lineup.subList(0, Math.min(lineup.size(), MAX_ARTISTS)));
-            }
-        } else {
+        if (artistIds != null) {
             List<UUID> requested = List.copyOf(new LinkedHashSet<>(artistIds));
             if (requested.size() > MAX_ARTISTS) {
                 throw ApiException.badRequest("TOO_MANY_ARTISTS", "A post can tag at most " + MAX_ARTISTS + " artists");
@@ -324,13 +320,18 @@ class PostRules {
         if (gigId == null) {
             return;
         }
+        Map<UUID, Set<UUID>> actsByOwner = new LinkedHashMap<>();
         slots.stream()
                 .filter(clip -> clip.mediaId() != null
                         && infos.containsKey(clip.mediaId())
                         && infos.get(clip.mediaId()).ready())
-                .map(ClipRow::ownerId)
-                .distinct()
-                .forEach(owner -> attendance.postWentLive(owner, gigId));
+                .forEach(clip -> {
+                    Set<UUID> acts = actsByOwner.computeIfAbsent(clip.ownerId(), owner -> new LinkedHashSet<>());
+                    if (clip.artistId() != null) {
+                        acts.add(clip.artistId());
+                    }
+                });
+        actsByOwner.forEach((owner, acts) -> attendance.postWentLive(owner, gigId, acts));
     }
 
     /** The users' clips left the gig's live posts: a WENT only posts made goes with the last of them. */

@@ -109,7 +109,11 @@ public class CatalogService {
             AttendanceCounts attendanceCounts,
             long postsCount,
             long privatePostsCount,
-            List<SourceLink> sources) {}
+            List<SourceLink> sources,
+            @Schema(description = "The viewer added this gig: they may change its date and venue") boolean addedByMe) {}
+
+    /** The acts of the bill the fan saw and the ones they missed, headliner first. */
+    public record ActsSeen(List<UUID> seen, List<UUID> missed) {}
 
     public record Attendance(
             @Schema(
@@ -260,7 +264,13 @@ public class CatalogService {
                 .toList();
         // postsCount is answered by the content module through GigClips (catalog cannot depend on content).
         return new GigDetail(
-                summary, lineup, counts(gigId), clips.countAt(gigId), clips.privateAt(viewer, gigId), sources);
+                summary,
+                lineup,
+                counts(gigId),
+                clips.countAt(gigId),
+                clips.privateAt(viewer, gigId),
+                sources,
+                repository.addedBy(gigId, viewer));
     }
 
     /**
@@ -291,6 +301,35 @@ public class CatalogService {
         if (!"WENT".equals(status) && GigTime.isOver(gig.startsAt(), now)) {
             throw ApiException.unprocessable("GIG_IS_OVER", "This gig is over: you can only say you went");
         }
+    }
+
+    /**
+     * The acts the fan saw at a gig they went to; every other act on the bill is stored
+     * as missed. Their mark must read Went (a Going on a gig that is over does: choosing acts confirms
+     * it); at least one act, every one on the bill. Idempotent.
+     */
+    @Transactional
+    public ActsSeen setActsSeen(UUID viewer, UUID gigId, List<UUID> seen) {
+        repository.timing(gigId).orElseThrow(() -> ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId));
+        CatalogReadRepository.Mark mark =
+                repository.attendance(viewer, List.of(gigId)).get(gigId);
+        if (mark == null || !"WENT".equals(mark.status())) {
+            throw ApiException.unprocessable("NOT_WENT", "Mark the gig Went first");
+        }
+        List<UUID> bill = repository.lineups(List.of(gigId)).stream()
+                .map(LineupEntry::artistId)
+                .toList();
+        Set<UUID> chosen = new LinkedHashSet<>(seen);
+        if (!bill.containsAll(chosen)) {
+            throw ApiException.badRequest("ACT_NOT_ON_BILL", "Every act must be on the gig's bill");
+        }
+        Instant now = Instant.now(clock);
+        if (mark.assumed()) {
+            repository.setAttendance(viewer, gigId, "WENT", now);
+        }
+        List<UUID> missed = bill.stream().filter(id -> !chosen.contains(id)).toList();
+        repository.setMissed(viewer, gigId, missed, now);
+        return new ActsSeen(bill.stream().filter(chosen::contains).toList(), missed);
     }
 
     /** Idempotent: clearing when nothing is set is still a success. */
@@ -711,6 +750,7 @@ public class CatalogService {
             artists.put(artist.id(), artist);
         }
         Map<UUID, CatalogReadRepository.Mark> attendance = repository.attendance(viewer, gigIds);
+        Map<UUID, List<UUID>> missed = repository.missed(viewer, gigIds);
         List<GigSummary> summaries = new ArrayList<>();
         for (GigRow row : rows) {
             List<ArtistSummary> bill = lineupByGig.getOrDefault(row.id(), List.of()).stream()
@@ -742,7 +782,8 @@ public class CatalogService {
                     attendance.containsKey(row.id()) ? attendance.get(row.id()).status() : null,
                     row.distanceKm(),
                     row.userAdded(),
-                    attendance.containsKey(row.id()) && attendance.get(row.id()).assumed()));
+                    attendance.containsKey(row.id()) && attendance.get(row.id()).assumed(),
+                    missed.getOrDefault(row.id(), List.of())));
         }
         return summaries;
     }

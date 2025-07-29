@@ -160,7 +160,8 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
             </View>
             <View style={styles.grow}>
               <Chip
-                label={clip.act?.name ?? 'No act'}
+                // A clip with no act is on no artist's page (J17): ask, when the gig has acts to pick.
+                label={clip.act?.name ?? (choices.length > 0 ? 'Which act is this?' : 'No act')}
                 selected={clip.act !== null}
                 onPress={() =>
                   setState((s) => ({

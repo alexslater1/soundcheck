@@ -153,6 +153,92 @@ public class UserSubmissionService {
         return new Added<>(summary, artist.created());
     }
 
+    /** At most this many gig edits per fan per day. */
+    static final int EDITS_PER_DAY = 60;
+
+    /**
+     * A fan's edit of a gig. Every field is optional: acts to add to the bill (by id or by name, a
+     * new name being added to the catalog as on Add a gig), a new start time on the same UK day, and, for
+     * a gig a fan added, a new date or venue.
+     */
+    public record EditGig(
+            @Nullable List<UUID> addArtistIds,
+            @Nullable List<String> addArtistNames,
+            @Nullable LocalTime startTime,
+            @Nullable LocalDate date,
+            @Nullable UUID venueId) {}
+
+    /**
+     * {@code PATCH /gigs/{id}}. Anyone whose mark reads Going or Went adds acts and fixes the
+     * start time; only the fan who added a gig changes its date or venue, since a source's next
+     * listing would overwrite them on an ingested gig. Each change is logged ({@code catalog.gig_edit})
+     * with its author, so a bad edit can be found and undone. A cancelled gig is not edited.
+     */
+    public CatalogService.GigDetail editGig(UUID userId, UUID gigId, EditGig edit) {
+        CatalogReadRepository.GigTiming gig =
+                reads.timing(gigId).orElseThrow(() -> ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId));
+        if ("CANCELLED".equals(gig.status())) {
+            throw ApiException.unprocessable("GIG_CANCELLED", "This gig was cancelled");
+        }
+        CatalogReadRepository.Mark mark =
+                reads.attendance(userId, List.of(gigId)).get(gigId);
+        if (mark == null || !("GOING".equals(mark.status()) || "WENT".equals(mark.status()))) {
+            throw ApiException.forbidden("NOT_ATTENDING", "Mark the gig Going or Went to edit it");
+        }
+        boolean mine = submissions.gigAddedBy(gigId).map(userId::equals).orElse(false);
+        if ((edit.date() != null || edit.venueId() != null) && !mine) {
+            throw ApiException.forbidden(
+                    "NOT_YOUR_GIG", "Only the fan who added this gig can change its date or venue");
+        }
+        rateLimiter.enforce("user-gig-edits:" + userId, EDITS_PER_DAY, Duration.ofDays(1));
+        Instant now = Instant.now(clock);
+        List<UUID> acts = actsNamed(userId, edit.addArtistIds(), edit.addArtistNames(), null);
+        for (UUID act : acts) {
+            if (submissions.addAct(gigId, act, userId)) {
+                submissions.logEdit(gigId, userId, "ACT_ADDED", null, act.toString(), now);
+            }
+        }
+        LocalDate day = gig.startsAt().atZone(UK).toLocalDate();
+        LocalTime time = gig.startsAt().atZone(UK).toLocalTime();
+        if (edit.date() != null) {
+            LocalDate today = LocalDate.now(clock.withZone(UK));
+            if (edit.date().isBefore(today.minusYears(10)) || edit.date().isAfter(today.plusYears(2))) {
+                throw ApiException.badRequest(
+                        "GIG_DATE_OUT_OF_RANGE", "The date must be within the last ten years or the next two");
+            }
+        }
+        LocalDate newDay = edit.date() == null ? day : edit.date();
+        LocalTime newTime = edit.startTime() == null ? time : edit.startTime();
+        Instant startsAt = newDay.atTime(newTime).atZone(UK).toInstant();
+        if (!startsAt.equals(gig.startsAt())) {
+            submissions.setStartsAt(gigId, startsAt, now);
+            submissions.logEdit(
+                    gigId,
+                    userId,
+                    newDay.equals(day) ? "STARTS_AT" : "DATE",
+                    gig.startsAt().toString(),
+                    startsAt.toString(),
+                    now);
+        }
+        if (edit.venueId() != null) {
+            if (!reads.venueExists(edit.venueId())) {
+                throw ApiException.badRequest("VENUE_UNKNOWN", "Unknown venue " + edit.venueId());
+            }
+            UUID before = reads.gig(gigId, null).orElseThrow().venueId();
+            if (!before.equals(edit.venueId())) {
+                submissions.setVenue(gigId, edit.venueId(), now);
+                submissions.logEdit(
+                        gigId,
+                        userId,
+                        "VENUE",
+                        before.toString(),
+                        edit.venueId().toString(),
+                        now);
+            }
+        }
+        return views.gig(userId, gigId, null);
+    }
+
     /** {@code POST /gigs}: the gig, added when no gig at that venue that night matches. */
     public Added<GigSummary> addGig(UUID userId, AddGig request) {
         LocalDate today = LocalDate.now(clock.withZone(UK));
@@ -240,8 +326,22 @@ public class UserSubmissionService {
     }
 
     private List<UUID> actsOf(UUID userId, AddGig request) {
+        List<UUID> acts = actsNamed(
+                userId,
+                request.artistIds(),
+                request.artistNames(),
+                request.foundOn() == null ? null : request.foundOn().artistMbid());
+        if (acts.isEmpty()) {
+            throw ApiException.badRequest("GIG_NEEDS_AN_ACT", "Name at least one act");
+        }
+        return acts;
+    }
+
+    /** The acts given by id (each must exist) and by name (added when unknown), at most {@value #MAX_ACTS}. */
+    private List<UUID> actsNamed(
+            UUID userId, @Nullable List<UUID> artistIds, @Nullable List<String> artistNames, @Nullable UUID mbid) {
         Set<UUID> acts = new LinkedHashSet<>();
-        List<UUID> ids = request.artistIds() == null ? List.of() : request.artistIds();
+        List<UUID> ids = artistIds == null ? List.of() : artistIds;
         if (!ids.isEmpty()) {
             Set<UUID> known = views.artistsByIds(userId, ids).keySet();
             for (UUID id : ids) {
@@ -251,17 +351,13 @@ public class UserSubmissionService {
                 acts.add(id);
             }
         }
-        List<String> names = request.artistNames() == null ? List.of() : request.artistNames();
-        UUID mbid = request.foundOn() == null ? null : request.foundOn().artistMbid();
+        List<String> names = artistNames == null ? List.of() : artistNames;
         for (String name : names) {
             // A MusicBrainz id from setlist.fm identifies the act exactly (only meaningful for one name).
             acts.add(
                     names.size() == 1 && mbid != null
                             ? artistWithMbid(userId, name, mbid)
                             : artistNamed(userId, name).item());
-        }
-        if (acts.isEmpty()) {
-            throw ApiException.badRequest("GIG_NEEDS_AN_ACT", "Name at least one act");
         }
         if (acts.size() > MAX_ACTS) {
             throw ApiException.badRequest("TOO_MANY_ARTISTS", "A gig can list at most " + MAX_ACTS + " acts");

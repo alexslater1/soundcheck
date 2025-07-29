@@ -22,6 +22,8 @@ export interface GigSummary {
   headliner: ArtistSummary;
   id: string;
   imageUrl?: GigSummaryImageUrl;
+  /** Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went */
+  myActsMissed: string[];
   myAttendance?: GigSummaryMyAttendance;
   priceMax?: GigSummaryPriceMax;
   priceMin?: GigSummaryPriceMin;

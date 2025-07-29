@@ -135,6 +135,7 @@ public class PostEditService {
             throw ApiException.conflict("LAST_CLIP", "A post keeps at least one clip; delete the post instead");
         }
         clips.delete(clip.id());
+        syncArtists(postId);
         afterClipsLeft(post, List.of(clip.ownerId()));
     }
 
@@ -161,6 +162,7 @@ public class PostEditService {
         }
         if (edit.clips() != null) {
             reorder(post, edit.clips());
+            syncArtists(postId);
         }
         if (edit.taggedUserIds() != null) {
             retag(post, edit.taggedUserIds(), now);
@@ -169,6 +171,24 @@ public class PostEditService {
             move(post, edit.gigId() == null ? post.gigId() : edit.gigId(), edit.day(), now);
         }
         return view(authorId, postId);
+    }
+
+    /**
+     * A gig post's acts are its clips' acts. A post whose clips all lack an act keeps the
+     * tags it has until its author picks the acts; a post not from a gig keeps the acts it was given.
+     */
+    private void syncArtists(UUID postId) {
+        if (posts.find(postId).map(PostRow::gigId).isEmpty()) {
+            return;
+        }
+        Set<UUID> acts = new LinkedHashSet<>();
+        clips.of(postId).stream()
+                .map(ClipRow::artistId)
+                .filter(Objects::nonNull)
+                .forEach(acts::add);
+        if (!acts.isEmpty()) {
+            posts.replaceArtists(postId, acts);
+        }
     }
 
     /** The clips in the given order and acts; clips left out are removed. */
@@ -259,9 +279,8 @@ public class PostEditService {
                     });
         }
         posts.setGig(post.id(), gigId, day, now);
-        if (gigId != null && !Objects.equals(gigId, post.gigId())) {
-            posts.replaceArtists(post.id(), rules.postArtists(post.authorId(), gigId, null, List.of()));
-        }
+        // The clips keep their acts; the post's acts stay its clips' (no retagging with the new bill).
+        syncArtists(post.id());
         List<UUID> owners =
                 clips.of(post.id()).stream().map(ClipRow::ownerId).distinct().toList();
         PostRow moved = posts.find(post.id()).orElseThrow();

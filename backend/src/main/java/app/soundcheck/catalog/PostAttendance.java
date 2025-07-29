@@ -1,5 +1,6 @@
 package app.soundcheck.catalog;
 
+import java.util.Collection;
 import java.util.UUID;
 
 /**
@@ -13,9 +14,10 @@ public interface PostAttendance {
     /**
      * A post of the user's from the gig went live: they are marked WENT (source POST), an INTERESTED or
      * GOING mark included. A WENT stays as it is, so a mark the fan made stays theirs. Nothing happens for
-     * a gig whose day has not come on the UK calendar. Safe to repeat.
+     * a gig whose day has not come on the UK calendar. Safe to repeat. The acts their live clips are of
+     * count as seen, if the fan had unticked them: you filmed them, so you saw them.
      */
-    void postWentLive(UUID userId, UUID gigId);
+    void postWentLive(UUID userId, UUID gigId, Collection<UUID> actsFilmed);
 
     /**
      * The user has no live post of the gig any more: their WENT is removed if only posts made it (source

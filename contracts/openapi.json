@@ -1,6 +1,41 @@
 {
   "components" : {
     "schemas" : {
+      "ActsSeen" : {
+        "properties" : {
+          "missed" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "seen" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "missed", "seen" ],
+        "type" : "object"
+      },
+      "ActsSeenRequest" : {
+        "properties" : {
+          "artistIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 50,
+            "minItems" : 1,
+            "type" : "array"
+          }
+        },
+        "required" : [ "artistIds" ],
+        "type" : "object"
+      },
       "AddArtistRequest" : {
         "properties" : {
           "name" : {
@@ -496,6 +531,43 @@
         "required" : [ "password" ],
         "type" : "object"
       },
+      "EditGigRequest" : {
+        "properties" : {
+          "addArtistIds" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
+          "addArtistNames" : {
+            "items" : {
+              "maxLength" : 120,
+              "minLength" : 0,
+              "type" : "string"
+            },
+            "maxItems" : 10,
+            "minItems" : 0,
+            "type" : [ "array", "null" ]
+          },
+          "date" : {
+            "format" : "date",
+            "type" : [ "string", "null" ]
+          },
+          "startTime" : {
+            "example" : "19:30",
+            "format" : "time",
+            "type" : [ "string", "null" ]
+          },
+          "venueId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "EditPostRequest" : {
         "properties" : {
           "artistIds" : {
@@ -781,6 +853,10 @@
       },
       "GigDetail" : {
         "properties" : {
+          "addedByMe" : {
+            "description" : "The viewer added this gig: they may change its date and venue",
+            "type" : "boolean"
+          },
           "attendanceCounts" : {
             "$ref" : "#/components/schemas/AttendanceCounts"
           },
@@ -808,7 +884,7 @@
             "type" : "array"
           }
         },
-        "required" : [ "attendanceCounts", "gig", "lineup", "postsCount", "privatePostsCount", "sources" ],
+        "required" : [ "addedByMe", "attendanceCounts", "gig", "lineup", "postsCount", "privatePostsCount", "sources" ],
         "type" : "object"
       },
       "GigFilterAlertsRequest" : {
@@ -870,6 +946,14 @@
           "imageUrl" : {
             "type" : [ "string", "null" ]
           },
+          "myActsMissed" : {
+            "description" : "Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went",
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "type" : "array"
+          },
           "myAttendance" : {
             "enum" : [ "INTERESTED", "GOING", "WENT" ],
             "type" : [ "string", "null" ]
@@ -913,7 +997,7 @@
             "type" : "boolean"
           }
         },
-        "required" : [ "headliner", "id", "startsAt", "status", "support", "title", "userAdded", "venue", "wentUnconfirmed" ],
+        "required" : [ "headliner", "id", "myActsMissed", "startsAt", "status", "support", "title", "userAdded", "venue", "wentUnconfirmed" ],
         "type" : "object"
       },
       "HealthResponse" : {
@@ -3207,6 +3291,42 @@
         },
         "summary" : "Gig detail: line-up, attendance counts, sources",
         "tags" : [ "catalog" ]
+      },
+      "patch" : {
+        "operationId" : "editGig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/EditGigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "J9: add acts to the bill and fix the start time (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author",
+        "tags" : [ "catalog" ]
       }
     },
     "/api/v1/gigs/{id}/attendance" : {
@@ -3263,6 +3383,44 @@
           }
         },
         "summary" : "Mark Interested / Going / Went (idempotent)",
+        "tags" : [ "catalog" ]
+      }
+    },
+    "/api/v1/gigs/{id}/attendance/acts" : {
+      "put" : {
+        "operationId" : "setGigActsSeen",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ActsSeenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ActsSeen"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The acts on the bill you saw at a gig you went to (the rest count as missed); at least one",
         "tags" : [ "catalog" ]
       }
     },

@@ -156,7 +156,7 @@ class PostRulesIT extends IntegrationTest {
     }
 
     @Test
-    void anEmptyArtistListTagsNobodyAndALeftOutOneTagsTheBill() {
+    void anEmptyArtistListTagsNobodyAndALeftOutOneTagsTheClipsActs() {
         UUID headliner = data.artist("Top " + UUID.randomUUID());
         UUID gig = data.gig(
                 "Bill night", data.venue("YES " + UUID.randomUUID()), Instant.parse("2026-08-04T19:30:00Z"), headliner);
@@ -177,11 +177,31 @@ class PostRulesIT extends IntegrationTest {
                         .path("items")))
                 .isEmpty();
 
-        JsonNode bill = created(api.post(
+        // Left out: the clips' acts, no longer the gig's whole bill.
+        UUID other = data.gig(
+                "Other night",
+                data.venue("YES " + UUID.randomUUID()),
+                Instant.parse("2026-08-05T19:30:00Z"),
+                headliner);
+        JsonNode noAct = created(api.post(
                 "/api/v1/posts",
-                Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))), "gigId", gig),
+                Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))), "gigId", other),
                 author));
-        assertThat(ids(bill.path("artists"))).containsExactly(headliner.toString());
+        assertThat(noAct.path("artists").size()).isZero();
+        UUID third = data.gig(
+                "Third night",
+                data.venue("YES " + UUID.randomUUID()),
+                Instant.parse("2026-08-06T19:30:00Z"),
+                headliner);
+        JsonNode withAct = created(api.post(
+                "/api/v1/posts",
+                Map.of(
+                        "clips",
+                        List.of(Map.of("mediaId", data.video(author.id(), "READY"), "artistId", headliner)),
+                        "gigId",
+                        third),
+                author));
+        assertThat(ids(withAct.path("artists"))).containsExactly(headliner.toString());
     }
 
     @Test
