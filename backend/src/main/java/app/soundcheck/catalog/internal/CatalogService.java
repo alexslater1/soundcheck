@@ -407,6 +407,8 @@ public class CatalogService {
             }
         }
         List<GigRow> newestFirst = picked.values().stream()
+                // A cancelled gig did not happen: no clips come from it.
+                .filter(row -> !"CANCELLED".equals(row.status()))
                 .sorted(Comparator.comparing(GigRow::startsAt).reversed().thenComparing(GigRow::id))
                 .limit(30)
                 .toList();

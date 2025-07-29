@@ -47,6 +47,8 @@ public class PendingGigs {
                 .values()
                 .stream()
                 .filter(gig -> GigTime.dayHasCome(gig.startsAt(), now))
+                // An older Went may sit on a cancelled gig (no longer allowed): there are no clips to ask for.
+                .filter(gig -> !"CANCELLED".equals(gig.status()))
                 .sorted(Comparator.comparing(GigSummary::startsAt).reversed())
                 .limit(MAX)
                 .toList();

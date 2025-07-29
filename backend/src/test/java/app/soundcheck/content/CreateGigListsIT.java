@@ -90,6 +90,8 @@ class CreateGigListsIT extends IntegrationTest {
         UUID wentFar = data.gig("F " + tag, far, now.minus(Duration.ofDays(4)), unknown);
         UUID interestedNear = data.gig("G " + tag, far, now.minus(Duration.ofDays(3)), unknown);
         UUID goingFar = data.gig("H " + tag, far, now.minus(Duration.ofHours(5)), unknown);
+        UUID cancelledNear = data.gig("I " + tag, near, now.minus(Duration.ofDays(1)), followed);
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelledNear);
         mark(wentFar, "WENT");
         // Marked before those gigs (the API refuses Going and Interested once a gig is over).
         markedBefore(interestedNear, "INTERESTED");
@@ -103,7 +105,8 @@ class CreateGigListsIT extends IntegrationTest {
                         notFollowed.toString(),
                         followedOld.toString(),
                         followedLater.toString(),
-                        interestedNear.toString());
+                        interestedNear.toString(),
+                        cancelledNear.toString());
     }
 
     @Test
@@ -118,6 +121,10 @@ class CreateGigListsIT extends IntegrationTest {
         mark(lastWeek, "WENT");
         mark(posted, "WENT");
         markedBefore(going, "GOING");
+        // A Went from before the rules on a gig that was then cancelled: no clips to ask for.
+        UUID cancelled = data.gig("Cancelled " + tag, venue, now.minus(Duration.ofDays(1)), act);
+        mark(cancelled, "WENT");
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelled);
         assertThat(api.post(
                                 "/api/v1/posts",
                                 Map.of(

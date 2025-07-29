@@ -10,6 +10,9 @@ import app.soundcheck.ingestion.internal.source.SourceVenue;
 import app.soundcheck.support.IntegrationTest;
 import app.soundcheck.support.TestApi;
 import com.fasterxml.jackson.databind.JsonNode;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -149,6 +153,41 @@ class AttendanceTimeRulesIT extends IntegrationTest {
                         .path("gigs")
                         .asInt())
                 .isEqualTo(1);
+    }
+
+    @Test
+    void theMigrationTurnsAWentOnAGigStillToComeIntoGoing() throws IOException {
+        Instant now = Instant.now();
+        UUID future = gig("ahead", now.plus(Duration.ofDays(5)));
+        UUID past = gig("behind", now.minus(Duration.ofDays(5)));
+        UUID today = gig("now", GigTime.startOfToday(now).plus(Duration.ofMinutes(1)));
+        UUID cancelled = gig("off", now.plus(Duration.ofDays(6)));
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", cancelled);
+        // Stored before the rule, when the API took Went on any gig (one of them made by a post).
+        for (UUID gig : List.of(future, past, today, cancelled)) {
+            mark(fan, gig, "WENT");
+        }
+        dsl.execute(
+                "update catalog.gig_attendance set source = 'POST' where user_id = ? and gig_id = ?", fan.id(), future);
+
+        dsl.execute(migration("V102__catalog_went_before_the_day.sql"));
+
+        assertThat(stored(future)).isEqualTo("GOING USER");
+        assertThat(stored(past)).isEqualTo("WENT USER");
+        assertThat(stored(today)).as("on the day Went is allowed").isEqualTo("WENT USER");
+        assertThat(stored(cancelled)).isEqualTo("WENT USER");
+    }
+
+    private String stored(UUID gigId) {
+        var row = dsl.fetchOne(
+                "select status, source from catalog.gig_attendance where user_id = ? and gig_id = ?", fan.id(), gigId);
+        return row.get(0) + " " + row.get(1);
+    }
+
+    private static String migration(String name) throws IOException {
+        try (InputStream in = new ClassPathResource("db/migration/" + name).getInputStream()) {
+            return new String(in.readAllBytes(), StandardCharsets.UTF_8);
+        }
     }
 
     private ResponseEntity<JsonNode> put(UUID gigId, String status) {

@@ -231,6 +231,21 @@ class PostWentIT extends IntegrationTest {
     }
 
     @Test
+    void aCancelledGigCannotBePostedTo() {
+        UUID gig = pastGig(2);
+        dsl.execute("update catalog.gig set status = 'CANCELLED' where id = ?", gig);
+
+        ResponseEntity<JsonNode> refused = api.post(
+                "/api/v1/posts",
+                Map.of("clips", List.of(Map.of("mediaId", data.video(fan.id(), "READY"))), "gigId", gig),
+                fan);
+
+        assertThat(refused.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(refused.getBody().path("code").asText("")).isEqualTo("GIG_CANCELLED");
+        assertThat(attendance(gig)).isNull();
+    }
+
+    @Test
     void aGigThatHasStartedCanBePostedTo() {
         UUID tonight = data.gig("Keo " + tag, venue, Instant.now().minus(Duration.ofMinutes(5)), act);
 

@@ -18,7 +18,9 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { isGigList } from '@/features/gigs/AttendanceButtons';
+import { dayHasCome } from '@/features/gigs/attendance';
 import { formatGigDate } from '@/features/gigs/format';
+import { useEffectEvent } from '@/lib/useEffectEvent';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -197,7 +199,7 @@ export function CreateScreen() {
     setMarked(null);
     try {
       const saved = await attend.mutateAsync({ id: gig.id, data: { status: 'WENT' } });
-      setGig({ ...gig, myAttendance: saved.myAttendance });
+      setGig({ ...gig, myAttendance: saved.myAttendance, wentUnconfirmed: false });
       setMarked('Marked: you went. It is in your Pending list until you post clips from it.');
       void client.invalidateQueries({
         predicate: (query) =>
@@ -322,8 +324,9 @@ export function CreateScreen() {
                 </View>
               </View>
             ) : null}
-            {gig ? (
-              gig.myAttendance === 'WENT' && !marked ? (
+            {gig && dayHasCome(gig.startsAt) && gig.status !== 'CANCELLED' ? (
+              // Only once the gig's day has come; an assumed Went (a past Going) asks again.
+              gig.myAttendance === 'WENT' && !gig.wentUnconfirmed && !marked ? (
                 <Text variant="caption" muted testID="went-already">
                   You went. No clips? It stays in your Pending list.
                 </Text>

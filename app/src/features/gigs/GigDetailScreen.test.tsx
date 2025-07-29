@@ -275,6 +275,27 @@ describe('GigDetailScreen act bar', () => {
     expect(requested('/gigs/g1/posts')).toEqual([]);
   });
 
+  it('links to tickets before the gig, not after it', async () => {
+    const routed = fetchMock.getMockImplementation()!;
+    let startsAt = PAST;
+    fetchMock.mockImplementation(async (input, init) =>
+      new URL(String(input), 'http://x').pathname.endsWith('/gigs/g1')
+        ? json(200, {
+            ...DETAIL,
+            gig: { ...DETAIL.gig, startsAt, ticketUrl: 'https://tickets.example.com/g1' },
+          })
+        : routed(input, init),
+    );
+    const past = await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    expect(await screen.findByText('CLIPS FROM THIS GIG')).toBeOnTheScreen();
+    expect(screen.queryByText('Tickets')).toBeNull();
+    await past.unmount();
+
+    startsAt = new Date(Date.now() + 5 * 24 * 3600 * 1000).toISOString();
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    expect(await screen.findByText('Tickets')).toBeOnTheScreen();
+  });
+
   it('shows the clips and only "went" on a gig that is over', async () => {
     await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
     expect(await screen.findByText('CLIPS FROM THIS GIG')).toBeOnTheScreen();

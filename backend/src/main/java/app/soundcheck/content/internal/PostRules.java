@@ -195,6 +195,10 @@ class PostRules {
             throw ApiException.badRequest(
                     "GIG_NOT_HAPPENED", "Clips can be posted only from a gig that has happened or is on today");
         }
+        // A cancelled gig did not happen.
+        if (catalog.gigCancelled(gigId)) {
+            throw ApiException.badRequest("GIG_CANCELLED", "This gig was cancelled: there are no clips from it");
+        }
         LocalDate day = requested == null ? gigDay : requested;
         if (day.isBefore(gigDay) || day.isAfter(gigDay.plusDays(MAX_DAYS_AFTER)) || day.isAfter(today)) {
             throw ApiException.badRequest(

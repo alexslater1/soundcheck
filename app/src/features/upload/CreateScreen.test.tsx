@@ -44,6 +44,16 @@ const paleKites = {
   venue: { id: 'v', name: 'Band on the Wall' },
 };
 
+// A gig still to come (reached by search before the picker stopped at today, or by a link).
+const mockNextWeek = {
+  ...paleKites,
+  id: 'gig-2',
+  startsAt: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString(),
+};
+
+const mockAssumedWent = { ...paleKites, id: 'gig-3', myAttendance: 'WENT', wentUnconfirmed: true };
+const mockSaidWent = { ...paleKites, id: 'gig-4', myAttendance: 'WENT', wentUnconfirmed: false };
+
 jest.mock('./pickVideo', () => ({
   pickFromLibrary: () => mockPick(),
   recordWithCamera: () => mockPick(),
@@ -123,6 +133,17 @@ jest.mock('./GigPicker', () => {
             null,
             React.createElement(Text, { onPress: () => onChange(paleKites) }, 'pick-gig-stub'),
             React.createElement(Text, { onPress: () => onChange(festival) }, 'pick-festival-stub'),
+            React.createElement(
+              Text,
+              { onPress: () => onChange(mockNextWeek) },
+              'pick-future-stub',
+            ),
+            React.createElement(
+              Text,
+              { onPress: () => onChange(mockAssumedWent) },
+              'pick-assumed-stub',
+            ),
+            React.createElement(Text, { onPress: () => onChange(mockSaidWent) }, 'pick-went-stub'),
           ),
   };
 });
@@ -324,6 +345,26 @@ describe('CreateScreen', () => {
     expect(mockAttend).toHaveBeenCalledWith({ id: 'gig-1', data: { status: 'WENT' } });
     expect(await screen.findByTestId('was-there-done')).toHaveTextContent(/Pending list/);
     expect(mockSubmit).not.toHaveBeenCalled();
+  });
+
+  it('offers no "I was there" for a gig whose day has not come', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-future-stub'));
+    expect(screen.queryByTestId('was-there')).toBeNull();
+    expect(screen.queryByTestId('went-already')).toBeNull();
+  });
+
+  it('asks again about a Went assumed from a past Going', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-assumed-stub'));
+    expect(screen.getByTestId('was-there')).toBeOnTheScreen();
+  });
+
+  it('does not ask about a Went the fan said', async () => {
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-went-stub'));
+    expect(screen.queryByTestId('was-there')).toBeNull();
+    expect(screen.getByTestId('went-already')).toBeOnTheScreen();
   });
 
   it('a pending gig, or one picked on Me, becomes the post’s gig', async () => {

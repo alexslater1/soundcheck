@@ -21,7 +21,7 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { ActBar, billingLabel } from './ActBar';
 import { AttendanceButtons } from './AttendanceButtons';
-import { dayHasCome } from './attendance';
+import { dayHasCome, gigPhase } from './attendance';
 import { GigSetlist } from './GigSetlist';
 import { formatDistance, formatGigTime, formatPrice, statusLabel, ticketLabel } from './format';
 
@@ -79,6 +79,8 @@ export function GigDetailScreen({ id }: { id: string }) {
   const actIndex = acts.findIndex((artist) => artist.id === actId);
   const act = actIndex >= 0 ? acts[actIndex] : undefined;
   const happened = dayHasCome(gig.startsAt) && gig.status !== 'CANCELLED';
+  // Tickets until the night itself; none for a gig that is over or cancelled.
+  const onSale = gigPhase(gig.startsAt) !== 'over' && gig.status !== 'CANCELLED';
   return (
     <Screen>
       <ScrollView
@@ -128,7 +130,7 @@ export function GigDetailScreen({ id }: { id: string }) {
 
         <AttendanceButtons detail={data} />
 
-        {ticketUrl ? (
+        {ticketUrl && onSale ? (
           <Button
             title={ticketLabel(data.sources)}
             accessibilityRole="link"
