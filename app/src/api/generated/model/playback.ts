@@ -10,6 +10,7 @@ import type { PlaybackDurationMs } from './playbackDurationMs';
 import type { PlaybackHasAudio } from './playbackHasAudio';
 import type { PlaybackHeight } from './playbackHeight';
 import type { PlaybackHlsUrl } from './playbackHlsUrl';
+import type { PlaybackKind } from './playbackKind';
 import type { PlaybackPosterUrl } from './playbackPosterUrl';
 import type { PlaybackStatus } from './playbackStatus';
 import type { PlaybackThumbUrl } from './playbackThumbUrl';
@@ -21,6 +22,7 @@ export interface Playback {
   hasAudio?: PlaybackHasAudio;
   height?: PlaybackHeight;
   hlsUrl?: PlaybackHlsUrl;
+  kind?: PlaybackKind;
   posterUrl?: PlaybackPosterUrl;
   status: PlaybackStatus;
   thumbUrl?: PlaybackThumbUrl;

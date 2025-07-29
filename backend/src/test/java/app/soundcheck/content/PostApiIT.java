@@ -206,9 +206,10 @@ class PostApiIT extends IntegrationTest {
         UUID other = data.artist("Other " + UUID.randomUUID());
         UUID gig = data.gig("Lineup night", venue, Instant.parse("2026-08-02T19:30:00Z"), artist);
 
-        // Someone else's clip, an unknown id and an image all get the same answer.
+        // Someone else's clip, an unknown id and someone else's photo all get the same answer. (The
+        // author's own photo is a clip too: PostPhotosIT.)
         for (UUID notMine :
-                List.of(data.video(viewer.id(), "READY"), UUID.randomUUID(), data.image(author.id(), "READY"))) {
+                List.of(data.video(viewer.id(), "READY"), UUID.randomUUID(), data.image(viewer.id(), "READY"))) {
             assertThat(code(api.post("/api/v1/posts", Map.of("clips", List.of(Map.of("mediaId", notMine))), author)))
                     .isEqualTo("MEDIA_INVALID");
         }
