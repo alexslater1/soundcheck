@@ -8,6 +8,7 @@
 import type { EditGigRequestAddArtistIds } from './editGigRequestAddArtistIds';
 import type { EditGigRequestAddArtistNames } from './editGigRequestAddArtistNames';
 import type { EditGigRequestDate } from './editGigRequestDate';
+import type { EditGigRequestHeadlinerId } from './editGigRequestHeadlinerId';
 import type { EditGigRequestStartTime } from './editGigRequestStartTime';
 import type { EditGigRequestVenueId } from './editGigRequestVenueId';
 
@@ -23,6 +24,8 @@ export interface EditGigRequest {
    */
   addArtistNames?: EditGigRequestAddArtistNames;
   date?: EditGigRequestDate;
+  /** J22: the act on the bill that headlined (Going or Went) */
+  headlinerId?: EditGigRequestHeadlinerId;
   startTime?: EditGigRequestStartTime;
   venueId?: EditGigRequestVenueId;
 }

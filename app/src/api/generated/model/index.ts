@@ -65,6 +65,7 @@ export * from './editGigRequest';
 export * from './editGigRequestAddArtistIds';
 export * from './editGigRequestAddArtistNames';
 export * from './editGigRequestDate';
+export * from './editGigRequestHeadlinerId';
 export * from './editGigRequestStartTime';
 export * from './editGigRequestVenueId';
 export * from './editPostRequest';

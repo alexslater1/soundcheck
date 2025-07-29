@@ -83,6 +83,32 @@ describe('EditGigDetails', () => {
     );
   });
 
+  it('says which act headlined', async () => {
+    const twoActs = {
+      ...detail('WENT'),
+      lineup: [
+        { id: 'keo', name: 'KEO', genres: [], isFollowing: false },
+        { id: 'tooth', name: 'Tooth', genres: [], isFollowing: false },
+      ],
+    } as unknown as GigDetail;
+    await show(twoActs);
+    await fireEvent.press(screen.getByTestId('edit-gig-open'));
+    expect(screen.getByText('Who headlined?')).toBeTruthy();
+    await fireEvent.press(screen.getByText('Tooth'));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.at(-1)![1]?.body).toBe(JSON.stringify({ headlinerId: 'tooth' })),
+    );
+    expect(await screen.findByTestId('edit-gig-done')).toHaveTextContent(
+      'Tooth is now the headliner.',
+    );
+  });
+
+  it('asks no headliner question when the bill has one act', async () => {
+    await show(detail('GOING'));
+    await fireEvent.press(screen.getByTestId('edit-gig-open'));
+    expect(screen.queryByText('Who headlined?')).toBeNull();
+  });
+
   it('shows nothing to a fan who is only interested', async () => {
     await show(detail('INTERESTED'));
     expect(screen.queryByTestId('edit-gig-open')).toBeNull();

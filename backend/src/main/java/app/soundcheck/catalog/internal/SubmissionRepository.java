@@ -9,6 +9,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
 import app.soundcheck.shared.Ids;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -66,6 +67,42 @@ class SubmissionRepository {
                                 .from(VENUE)
                                 .where(VENUE.ID.eq(venueId))
                                 .asField()))
+                .set(GIG.UPDATED_AT, now.atOffset(ZoneOffset.UTC))
+                .where(GIG.ID.eq(gigId))
+                .execute();
+    }
+
+    /**
+     * The act becomes the headliner (billing order 0); the rest keep their order after
+     * it, each keeping who added it. Expected index: the {@code gig_artist} primary key (gig first).
+     */
+    void setHeadliner(UUID gigId, UUID artistId) {
+        var bill = dsl.select(GIG_ARTIST.ARTIST_ID, GIG_ARTIST.ADDED_BY)
+                .from(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                .orderBy(GIG_ARTIST.BILLING_ORDER)
+                .fetch();
+        short order = 1;
+        for (var act : bill) {
+            dsl.update(GIG_ARTIST)
+                    .set(GIG_ARTIST.BILLING_ORDER, act.value1().equals(artistId) ? 0 : order++)
+                    .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                    .and(GIG_ARTIST.ARTIST_ID.eq(act.value1()))
+                    .execute();
+        }
+    }
+
+    /** Acts' names by id. Expected index: the artist primary key. */
+    Map<UUID, String> artistNames(List<UUID> artistIds) {
+        return dsl.select(ARTIST.ID, ARTIST.NAME)
+                .from(ARTIST)
+                .where(ARTIST.ID.in(artistIds))
+                .fetchMap(ARTIST.ID, ARTIST.NAME);
+    }
+
+    void setTitle(UUID gigId, String title, Instant now) {
+        dsl.update(GIG)
+                .set(GIG.TITLE, title)
                 .set(GIG.UPDATED_AT, now.atOffset(ZoneOffset.UTC))
                 .where(GIG.ID.eq(gigId))
                 .execute();

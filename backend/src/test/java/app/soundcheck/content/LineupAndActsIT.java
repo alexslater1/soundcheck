@@ -148,6 +148,44 @@ class LineupAndActsIT extends IntegrationTest {
                 .containsExactlyInAnyOrder("DATE", "VENUE");
     }
 
+    // ── which act headlined ─────────────────────────────────────────────────────────────────────
+
+    @Test
+    void someoneGoingSaysWhichActHeadlinedAndATitleThatWasTheOldHeadlinerFollows() {
+        Instant at = LocalDate.now(GigTime.UK)
+                .plusDays(5)
+                .atTime(19, 0)
+                .atZone(GigTime.UK)
+                .toInstant();
+        UUID gig = data.gig("KEO " + tag, venue, at, keo, tooth);
+        UUID other = data.artist("Not On The Bill " + tag);
+        Map<String, Object> toothHeadlines = Map.of("headlinerId", tooth);
+
+        assertProblem(api.patch(path(gig), toothHeadlines, fan), HttpStatus.FORBIDDEN, "NOT_ATTENDING");
+        ok(api.put(path(gig) + "/attendance", Map.of("status", "GOING"), fan));
+        assertProblem(
+                api.patch(path(gig), Map.of("headlinerId", other), fan), HttpStatus.BAD_REQUEST, "ACT_NOT_ON_BILL");
+
+        JsonNode edited = ok(api.patch(path(gig), toothHeadlines, fan));
+
+        assertThat(names(edited.path("lineup"))).containsExactly("Tooth " + tag, "KEO " + tag);
+        assertThat(edited.path("gig").path("title").asText("")).isEqualTo("Tooth " + tag);
+        assertThat(dsl.fetch(
+                                "select field, old_value, new_value from catalog.gig_edit where gig_id = ?"
+                                        + " order by created_at, field",
+                                gig)
+                        .map(r -> r.get(0) + " " + r.get(1) + " " + r.get(2)))
+                .containsExactly("HEADLINER " + keo + " " + tooth, "TITLE KEO " + tag + " Tooth " + tag);
+
+        // The same headliner again changes and logs nothing; an act added in the same edit may headline.
+        ok(api.patch(path(gig), toothHeadlines, fan));
+        assertThat(dsl.fetchCount(dsl.selectFrom("catalog.gig_edit").where("gig_id = ?", gig)))
+                .isEqualTo(2);
+        UUID late = data.artist("Late Addition " + tag);
+        JsonNode both = ok(api.patch(path(gig), Map.of("addArtistIds", List.of(late), "headlinerId", late), fan));
+        assertThat(names(both.path("lineup"))).containsExactly("Late Addition " + tag, "Tooth " + tag, "KEO " + tag);
+    }
+
     // ── the acts you saw ────────────────────────────────────────────────────────────────────────
 
     @Test

@@ -564,6 +564,11 @@
             "format" : "date",
             "type" : [ "string", "null" ]
           },
+          "headlinerId" : {
+            "description" : "J22: the act on the bill that headlined (Going or Went)",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
           "startTime" : {
             "example" : "19:30",
             "format" : "time",
@@ -3514,7 +3519,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "J9: add acts to the bill and fix the start time (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author",
+        "summary" : "J9: add acts to the bill, fix the start time and (J22) say which act headlined (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author",
         "tags" : [ "catalog" ]
       }
     },

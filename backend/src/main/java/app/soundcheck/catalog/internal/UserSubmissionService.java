@@ -166,7 +166,8 @@ public class UserSubmissionService {
             @Nullable List<String> addArtistNames,
             @Nullable LocalTime startTime,
             @Nullable LocalDate date,
-            @Nullable UUID venueId) {}
+            @Nullable UUID venueId,
+            @Nullable UUID headlinerId) {}
 
     /**
      * {@code PATCH /gigs/{id}}. Anyone whose mark reads Going or Went adds acts and fixes the
@@ -197,6 +198,9 @@ public class UserSubmissionService {
             if (submissions.addAct(gigId, act, userId)) {
                 submissions.logEdit(gigId, userId, "ACT_ADDED", null, act.toString(), now);
             }
+        }
+        if (edit.headlinerId() != null) {
+            setHeadliner(userId, gigId, edit.headlinerId(), now);
         }
         LocalDate day = gig.startsAt().atZone(UK).toLocalDate();
         LocalTime time = gig.startsAt().atZone(UK).toLocalTime();
@@ -237,6 +241,37 @@ public class UserSubmissionService {
             }
         }
         return views.gig(userId, gigId, null);
+    }
+
+    /**
+     * The act, already on the bill (an act added in the same edit counts), headlines;
+     * a title that was the old headliner's name becomes the new one's. A source that lists the gig
+     * again rebuilds its bill in its own order, as it does for every listed gig.
+     */
+    private void setHeadliner(UUID userId, UUID gigId, UUID artistId, Instant now) {
+        List<CatalogReadRepository.LineupEntry> bill = reads.lineups(List.of(gigId));
+        if (bill.stream().noneMatch(entry -> entry.artistId().equals(artistId))) {
+            throw ApiException.badRequest("ACT_NOT_ON_BILL", "The headliner must be on the gig's bill");
+        }
+        UUID before = bill.stream()
+                .filter(entry -> entry.billingOrder() == 0)
+                .map(CatalogReadRepository.LineupEntry::artistId)
+                .findFirst()
+                .orElse(null);
+        if (artistId.equals(before)) {
+            return;
+        }
+        submissions.setHeadliner(gigId, artistId);
+        submissions.logEdit(
+                gigId, userId, "HEADLINER", before == null ? null : before.toString(), artistId.toString(), now);
+        String title = reads.gig(gigId, null).orElseThrow().title();
+        Map<UUID, String> names =
+                submissions.artistNames(before == null ? List.of(artistId) : List.of(before, artistId));
+        if (before != null && title.equalsIgnoreCase(names.getOrDefault(before, ""))) {
+            String renamed = names.get(artistId);
+            submissions.setTitle(gigId, renamed, now);
+            submissions.logEdit(gigId, userId, "TITLE", title, renamed, now);
+        }
     }
 
     /** {@code POST /gigs}: the gig, added when no gig at that venue that night matches. */

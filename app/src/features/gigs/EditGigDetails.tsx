@@ -39,9 +39,10 @@ export function parseDate(text: string): string | null {
 }
 
 /**
- * "Fix the details" on a gig page: anyone Going or who went adds an act to the bill (a
- * support act the listing missed, say) and fixes the start time; the fan who added the gig also changes
- * its date and venue. The server logs every edit with its author. Folded until opened.
+ * "Fix the details" on a gig page: anyone Going or who went adds an act to the bill (a support act
+ * the listing missed, say), says which act headlined and fixes the start time; the fan who added the
+ * gig also changes its date and venue. The server logs every edit with its author. Folded until
+ * opened.
  */
 export function EditGigDetails({ detail }: { detail: GigDetail }) {
   const { colors } = useTheme();
@@ -148,6 +149,27 @@ export function EditGigDetails({ detail }: { detail: GigDetail }) {
             }
           />
         </View>
+      ) : null}
+
+      {detail.lineup.length > 1 ? (
+        <>
+          <Text variant="caption" muted>
+            Who headlined?
+          </Text>
+          <View style={styles.row} testID="edit-gig-headliner">
+            {detail.lineup.map((act, i) => (
+              <Chip
+                key={act.id}
+                label={act.name}
+                selected={i === 0}
+                disabled={edit.isPending || i === 0}
+                onPress={() =>
+                  void send({ headlinerId: act.id }, `${act.name} is now the headliner.`)
+                }
+              />
+            ))}
+          </View>
+        </>
       ) : null}
 
       <View style={styles.inline}>

@@ -514,7 +514,7 @@ export const getGigResponse = zod.object({
 })
 
 /**
- * @summary J9: add acts to the bill and fix the start time (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author
+ * @summary J9: add acts to the bill, fix the start time and (J22) say which act headlined (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author
  */
 export const editGigParams = zod.object({
   "id": zod.string().uuid()
@@ -535,6 +535,7 @@ export const editGigBody = zod.object({
   "addArtistIds": zod.array(zod.string().uuid()).min(editGigBodyAddArtistIdsMin).max(editGigBodyAddArtistIdsMax).nullish(),
   "addArtistNames": zod.array(zod.string().min(editGigBodyAddArtistNamesItemMin).max(editGigBodyAddArtistNamesItemMax)).min(editGigBodyAddArtistNamesMin).max(editGigBodyAddArtistNamesMax).nullish(),
   "date": zod.string().date().nullish(),
+  "headlinerId": zod.string().uuid().nullish().describe('J22: the act on the bill that headlined (Going or Went)'),
   "startTime": zod.string().nullish(),
   "venueId": zod.string().uuid().nullish()
 })
