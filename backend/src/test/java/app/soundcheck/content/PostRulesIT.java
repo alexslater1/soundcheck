@@ -177,12 +177,14 @@ class PostRulesIT extends IntegrationTest {
                         .path("items")))
                 .isEmpty();
 
-        // Left out: the clips' acts, no longer the gig's whole bill.
+        // Left out: the clips' acts, no longer the gig's whole bill. Two acts and a clip of
+        // neither: no act (on a single-act gig the clip would take that act).
         UUID other = data.gig(
                 "Other night",
                 data.venue("YES " + UUID.randomUUID()),
                 Instant.parse("2026-08-05T19:30:00Z"),
-                headliner);
+                headliner,
+                data.artist("Support " + UUID.randomUUID()));
         JsonNode noAct = created(api.post(
                 "/api/v1/posts",
                 Map.of("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))), "gigId", other),

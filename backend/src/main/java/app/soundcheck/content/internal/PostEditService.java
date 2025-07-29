@@ -107,6 +107,7 @@ public class PostEditService {
             throw PostService.notFound();
         }
         rules.checkNewClips(actorId, added);
+        added = rules.withSoleAct(post.gigId(), null, added);
         rules.checkRoom(clips.of(postId), actorId, added);
         Instant now = Instant.now(clock);
         try {

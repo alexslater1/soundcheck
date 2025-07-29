@@ -204,6 +204,27 @@ class PostRules {
         return day;
     }
 
+    /**
+     * A clip with no act takes the post's one act, when there is exactly one: the single
+     * act given in {@code artistIds}, or, when the field is left out, a single-act gig's act (V105 did the
+     * same for older clips). It is then on that act's page. Otherwise the clip waits for its author.
+     */
+    List<NewClip> withSoleAct(@Nullable UUID gigId, @Nullable List<UUID> artistIds, List<NewClip> newClips) {
+        if (newClips.stream().allMatch(clip -> clip.artistId() != null)) {
+            return newClips;
+        }
+        List<UUID> candidates = artistIds != null
+                ? List.copyOf(new LinkedHashSet<>(artistIds))
+                : gigId == null ? List.of() : catalogViews.lineup(gigId);
+        if (candidates.size() != 1) {
+            return newClips;
+        }
+        UUID sole = candidates.getFirst();
+        return newClips.stream()
+                .map(clip -> clip.artistId() == null ? new NewClip(clip.mediaId(), sole, clip.previewMediaId()) : clip)
+                .toList();
+    }
+
     /** People the author may tag: up to {@value #MAX_TAGGED}, each someone they follow, with no block. */
     List<UUID> checkTaggable(UUID authorId, @Nullable List<UUID> requested) {
         if (requested == null || requested.isEmpty()) {
