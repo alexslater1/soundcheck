@@ -1,11 +1,13 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 
-import { recordWithCamera, result, toPicked } from './pickVideo';
+import { pickFromLibrary, recordWithCamera, result, toPicked } from './pickVideo';
 
 const mockLaunchCamera = jest.fn();
+const mockLaunchLibrary = jest.fn();
 jest.mock('expo-image-picker', () => ({
   requestCameraPermissionsAsync: async () => ({ granted: true }),
   launchCameraAsync: (options: unknown) => mockLaunchCamera(options),
+  launchImageLibraryAsync: (options: unknown) => mockLaunchLibrary(options),
 }));
 
 const asset = (overrides: Partial<ImagePickerAsset> = {}): ImagePickerAsset => ({
@@ -53,6 +55,41 @@ describe('toPicked', () => {
   });
 });
 
+describe('toPicked for a photo', () => {
+  it('keeps its type and size and gives it no length', () => {
+    expect(
+      toPicked(
+        asset({
+          type: 'image',
+          uri: 'file:///DCIM/crowd.jpg',
+          fileName: 'crowd.jpg',
+          mimeType: 'image/jpeg',
+          fileSize: 3_000_000,
+          width: 4000,
+          height: 3000,
+          duration: null,
+        }),
+        'android',
+      ),
+    ).toEqual({
+      uri: 'file:///DCIM/crowd.jpg',
+      fileName: 'crowd.jpg',
+      contentType: 'image/jpeg',
+      bytes: 3_000_000,
+      durationMs: null,
+      width: 4000,
+      height: 3000,
+    });
+  });
+
+  it('calls a photo with no reported type a JPEG, not a video', () => {
+    expect(toPicked(asset({ type: 'image', mimeType: undefined }), 'web')).toMatchObject({
+      contentType: 'image/jpeg',
+      durationMs: null,
+    });
+  });
+});
+
 describe('result', () => {
   it('returns every picked video in order, or cancelled', () => {
     const picked = result(
@@ -78,5 +115,21 @@ describe('recordWithCamera', () => {
     expect(mockLaunchCamera).toHaveBeenCalledWith(
       expect.objectContaining({ mediaTypes: ['videos'], videoMaxDuration: 180 }),
     );
+  });
+});
+
+describe('pickFromLibrary', () => {
+  it('offers photos as well as videos, several at once, as stored', async () => {
+    mockLaunchLibrary.mockResolvedValue({ canceled: true, assets: null });
+
+    expect(await pickFromLibrary()).toEqual({ kind: 'cancelled' });
+    const options = mockLaunchLibrary.mock.calls[0]![0] as Record<string, unknown>;
+    expect(options).toMatchObject({
+      mediaTypes: ['images', 'videos'],
+      allowsMultipleSelection: true,
+      selectionLimit: 10,
+    });
+    // Quality 1 (the default): the picker hands over the file itself, so its size is what is sent.
+    expect(options.quality).toBeUndefined();
   });
 });

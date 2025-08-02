@@ -99,9 +99,9 @@ class PostRules {
     // ── what may go in ───────────────────────────────────────────────────────────────────────────
 
     /**
-     * Checks clips the owner announces: each media (when given) is a video of theirs whose upload is
-     * complete, that can still play and is in no post yet; each preview is a ready image of theirs; each
-     * act exists.
+     * Checks clips the owner announces: each media (when given) is a video or a photo of
+     * theirs whose upload is complete, that can still be shown and is in no post yet; each preview is a
+     * ready image of theirs; each act exists.
      */
     void checkNewClips(UUID ownerId, List<NewClip> requested) {
         if (requested.isEmpty()) {
@@ -128,12 +128,16 @@ class PostRules {
                         .toList());
     }
 
-    /** The clip may be attached to a slot of the owner's. */
+    /**
+     * The clip may be attached to a slot of the owner's. A slot holds a video or a
+     * photo: an image is READY once its upload is complete, so a photo makes its post live at once.
+     */
     MediaInfo checkMedia(UUID ownerId, UUID mediaId) {
-        // One answer for "no such clip", "not yours" and "not a video": ids cannot be probed.
+        // One answer for "no such clip" and "not yours": ids cannot be probed.
         MediaInfo clip = media.find(mediaId)
-                .filter(m -> m.ownerId().equals(ownerId) && m.video())
-                .orElseThrow(() -> ApiException.badRequest("MEDIA_INVALID", "mediaId must be a video you uploaded"));
+                .filter(m -> m.ownerId().equals(ownerId))
+                .orElseThrow(() ->
+                        ApiException.badRequest("MEDIA_INVALID", "mediaId must be a video or photo you uploaded"));
         if (clip.status().equals("AWAITING_UPLOAD")) {
             throw ApiException.conflict("MEDIA_NOT_UPLOADED", "Complete the upload before posting it");
         }

@@ -86,10 +86,50 @@ class ImageScrubTest {
         assertThat(contains(served, SECRET)).isFalse();
         BufferedImage image = ImageIO.read(new ByteArrayInputStream(served));
         assertThat(image.getWidth()).isEqualTo(ImageScrub.MAX_EDGE);
-        assertThat(image.getHeight()).isEqualTo(341);
+        assertThat(image.getHeight()).isEqualTo(Math.round(ImageScrub.MAX_EDGE / 3f));
         // A small image is not scaled up.
         BufferedImage small = ImageIO.read(new ByteArrayInputStream(scrub(png(cornered(64, 48)), "image/png")));
         assertThat(small.getWidth()).isEqualTo(64);
+    }
+
+    @Test
+    void aPhotoGetsAThumbnailItsUprightSizeAndABlurHash() throws Exception {
+        // A phone photo stored sideways (orientation 6), larger than the served edge.
+        byte[] jpeg = withExif(jpeg(cornered(4000, 3000)), 6, ByteOrder.BIG_ENDIAN);
+        Path in = dir.resolve("photo.jpg");
+        Path out = dir.resolve("photo.out");
+        Path thumb = dir.resolve("photo.thumb");
+        Files.write(in, jpeg);
+
+        ImageScrub.Served served = ImageScrub.scrub(in, "image/jpeg", out, thumb);
+
+        // Upright and fitted: portrait, the long edge at the maximum, and the facts say the same.
+        BufferedImage image = ImageIO.read(out.toFile());
+        assertThat(image.getHeight()).isEqualTo(ImageScrub.MAX_EDGE);
+        assertThat(image.getWidth()).isEqualTo(1200);
+        assertThat(served).isNotNull();
+        assertThat(served.width()).isEqualTo(1200);
+        assertThat(served.height()).isEqualTo(ImageScrub.MAX_EDGE);
+        assertThat(served.blurhash()).hasSizeGreaterThanOrEqualTo(6);
+        // The thumbnail is the same picture, small, and as clean.
+        byte[] small = Files.readAllBytes(thumb);
+        BufferedImage thumbnail = ImageIO.read(new ByteArrayInputStream(small));
+        assertThat(thumbnail.getHeight()).isEqualTo(ImageScrub.THUMB_EDGE);
+        assertThat(thumbnail.getWidth()).isEqualTo(360);
+        assertThat(contains(small, SECRET)).isFalse();
+    }
+
+    @Test
+    void aWebpIsServedWithoutThumbnailOrFacts() throws Exception {
+        byte[] webp = riff(chunk("VP8 ", "VP8-bytes!".getBytes(StandardCharsets.US_ASCII)));
+        Path in = dir.resolve("in.webp");
+        Path out = dir.resolve("out.webp");
+        Path thumb = dir.resolve("thumb.webp");
+        Files.write(in, webp);
+
+        assertThat(ImageScrub.scrub(in, "image/webp", out, thumb)).isNull();
+        assertThat(Files.readAllBytes(out)).isEqualTo(webp);
+        assertThat(thumb).doesNotExist();
     }
 
     @Test
@@ -127,7 +167,7 @@ class ImageScrubTest {
         Files.write(in, file);
         Files.deleteIfExists(out);
         Files.createFile(out);
-        ImageScrub.scrub(in, contentType, out);
+        ImageScrub.scrub(in, contentType, out, dir.resolve("thumb"));
         return Files.readAllBytes(out);
     }
 

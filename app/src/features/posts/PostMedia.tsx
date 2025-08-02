@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import type { Post, PostClip } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { PhotoSlide } from '@/features/player/PhotoSlide';
 import { PROCESSING_HINT } from '@/features/player/processing';
 import type { TapPoint } from '@/features/player/tapGesture';
 import type { PlaybackProgress } from '@/features/player/types';
@@ -52,10 +53,11 @@ export function aspectOf(post: Post): number {
 type Burst = { id: number; x: number; y: number };
 
 /**
- * One clip of a post: the player when it is ready, a note while it is on its way (its preview frame,
- * blurred, behind it) or when it failed. While
- * the clip is the active one, what the viewer watches is reported: the start, each quarter, the end.
- * A double tap on a published clip likes the post and pops a heart where the finger was (H5).
+ * One clip of a post: the player when it is ready (or the photo), a note while it is on its way
+ * (its preview frame, blurred, behind it) or when it failed. While the clip is the active one, what the
+ * viewer watches is reported: the start, each quarter, the end; for a photo, its time on screen stands
+ * in for watch time (`useLookTime`). A double tap on a published clip likes the post and pops a
+ * heart where the finger was.
  */
 export function PostMedia({
   post,
@@ -108,6 +110,24 @@ export function PostMedia({
     [],
   );
 
+  if (playback.status === 'READY' && playback.kind === 'IMAGE' && playback.posterUrl) {
+    return (
+      <View>
+        <PhotoSlide
+          testID="post-photo"
+          playback={playback}
+          aspectRatio={aspectRatio}
+          active={active}
+          rounded={rounded ?? frameAspect === undefined}
+          onDoubleTap={post.status === 'PUBLISHED' ? onDoubleTap : undefined}
+          onProgress={onProgress}
+        />
+        {bursts.map((burst) => (
+          <HeartBurst key={burst.id} x={burst.x} y={burst.y} onDone={() => dropBurst(burst.id)} />
+        ))}
+      </View>
+    );
+  }
   if (playback.status === 'READY' && playback.hlsUrl) {
     return (
       <View>

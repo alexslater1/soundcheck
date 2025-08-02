@@ -228,6 +228,7 @@ export * from './playbackDurationMs';
 export * from './playbackHasAudio';
 export * from './playbackHeight';
 export * from './playbackHlsUrl';
+export * from './playbackKind';
 export * from './playbackPosterUrl';
 export * from './playbackStatus';
 export * from './playbackThumbUrl';

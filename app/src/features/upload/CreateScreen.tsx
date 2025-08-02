@@ -32,6 +32,7 @@ import { billOf } from './composeDraft';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
 import { PendingGigs } from './PendingGigs';
+import { PhotoPreview } from './PhotoPreview';
 import { pickFromLibrary, type PickResult } from './pickVideo';
 import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, postHint, runningOrder } from './postPlan';
 import { RecordClipButton } from './RecordClipButton';
@@ -47,7 +48,7 @@ import {
   startUpload,
   submitPost,
 } from './uploadRunner';
-import { CLIP_LENGTH, problemWith } from './validate';
+import { CLIP_LENGTH, isPhoto, problemWith } from './validate';
 
 export { CREATE_ROUTE } from './routes';
 
@@ -174,13 +175,17 @@ export function CreateScreen() {
           refusals.push(several ? `${video.fileName ?? 'A clip'}: ${refused}` : refused);
           continue;
         }
-        // Queued unprepared: the queue decides about compressing, in the background (G20).
+        // Queued unprepared: the queue decides about compressing, in the background. A photo goes
+        // up as it is, prepared, and needs no preview frame: it is ready once uploaded.
+        const photo = isPhoto(video);
         const localId = useUploadQueue
           .getState()
-          .enqueue(ownerId, video, { platform: Platform.OS }, false, false);
+          .enqueue(ownerId, video, { platform: Platform.OS }, false, photo);
         void startUpload(localId);
-        // The frame shown blurred while the clip is on its way; never waited for.
-        void makePreview(localId);
+        if (!photo) {
+          // The frame shown blurred while the clip is on its way; never waited for.
+          void makePreview(localId);
+        }
         queued.push(localId);
       }
       if (refusals.length > 0) {
@@ -188,7 +193,7 @@ export function CreateScreen() {
       }
       setComposing((current) => [...current, ...queued]);
     } catch {
-      setProblem('That video could not be opened. Try another one.');
+      setProblem('That file could not be opened. Try another one.');
     }
   };
 
@@ -350,8 +355,8 @@ export function CreateScreen() {
 
         <Step title="Your clips" done={composingEntries.length > 0}>
           <Text variant="caption" muted>
-            Up to {CLIP_LENGTH} each, up to {MAX_CLIPS_PER_ACT} of each act. They upload while you
-            write.
+            Videos up to {CLIP_LENGTH} each, photos up to 10 MB, up to {MAX_CLIPS_PER_ACT} of each
+            act. They upload while you write.
           </Text>
           {composingEntries.length > 0 ? (
             <ScrollView
@@ -364,7 +369,11 @@ export function CreateScreen() {
                 const act = actOf(entry.localId);
                 return (
                   <View key={entry.localId} style={styles.preview}>
-                    <ClipPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
+                    {isPhoto(entry) ? (
+                      <PhotoPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
+                    ) : (
+                      <ClipPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
+                    )}
                     <View style={styles.previewFoot}>
                       <Text variant="label" muted numberOfLines={1} style={styles.grow}>
                         {stateLabel(entry)}
@@ -424,7 +433,7 @@ export function CreateScreen() {
           ) : null}
           <View style={styles.buttons}>
             <Button
-              title={composingEntries.length > 0 ? 'Add more videos' : 'Choose videos'}
+              title={composingEntries.length > 0 ? 'Add more' : 'Choose videos or photos'}
               variant={composingEntries.length > 0 ? 'secondary' : 'primary'}
               onPress={() => void add(pickFromLibrary)}
               testID="choose-video"

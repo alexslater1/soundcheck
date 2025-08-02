@@ -216,15 +216,25 @@ public class UploadService {
     }
 
     /**
-     * An image checked and cleaned before the lock: its size in storage, and either the key its served
-     * copy was stored at or why it was refused ({@code tooLarge} or {@code problem}).
+     * An image checked and cleaned before the lock: its size in storage, and either the keys its served
+     * copy and thumbnail were stored at (with what decoding it found) or why it was refused
+     * ({@code tooLarge} or {@code problem}).
      */
     private record PreparedImage(
-            long bytes, boolean tooLarge, String prefix, String imageKey, @Nullable String problem) {
+            long bytes,
+            boolean tooLarge,
+            String prefix,
+            String imageKey,
+            String thumbKey,
+            ImageScrub.@Nullable Served served,
+            @Nullable String problem) {
         boolean stored() {
             return !tooLarge && problem == null;
         }
     }
+
+    /** What storing the served copy gave: its decoded facts (null for a WebP), or why it was refused. */
+    private record Stored(ImageScrub.@Nullable Served served, @Nullable String problem) {}
 
     private PreparedImage prepareImage(MediaAsset asset, List<CompletedPart> parts) {
         if (asset.uploadStrategy().equals("MULTIPART")) {
@@ -233,20 +243,32 @@ public class UploadService {
         ObjectStorage.ObjectHead head = storage.head(asset.originalKey())
                 .orElseThrow(() -> ApiException.badRequest("UPLOAD_INCOMPLETE", "Nothing has been uploaded yet"));
         String prefix = "media/" + asset.id() + "/v1/";
-        String imageKey = prefix + "image." + IMAGE_TYPES.get(asset.contentType());
+        String extension = IMAGE_TYPES.get(asset.contentType());
+        String imageKey = prefix + "image." + extension;
+        String thumbKey = prefix + "thumb." + extension;
         if (head.contentLength() > properties.maxImageSize().toBytes()) {
-            return new PreparedImage(head.contentLength(), true, prefix, imageKey, null);
+            return new PreparedImage(head.contentLength(), true, prefix, imageKey, thumbKey, null, null);
         }
-        // Images (avatars) need no transcoding, but nothing is served unchecked or as uploaded: the bytes
-        // must be an image of the declared type, and what is served is a copy without
-        // the file's metadata (a photo's EXIF holds the camera, the time and often the GPS position).
-        return new PreparedImage(head.contentLength(), false, prefix, imageKey, storeServedImage(asset, imageKey));
+        // Images (avatars, photos in posts) need no transcoding, but nothing is served unchecked or as
+        // uploaded: the bytes must be an image of the declared type, and what is served
+        // is a copy without the file's metadata (a photo's EXIF holds the camera, the time and often the
+        // GPS position). A WebP is not decoded, so it is its own thumbnail.
+        Stored stored = storeServedImage(asset, imageKey, thumbKey);
+        return new PreparedImage(
+                head.contentLength(),
+                false,
+                prefix,
+                imageKey,
+                stored.served() != null ? thumbKey : imageKey,
+                stored.served(),
+                stored.problem());
     }
 
     private void discardServedCopy(@Nullable PreparedImage image) {
         if (image != null && image.stored()) {
             try {
                 storage.delete(image.imageKey());
+                storage.delete(image.thumbKey());
             } catch (RuntimeException e) {
                 // An orphaned copy under media/ is harmless; the original error matters more.
             }
@@ -298,7 +320,7 @@ public class UploadService {
             return Outcome.refuse(
                     "REJECTED", ApiException.badRequest("IMAGE_INVALID", "The uploaded file is not a valid image"));
         }
-        assets.markImageReady(asset.id(), image.prefix(), image.imageKey(), now);
+        assets.markImageReady(asset.id(), image.prefix(), image.imageKey(), image.thumbKey(), image.served(), now);
         return Outcome.answer("READY");
     }
 
@@ -336,33 +358,41 @@ public class UploadService {
 
     /**
      * Downloads the (at most 10 MB) image, checks its header, and stores the scrubbed copy
-     * ({@link ImageScrub}) at {@code imageKey}. Returns why the image was refused, or null.
+     * ({@link ImageScrub}) at {@code imageKey} and, when it could be decoded, its thumbnail at
+     * {@code thumbKey}.
      */
-    private @Nullable String storeServedImage(MediaAsset asset, String imageKey) {
+    private Stored storeServedImage(MediaAsset asset, String imageKey, String thumbKey) {
         Path original = null;
         Path served = null;
+        Path thumb = null;
         try {
             original = Files.createTempFile("soundcheck-image-", ".bin");
             Files.delete(original); // the storage client writes the file itself and refuses an existing one
             storage.getToFile(asset.originalKey(), original);
             String problem = ImageCheck.problem(original, asset.contentType());
             if (problem != null) {
-                return problem;
+                return new Stored(null, problem);
             }
             served = Files.createTempFile("soundcheck-image-", ".out");
+            thumb = Files.createTempFile("soundcheck-thumb-", ".out");
+            ImageScrub.Served facts;
             try {
-                ImageScrub.scrub(original, asset.contentType(), served);
+                facts = ImageScrub.scrub(original, asset.contentType(), served, thumb);
             } catch (IOException | RuntimeException e) {
                 // A header that reads well over pixels the JDK cannot decode (a CMYK JPEG, say).
-                return "not a decodable image";
+                return new Stored(null, "not a decodable image");
             }
             storage.putFile(imageKey, served, asset.contentType(), IMMUTABLE);
-            return null;
+            if (facts != null) {
+                storage.putFile(thumbKey, thumb, asset.contentType(), IMMUTABLE);
+            }
+            return new Stored(facts, null);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } finally {
             deleteQuietly(original);
             deleteQuietly(served);
+            deleteQuietly(thumb);
         }
     }
 
@@ -415,7 +445,8 @@ public class UploadService {
                 asset.durationMs(),
                 asset.width(),
                 asset.height(),
-                ready && asset.video() ? asset.hasAudio() : null);
+                ready && asset.video() ? asset.hasAudio() : null,
+                asset.kind());
     }
 
     private UploadTicket ticket(MediaAsset asset) {

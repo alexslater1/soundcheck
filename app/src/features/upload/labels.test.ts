@@ -20,6 +20,9 @@ describe('upload labels', () => {
     expect(stateLabel({ state: 'PROCESSING', progress: 1 })).toBe('Processing…');
     expect(stateLabel({ state: 'READY', progress: 1 })).toBe('Ready');
     expect(stateLabel({ state: 'REJECTED', progress: 1 })).toBe('Not a usable video');
+    expect(stateLabel({ state: 'REJECTED', progress: 1, contentType: 'image/png' })).toBe(
+      'Not a usable photo',
+    );
   });
 
   it('reports what compression saved, from the two sizes the phone recorded', () => {

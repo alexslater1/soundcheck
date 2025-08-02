@@ -8,6 +8,7 @@ import { CLIP_LENGTH } from '@/features/upload/validate';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
+import { PhotoSlide } from './PhotoSlide';
 import { PROCESSING_HINT } from './processing';
 import { useMediaStatus } from './useMediaStatus';
 import { VideoPlayer } from './VideoPlayer';
@@ -43,6 +44,22 @@ export function ClipScreen({ id }: { id: string }) {
   }
 
   const clip = media.data;
+  if (clip.status === 'READY' && clip.kind === 'IMAGE' && clip.posterUrl) {
+    // A photo: shown whole, at its own shape.
+    const aspectRatio = clip.width && clip.height ? clip.width / clip.height : 3 / 4;
+    return (
+      <Screen>
+        <View style={[styles.center, aspectRatio < 1 ? styles.portrait : null]}>
+          <PhotoSlide
+            testID="clip-photo"
+            playback={clip}
+            aspectRatio={aspectRatio}
+            active={false}
+          />
+        </View>
+      </Screen>
+    );
+  }
   if (clip.status === 'READY' && clip.hlsUrl) {
     const aspectRatio = clip.width && clip.height ? clip.width / clip.height : undefined;
     return (

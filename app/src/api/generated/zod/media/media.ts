@@ -90,6 +90,7 @@ export const getMediaResponse = zod.object({
   "hasAudio": zod.boolean().nullish(),
   "height": zod.number().nullish(),
   "hlsUrl": zod.string().nullish(),
+  "kind": zod.enum(['VIDEO', 'IMAGE']).nullish(),
   "posterUrl": zod.string().nullish(),
   "status": zod.enum(['AWAITING_UPLOAD', 'UPLOADED', 'PROCESSING', 'READY', 'REJECTED', 'FAILED', 'DELETED']),
   "thumbUrl": zod.string().nullish(),

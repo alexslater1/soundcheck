@@ -1,12 +1,15 @@
 import type { UploadEntry } from './types';
+import { isPhoto } from './validate';
 
 /** "18.4 MB" */
 export function megabytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-/** What the user reads for each state of an upload. */
-export function stateLabel(entry: Pick<UploadEntry, 'state' | 'progress'>): string {
+/** What the user reads for each state of an upload (a photo, when its content type is given). */
+export function stateLabel(
+  entry: Pick<UploadEntry, 'state' | 'progress'> & Partial<Pick<UploadEntry, 'contentType'>>,
+): string {
   switch (entry.state) {
     case 'PREPARING':
       return entry.progress > 0
@@ -26,7 +29,9 @@ export function stateLabel(entry: Pick<UploadEntry, 'state' | 'progress'>): stri
     case 'READY':
       return 'Ready';
     case 'REJECTED':
-      return 'Not a usable video';
+      return entry.contentType && isPhoto({ contentType: entry.contentType })
+        ? 'Not a usable photo'
+        : 'Not a usable video';
     case 'FAILED':
       return 'Failed';
   }

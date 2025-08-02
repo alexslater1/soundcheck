@@ -342,11 +342,13 @@ class MediaUploadApiIT extends IntegrationTest {
                         .asText(""))
                 .isEqualTo("CLIENT_META_TOO_LARGE");
 
-        // An avatar-sized image: no transcoding, so complete makes it READY and viewable by anyone.
+        // An avatar-sized image: no transcoding, so complete makes it READY and viewable by anyone. The
+        // client declares it sideways (as a phone may report a photo's stored size): the size served is
+        // the one measured.
         byte[] png = image("png", 64, 48);
         JsonNode ticket = created(api.post(
                 "/api/v1/media/uploads",
-                Map.of("kind", "IMAGE", "contentType", "image/png", "bytes", png.length),
+                Map.of("kind", "IMAGE", "contentType", "image/png", "bytes", png.length, "width", 48, "height", 64),
                 owner));
         String mediaId = ticket.path("mediaId").asText("");
         put(ticket.path("putUrl").asText(""), "image/png", png);
@@ -359,6 +361,14 @@ class MediaUploadApiIT extends IntegrationTest {
         assertThat(playback.path("status").asText("")).isEqualTo("READY");
         assertThat(playback.path("posterUrl").asText("")).endsWith("/media/" + mediaId + "/v1/image.png");
         assertThat(playback.path("hlsUrl").isNull()).isTrue();
+        // A photo says what it is, and has its own thumbnail, measured size and placeholder.
+        assertThat(playback.path("kind").asText("")).isEqualTo("IMAGE");
+        assertThat(playback.path("thumbUrl").asText("")).endsWith("/media/" + mediaId + "/v1/thumb.png");
+        assertThat(playback.path("width").asInt()).isEqualTo(64);
+        assertThat(playback.path("height").asInt()).isEqualTo(48);
+        assertThat(playback.path("blurhash").asText("")).isNotBlank();
+        assertThat(playback.path("hasAudio").isNull()).isTrue();
+        assertThat(storage.head("media/" + mediaId + "/v1/thumb.png")).isPresent();
         assertThat(storage.head("media/" + mediaId + "/v1/image.png")).hasValueSatisfying(head -> {
             // Not the uploaded bytes: a re-encoded copy without the file's metadata (ImageScrub).
             assertThat(head.contentLength()).isPositive();

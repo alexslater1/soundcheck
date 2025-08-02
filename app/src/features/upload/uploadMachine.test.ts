@@ -99,6 +99,31 @@ function harness(options: {
 }
 
 describe('runUpload', () => {
+  it('sends a photo as an IMAGE with one PUT; it is ready at the first poll', async () => {
+    const h = harness({
+      start: entry({
+        fileUri: 'file:///crowd.jpg',
+        fileName: 'crowd.jpg',
+        contentType: 'image/jpeg',
+        bytes: 3 * MIB,
+        durationMs: null,
+        clientMeta: { platform: 'android' },
+      }),
+      ticket: { ...singleTicket, headers: { 'Content-Type': 'image/jpeg' } },
+      statuses: ['READY'],
+    });
+
+    await runUpload(h.deps);
+
+    expect(h.deps.api.createUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ kind: 'IMAGE', contentType: 'image/jpeg', durationMs: null }),
+      'key-1',
+    );
+    expect(h.deps.transport.putWhole).toHaveBeenCalledTimes(1);
+    expect(h.history).toEqual(['REQUESTING', 'UPLOADING', 'COMPLETING', 'PROCESSING', 'READY']);
+    expect(h.sleeps).toEqual([]);
+  });
+
   it('uploads a small file with one PUT, completes, and follows the worker to READY', async () => {
     const h = harness({
       start: entry({ bytes: 3 * MIB }),

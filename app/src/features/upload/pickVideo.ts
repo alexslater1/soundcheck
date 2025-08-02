@@ -14,9 +14,11 @@ export const MAX_CLIPS_AT_ONCE = 10;
 
 /** The picker's asset in the app's own shape. Pure, so the unit differences are tested. */
 export function toPicked(asset: ImagePicker.ImagePickerAsset, platform: string): PickedVideo {
-  // Android reports the length in milliseconds; the web implementation reports the video element's
-  // `duration`, which is seconds. Zero or missing means the metadata could not be read.
-  const duration = asset.duration ?? 0;
+  // A photo has no length. Android reports a video's length in milliseconds; the web
+  // implementation reports the video element's `duration`, which is seconds. Zero or missing means the
+  // metadata could not be read.
+  const photo = asset.type === 'image' || (asset.mimeType?.startsWith('image/') ?? false);
+  const duration = photo ? 0 : (asset.duration ?? 0);
   const durationMs =
     duration > 0 ? Math.round(platform === 'web' ? duration * 1000 : duration) : null;
   // Android gives a video's stored width and height with its `rotation` (missing from the types): a
@@ -28,7 +30,7 @@ export function toPicked(asset: ImagePicker.ImagePickerAsset, platform: string):
   return {
     uri: asset.uri,
     fileName: asset.fileName ?? null,
-    contentType: asset.mimeType ?? 'video/mp4',
+    contentType: asset.mimeType ?? (photo ? 'image/jpeg' : 'video/mp4'),
     bytes: asset.fileSize ?? asset.file?.size ?? 0,
     durationMs,
     width: width > 0 ? width : null,
@@ -51,13 +53,15 @@ export function result(picked: ImagePicker.ImagePickerResult, platform: string):
 }
 
 /**
- * Choose existing videos, up to ten at once: the system photo picker on Android (no permission
- * needed), a file dialog on web. They are kept in the order they were picked.
+ * Choose existing videos and photos, up to ten at once: the system photo picker on Android (no
+ * permission needed), a file dialog on web. They are kept in the order they were picked. A photo is
+ * taken as it is stored (quality 1: the picker copies the file, so its reported size is the size sent).
  */
 export async function pickFromLibrary(): Promise<PickResult> {
   return result(
     await ImagePicker.launchImageLibraryAsync({
       ...OPTIONS,
+      mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: true,
       selectionLimit: MAX_CLIPS_AT_ONCE,
       orderedSelection: true,
@@ -66,7 +70,7 @@ export async function pickFromLibrary(): Promise<PickResult> {
   );
 }
 
-/** Record a new clip with the system camera (Android). */
+/** Record a new clip with the system camera (Android). Videos only: the Create tab is for clips first. */
 export async function recordWithCamera(): Promise<PickResult> {
   const permission = await ImagePicker.requestCameraPermissionsAsync();
   if (!permission.granted) {

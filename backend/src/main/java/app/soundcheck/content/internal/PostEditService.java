@@ -80,12 +80,12 @@ public class PostEditService {
         }
         if (mediaId != null && !mediaId.equals(clip.mediaId())) {
             if (clip.mediaId() != null) {
-                throw ApiException.conflict("CLIP_FILLED", "This clip already has its video");
+                throw ApiException.conflict("CLIP_FILLED", "This clip already has its file");
             }
             rules.checkMedia(actorId, mediaId);
             try {
                 if (!clips.attach(clipId, mediaId)) {
-                    throw ApiException.conflict("CLIP_FILLED", "This clip already has its video");
+                    throw ApiException.conflict("CLIP_FILLED", "This clip already has its file");
                 }
             } catch (DataIntegrityViolationException e) {
                 throw PostRules.alreadyPosted();
