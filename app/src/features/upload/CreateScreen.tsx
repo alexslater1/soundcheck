@@ -175,8 +175,8 @@ export function CreateScreen() {
           refusals.push(several ? `${video.fileName ?? 'A clip'}: ${refused}` : refused);
           continue;
         }
-        // A video is queued unprepared: the queue decides about compressing, in the background (G20).
-        // A photo (J21) goes up as it is, and needs no preview frame: it is ready once uploaded.
+        // Queued unprepared: the queue decides about compressing, in the background. A photo goes
+        // up as it is, prepared, and needs no preview frame: it is ready once uploaded.
         const photo = isPhoto(video);
         const localId = useUploadQueue
           .getState()
