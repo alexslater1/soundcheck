@@ -165,7 +165,9 @@ describe('GigsBrowser', () => {
     expect(Date.parse(first.get('from')!)).toBeGreaterThan(Date.now() - 25 * 60 * 60 * 1000);
     expect(first.get('limit')).toBe('20');
     expect(first.get('nationwide')).toBeNull();
-  });
+    // The suite's first render pays for loading the calendar and list modules; on a busy CI runner that
+    // alone took over Jest's default 5 s (failed in CI 2025-08-02, passed on re-run). Same checks.
+  }, 15_000);
 
   it('only suggests while typing; a picked artist filters and keeps the place', async () => {
     respondWith(() => json({ items: [], nextCursor: null }));
