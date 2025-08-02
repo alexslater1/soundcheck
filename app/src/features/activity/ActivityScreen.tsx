@@ -12,6 +12,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { useRefreshControl } from '@/components/ui/useRefreshControl';
 import { relativeTime, relativeTimeLabel, useNow } from '@/lib/relativeTime';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
@@ -34,6 +35,7 @@ export function ActivityScreen() {
   const markOpened = useMarkOpened();
   const now = useNow();
   const refetch = inbox.refetch;
+  const refreshControl = useRefreshControl(refetch);
   useFocusEffect(
     useCallback(() => {
       void refetch();
@@ -65,7 +67,7 @@ export function ActivityScreen() {
   const newest = items[0];
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.gap}>
+      <ScrollView contentContainerStyle={styles.gap} refreshControl={refreshControl}>
         <View style={styles.header}>
           <Text variant="title">Activity</Text>
           {unreadCount > 0 && newest ? (

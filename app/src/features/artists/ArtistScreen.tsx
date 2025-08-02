@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
 import {
@@ -5,10 +6,11 @@ import {
   listArtistGigs,
   useGetArtist,
 } from '@/api/generated/catalog/catalog';
-import { useListArtistPosts } from '@/api/generated/posts/posts';
+import { getListArtistPostsQueryKey, useListArtistPosts } from '@/api/generated/posts/posts';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
+import { useRefreshControl } from '@/components/ui/useRefreshControl';
 import { Text } from '@/components/ui/Text';
 import { NotifyBell } from '@/features/follows/NotifyBell';
 import { PagedGigs } from '@/features/gigs/PagedGigs';
@@ -27,6 +29,13 @@ export function ArtistScreen({ id }: { id: string }) {
   const genreNames = useGenreNames();
   const origin = useDistanceOrigin();
   const { data, isPending, refetch } = useGetArtist(id);
+  const client = useQueryClient();
+  const refreshControl = useRefreshControl(() =>
+    Promise.all([
+      refetch(),
+      client.invalidateQueries({ queryKey: getListArtistPostsQueryKey(id) }),
+    ]),
+  );
 
   if (isPending) {
     return (
@@ -55,7 +64,7 @@ export function ArtistScreen({ id }: { id: string }) {
   const genres = artist.genres.map((slug) => genreNames.get(slug) ?? slug);
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.gap}>
+      <ScrollView contentContainerStyle={styles.gap} refreshControl={refreshControl}>
         {artist.imageUrl ? (
           <Image
             source={{ uri: artist.imageUrl }}

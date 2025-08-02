@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { getGetUserByHandleQueryKey, useGetUserByHandle } from '@/api/generated/me/me';
-import { useListUserPosts } from '@/api/generated/posts/posts';
+import { getListUserPostsQueryKey, useListUserPosts } from '@/api/generated/posts/posts';
 import { blockUser, unblockUser } from '@/api/generated/social/social';
 import { Button } from '@/components/ui/Button';
 import { IconButton } from '@/components/ui/IconButton';
@@ -12,6 +12,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { useRefreshControl } from '@/components/ui/useRefreshControl';
 import { useAuthStore } from '@/features/auth/store';
 import { PostGrid } from '@/features/posts/PostGrid';
 import { GigStatsSection } from '@/features/stats/GigStatsSection';
@@ -36,6 +37,13 @@ export function ProfileScreen({ handle }: { handle: string }) {
   const { colors } = useTheme();
   const myId = useAuthStore((state) => state.me?.id);
   const profile = useGetUserByHandle(handle);
+  const userId = profile.data?.id;
+  const refreshControl = useRefreshControl(() =>
+    Promise.all([
+      profile.refetch(),
+      userId ? client.invalidateQueries({ queryKey: getListUserPostsQueryKey(userId) }) : null,
+    ]),
+  );
   const [menuOpen, setMenuOpen] = useState(false);
   const [tab, setTab] = useState<ProfileTab>('posts');
   const refresh = () => client.invalidateQueries({ queryKey: getGetUserByHandleQueryKey(handle) });
@@ -65,7 +73,7 @@ export function ProfileScreen({ handle }: { handle: string }) {
   const mine = user.id === myId;
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.gap}>
+      <ScrollView contentContainerStyle={styles.gap} refreshControl={refreshControl}>
         <ProfileHeader
           handle={user.handle}
           displayName={user.displayName}

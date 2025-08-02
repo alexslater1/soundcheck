@@ -5,6 +5,7 @@ import { useUpdateMe } from '@/api/generated/me/me';
 import type { MeResponseProfileVisibility } from '@/api/generated/model';
 import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -61,7 +62,7 @@ export function PrivacyScreen() {
   if (!me) {
     return (
       <Screen>
-        <Text muted>Loading…</Text>
+        <Skeleton height={120} />
       </Screen>
     );
   }

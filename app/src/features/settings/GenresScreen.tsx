@@ -6,6 +6,8 @@ import { useSetMyGenres } from '@/api/generated/me/me';
 import { useListGenres } from '@/api/generated/reference/reference';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { GenrePicker } from '@/features/onboarding/GenrePicker';
@@ -54,7 +56,10 @@ export function GenresScreen({ onSaved }: { onSaved?: () => void }) {
           Up to {MAX_GENRES}. “Love” counts twice as much as “like” when your For You feed is
           ranked.
         </Text>
-        {genres.isPending ? <Text muted>Loading genres…</Text> : null}
+        {genres.isPending ? <Skeleton height={240} /> : null}
+        {genres.isError ? (
+          <StateMessage title="Could not load the genres" onRetry={() => void genres.refetch()} />
+        ) : null}
         <GenrePicker
           genres={genres.data ?? []}
           selection={selection}

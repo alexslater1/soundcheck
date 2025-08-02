@@ -10,6 +10,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { useRefreshControl } from '@/components/ui/useRefreshControl';
 import { useAuthStore } from '@/features/auth/store';
 import { MonthCalendar } from '@/features/calendar/MonthCalendar';
 import { useDistanceOrigin } from '@/features/location/deviceLocation';
@@ -81,6 +82,7 @@ export function GigsBrowser() {
   };
   const list = useGigList(params, origin.ready);
   const days = useListGigDays({ ...monthWindow(month), ...filters });
+  const refreshControl = useRefreshControl(() => Promise.all([list.refetch(), days.refetch()]));
   const counts = useMemo(
     () => Object.fromEntries((days.data ?? []).map((d) => [d.date, d.count])),
     [days.data],
@@ -195,6 +197,7 @@ export function GigsBrowser() {
       keyExtractor={(gig) => gig.id}
       renderItem={({ item }) => <GigCard gig={item} />}
       testID="gig-list"
+      refreshControl={refreshControl}
       ListHeaderComponent={header}
       onEndReached={() => {
         if (list.hasNextPage && !list.isFetchingNextPage && !list.isError)

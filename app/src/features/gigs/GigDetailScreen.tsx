@@ -1,15 +1,17 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { Image, ScrollView, StyleSheet, View } from 'react-native';
 
 import { PostGrid } from '@/features/posts/PostGrid';
 import { useGetGig } from '@/api/generated/catalog/catalog';
-import { useListGigPosts } from '@/api/generated/posts/posts';
+import { getListGigPostsQueryKey, useListGigPosts } from '@/api/generated/posts/posts';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { useRefreshControl } from '@/components/ui/useRefreshControl';
 import { ArtistRow } from '@/features/artists/ArtistRow';
 import { useGenreNames } from '@/features/artists/useGenreNames';
 import { TimesSeen } from '@/features/stats/TimesSeen';
@@ -42,6 +44,10 @@ export function GigDetailScreen({ id }: { id: string }) {
   const { data, isPending, refetch } = useGetGig(id, origin.params, {
     query: { enabled: origin.ready },
   });
+  const client = useQueryClient();
+  const refreshControl = useRefreshControl(() =>
+    Promise.all([refetch(), client.invalidateQueries({ queryKey: getListGigPostsQueryKey(id) })]),
+  );
   const [actId, setActId] = useState<string | null>(null);
   // Whether the page has scrolled under the act bar (it then needs a background).
   const [stuck, setStuck] = useState(false);
@@ -88,6 +94,7 @@ export function GigDetailScreen({ id }: { id: string }) {
     <Screen>
       <ScrollView
         testID="gig-scroll"
+        refreshControl={refreshControl}
         contentContainerStyle={styles.gap}
         stickyHeaderIndices={showBar ? [0] : undefined}
         scrollEventThrottle={32}

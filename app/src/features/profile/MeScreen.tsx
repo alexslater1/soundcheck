@@ -119,7 +119,10 @@ export function MeScreen() {
   if (!me) {
     return (
       <Screen>
-        <Text muted>Loading profile…</Text>
+        <View style={styles.gap}>
+          <Skeleton height={160} />
+          <Skeleton height={200} />
+        </View>
       </Screen>
     );
   }

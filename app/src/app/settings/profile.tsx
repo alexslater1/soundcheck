@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { useUpdateMe } from '@/api/generated/me/me';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { Text } from '@/components/ui/Text';
 import { AuthForm } from '@/features/auth/AuthForm';
 import { useAuthStore } from '@/features/auth/store';
@@ -35,7 +36,7 @@ export default function EditProfileScreen() {
   if (!me) {
     return (
       <Screen keyboard>
-        <Text muted>Loading…</Text>
+        <Skeleton height={240} />
       </Screen>
     );
   }

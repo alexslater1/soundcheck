@@ -6,6 +6,8 @@ import { useSetMyGenres } from '@/api/generated/me/me';
 import { useListGenres } from '@/api/generated/reference/reference';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { GenrePicker } from '@/features/onboarding/GenrePicker';
@@ -18,7 +20,6 @@ import {
 } from '@/features/onboarding/genreSelection';
 import { StepError } from '@/features/onboarding/StepError';
 import { useSaveStep } from '@/features/onboarding/useSaveStep';
-import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
 /**
@@ -26,11 +27,10 @@ import { spacing } from '@/theme/tokens';
  * (weight 1): how much is asked later, in Settings → Your genres, not at sign-up.
  */
 export default function GenresStep() {
-  const { colors } = useTheme();
   const router = useRouter();
   const me = useAuthStore((s) => s.me);
   const reloadMe = useAuthStore((s) => s.reloadMe);
-  const { data: genres, isPending, isError } = useListGenres();
+  const { data: genres, isPending, isError, refetch } = useListGenres();
   const [selection, setSelection] = useState<GenreSelection>(() => fromMe(me?.genres ?? []));
   const { saving, error, run } = useSaveStep();
   const { mutateAsync: setMyGenres } = useSetMyGenres();
@@ -47,8 +47,10 @@ export default function GenresStep() {
     <Screen keyboard>
       <Text variant="title">What do you listen to?</Text>
       <Text muted>Pick up to {MAX_GENRES}. Tap again to remove one.</Text>
-      {isPending ? <Text muted>Loading genres…</Text> : null}
-      {isError ? <Text style={{ color: colors.danger }}>Could not load genres</Text> : null}
+      {isPending ? <Skeleton height={240} /> : null}
+      {isError ? (
+        <StateMessage title="Could not load the genres" onRetry={() => void refetch()} />
+      ) : null}
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"

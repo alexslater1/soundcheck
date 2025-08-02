@@ -15,7 +15,7 @@ import {
 import type { Post, PostClip } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
-import { radius, spacing } from '@/theme/tokens';
+import { radius, spacing, touchTarget } from '@/theme/tokens';
 
 import { ActBar } from './ActBar';
 import { actAt, actSegments, firstClipOf, showsActBar } from './actBar';
@@ -275,6 +275,8 @@ function Arrow({ side, onPress }: { side: 'left' | 'right'; onPress: () => void 
       accessibilityRole="button"
       accessibilityLabel={side === 'left' ? 'Previous clip' : 'Next clip'}
       onPress={onPress}
+      // 40 pt on screen, 44 pt to touch.
+      hitSlop={(touchTarget - 40) / 2}
       style={[styles.arrow, side === 'left' ? styles.arrowLeft : styles.arrowRight]}
       testID={`clip-${side === 'left' ? 'previous' : 'next'}`}
     >

@@ -11,6 +11,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { useRefreshControl } from '@/components/ui/useRefreshControl';
 import { NotifyBell } from '@/features/follows/NotifyBell';
 import { PagedGigs } from '@/features/gigs/PagedGigs';
 import { useDistanceOrigin } from '@/features/location/deviceLocation';
@@ -29,6 +30,7 @@ export function VenueScreen({ id }: { id: string }) {
   const venue = useGetVenue(id);
   const origin = useDistanceOrigin();
   const clips = useListVenuePosts(id, { limit: 12 });
+  const refreshControl = useRefreshControl(() => Promise.all([venue.refetch(), clips.refetch()]));
 
   if (venue.isPending) {
     return (
@@ -60,7 +62,7 @@ export function VenueScreen({ id }: { id: string }) {
     : encodeURIComponent(`${v.name} ${address}`);
   return (
     <Screen>
-      <ScrollView contentContainerStyle={styles.gap}>
+      <ScrollView contentContainerStyle={styles.gap} refreshControl={refreshControl}>
         <Text variant="display">{v.name}</Text>
         <Text muted>{address || 'Address not listed'}</Text>
         <CoverageNote note={v.coverageNote} />

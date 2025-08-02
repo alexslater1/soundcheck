@@ -89,6 +89,7 @@ export function PhotoSlide({
             tap({ x: event.nativeEvent.locationX, y: event.nativeEvent.locationY })
           }
           accessibilityRole="imagebutton"
+          accessibilityLabel="Photo"
           accessibilityHint="Double tap to like"
           testID={testID ? `${testID}-tap` : undefined}
         />
