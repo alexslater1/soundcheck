@@ -123,6 +123,35 @@ describe('ClipCarousel', () => {
     expect(onClipChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'c3' }));
   });
 
+  it('holds a photo as a slide of its own: shaped like any clip, swiped to like one, with its act', async () => {
+    const photo = {
+      id: 'p2',
+      position: 1,
+      act: keo,
+      owner: author,
+      status: 'READY',
+      playback: {
+        status: 'READY',
+        kind: 'IMAGE',
+        posterUrl: 'http://media/p2/v1/image.jpg',
+        width: 1600,
+        height: 1200,
+      },
+    } as PostClip;
+    await show(postWith([ready('c1', cards), photo]));
+
+    // A landscape photo in the post's portrait box: shown whole over a blurred copy of itself.
+    expect(screen.getByTestId('clip-p2-shaped')).toBeTruthy();
+    expect(screen.getByTestId('clip-p2-backdrop')).toBeTruthy();
+    expect(screen.getByTestId('player-c1-active')).toBeTruthy();
+
+    await swipeTo(1);
+    expect(screen.getByTestId('clip-counter').props.children).toEqual([2, '/', 2]);
+    expect(screen.getByTestId('post-photo')).toBeTruthy();
+    expect(screen.queryByTestId('player-c1-active')).toBeNull();
+    expect(screen.getByTestId('act-chip-a-keo').props.accessibilityState.selected).toBe(true);
+  });
+
   it("jumps to an act's first clip when its chip is tapped", async () => {
     await show(postWith([ready('c1', cards), ready('c2', keo), ready('c3', keo)]));
 
