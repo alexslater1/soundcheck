@@ -1,4 +1,7 @@
-/** A video the user picked or recorded, before anything is uploaded. */
+/**
+ * A video the user picked or recorded, or a photo they picked, before anything is
+ * uploaded. The content type tells them apart (`isPhoto`); a photo has no duration.
+ */
 export type PickedVideo = {
   /** `file://…` on Android, a `blob:` URL in the browser. */
   uri: string;

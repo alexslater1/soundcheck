@@ -1,5 +1,5 @@
 import type { PickedVideo } from './types';
-import { MAX_BYTES, MAX_DURATION_MS, problemWith } from './validate';
+import { isPhoto, MAX_BYTES, MAX_DURATION_MS, MAX_PHOTO_BYTES, problemWith } from './validate';
 
 const video = (overrides: Partial<PickedVideo> = {}): PickedVideo => ({
   uri: 'file:///clip.mp4',
@@ -26,11 +26,31 @@ describe('problemWith (the upload limits)', () => {
     );
   });
 
-  it('refuses files that are not videos or empty', () => {
-    expect(problemWith(video({ contentType: 'image/jpeg' }), 'android')).toBe(
-      'Choose a video file.',
+  it('refuses files that are neither videos nor photos, or empty', () => {
+    expect(problemWith(video({ contentType: 'application/pdf' }), 'android')).toBe(
+      'Choose a video or a photo.',
     );
     expect(problemWith(video({ bytes: 0 }), 'android')).toBe('This file is empty.');
+  });
+
+  it('takes a JPEG, PNG or WebP photo of up to 10 MB, on a phone and in the browser', () => {
+    const photo = (overrides: Partial<PickedVideo> = {}) =>
+      video({ contentType: 'image/jpeg', durationMs: null, bytes: 4_000_000, ...overrides });
+    expect(isPhoto(photo())).toBe(true);
+    expect(isPhoto(video())).toBe(false);
+    for (const contentType of ['image/jpeg', 'image/png', 'image/webp']) {
+      expect(problemWith(photo({ contentType }), 'android')).toBeNull();
+      expect(problemWith(photo({ contentType }), 'web')).toBeNull();
+    }
+    expect(problemWith(photo({ bytes: MAX_PHOTO_BYTES }), 'android')).toBeNull();
+    expect(problemWith(photo({ bytes: MAX_PHOTO_BYTES + 1 }), 'android')).toBe(
+      'Photos can be up to 10 MB.',
+    );
+    // A phone's HEIC is not a type the server keeps: refused before any upload.
+    expect(problemWith(photo({ contentType: 'image/heic' }), 'android')).toBe(
+      'Choose a JPEG, PNG or WebP photo.',
+    );
+    expect(problemWith(photo({ bytes: 0 }), 'android')).toBe('This file is empty.');
   });
 
   it('takes a file over 1 GB on a phone (it is compressed first), not in the browser', () => {

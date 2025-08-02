@@ -8,6 +8,7 @@ import { nextPollDelay } from '@/features/player/mediaPolling';
 
 import { withRetries } from './retry';
 import type { UploadEntry, UploadTransport } from './types';
+import { isPhoto } from './validate';
 
 /**
  * Parts sent at once, per upload: two, not more, because each part in flight is a temporary 8 MiB
@@ -89,12 +90,15 @@ async function accepted(mediaId: string, deps: UploadDeps): Promise<boolean> {
 async function upload(deps: UploadDeps): Promise<string> {
   const entry = deps.current();
   deps.update({ state: 'REQUESTING', error: null });
+  // A photo is an IMAGE upload: the server checks and cleans it on "complete" and it is READY at
+  // once, so the poll below ends at its first answer.
+  const photo = isPhoto(entry);
   const ticket = await deps.api.createUpload(
     {
-      kind: 'VIDEO',
+      kind: photo ? 'IMAGE' : 'VIDEO',
       contentType: entry.contentType,
       bytes: entry.bytes,
-      durationMs: entry.durationMs,
+      durationMs: photo ? null : entry.durationMs,
       width: entry.width,
       height: entry.height,
       clientMeta: entry.clientMeta,

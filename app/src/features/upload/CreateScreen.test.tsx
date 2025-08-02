@@ -155,6 +155,13 @@ jest.mock('./ClipPreview', () => {
     ClipPreview: ({ uri }: { uri: string }) => React.createElement(Text, null, `preview ${uri}`),
   };
 });
+jest.mock('./PhotoPreview', () => {
+  const React = jest.requireActual<typeof import('react')>('react');
+  const { Text } = jest.requireActual<typeof import('react-native')>('react-native');
+  return {
+    PhotoPreview: ({ uri }: { uri: string }) => React.createElement(Text, null, `photo ${uri}`),
+  };
+});
 // Recording and its review have their own test; here the button hands the camera's result straight on.
 jest.mock('./RecordClipButton', () => {
   const React = jest.requireActual<typeof import('react')>('react');
@@ -268,6 +275,58 @@ describe('CreateScreen', () => {
     expect(screen.getByText('preview file:///DCIM/clip.mp4')).toBeTruthy();
     // Its state under the preview, and in full in the uploads list below.
     expect(screen.getAllByText('Getting ready…')).toHaveLength(2);
+  });
+
+  it('queues a picked photo ready to send, with no compressing and no preview frame', async () => {
+    const photo: PickedVideo = {
+      uri: 'file:///DCIM/crowd.jpg',
+      fileName: 'crowd.jpg',
+      contentType: 'image/jpeg',
+      bytes: 3 * 1024 * 1024,
+      durationMs: null,
+      width: 3000,
+      height: 4000,
+    };
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-gig-stub'));
+
+    await pickClips(photo, video);
+
+    const [videoEntry, photoEntry] = useUploadQueue.getState().entries;
+    expect(photoEntry).toMatchObject({
+      prepared: true,
+      state: 'QUEUED',
+      contentType: 'image/jpeg',
+    });
+    expect(videoEntry).toMatchObject({ prepared: false, state: 'PREPARING' });
+    expect(mockMakePreview).toHaveBeenCalledTimes(1);
+    expect(mockMakePreview).toHaveBeenCalledWith(videoEntry!.localId);
+    // The photo is previewed as a photo, the video as a clip; each carries an act like any clip.
+    expect(screen.getByText('photo file:///DCIM/crowd.jpg')).toBeTruthy();
+    expect(screen.getByText('preview file:///DCIM/clip.mp4')).toBeTruthy();
+    expect(screen.getByTestId(`act-${photoEntry!.localId}`)).toHaveTextContent('Pale Kites');
+  });
+
+  it('refuses a photo the server would not keep (HEIC, over 10 MB) without uploading it', async () => {
+    const heic = {
+      ...video,
+      fileName: 'a.heic',
+      contentType: 'image/heic',
+      bytes: 1000,
+      durationMs: null,
+    };
+    const huge = { ...heic, fileName: 'b.jpg', contentType: 'image/jpeg', bytes: 11 * 1024 * 1024 };
+    mockPick.mockResolvedValue({ kind: 'picked', videos: [heic, huge] });
+    await renderScreen();
+
+    await fireEvent.press(screen.getByText('Choose videos or photos'));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('create-problem').props.children).toBe(
+        'a.heic: Choose a JPEG, PNG or WebP photo.\nb.jpg: Photos can be up to 10 MB.',
+      ),
+    );
+    expect(mockStartUpload).not.toHaveBeenCalled();
   });
 
   it('Post makes one post of the clips in running order, each with its act, then offers more from the gig', async () => {
@@ -454,7 +513,7 @@ describe('CreateScreen', () => {
     mockPick.mockResolvedValue({ kind: 'picked', videos: [{ ...video, durationMs: 195_000 }] });
     await renderScreen();
 
-    await fireEvent.press(screen.getByText('Choose videos'));
+    await fireEvent.press(screen.getByText('Choose videos or photos'));
 
     expect(await screen.findByText('Clips can be up to 3 minutes long.')).toBeTruthy();
     expect(mockStartUpload).not.toHaveBeenCalled();
@@ -466,7 +525,7 @@ describe('CreateScreen', () => {
     mockPick.mockResolvedValue({ kind: 'picked', videos: [video, tooLong] });
     await renderScreen();
 
-    await fireEvent.press(screen.getByText('Choose videos'));
+    await fireEvent.press(screen.getByText('Choose videos or photos'));
 
     await waitFor(() => expect(mockStartUpload).toHaveBeenCalledTimes(1));
     expect(screen.getByTestId('create-problem').props.children).toBe(
@@ -477,7 +536,7 @@ describe('CreateScreen', () => {
   it('does nothing when the picker is cancelled, and explains a denied camera permission', async () => {
     mockPick.mockResolvedValueOnce({ kind: 'cancelled' });
     await renderScreen();
-    await fireEvent.press(screen.getByText('Choose videos'));
+    await fireEvent.press(screen.getByText('Choose videos or photos'));
     await waitFor(() => expect(mockPick).toHaveBeenCalledTimes(1));
     expect(screen.queryByTestId('create-problem')).toBeNull();
 
