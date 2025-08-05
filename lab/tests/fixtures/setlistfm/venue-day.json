@@ -1,0 +1,127 @@
+{
+ "type": "setlists",
+ "itemsPerPage": 20,
+ "page": 1,
+ "total": 3,
+ "setlist": [
+  {
+   "id": "s1",
+   "eventDate": "20-09-2026",
+   "url": "https://www.setlist.fm/setlist/x/s1.html",
+   "artist": {
+    "mbid": "aaaaaaaa-0000-0000-0000-000000000001",
+    "name": "Paper Lanterns"
+   },
+   "venue": {
+    "id": "v1",
+    "name": "The Lantern Rooms",
+    "city": {
+     "name": "London",
+     "country": {
+      "code": "GB"
+     },
+     "coords": {
+      "lat": 51.5,
+      "long": -0.1
+     }
+    }
+   },
+   "sets": {
+    "set": [
+     {
+      "song": [
+       {
+        "name": "Song 0"
+       },
+       {
+        "name": "Song 1"
+       },
+       {
+        "name": "Song 2"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "s5",
+   "eventDate": "20-09-2026",
+   "url": "https://www.setlist.fm/setlist/x/s5.html",
+   "artist": {
+    "mbid": "bbbbbbbb-0000-0000-0000-000000000002",
+    "name": "Tin Foxes"
+   },
+   "venue": {
+    "id": "v1",
+    "name": "The Lantern Rooms",
+    "city": {
+     "name": "London",
+     "country": {
+      "code": "GB"
+     },
+     "coords": {
+      "lat": 51.5,
+      "long": -0.1
+     }
+    }
+   },
+   "sets": {
+    "set": [
+     {
+      "song": [
+       {
+        "name": "Song 0"
+       },
+       {
+        "name": "Song 1"
+       },
+       {
+        "name": "Song 2"
+       },
+       {
+        "name": "Song 3"
+       },
+       {
+        "name": "Song 4"
+       },
+       {
+        "name": "Song 5"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "s6",
+   "eventDate": "20-09-2026",
+   "url": "https://www.setlist.fm/setlist/x/s6.html",
+   "artist": {
+    "mbid": null,
+    "name": "Quiet Pylons"
+   },
+   "venue": {
+    "id": "v1",
+    "name": "The Lantern Rooms",
+    "city": {
+     "name": "London",
+     "country": {
+      "code": "GB"
+     },
+     "coords": {
+      "lat": 51.5,
+      "long": -0.1
+     }
+    }
+   },
+   "sets": {
+    "set": [
+     {
+      "song": []
+     }
+    ]
+   }
+  }
+ ]
+}

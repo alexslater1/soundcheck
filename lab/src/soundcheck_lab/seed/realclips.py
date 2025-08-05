@@ -287,34 +287,6 @@ def sets_fit_the_bill(gig: Gig, groups: Sequence[Sequence[Clip]]) -> bool:
     )
 
 
-def tag_rule(gig: Gig, clips: Sequence[Clip]) -> str:
-    """How `act_tags` decided, for the manifest I review."""
-    if gig.festival:
-        return "festival: no act"
-    if len(gig.acts) == 1:
-        return "one act on the bill"
-    if sets_fit_the_bill(gig, sets(clips)):
-        return "sets matched to the bill (a guess)"
-    return "whole bill"
-
-
-def act_tags(gig: Gig, clips: Sequence[Clip]) -> dict[str, tuple[str, ...]]:
-    """Which acts to tag on each clip. One act only on a one-act bill, or when the sets of clips
-    fit the bill (`sets_fit_the_bill`; still a guess: there are no set times); otherwise the whole
-    bill, since I often went for a support act. Festival clips get no act: there is no telling
-    which stage."""
-    if gig.festival:
-        return {c.name: () for c in clips}
-    if len(gig.acts) == 1:
-        return {c.name: (gig.headliner.name,) for c in clips}
-    groups = sets(clips)
-    if sets_fit_the_bill(gig, groups):
-        return {
-            c.name: (act.name,) for act, group in zip(gig.acts, groups, strict=True) for c in group
-        }
-    return {c.name: tuple(gig.billing) for c in clips}
-
-
 def pick(clips: Sequence[Clip], n: int, min_s: float = MIN_CLIP_S) -> list[Clip]:
     """Up to {@code n} clips spread over the night (so different sets are covered), longest-first
     per slot."""
@@ -333,3 +305,58 @@ def segment(duration_s: float, max_s: float) -> tuple[float, float]:
     if duration_s <= max_s:
         return 0.0, duration_s
     return round((duration_s - max_s) / 3, 2), max_s
+
+
+HEADLINER_FROM = 21 * 60  # minutes: a set starting at 21:00 or later is the headliner's
+
+
+def clip_acts(gig: Gig, clips: Sequence[Clip]) -> tuple[dict[str, str | None], str]:
+    """One act per clip (a clip shows on its act's page only), and the rule that chose it.
+
+    Festivals: no act (no telling which stage). One act on the bill: that act. Sets that fit the
+    bill (`sets_fit_the_bill`): act by act. Otherwise by the time each set of clips starts: the
+    night's last set and any set from 21:00 is the headliner's, an earlier one the main support's
+    (the act before the headliner: bills list the stage order). A guess I can correct in
+    `clip_acts.csv` (`override_acts`)."""
+    if gig.festival:
+        return {c.name: None for c in clips}, "festival: no act"
+    if len(gig.acts) == 1:
+        only: dict[str, str | None] = {c.name: gig.headliner.name for c in clips}
+        return only, "one act on the bill"
+    groups = sets(clips)
+    if sets_fit_the_bill(gig, groups):
+        acts: dict[str, str | None] = {
+            c.name: act.name for act, group in zip(gig.acts, groups, strict=True) for c in group
+        }
+        return acts, "sets matched to the bill (a guess)"
+    support = gig.acts[-2].name
+    chosen: dict[str, str | None] = {}
+    for i, group in enumerate(groups):
+        late = i == len(groups) - 1 or evening_minutes(group[0].taken) >= HEADLINER_FROM
+        for clip in group:
+            chosen[clip.name] = gig.headliner.name if late else support
+    return chosen, "by start time: from 21:00 the headliner, before it the main support (a guess)"
+
+
+def load_overrides(path: Path) -> dict[str, str | None]:
+    """My corrections, `clip_acts.csv` (file,act): an empty act means no act."""
+    if not path.exists():
+        return {}
+    with path.open(encoding="utf-8") as fh:
+        return {r["file"]: (r["act"].strip() or None) for r in csv.DictReader(fh)}
+
+
+def override_acts(
+    gig: Gig, chosen: dict[str, str | None], overrides: dict[str, str | None]
+) -> dict[str, str | None]:
+    """The chosen acts with my corrections applied; a correction naming an act not on the
+    bill is ignored (the API would refuse it)."""
+    names = {a.name for a in gig.acts}
+    return {
+        clip: (
+            overrides[clip]
+            if clip in overrides and (overrides[clip] in names or overrides[clip] is None)
+            else act
+        )
+        for clip, act in chosen.items()
+    }

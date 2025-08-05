@@ -49,6 +49,15 @@ def seed_demo(
         4, min=0, help="Real clips posted per gig, at most (up to 4 to exercise the UI)"
     ),
     max_clip_seconds: float = typer.Option(45.0, min=5, max=60),
+    month: str = typer.Option("", help="Batch: only my gigs of this month (YYYY-MM)"),
+    max_gb: float = typer.Option(0, min=0, help="Batch: at most this much footage (0: no cap)"),
+    archive: bool = typer.Option(
+        True, "--archive/--no-archive", help="The private @alex_archive account"
+    ),
+    archive_followers: str = typer.Option(
+        "",
+        help="My real handles (comma-separated): accept their follow requests to the archive",
+    ),
     synthetic: int = typer.Option(
         3, min=0, help="Synthetic clips for personas with fewer real ones"
     ),
@@ -77,6 +86,12 @@ def seed_demo(
         synthetic_per_persona=synthetic,
         gig_limit=gigs,
         real=real,
+        month=month or None,
+        max_gb=max_gb or None,
+        archive=archive,
+        archive_followers=tuple(
+            h.strip().lstrip("@") for h in archive_followers.split(",") if h.strip()
+        ),
     )
     if real and not (settings.clips_dir / "bills.json").exists():
         typer.echo(f"no {settings.clips_dir / 'bills.json'}: seeding without real clips", err=True)
@@ -102,6 +117,56 @@ def seed_demo(
             err=True,
         )
         raise typer.Exit(1)
+
+
+@app.command("backfill-setlists")
+def backfill_setlists(
+    artists: str = typer.Option("", help="Only these acts (comma-separated); default: every act"),
+    from_month: str = typer.Option(
+        "", "--from", help="YYYY-MM: look back to this month; default: my first gig"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print the changes; keep bills.json"),
+    budget: int = typer.Option(1000, min=1, max=1400, help="setlist.fm calls a day (UTC)"),
+) -> None:
+    """My gigs with their full bills from setlist.fm; other dates for review."""
+    import json
+    import os
+    from datetime import date
+
+    from soundcheck_lab.seed import run as seeding
+    from soundcheck_lab.seed import setlists
+
+    key = os.environ.get("SETLISTFM_API_KEY", "")
+    if not key:
+        typer.echo("SETLISTFM_API_KEY is not set (.env)", err=True)
+        raise typer.Exit(1)
+    root = seeding.default_root()
+    bills = root / "fixtures" / "clips" / "mine" / "bills.json"
+    out = root / ".localdata" / "setlistfm"
+    if from_month:
+        since = date.fromisoformat(f"{from_month}-01")
+    else:
+        since = min(date.fromisoformat(b["date"]) for b in json.loads(bills.read_text())).replace(
+            day=1
+        )
+    state = setlists.State.load(out / "state.json")
+    client = setlists.Client(key, state, budget=budget)
+    try:
+        result = setlists.backfill(
+            client,
+            state,
+            bills,
+            out,
+            since=since,
+            only=[a.strip() for a in artists.split(",") if a.strip()],
+            dry_run=dry_run,
+            log=typer.echo,
+        )
+    finally:
+        client.close()
+    typer.echo(f"setlist.fm calls today: {client.calls_today()} of {budget}")
+    if result is None:
+        raise typer.Exit(2)
 
 
 @app.command("seed-scale")

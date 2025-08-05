@@ -1,0 +1,88 @@
+{
+ "type": "setlists",
+ "itemsPerPage": 2,
+ "page": 2,
+ "total": 5,
+ "setlist": [
+  {
+   "id": "s3",
+   "eventDate": "14-03-2025",
+   "url": "https://www.setlist.fm/setlist/x/s3.html",
+   "artist": {
+    "mbid": "aaaaaaaa-0000-0000-0000-000000000001",
+    "name": "Paper Lanterns"
+   },
+   "venue": {
+    "id": "v3",
+    "name": "Kiln",
+    "city": {
+     "name": "Leeds",
+     "country": {
+      "code": "GB"
+     },
+     "coords": {
+      "lat": 51.5,
+      "long": -0.1
+     }
+    }
+   },
+   "sets": {
+    "set": [
+     {
+      "song": [
+       {
+        "name": "Song 0"
+       },
+       {
+        "name": "Song 1"
+       },
+       {
+        "name": "Song 2"
+       }
+      ]
+     }
+    ]
+   }
+  },
+  {
+   "id": "s4",
+   "eventDate": "01-01-2024",
+   "url": "https://www.setlist.fm/setlist/x/s4.html",
+   "artist": {
+    "mbid": "aaaaaaaa-0000-0000-0000-000000000001",
+    "name": "Paper Lanterns"
+   },
+   "venue": {
+    "id": "v4",
+    "name": "Old Mill",
+    "city": {
+     "name": "York",
+     "country": {
+      "code": "GB"
+     },
+     "coords": {
+      "lat": 51.5,
+      "long": -0.1
+     }
+    }
+   },
+   "sets": {
+    "set": [
+     {
+      "song": [
+       {
+        "name": "Song 0"
+       },
+       {
+        "name": "Song 1"
+       },
+       {
+        "name": "Song 2"
+       }
+      ]
+     }
+    ]
+   }
+  }
+ ]
+}
