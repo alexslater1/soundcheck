@@ -719,7 +719,10 @@ def archive(
     one post per gig with all of the gig's clips, each tagged with its act."""
     section = state.section("archive")
     me = api.get(ARCHIVE, "/api/v1/me")
-    if section.get("user") != me["id"]:  # a new account, or a reset database
+    if section.get("user") != me["id"] or isinstance(
+        next(iter(section.get("posts", {}).values()), []), dict
+    ):
+        # a new account, a reset database, or the first shape (one post a gig) that never posted
         section.clear()
         section.update(user=me["id"], gigs={}, posts={})
     if me.get("profileVisibility") != "PRIVATE":
@@ -753,6 +756,36 @@ def archive(
     archive_followers(api, settings.archive_followers, log)
 
 
+MAX_CLIPS_PER_ACT = 10  # a post holds at most ten of one person's clips of one act (PostRules)
+MAX_CLIPS = 60  # and sixty clips in all
+
+
+def place(
+    posts: list[dict[str, Any]], clips: Sequence[Clip], acts: dict[str, str | None]
+) -> list[tuple[int, Clip]]:
+    """Which of a gig's archive posts each new clip goes into (an index; one past the end means a
+    new post): the first post with room for its act, in filming order. A night with more than ten
+    clips of an act becomes "part 2" and on (J5 within the API's limits). Updates the counts."""
+    out = []
+    for clip in clips:
+        act = acts.get(clip.name) or ""
+        i = next(
+            (
+                n
+                for n, post in enumerate(posts)
+                if post.setdefault("acts", {}).get(act, 0) < MAX_CLIPS_PER_ACT
+                and len(post["clips"]) < MAX_CLIPS
+            ),
+            len(posts),
+        )
+        if i == len(posts):
+            posts.append({"post_id": None, "clips": [], "acts": {}})
+        posts[i]["acts"][act] = posts[i]["acts"].get(act, 0) + 1
+        posts[i]["clips"].append(clip.name)
+        out.append((i, clip))
+    return out
+
+
 def archive_posts(
     api: Api,
     settings: Settings,
@@ -763,7 +796,9 @@ def archive_posts(
     batch: Batch,
     log: Log,
 ) -> None:
-    posts = state.section("archive")["posts"]
+    """One post per gig with all its clips (J5), or as few as the API's limits allow, filled
+    across batches: a later batch adds its clips to the gig's last post (POST /posts/{id}/clips)."""
+    section = state.section("archive")["posts"]
     overrides = realclips.load_overrides(settings.clips_dir / "clip_acts.csv")
     manifest: list[dict[str, str]] = []
     added = 0
@@ -773,43 +808,52 @@ def archive_posts(
             continue
         gig_id = summaries[gig.key]["id"]
         acts, rule = acts_by_clip(gig, clips, overrides)
-        mine = posts.get(gig.key)
-        if mine and not _post_exists(api, ARCHIVE, mine["post_id"]):
-            mine = posts[gig.key] = None
-        have = set(mine["clips"]) if mine else set()
-        todo = []
-        for c in clips:
-            if c.name not in have and batch.admit(c):
-                todo.append(c)
+        posts: list[dict[str, Any]] = [
+            p for p in section.get(gig.key, []) if _post_exists(api, ARCHIVE, p["post_id"])
+        ]
+        section[gig.key] = posts
+        have = {name for p in posts for name in p["clips"]}
+        todo = [c for c in clips if c.name not in have and batch.admit(c)]
         if todo:
             try:
                 ids = lineup_ids(api, ARCHIVE, gig_id)
-                new = upload_clips(
-                    api,
-                    ARCHIVE,
-                    todo,
-                    acts,
-                    ids,
-                    settings.work_dir / "encoded-full",
-                    settings.archive_max_clip_s,
-                    log,
-                )
-                if mine is None:
-                    post = api.post(
+                trial = json.loads(json.dumps(posts))
+                slots = place(trial, todo, acts)
+                for i, post in enumerate(trial):
+                    mine = [c for j, c in slots if j == i]
+                    if not mine:
+                        continue
+                    new = upload_clips(
+                        api,
                         ARCHIVE,
-                        "/api/v1/posts",
-                        {"clips": new, "gigId": gig_id, "caption": archive_caption(gig)},
+                        mine,
+                        acts,
+                        ids,
+                        settings.work_dir / "encoded-full",
+                        settings.archive_max_clip_s,
+                        log,
                     )
-                    mine = posts[gig.key] = {"post_id": post["id"], "clips": []}
-                else:
-                    api.post(ARCHIVE, f"/api/v1/posts/{mine['post_id']}/clips", {"clips": new})
-                mine["clips"].extend(c.name for c in todo)
-                state.save()
-                added += len(todo)
-                log(f"  archive: {gig.night} {gig.headliner.name}, +{len(todo)} clip(s)")
+                    if post["post_id"] is None:
+                        part = f" (part {i + 1})" if i else ""
+                        made = api.post(
+                            ARCHIVE,
+                            "/api/v1/posts",
+                            {"clips": new, "gigId": gig_id, "caption": archive_caption(gig) + part},
+                        )
+                        post["post_id"] = made["id"]
+                    else:
+                        api.post(ARCHIVE, f"/api/v1/posts/{post['post_id']}/clips", {"clips": new})
+                    if i < len(posts):
+                        posts[i] = post
+                    else:
+                        posts.append(post)
+                    state.save()
+                    added += len(mine)
+                    what = f"{gig.night} {gig.headliner.name}"
+                    log(f"  archive: {what}, +{len(mine)} clip(s) in post {i + 1}")
             except (ApiError, OSError, subprocess.CalledProcessError) as error:
                 log(f"  archive failed {gig.key}: {error}")
-        posted = set(mine["clips"]) if mine else set()
+        where = {name: p["post_id"] for p in posts for name in p["clips"]}
         for c in clips:
             manifest.append(
                 {
@@ -819,10 +863,11 @@ def archive_posts(
                     "gig_id": gig_id,
                     "act": acts.get(c.name) or "",
                     "tag_rule": rule,
-                    "status": "posted" if c.name in posted else "next batch",
-                    "post_id": mine["post_id"] if mine else "",
+                    "status": "posted" if c.name in where else "next batch",
+                    "post_id": where.get(c.name, ""),
                 }
             )
+    state.save()
     log(f"archive: {added} clips posted this run")
     merge_manifest(settings.clips_dir / "archive.csv", manifest, ARCHIVE_FIELDS)
 
@@ -867,14 +912,21 @@ def filler(
     gig)."""
     posts = state.section("synthetic")
     real_by = Counter(v["persona"] for v in state.section("posts").values())
+    real_by.update(v["persona"] for v in state.section("gig_posts").values())
     clips = sorted(settings.demo_clips_dir.glob("demo-*.mp4"))
     if not clips:
         log("filler: no synthetic clips (run `python3 ops/scripts/make_clips.py --demo`)")
         return
-    made = 0
+    made = removed = 0
     for k, persona in enumerate(people):
-        want = settings.synthetic_per_persona - real_by[persona.handle]
-        if want <= 0:
+        want = max(settings.synthetic_per_persona - real_by[persona.handle], 0)
+        for i in range(want, settings.synthetic_per_persona):  # real clips cover these now
+            key = f"{persona.handle}#{i}"
+            if key in posts:
+                _delete_post(api, persona, posts.pop(key))
+                state.save()
+                removed += 1
+        if want == 0:
             continue
         artists = api.get(
             persona,
@@ -901,7 +953,7 @@ def filler(
             posts[key] = api.post(persona, "/api/v1/posts", body)["id"]
             state.save()
             made += 1
-    log(f"filler: {made} synthetic clips posted")
+    log(f"filler: {made} synthetic clips posted, {removed} taken away (real clips cover them)")
 
 
 # ── 6. likes and comments ────────────────────────────────────────────────────────────────────────

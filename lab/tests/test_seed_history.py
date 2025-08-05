@@ -258,3 +258,43 @@ def test_persona_posts_carry_several_clips_and_replace_the_one_clip_posts(
     assert ("DELETE", "/api/v1/posts/old-a", {}) in server.calls
     assert state.section("posts") == {}
     assert set(state.section("gig_posts")) == {f"{g.key}#0", f"{g.key}#1"}
+
+
+def test_more_than_ten_clips_of_an_act_make_a_second_post_and_later_clips_fill_the_gaps() -> None:
+    clips = [clip(f"c{i}", 21, i) for i in range(13)]
+    acts: dict[str, str | None] = {c.name: "Liam" for c in clips[:11]}
+    acts |= {"c11": "Cast", "c12": None}
+    posts: list[dict[str, Any]] = []
+    slots = run.place(posts, clips, acts)
+    assert [i for i, _ in slots] == [0] * 10 + [1, 0, 0]
+    assert posts[0]["acts"] == {"Liam": 10, "Cast": 1, "": 1} and posts[1]["clips"] == ["c10"]
+    # a later batch: another Liam clip goes to the second post, a Cast clip to the first
+    later = run.place(posts, [clip("d1", 22), clip("d2", 22, 5)], {"d1": "Liam", "d2": "Cast"})
+    assert [i for i, _ in later] == [1, 0]
+
+
+def test_the_filler_takes_synthetic_clips_away_once_real_posts_cover_a_persona(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    persona = PERSONAS[0]
+    settings = run.Settings(root=tmp_path, synthetic_per_persona=3)
+    (settings.demo_clips_dir).mkdir(parents=True)
+    (settings.demo_clips_dir / "demo-001.mp4").write_bytes(b"v")
+    state = run.State.load(tmp_path / "state.json")
+    state.section("synthetic").update({f"{persona.handle}#{i}": f"syn{i}" for i in range(3)})
+    state.section("gig_posts").update(
+        {f"g{i}#0": {"post_id": f"p{i}", "persona": persona.handle, "clips": []} for i in range(2)}
+    )
+    server = Server()
+    api = Api(
+        "http://api.test",
+        transport=httpx.MockTransport(server),
+        sleep=lambda _: None,
+        auth_spacing_s=0,
+    )
+    monkeypatch.setattr(run, "_post_exists", lambda api, who, post_id: True)
+    monkeypatch.setattr(api, "get", lambda who, path, **kw: {"items": []})
+    run.filler(api, settings, [persona], {g: 1 for g in persona.genres}, state, lambda _: None)
+    deleted = [c[1] for c in server.calls if c[0] == "DELETE"]
+    assert deleted == ["/api/v1/posts/syn1", "/api/v1/posts/syn2"]  # two real posts: one left
+    assert state.section("synthetic") == {f"{persona.handle}#0": "syn0"}
