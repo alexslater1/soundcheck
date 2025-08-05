@@ -18,6 +18,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import subprocess
 import time
 from collections import Counter, defaultdict
@@ -983,6 +984,54 @@ def social(api: Api, people: Sequence[Persona], state: State, log: Log) -> None:
     log(f"social: {likes} likes, {comments} comments")
 
 
+# ── batches ──
+MIN_AVAILABLE_MB = 1500  # stop below this much free memory…
+MIN_FREE_GB = 20  # …or this much free disk
+
+
+def available_mb() -> int:
+    for line in Path("/proc/meminfo").read_text().splitlines():
+        if line.startswith("MemAvailable:"):
+            return int(line.split()[1]) // 1024
+    return 1 << 30  # not Linux: no check
+
+
+class OutOfRoomError(Exception):
+    """Memory or disk fell below the set minimum between batches."""
+
+
+class Batches:
+    """The months to seed, oldest first: `--month 2024-07` is one month, `--month 2024-07..` that
+    month and every later one, in one process (signing in once, not once a month). A month runs
+    again while its size cap was reached; memory and disk are checked before every pass."""
+
+    def __init__(self) -> None:
+        self.finished: set[str | None] = set()
+
+    def done(self, month: str | None) -> None:
+        self.finished.add(month)
+
+    def __call__(
+        self, gigs: Sequence[Gig], spec: str | None, log: Log
+    ) -> Iterable[tuple[str | None, int]]:
+        if not spec:
+            months: list[str | None] = [None]
+        elif spec.endswith(".."):
+            start = spec.removesuffix("..")
+            months = [*sorted({m for g in gigs if (m := g.night.strftime("%Y-%m")) >= start})]
+        else:
+            months = [spec]
+        for month in months:
+            for pass_no in range(1, 100):
+                mem, disk = available_mb(), shutil.disk_usage(Path.home()).free // 10**9
+                log(f"resources before {month or 'the run'} pass {pass_no}: {mem} MB, {disk} GB")
+                if mem < MIN_AVAILABLE_MB or disk < MIN_FREE_GB:
+                    raise OutOfRoomError(f"stopped: {mem} MB memory, {disk} GB disk available")
+                yield month, pass_no
+                if month in self.finished:
+                    break
+
+
 # ── the whole run ────────────────────────────────────────────────────────────────────────────────
 def run(settings: Settings, log: Log) -> None:
     check_password_for(settings.api_url)
@@ -1007,24 +1056,28 @@ def run(settings: Settings, log: Log) -> None:
                 f"skipped {len(skipped)}: "
                 + ", ".join(f"{n} {r}" for r, n in reasons.most_common())
             )
-            if settings.month:
-                gigs = [g for g in gigs if g.night.strftime("%Y-%m") == settings.month]
-                skipped = [s for s in skipped if s.clip.night.strftime("%Y-%m") == settings.month]
-                log(f"batch: the {len(gigs)} gigs of {settings.month}")
-            batch = Batch(int(settings.max_gb * 1e9) if settings.max_gb else None)
-            summaries = add_gigs(api, gigs, indie, matched, state, log)
-            demo_follows(api, genres, state, log)
-            real_posts(api, settings, gigs, indie, summaries, matched, skipped, state, batch, log)
-            if settings.archive:
-                archive(api, settings, gigs, summaries, matched, state, batch, log)
-            log(
-                f"batch: {batch.used / 1e9:.2f} GB of footage in {len(batch.seen)} clips"
-                + (
-                    "; the cap was reached: run the same batch again to continue"
-                    if batch.full
-                    else ""
+            plan = Batches()
+            for month, pass_no in plan(gigs, settings.month, log):
+                chosen = [g for g in gigs if month is None or g.night.strftime("%Y-%m") == month]
+                missed = [
+                    s for s in skipped if month is None or s.clip.night.strftime("%Y-%m") == month
+                ]
+                if month:
+                    log(f"batch: the {len(chosen)} gigs of {month} (pass {pass_no})")
+                batch = Batch(int(settings.max_gb * 1e9) if settings.max_gb else None)
+                summaries = add_gigs(api, chosen, indie, matched, state, log)
+                real_posts(
+                    api, settings, chosen, indie, summaries, matched, missed, state, batch, log
                 )
-            )
+                if settings.archive:
+                    archive(api, settings, chosen, summaries, matched, state, batch, log)
+                log(
+                    f"batch: {batch.used / 1e9:.2f} GB of footage in {len(batch.seen)} clips"
+                    + ("; the cap was reached: another pass" if batch.full else "")
+                )
+                if not batch.full:
+                    plan.done(month)
+            demo_follows(api, genres, state, log)
         else:
             demo_follows(api, genres, state, log)
         filler(api, settings, people, genres, state, log)

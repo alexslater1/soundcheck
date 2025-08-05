@@ -296,3 +296,25 @@ def test_the_filler_takes_synthetic_clips_away_once_real_posts_cover_a_persona(
     deleted = [c[1] for c in server.calls if c[0] == "DELETE"]
     assert deleted == ["/api/v1/posts/syn1", "/api/v1/posts/syn2"]  # two real posts: one left
     assert state.section("synthetic") == {f"{persona.handle}#0": "syn0"}
+
+
+def test_months_run_in_order_repeat_while_capped_and_stop_when_memory_runs_low(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def on(day: str) -> Gig:
+        return Gig(key=day, night=date.fromisoformat(day), venue="V", city="C", acts=(Act("A"),))
+
+    gigs = [on("2024-07-20"), on("2024-06-10"), on("2025-01-05"), on("2024-07-02")]
+    monkeypatch.setattr(run, "available_mb", lambda: 4000)
+    plan = run.Batches()
+    seen = []
+    for month, pass_no in plan(gigs, "2024-07..", lambda _: None):
+        seen.append((month, pass_no))
+        if month != "2024-07" or pass_no == 2:  # July's cap is reached once
+            plan.done(month)
+    assert seen == [("2024-07", 1), ("2024-07", 2), ("2025-01", 1)]
+    assert list(run.Batches()(gigs, "2024-06", lambda _: None))[:1] == [("2024-06", 1)]
+
+    monkeypatch.setattr(run, "available_mb", lambda: 1200)
+    with pytest.raises(run.OutOfRoomError):
+        next(iter(run.Batches()(gigs, None, lambda _: None)))
