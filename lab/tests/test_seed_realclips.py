@@ -107,17 +107,20 @@ def test_two_clips_in_one_long_headline_set_are_not_read_as_support_and_headline
     during_headline = [clip("h1.mp4", at(NIGHT, 21, 10)), clip("h2.mp4", at(NIGHT, 21, 40))]
     bill = gig("night", NIGHT, "Support", "Headliner")
     assert len(realclips.sets(during_headline)) == 2  # two groups of clips…
-    assert realclips.act_tags(bill, during_headline)["h1.mp4"] == ("Headliner", "Support")  # …1 act
-    # my real Pixies night (20:40 and 22:07): support, then headliner, as tagged
+    acts, rule = realclips.clip_acts(bill, during_headline)
+    assert acts == {"h1.mp4": "Headliner", "h2.mp4": "Headliner"}  # …both from 21:00: headliner
+    assert rule.startswith("by start time")
+    # my real Pixies night (20:40 and 22:07): the sets fit the bill, support then headliner
     pixies = [clip("p1.mp4", at(NIGHT, 20, 40)), clip("p2.mp4", at(NIGHT, 22, 7))]
-    assert realclips.act_tags(gig("pixies", NIGHT, "BIG SPECIAL", "Pixies"), pixies) == {
-        "p1.mp4": ("BIG SPECIAL",),
-        "p2.mp4": ("Pixies",),
-    }
-    assert realclips.tag_rule(bill, during_headline) == "whole bill"
-    # a short pause is no changeover either
+    assert realclips.clip_acts(gig("pixies", NIGHT, "BIG SPECIAL", "Pixies"), pixies) == (
+        {"p1.mp4": "BIG SPECIAL", "p2.mp4": "Pixies"},
+        "sets matched to the bill (a guess)",
+    )
+    # a 20-minute pause is two sets but no changeover (25 min): the start time decides, the
+    # earlier set the support's, the night's last the headliner's
     close = [clip("a.mp4", at(NIGHT, 20, 0)), clip("b.mp4", at(NIGHT, 20, 20))]
-    assert realclips.tag_rule(bill, close) == "whole bill"
+    acts, rule = realclips.clip_acts(bill, close)
+    assert acts == {"a.mp4": "Support", "b.mp4": "Headliner"} and rule.startswith("by start time")
 
 
 def test_evening_minutes_run_past_midnight() -> None:
@@ -125,25 +128,28 @@ def test_evening_minutes_run_past_midnight() -> None:
     assert realclips.evening_minutes(at(date(2026, 3, 26), 0, 30)) == 1470
 
 
-def test_act_tags_one_act_only_on_strong_evidence() -> None:
+def test_clip_acts_by_the_sets_by_the_bill_and_for_festivals() -> None:
     two_sets = [
         clip("s1.mp4", at(NIGHT, 20)),
         clip("h1.mp4", at(NIGHT, 21, 30)),
         clip("h2.mp4", at(NIGHT, 21, 40)),
     ]
     bill = gig("geese", NIGHT, "Westside Cowboy", "Geese")  # stage order: support, headliner
-    assert realclips.act_tags(bill, two_sets) == {
-        "s1.mp4": ("Westside Cowboy",),
-        "h1.mp4": ("Geese",),
-        "h2.mp4": ("Geese",),
-    }
+    assert realclips.clip_acts(bill, two_sets) == (
+        {"s1.mp4": "Westside Cowboy", "h1.mp4": "Geese", "h2.mp4": "Geese"},
+        "sets matched to the bill (a guess)",
+    )
     one_set = two_sets[1:]
-    assert realclips.act_tags(bill, one_set)["h1.mp4"] == ("Geese", "Westside Cowboy")
-    assert realclips.act_tags(gig("keo", NIGHT, "Keo"), one_set)["h2.mp4"] == ("Keo",)
+    assert realclips.clip_acts(bill, one_set)[0]["h1.mp4"] == "Geese"
+    assert realclips.clip_acts(gig("keo", NIGHT, "Keo"), one_set) == (
+        {"h1.mp4": "Keo", "h2.mp4": "Keo"},
+        "one act on the bill",
+    )
     festival = gig("truck", NIGHT, "The K's", "The Wombats", festival=True)
-    assert realclips.act_tags(festival, two_sets)["s1.mp4"] == ()
-    assert realclips.tag_rule(bill, two_sets) == "sets matched to the bill (a guess)"
-    assert realclips.tag_rule(festival, two_sets) == "festival: no act"
+    assert realclips.clip_acts(festival, two_sets) == (
+        {"s1.mp4": None, "h1.mp4": None, "h2.mp4": None},
+        "festival: no act",
+    )
 
 
 def test_pick_spreads_over_the_night_and_drops_tiny_clips() -> None:

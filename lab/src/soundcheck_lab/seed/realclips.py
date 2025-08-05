@@ -287,34 +287,6 @@ def sets_fit_the_bill(gig: Gig, groups: Sequence[Sequence[Clip]]) -> bool:
     )
 
 
-def tag_rule(gig: Gig, clips: Sequence[Clip]) -> str:
-    """How `act_tags` decided, for the manifest I review."""
-    if gig.festival:
-        return "festival: no act"
-    if len(gig.acts) == 1:
-        return "one act on the bill"
-    if sets_fit_the_bill(gig, sets(clips)):
-        return "sets matched to the bill (a guess)"
-    return "whole bill"
-
-
-def act_tags(gig: Gig, clips: Sequence[Clip]) -> dict[str, tuple[str, ...]]:
-    """Which acts to tag on each clip. One act only on a one-act bill, or when the sets of clips
-    fit the bill (`sets_fit_the_bill`; still a guess: there are no set times); otherwise the whole
-    bill, since I often went for a support act. Festival clips get no act: there is no telling
-    which stage."""
-    if gig.festival:
-        return {c.name: () for c in clips}
-    if len(gig.acts) == 1:
-        return {c.name: (gig.headliner.name,) for c in clips}
-    groups = sets(clips)
-    if sets_fit_the_bill(gig, groups):
-        return {
-            c.name: (act.name,) for act, group in zip(gig.acts, groups, strict=True) for c in group
-        }
-    return {c.name: tuple(gig.billing) for c in clips}
-
-
 def pick(clips: Sequence[Clip], n: int, min_s: float = MIN_CLIP_S) -> list[Clip]:
     """Up to {@code n} clips spread over the night (so different sets are covered), longest-first
     per slot."""
