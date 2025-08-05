@@ -1,0 +1,6 @@
+# CI's e2e job: the `expo export -p web` build, mounted at /srv/web (ops/ci/compose.e2e.yaml). The export
+# is a single-page app (`web.output: 'single'`), so any path that isn't a file gets index.html, as the
+# S3 web bucket behind CloudFront does on AWS.
+root * /srv/web
+try_files {path} /index.html
+file_server
