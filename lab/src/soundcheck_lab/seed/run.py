@@ -20,7 +20,7 @@ import os
 import re
 import subprocess
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass, field
 from datetime import date
@@ -719,10 +719,7 @@ def archive(
     one post per gig with all of the gig's clips, each tagged with its act."""
     section = state.section("archive")
     me = api.get(ARCHIVE, "/api/v1/me")
-    if section.get("user") != me["id"] or isinstance(
-        next(iter(section.get("posts", {}).values()), []), dict
-    ):
-        # a new account, a reset database, or the first shape (one post a gig) that never posted
+    if section.get("user") != me["id"]:  # a new account, or a reset database
         section.clear()
         section.update(user=me["id"], gigs={}, posts={})
     if me.get("profileVisibility") != "PRIVATE":
@@ -756,34 +753,27 @@ def archive(
     archive_followers(api, settings.archive_followers, log)
 
 
-MAX_CLIPS_PER_ACT = 10  # a post holds at most ten of one person's clips of one act (PostRules)
-MAX_CLIPS = 60  # and sixty clips in all
+MAX_CLIPS_PER_ACT = 10  # a fan's post of a gig holds at most ten of their clips of one act
 
 
-def place(
-    posts: list[dict[str, Any]], clips: Sequence[Clip], acts: dict[str, str | None]
-) -> list[tuple[int, Clip]]:
-    """Which of a gig's archive posts each new clip goes into (an index; one past the end means a
-    new post): the first post with room for its act, in filming order. A night with more than ten
-    clips of an act becomes "part 2" and on (J5 within the API's limits). Updates the counts."""
-    out = []
+def within_cap(
+    clips: Sequence[Clip], acts: dict[str, str | None], posted: set[str]
+) -> tuple[list[Clip], list[Clip]]:
+    """The clips a fan's post of the gig can hold (PostRules: ten of one act; clips without an act
+    count together; a second post of the same gig and day adds to the first), and the
+    rest. Clips already posted stay; the rest of an act's room goes to clips spread over its set
+    (`realclips.pick`). Naming the acts of festival clips in clip_acts.csv makes room for more."""
+    by_act: dict[str, list[Clip]] = defaultdict(list)
     for clip in clips:
-        act = acts.get(clip.name) or ""
-        i = next(
-            (
-                n
-                for n, post in enumerate(posts)
-                if post.setdefault("acts", {}).get(act, 0) < MAX_CLIPS_PER_ACT
-                and len(post["clips"]) < MAX_CLIPS
-            ),
-            len(posts),
-        )
-        if i == len(posts):
-            posts.append({"post_id": None, "clips": [], "acts": {}})
-        posts[i]["acts"][act] = posts[i]["acts"].get(act, 0) + 1
-        posts[i]["clips"].append(clip.name)
-        out.append((i, clip))
-    return out
+        by_act[acts.get(clip.name) or ""].append(clip)
+    keep: set[str] = set()
+    for group in by_act.values():
+        done = [c for c in group if c.name in posted]
+        room = MAX_CLIPS_PER_ACT - len(done)
+        rest = [c for c in group if c.name not in posted]
+        chosen = realclips.pick(rest, room, min_s=0) if room > 0 else []
+        keep |= {c.name for c in [*done, *chosen]}
+    return [c for c in clips if c.name in keep], [c for c in clips if c.name not in keep]
 
 
 def archive_posts(
@@ -796,8 +786,8 @@ def archive_posts(
     batch: Batch,
     log: Log,
 ) -> None:
-    """One post per gig with all its clips (J5), or as few as the API's limits allow, filled
-    across batches: a later batch adds its clips to the gig's last post (POST /posts/{id}/clips)."""
+    """One post per gig with its clips, each with its act, filled across batches: a later
+    batch adds its clips to the gig's post (POST /posts/{id}/clips)."""
     section = state.section("archive")["posts"]
     overrides = realclips.load_overrides(settings.clips_dir / "clip_acts.csv")
     manifest: list[dict[str, str]] = []
@@ -808,53 +798,55 @@ def archive_posts(
             continue
         gig_id = summaries[gig.key]["id"]
         acts, rule = acts_by_clip(gig, clips, overrides)
-        posts: list[dict[str, Any]] = [
-            p for p in section.get(gig.key, []) if _post_exists(api, ARCHIVE, p["post_id"])
-        ]
-        section[gig.key] = posts
-        have = {name for p in posts for name in p["clips"]}
-        todo = [c for c in clips if c.name not in have and batch.admit(c)]
+        mine = section.get(gig.key)
+        if isinstance(mine, list):  # the first shape: a list of posts (only ever one was made)
+            mine = mine[0] if mine else None
+        if mine and not _post_exists(api, ARCHIVE, mine["post_id"]):
+            mine = None
+        section[gig.key] = mine
+        posted = set(mine["clips"]) if mine else set()
+        fits, over = within_cap(clips, acts, posted)
+        todo = [c for c in fits if c.name not in posted and batch.admit(c)]
         if todo:
             try:
                 ids = lineup_ids(api, ARCHIVE, gig_id)
-                trial = json.loads(json.dumps(posts))
-                slots = place(trial, todo, acts)
-                for i, post in enumerate(trial):
-                    mine = [c for j, c in slots if j == i]
-                    if not mine:
-                        continue
-                    new = upload_clips(
-                        api,
+                new = upload_clips(
+                    api,
+                    ARCHIVE,
+                    todo,
+                    acts,
+                    ids,
+                    settings.work_dir / "encoded-full",
+                    settings.archive_max_clip_s,
+                    log,
+                )
+                if mine is None:
+                    made = api.post(
                         ARCHIVE,
-                        mine,
-                        acts,
-                        ids,
-                        settings.work_dir / "encoded-full",
-                        settings.archive_max_clip_s,
-                        log,
+                        "/api/v1/posts",
+                        {"clips": new, "gigId": gig_id, "caption": archive_caption(gig)},
                     )
-                    if post["post_id"] is None:
-                        part = f" (part {i + 1})" if i else ""
-                        made = api.post(
-                            ARCHIVE,
-                            "/api/v1/posts",
-                            {"clips": new, "gigId": gig_id, "caption": archive_caption(gig) + part},
-                        )
-                        post["post_id"] = made["id"]
-                    else:
-                        api.post(ARCHIVE, f"/api/v1/posts/{post['post_id']}/clips", {"clips": new})
-                    if i < len(posts):
-                        posts[i] = post
-                    else:
-                        posts.append(post)
-                    state.save()
-                    added += len(mine)
-                    what = f"{gig.night} {gig.headliner.name}"
-                    log(f"  archive: {what}, +{len(mine)} clip(s) in post {i + 1}")
+                    mine = section[gig.key] = {"post_id": made["id"], "clips": []}
+                else:
+                    api.post(ARCHIVE, f"/api/v1/posts/{mine['post_id']}/clips", {"clips": new})
+                mine["clips"].extend(c.name for c in todo)
+                state.save()
+                added += len(todo)
+                log(f"  archive: {gig.night} {gig.headliner.name}, +{len(todo)} clip(s)")
             except (ApiError, OSError, subprocess.CalledProcessError) as error:
                 log(f"  archive failed {gig.key}: {error}")
-        where = {name: p["post_id"] for p in posts for name in p["clips"]}
+        if over:
+            log(f"  archive: {gig.key}: {len(over)} clip(s) over ten of one act, not posted")
+        done = set(mine["clips"]) if mine else set()
+        skipped = {c.name for c in over}
         for c in clips:
+            status = (
+                "posted"
+                if c.name in done
+                else "over the cap"
+                if c.name in skipped
+                else "next batch"
+            )
             manifest.append(
                 {
                     "file": c.name,
@@ -863,8 +855,8 @@ def archive_posts(
                     "gig_id": gig_id,
                     "act": acts.get(c.name) or "",
                     "tag_rule": rule,
-                    "status": "posted" if c.name in where else "next batch",
-                    "post_id": where.get(c.name, ""),
+                    "status": status,
+                    "post_id": mine["post_id"] if mine and c.name in done else "",
                 }
             )
     state.save()
