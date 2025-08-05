@@ -222,6 +222,14 @@ jobs:
           CI: '1'
       - name: Start PostGIS, LocalStack and the edge
         run: docker compose $COMPOSE_FILES up -d --wait --wait-timeout 240 db localstack edge
+      - name: Import the fixture gigs (as `make ingest INGESTION_MODE=fixtures`; onboarding needs artists)
+        working-directory: backend
+        run: |
+          jar=$(ls build/libs/*.jar | grep -v -- '-plain.jar$')
+          SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=fixtures INGESTION_VENUES_ENABLED=false \
+            java -Xmx1g -jar "$jar" --spring.profiles.active=local --soundcheck.ingestion.cli=ingest > ../ingest.log 2>&1
+          docker compose exec -T db psql -U soundcheck -d soundcheck -c \
+            "select source, status, stats->>'created' as created, stats->>'errors' as errors from ingestion.ingestion_run"
       - name: Start the API and the worker
         working-directory: backend
         run: |
@@ -252,6 +260,7 @@ jobs:
         with:
           name: e2e-logs
           path: |
+            ingest.log
             api.log
             worker.log
             app/test-results
