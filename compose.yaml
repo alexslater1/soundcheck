@@ -90,7 +90,8 @@ services:
     ports:
       - "127.0.0.1:8088:8088"
     volumes:
-      - ./ops/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      # The whole directory: the Caddyfile imports web-dev.caddy or web-static.caddy beside it.
+      - ./ops/caddy:/etc/caddy:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:

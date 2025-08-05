@@ -1,0 +1,9 @@
+# Overlay for CI's e2e job (.github/workflows/ci.yml): the edge serves the static web export instead of
+# proxying to an Expo dev server. Used as `docker compose -f compose.yaml -f ops/ci/compose.e2e.yaml`.
+# Paths are relative to the first file's directory (the repo root).
+services:
+  edge:
+    environment:
+      EDGE_WEB: web-static
+    volumes:
+      - ./app/dist:/srv/web:ro

@@ -90,9 +90,9 @@ test('Stats from Went gigs, the gigs behind a line, sharing, and the act bar on 
   await page.getByTestId('profile-tab-stats').last().click();
   const stats = page.getByTestId('stats').last();
   await expect(stats).toBeVisible();
-  await expect(page.getByLabel('3 gigs')).toBeVisible();
-  await expect(page.getByLabel('2 acts')).toBeVisible();
-  await expect(page.getByLabel('3 venues')).toBeVisible();
+  await expect(page.getByLabel('3 gigs', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('2 acts', { exact: true })).toBeVisible();
+  await expect(page.getByLabel('3 venues', { exact: true })).toBeVisible();
   const acts = page.getByTestId('stats-act');
   await expect(acts).toHaveCount(2);
   // Both acts were seen twice; the tie goes to the one seen most recently (the headliner, in November).

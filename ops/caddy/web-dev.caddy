@@ -1,0 +1,2 @@
+# Day to day: the Expo dev server on the host (`make app`), imported by the Caddyfile's catch-all handle.
+reverse_proxy host.docker.internal:8081

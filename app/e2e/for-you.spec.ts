@@ -76,7 +76,8 @@ async function seedPosts(
     await request.post(`/api/v1/media/uploads/${ticket.mediaId}/complete`, { headers: auth });
     const post = await request.post('/api/v1/posts', {
       headers: auth,
-      data: { mediaId: ticket.mediaId, caption: `For You clip ${i + 1}` },
+      // A post is a list of clips; this one holds one, from no gig.
+      data: { clips: [{ mediaId: ticket.mediaId }], caption: `For You clip ${i + 1}` },
     });
     expect(post.status()).toBe(201);
     postIds.push((await post.json()).id);
@@ -176,6 +177,8 @@ test('For You: the first clip plays, is explained, and scrolling ten clips repor
     /New for you|Trending|Matches|gigs near you/,
   );
   await page.getByRole('button', { name: 'Close' }).click();
+  // The sheet slides away first; a scroll while it is still over the feed doesn't reach the list.
+  await expect(page.getByTestId('why-this-post')).toBeHidden();
 
   // Scroll through ten clips, resting a little over a second on each.
   for (let i = 1; i <= 10; i++) {

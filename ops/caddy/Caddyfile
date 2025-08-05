@@ -1,7 +1,7 @@
 # Local edge on :8088 mirroring CloudFront's path routing:
 #   /api/*   → the API (Gradle on the host :8080, or the `api` container under profile `full`)
 #   /media/* → LocalStack S3, rewritten to the media bucket (CloudFront → S3 media bucket)
-#   /*       → Expo web dev server on the host :8081 (CloudFront → S3 web bucket)
+#   /*       → Expo web dev server on the host :8081, or the static web export in CI (CloudFront → S3 web bucket)
 {
 	admin off
 	auto_https off
@@ -40,8 +40,10 @@
 		}
 	}
 
+	# The web app: the Expo dev server on the host by default (web-dev.caddy); CI's e2e job sets
+	# EDGE_WEB=web-static to serve the `expo export -p web` build instead (ops/ci/compose.e2e.yaml).
 	handle {
-		reverse_proxy host.docker.internal:8081
+		import {$EDGE_WEB:web-dev}.caddy
 	}
 
 	# A clear message instead of a bare 502 when the upstream isn't running.
