@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
-	openapi openapi-check ingest venue-coverage venue-preview record-fixtures purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -215,6 +215,9 @@ venue-preview: ## What venue sites would give, nothing written (SITES=key1,key2 
 record-fixtures: ## Record external API responses into fixtures/ (live calls; needs the keys in .env and `make up`)
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=record-fixtures --logging.level.org.jooq.tools.LoggerListener=info'
 	$(CURDIR)/ops/scripts/check-fixture-secrets.sh
+
+backfill-setlists: ## The owner's gigs with their full bills from setlist.fm, into bills.json; other dates to .localdata/setlistfm/candidates.csv for review (live calls within a daily budget, resumable; options: ARTISTS="Keo,SPRINTS" FROM=2024-06 DRY_RUN=1)
+	$(UV_LAB) run soundcheck-lab backfill-setlists $(if $(ARTISTS),--artists "$(ARTISTS)") $(if $(FROM),--from $(FROM)) $(if $(DRY_RUN),--dry-run)
 
 seed-demo: ## Seed personas, the owner's real gigs and clips (if fixtures/clips/mine/ exists), likes and engagement through the API (idempotent; needs `make up`, `make api`, `make worker`; options: SEED_ARGS="--personas 3 --gigs 2")
 	@curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make up', 'make api' and 'make worker'"; exit 1; }

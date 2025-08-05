@@ -104,6 +104,56 @@ def seed_demo(
         raise typer.Exit(1)
 
 
+@app.command("backfill-setlists")
+def backfill_setlists(
+    artists: str = typer.Option("", help="Only these acts (comma-separated); default: every act"),
+    from_month: str = typer.Option(
+        "", "--from", help="YYYY-MM: look back to this month; default: my first gig"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Print the changes; keep bills.json"),
+    budget: int = typer.Option(1000, min=1, max=1400, help="setlist.fm calls a day (UTC)"),
+) -> None:
+    """My gigs with their full bills from setlist.fm; other dates for review."""
+    import json
+    import os
+    from datetime import date
+
+    from soundcheck_lab.seed import run as seeding
+    from soundcheck_lab.seed import setlists
+
+    key = os.environ.get("SETLISTFM_API_KEY", "")
+    if not key:
+        typer.echo("SETLISTFM_API_KEY is not set (.env)", err=True)
+        raise typer.Exit(1)
+    root = seeding.default_root()
+    bills = root / "fixtures" / "clips" / "mine" / "bills.json"
+    out = root / ".localdata" / "setlistfm"
+    if from_month:
+        since = date.fromisoformat(f"{from_month}-01")
+    else:
+        since = min(date.fromisoformat(b["date"]) for b in json.loads(bills.read_text())).replace(
+            day=1
+        )
+    state = setlists.State.load(out / "state.json")
+    client = setlists.Client(key, state, budget=budget)
+    try:
+        result = setlists.backfill(
+            client,
+            state,
+            bills,
+            out,
+            since=since,
+            only=[a.strip() for a in artists.split(",") if a.strip()],
+            dry_run=dry_run,
+            log=typer.echo,
+        )
+    finally:
+        client.close()
+    typer.echo(f"setlist.fm calls today: {client.calls_today()} of {budget}")
+    if result is None:
+        raise typer.Exit(2)
+
+
 @app.command("seed-scale")
 def seed_scale(profile: str = typer.Option("small", help="small | medium | large")) -> None:
     """Generate the performance dataset directly in Postgres."""
