@@ -32,6 +32,8 @@ BASE_URL = "https://api.setlist.fm/rest/1.0/"
 SPACING_S = 0.55  # setlist.fm allows 2 calls a second
 DAILY_BUDGET = 1000  # of the key's 1,440: the rest is left for the app's lookups
 MAX_ACTS = 10  # POST /gigs and PATCH /gigs take at most ten acts
+# setlist.fm's placeholder for a night of many acts (MusicBrainz's "Various Artists"): not an act
+VARIOUS = "89ad4ac3-39f7-470e-963a-56509c546377"
 Log = Callable[[str], None]
 
 
@@ -290,6 +292,8 @@ def merge(
         new: list[dict[str, Any]] = []
         for f in sorted(night, key=lambda f: f.artist.casefold()):
             if norm(f.artist) in have or (f.mbid and f.mbid in have):
+                continue
+            if f.mbid == VARIOUS or norm(f.artist) == "variousartists":
                 continue
             new.append({"name": f.artist, "mbid": f.mbid, "songs": f.songs})
             have |= {norm(f.artist), *([f.mbid] if f.mbid else [])}

@@ -200,3 +200,19 @@ def test_the_key_travels_in_its_header_and_404_means_no_results() -> None:
 def test_found_round_trips_through_the_state() -> None:
     f = parse(page("artist-p1.json"))[0]
     assert Found.of(json.loads(json.dumps(f.row()))) == f
+
+
+def test_setlist_fms_various_artists_placeholder_is_not_an_act() -> None:
+    various = Found(
+        "s9",
+        "u",
+        date(2026, 9, 20),
+        "Various Artists",
+        "89ad4ac3-39f7-470e-963a-56509c546377",
+        "v1",
+        "The Lantern Rooms",
+        "London",
+        0,
+    )
+    result = merge([bill()], [], {bill()["key"]: [various]})
+    assert [a["name"] for a in result.bills[0]["acts"]] == ["Paper Lanterns"]
