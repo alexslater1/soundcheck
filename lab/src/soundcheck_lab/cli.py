@@ -49,6 +49,15 @@ def seed_demo(
         4, min=0, help="Real clips posted per gig, at most (up to 4 to exercise the UI)"
     ),
     max_clip_seconds: float = typer.Option(45.0, min=5, max=60),
+    month: str = typer.Option("", help="Batch: only my gigs of this month (YYYY-MM)"),
+    max_gb: float = typer.Option(0, min=0, help="Batch: at most this much footage (0: no cap)"),
+    archive: bool = typer.Option(
+        True, "--archive/--no-archive", help="The private @alex_archive account"
+    ),
+    archive_followers: str = typer.Option(
+        "",
+        help="My real handles (comma-separated): accept their follow requests to the archive",
+    ),
     synthetic: int = typer.Option(
         3, min=0, help="Synthetic clips for personas with fewer real ones"
     ),
@@ -77,6 +86,12 @@ def seed_demo(
         synthetic_per_persona=synthetic,
         gig_limit=gigs,
         real=real,
+        month=month or None,
+        max_gb=max_gb or None,
+        archive=archive,
+        archive_followers=tuple(
+            h.strip().lstrip("@") for h in archive_followers.split(",") if h.strip()
+        ),
     )
     if real and not (settings.clips_dir / "bills.json").exists():
         typer.echo(f"no {settings.clips_dir / 'bills.json'}: seeding without real clips", err=True)

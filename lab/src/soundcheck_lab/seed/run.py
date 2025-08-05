@@ -30,7 +30,7 @@ from typing import Any
 from soundcheck_lab.seed import encode, realclips
 from soundcheck_lab.seed.api import Api, ApiError
 from soundcheck_lab.seed.avatar import avatar_png
-from soundcheck_lab.seed.personas import DEMO, PERSONAS, Persona, check_password_for
+from soundcheck_lab.seed.personas import ARCHIVE, DEMO, PERSONAS, Persona, check_password_for
 from soundcheck_lab.seed.realclips import Clip, Gig
 
 Log = Callable[[str], None]
@@ -60,6 +60,11 @@ class Settings:
     synthetic_per_persona: int = 3
     real: bool = True
     gig_limit: int | None = None  # only the first N gigs (a small run)
+    month: str | None = None  # only my gigs of this month (YYYY-MM): one batch
+    max_gb: float | None = None  # at most this much of my footage (source files) a run
+    archive: bool = True  # the private @alex_archive account with all of my clips
+    archive_followers: tuple[str, ...] = ()  # my real handles: their follow requests accepted
+    archive_max_clip_s: float = 180.0  # the API's limit is 3 min
 
     @property
     def clips_dir(self) -> Path:
@@ -465,6 +470,75 @@ def caption(gig: Gig, acts: Sequence[str], clip: Clip) -> str:
     return options[stable(clip.name) % len(options)]
 
 
+def post_groups(chosen: Sequence[Clip]) -> list[list[Clip]]:
+    """J5: a persona's post of a gig carries all its clips of the gig. Up to three chosen clips
+    are one persona's post; four or more are two personas' posts (the first and second half of
+    the night), so a gig still has more than one voice."""
+    if len(chosen) < 4:
+        return [list(chosen)] if chosen else []
+    half = len(chosen) // 2
+    return [list(chosen[:half]), list(chosen[half:])]
+
+
+@dataclass
+class Batch:
+    """How much of my footage one run may upload (a month, or at most N GB, at a time):
+    the source files' bytes, each clip counted once. The first clip always goes, even if larger."""
+
+    limit_bytes: int | None = None
+    used: int = 0
+    seen: set[str] = field(default_factory=set)
+    full: bool = False
+
+    def admit(self, clip: Clip) -> bool:
+        if clip.name in self.seen:
+            return True
+        size = clip.path.stat().st_size
+        if self.limit_bytes is not None and self.seen and self.used + size > self.limit_bytes:
+            self.full = True
+            return False
+        self.seen.add(clip.name)
+        self.used += size
+        return True
+
+
+def acts_by_clip(
+    gig: Gig, clips: Sequence[Clip], overrides: dict[str, str | None]
+) -> tuple[dict[str, str | None], str]:
+    chosen, rule = realclips.clip_acts(gig, clips)
+    fixed = realclips.override_acts(gig, chosen, overrides)
+    return fixed, rule if fixed == chosen else f"{rule}; corrected in clip_acts.csv"
+
+
+def lineup_ids(api: Api, who: Persona, gig_id: str) -> dict[str, str]:
+    """The gig's bill as the catalog has it now: normalised act name → artist id."""
+    detail = api.get(who, f"/api/v1/gigs/{gig_id}")
+    return {norm(a["name"]): str(a["id"]) for a in detail["lineup"]}
+
+
+def upload_clips(
+    api: Api,
+    who: Persona,
+    clips: Sequence[Clip],
+    acts: dict[str, str | None],
+    ids: dict[str, str],
+    out_dir: Path,
+    max_s: float,
+    log: Log,
+) -> list[dict[str, Any]]:
+    """Encodes (cached in {@code out_dir}) and uploads each clip; the clips as POST /posts wants
+    them, each with its act when the catalog's bill has it."""
+    out = []
+    for clip in clips:
+        start, length = realclips.segment(clip.duration_s, max_s)
+        encoded = out_dir / f"{clip.path.stem}.mp4"
+        encode.encode(clip.path, encoded, start, length, log)
+        media = api.upload(who, encoded, "video/mp4", meta={"durationMs": int(length * 1000)})
+        act = acts.get(clip.name)
+        out.append({"mediaId": media.media_id, "artistId": ids.get(norm(act)) if act else None})
+    return out
+
+
 def real_posts(
     api: Api,
     settings: Settings,
@@ -474,27 +548,28 @@ def real_posts(
     matched: dict[str, list[Clip]],
     skipped: Sequence[realclips.Skipped],
     state: State,
+    batch: Batch,
     log: Log,
 ) -> None:
-    posts = state.section("posts")
-    by_handle = {p.handle: p for p in [*indie, DEMO]}  # who posted a remembered clip
+    """The personas' posts of my clips: up to {@code clips_per_gig} a gig, one post per persona
+    with all its clips of the gig (J5), each clip tagged with its act (J17). A post from before J5
+    (one clip each, the "posts" section) is deleted once its clip is in a J5 post."""
+    old = state.section("posts")
+    done = state.section("gig_posts")
+    by_handle = {p.handle: p for p in [*indie, DEMO]}
+    overrides = realclips.load_overrides(settings.clips_dir / "clip_acts.csv")
     manifest: list[dict[str, str]] = [
         {"file": s.clip.name, "night": str(s.clip.night), "status": "skipped", "reason": s.reason}
         for s in skipped
     ]
-    plan: list[tuple[int, Gig, Clip, tuple[str, ...], Persona]] = []
-    rules: dict[str, str] = {}  # gig key → how its clips were tagged
+    posted = retired = 0
     for gig in gigs:
         clips = matched.get(gig.key, [])
         if not clips or gig.key not in summaries:
             continue
-        tags = realclips.act_tags(gig, clips)
-        rules[gig.key] = realclips.tag_rule(gig, clips)
+        acts, rule = acts_by_clip(gig, clips, overrides)
         people = attendees(gig, indie)
         chosen = realclips.pick(clips, settings.clips_per_gig)
-        for i, clip in enumerate(chosen):
-            poster = DEMO if i == 0 and stable(gig.key) % 3 == 0 else people[i % len(people)]
-            plan.append((i, gig, clip, tags[clip.name], poster))
         for clip in clips:
             if clip not in chosen:
                 manifest.append(
@@ -506,58 +581,80 @@ def real_posts(
                         "reason": f"{settings.clips_per_gig} clips per gig",
                     }
                 )
-    plan.sort(
-        key=lambda item: (item[0], item[1].night)
-    )  # round 1: one clip of every gig, then the next
-    log(f"real clips: {len(plan)} to post from {len({p[1].key for p in plan})} gigs")
-    for n, (_, gig, clip, acts, poster) in enumerate(plan, 1):
-        summary = summaries[gig.key]
-        ids = {norm(a["name"]): a["id"] for a in [summary["headliner"], *summary["support"]]}
-        artist_ids = [ids[norm(a)] for a in acts if norm(a) in ids]
-        row = {
-            "file": clip.name,
-            "night": str(clip.night),
-            "gig": gig.key,
-            "gig_id": summary["id"],
-            "acts": "; ".join(acts),
-            "tag_rule": rules[gig.key],
-            "persona": poster.handle,
-        }
-        done = posts.get(clip.name)
-        author = by_handle.get(done["persona"], poster) if done else poster
-        if done and _post_exists(api, author, done["post_id"]):
-            manifest.append(row | {"status": "posted", "post_id": done["post_id"]})
-            continue
-        start, length = realclips.segment(clip.duration_s, settings.max_clip_s)
-        # kept after upload (~25 MB each): after `make reset`, a run uploads without re-encoding
-        out = settings.work_dir / "encoded" / f"{clip.path.stem}.mp4"
-        try:
-            encode.encode(clip.path, out, start, length, log)
-            media = api.upload(poster, out, "video/mp4", meta={"durationMs": int(length * 1000)})
-            post = api.post(
-                poster,
-                "/api/v1/posts",
+        gig_id = summaries[gig.key]["id"]
+        for i, group in enumerate(post_groups(chosen)):
+            poster = DEMO if i == 0 and stable(gig.key) % 3 == 0 else people[i % len(people)]
+            key = f"{gig.key}#{i}"
+            names = [c.name for c in group]
+            rows = [
                 {
-                    "mediaId": media.media_id,
-                    "gigId": summary["id"],
-                    "artistIds": artist_ids,
-                    "caption": caption(gig, acts, clip),
-                },
-            )
-        except (ApiError, OSError, subprocess.CalledProcessError) as error:
-            log(f"  failed {clip.name}: {error}")
-            manifest.append(row | {"status": "failed", "reason": str(error)[:200]})
-            continue
-        posts[clip.name] = {
-            "post_id": post["id"],
-            "media_id": media.media_id,
-            "persona": poster.handle,
-        }
-        state.save()
-        manifest.append(row | {"status": "posted", "post_id": post["id"]})
-        what = ", ".join(acts) or gig.title
-        log(f"  [{n}/{len(plan)}] @{poster.handle}: {gig.night} {what} ({length:.0f} s)")
-    write_manifest(settings.clips_dir / "manifest.csv", manifest)
+                    "file": c.name,
+                    "night": str(c.night),
+                    "gig": gig.key,
+                    "gig_id": gig_id,
+                    "acts": acts.get(c.name) or "",
+                    "tag_rule": rule,
+                    "persona": poster.handle,
+                }
+                for c in group
+            ]
+            mine = done.get(key)
+            author = by_handle.get(mine["persona"], poster) if mine else poster
+            if mine and mine["clips"] == names and _post_exists(api, author, mine["post_id"]):
+                manifest.extend(r | {"status": "posted", "post_id": mine["post_id"]} for r in rows)
+                continue
+            if not all(batch.admit(c) for c in group):
+                manifest.extend(r | {"status": "next batch"} for r in rows)
+                continue
+            try:
+                ids = lineup_ids(api, poster, gig_id)
+                body: dict[str, Any] = {
+                    "clips": upload_clips(
+                        api,
+                        poster,
+                        group,
+                        acts,
+                        ids,
+                        settings.work_dir / "encoded",
+                        settings.max_clip_s,
+                        log,
+                    ),
+                    "gigId": gig_id,
+                    "caption": caption(gig, sorted({a for a in acts.values() if a}), group[0]),
+                }
+                tagged = sorted(
+                    {ids[norm(a)] for c in group if (a := acts.get(c.name)) and norm(a) in ids}
+                )
+                if tagged:
+                    body["artistIds"] = tagged
+                post = api.post(poster, "/api/v1/posts", body)
+            except (ApiError, OSError, subprocess.CalledProcessError) as error:
+                log(f"  failed {gig.key} #{i}: {error}")
+                manifest.extend(r | {"status": "failed", "reason": str(error)[:200]} for r in rows)
+                continue
+            done[key] = {"post_id": post["id"], "persona": poster.handle, "clips": names}
+            state.save()
+            posted += 1
+            manifest.extend(r | {"status": "posted", "post_id": post["id"]} for r in rows)
+            log(f"  @{poster.handle}: {gig.night} {gig.headliner.name}, {len(group)} clip(s)")
+            for name in names:  # the one-clip posts these clips had before multi-clip posts
+                before = old.pop(name, None)
+                if before and before["post_id"] != post["id"]:
+                    who = by_handle.get(before["persona"])
+                    if who is not None:
+                        _delete_post(api, who, before["post_id"])
+                        retired += 1
+            state.save()
+    log(f"real clips: {posted} persona posts made; {retired} one-clip posts from before J5 removed")
+    merge_manifest(settings.clips_dir / "manifest.csv", manifest, MANIFEST_FIELDS)
+
+
+def _delete_post(api: Api, persona: Persona, post_id: str) -> None:
+    try:
+        api.request(persona, "DELETE", f"/api/v1/posts/{post_id}")
+    except ApiError as error:
+        if error.status != 404:
+            raise
 
 
 def _post_exists(api: Api, persona: Persona, post_id: str) -> bool:
@@ -576,24 +673,184 @@ def _post_exists(api: Api, persona: Persona, post_id: str) -> bool:
     return status != "DELETED"
 
 
-def write_manifest(path: Path, rows: Iterable[dict[str, str]]) -> None:
-    fields = [
-        "file",
-        "night",
-        "gig",
-        "gig_id",
-        "acts",
-        "tag_rule",
-        "persona",
-        "status",
-        "post_id",
-        "reason",
-    ]
+MANIFEST_FIELDS = [
+    "file",
+    "night",
+    "gig",
+    "gig_id",
+    "acts",
+    "tag_rule",
+    "persona",
+    "status",
+    "post_id",
+    "reason",
+]
+ARCHIVE_FIELDS = ["file", "night", "gig", "gig_id", "act", "tag_rule", "status", "post_id"]
+
+
+def merge_manifest(path: Path, rows: Iterable[dict[str, str]], fields: Sequence[str]) -> None:
+    """Writes this run's rows over the earlier ones (by file), keeping the rows of clips this run
+    did not touch: a run of one month leaves the other months' progress in place."""
+    merged: dict[str, dict[str, str]] = {}
+    if path.exists():
+        with path.open(encoding="utf-8") as fh:
+            merged = {r["file"]: r for r in csv.DictReader(fh)}
+    merged |= {r["file"]: r for r in rows}
     with path.open("w", newline="", encoding="utf-8") as fh:
-        writer = csv.DictWriter(fh, fieldnames=fields)
+        writer = csv.DictWriter(fh, fieldnames=list(fields))
         writer.writeheader()
-        for row in sorted(rows, key=lambda r: (r.get("night", ""), r["file"])):
+        for row in sorted(merged.values(), key=lambda r: (r.get("night", ""), r["file"])):
             writer.writerow({k: row.get(k, "") for k in fields})
+
+
+# ── 4b. the archive account ──────────────────────────────────────────────────────────────────────
+def archive(
+    api: Api,
+    settings: Settings,
+    gigs: Sequence[Gig],
+    summaries: dict[str, dict[str, Any]],
+    matched: dict[str, list[Clip]],
+    state: State,
+    batch: Batch,
+    log: Log,
+) -> None:
+    """@alex_archive, private, Went to every one of my gigs with its full bill (acts
+    added to the catalog's bill where missing; acts seen default to the whole bill), and
+    one post per gig with all of the gig's clips, each tagged with its act."""
+    section = state.section("archive")
+    me = api.get(ARCHIVE, "/api/v1/me")
+    if section.get("user") != me["id"]:  # a new account, or a reset database
+        section.clear()
+        section.update(user=me["id"], gigs={}, posts={})
+    if me.get("profileVisibility") != "PRIVATE":
+        api.patch(ARCHIVE, "/api/v1/me", {"profileVisibility": "PRIVATE", "bio": ARCHIVE.bio})
+    if not me["onboarded"]:
+        api.post(ARCHIVE, "/api/v1/me/onboarding/complete")
+    went, synced = 0, 0
+    for gig in gigs:
+        summary = summaries.get(gig.key)
+        if summary is None or section["gigs"].get(gig.key) == summary["id"]:
+            continue
+        api.put(ARCHIVE, f"/api/v1/gigs/{summary['id']}/attendance", {"status": "WENT"})
+        have = lineup_ids(api, ARCHIVE, summary["id"])
+        missing = [a.name for a in gig.acts if norm(a.name) not in have]
+        if missing:  # anyone who went may add acts; the bill comes from setlist.fm
+            try:
+                api.patch(
+                    ARCHIVE, f"/api/v1/gigs/{summary['id']}", {"addArtistNames": missing[:10]}
+                )
+                synced += 1
+            except ApiError as error:
+                log(f"  {gig.key}: could not add {', '.join(missing)}: {error}")
+        section["gigs"][gig.key] = summary["id"]
+        state.save()
+        went += 1
+    log(
+        f"archive: Went to {went} more gigs ({synced} bills completed); "
+        f"{len(section['gigs'])} in all"
+    )
+    archive_posts(api, settings, gigs, summaries, matched, state, batch, log)
+    archive_followers(api, settings.archive_followers, log)
+
+
+def archive_posts(
+    api: Api,
+    settings: Settings,
+    gigs: Sequence[Gig],
+    summaries: dict[str, dict[str, Any]],
+    matched: dict[str, list[Clip]],
+    state: State,
+    batch: Batch,
+    log: Log,
+) -> None:
+    posts = state.section("archive")["posts"]
+    overrides = realclips.load_overrides(settings.clips_dir / "clip_acts.csv")
+    manifest: list[dict[str, str]] = []
+    added = 0
+    for gig in gigs:
+        clips = sorted(matched.get(gig.key, []), key=lambda c: c.taken)
+        if not clips or gig.key not in summaries:
+            continue
+        gig_id = summaries[gig.key]["id"]
+        acts, rule = acts_by_clip(gig, clips, overrides)
+        mine = posts.get(gig.key)
+        if mine and not _post_exists(api, ARCHIVE, mine["post_id"]):
+            mine = posts[gig.key] = None
+        have = set(mine["clips"]) if mine else set()
+        todo = []
+        for c in clips:
+            if c.name not in have and batch.admit(c):
+                todo.append(c)
+        if todo:
+            try:
+                ids = lineup_ids(api, ARCHIVE, gig_id)
+                new = upload_clips(
+                    api,
+                    ARCHIVE,
+                    todo,
+                    acts,
+                    ids,
+                    settings.work_dir / "encoded-full",
+                    settings.archive_max_clip_s,
+                    log,
+                )
+                if mine is None:
+                    post = api.post(
+                        ARCHIVE,
+                        "/api/v1/posts",
+                        {"clips": new, "gigId": gig_id, "caption": archive_caption(gig)},
+                    )
+                    mine = posts[gig.key] = {"post_id": post["id"], "clips": []}
+                else:
+                    api.post(ARCHIVE, f"/api/v1/posts/{mine['post_id']}/clips", {"clips": new})
+                mine["clips"].extend(c.name for c in todo)
+                state.save()
+                added += len(todo)
+                log(f"  archive: {gig.night} {gig.headliner.name}, +{len(todo)} clip(s)")
+            except (ApiError, OSError, subprocess.CalledProcessError) as error:
+                log(f"  archive failed {gig.key}: {error}")
+        posted = set(mine["clips"]) if mine else set()
+        for c in clips:
+            manifest.append(
+                {
+                    "file": c.name,
+                    "night": str(c.night),
+                    "gig": gig.key,
+                    "gig_id": gig_id,
+                    "act": acts.get(c.name) or "",
+                    "tag_rule": rule,
+                    "status": "posted" if c.name in posted else "next batch",
+                    "post_id": mine["post_id"] if mine else "",
+                }
+            )
+    log(f"archive: {added} clips posted this run")
+    merge_manifest(settings.clips_dir / "archive.csv", manifest, ARCHIVE_FIELDS)
+
+
+def archive_caption(gig: Gig) -> str:
+    when = gig.night.strftime("%-d %b %Y")
+    return (
+        f"{gig.title}, {when}" if gig.festival else f"{gig.headliner.name} at {gig.venue}, {when}"
+    )
+
+
+def archive_followers(api: Api, handles: Sequence[str], log: Log) -> None:
+    """Accepts the follow requests my real accounts sent the archive (it is private). A handle
+    with no request yet is reported: send one from the app, then run the seed again."""
+    for handle in handles:
+        hits = api.get(ARCHIVE, "/api/v1/search/people", q=handle)
+        items = hits["items"] if isinstance(hits, dict) else hits
+        user = next((u for u in items if u["handle"].lower() == handle.lower()), None)
+        if user is None:
+            log(f"archive: no account @{handle}")
+            continue
+        try:
+            api.post(ARCHIVE, f"/api/v1/me/follow-requests/{user['id']}/accept")
+            log(f"archive: @{handle} follows it")
+        except ApiError as error:
+            if error.status != 404:
+                raise
+            log(f"archive: no follow request from @{handle} yet: send one in the app, run again")
 
 
 # ── 5. synthetic filler ──────────────────────────────────────────────────────────────────────────
@@ -634,7 +891,9 @@ def filler(
             media = api.upload(persona, clip, "video/mp4")
             artist = artists[i % len(artists)] if artists else None
             body: dict[str, Any] = {
-                "mediaId": media.media_id,
+                "clips": [
+                    {"mediaId": media.media_id, "artistId": artist["id"] if artist else None}
+                ],
                 "caption": f"{persona.genres[0]} on repeat (synthetic demo clip)",
             }
             if artist:
@@ -704,9 +963,24 @@ def run(settings: Settings, log: Log) -> None:
                 f"skipped {len(skipped)}: "
                 + ", ".join(f"{n} {r}" for r, n in reasons.most_common())
             )
+            if settings.month:
+                gigs = [g for g in gigs if g.night.strftime("%Y-%m") == settings.month]
+                skipped = [s for s in skipped if s.clip.night.strftime("%Y-%m") == settings.month]
+                log(f"batch: the {len(gigs)} gigs of {settings.month}")
+            batch = Batch(int(settings.max_gb * 1e9) if settings.max_gb else None)
             summaries = add_gigs(api, gigs, indie, matched, state, log)
             demo_follows(api, genres, state, log)
-            real_posts(api, settings, gigs, indie, summaries, matched, skipped, state, log)
+            real_posts(api, settings, gigs, indie, summaries, matched, skipped, state, batch, log)
+            if settings.archive:
+                archive(api, settings, gigs, summaries, matched, state, batch, log)
+            log(
+                f"batch: {batch.used / 1e9:.2f} GB of footage in {len(batch.seen)} clips"
+                + (
+                    "; the cap was reached: run the same batch again to continue"
+                    if batch.full
+                    else ""
+                )
+            )
         else:
             demo_follows(api, genres, state, log)
         filler(api, settings, people, genres, state, log)

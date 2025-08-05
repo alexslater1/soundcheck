@@ -185,3 +185,13 @@ DEMO = _p(
     "Indie, Alternative, Rock, Punk",
     "Gig-goer since June 2024. Mostly London, mostly small rooms.",
 )
+
+# My whole history on a private account (its posts reach no feed); my real
+# accounts follow it to see it (the seed accepts their follow requests: --archive-followers).
+ARCHIVE = _p(
+    "alex_archive",
+    "Alex's archive",
+    "London",
+    "Indie, Alternative, Rock, Punk",
+    "Every gig since June 2024, with all my clips. Private test account.",
+)
