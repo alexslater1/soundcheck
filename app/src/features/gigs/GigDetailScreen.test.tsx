@@ -175,6 +175,19 @@ describe('GigDetailScreen act bar', () => {
     expect(screen.getByTestId('act-bar')).toHaveStyle({ backgroundColor: 'transparent' });
   });
 
+  it('keeps the bar outside the scroll so its tabs still take taps once the page has scrolled', async () => {
+    await render(<GigDetailScreen id="g1" />, { wrapper: Providers });
+    await waitFor(() => expect(screen.getByTestId('act-bar')).toBeOnTheScreen());
+    // A sticky header inside the ScrollView dropped every tap after a scroll on Android (Fabric).
+    expect(screen.getByTestId('gig-scroll')).not.toContainElement(screen.getByTestId('act-bar'));
+
+    await fireEvent.scroll(screen.getByTestId('gig-scroll'), {
+      nativeEvent: { contentOffset: { x: 0, y: 600 } },
+    });
+    await fireEvent.press(screen.getByRole('tab', { name: 'Cardinals, support' }));
+    expect(screen.getByRole('tab', { name: 'Cardinals, support' })).toBeSelected();
+  });
+
   it('says how many times the viewer has seen the picked act, from their own Went gigs', async () => {
     useAuthStore.setState({ me: { id: 'me-1' } as never });
     // The API counts every one of them (more than a page of 50 here), not one page.

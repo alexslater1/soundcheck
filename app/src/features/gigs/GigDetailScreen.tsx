@@ -92,20 +92,22 @@ export function GigDetailScreen({ id }: { id: string }) {
   const onSale = gigPhase(gig.startsAt) !== 'over' && gig.status !== 'CANCELLED';
   return (
     <Screen>
+      {/* The bar sits above the ScrollView rather than as a sticky header inside it: a sticky header is
+          moved by a native-driven transform the JS side never sees, so once the page had scrolled its
+          tabs measured themselves at their old place and dropped every tap (Android, new architecture). */}
+      {showBar ? (
+        <ActBar acts={acts} selected={act?.id ?? null} onSelect={setActId} stuck={stuck} />
+      ) : null}
       <ScrollView
         testID="gig-scroll"
         refreshControl={refreshControl}
         contentContainerStyle={styles.gap}
-        stickyHeaderIndices={showBar ? [0] : undefined}
         scrollEventThrottle={32}
         onScroll={(event) => {
           const under = event.nativeEvent.contentOffset.y > 4;
           if (under !== stuck) setStuck(under);
         }}
       >
-        {showBar ? (
-          <ActBar acts={acts} selected={act?.id ?? null} onSelect={setActId} stuck={stuck} />
-        ) : null}
         {gig.imageUrl ? (
           <Image
             source={{ uri: gig.imageUrl }}

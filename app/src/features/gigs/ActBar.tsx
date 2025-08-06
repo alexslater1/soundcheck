@@ -29,7 +29,7 @@ export function ActBar({
   onSelect: (artistId: string | null) => void;
   /**
    * The page has scrolled under the bar: it gets the page's colour and a hairline so the content
-   * passes beneath it. At rest it is transparent, so the screen's glow shows through.
+   * scrolls up to a clean edge. At rest it is transparent, so the screen's glow shows through.
    */
   stuck?: boolean;
 }) {
