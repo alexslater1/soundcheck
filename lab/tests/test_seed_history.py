@@ -65,12 +65,25 @@ def test_alexs_corrections_win_unless_they_name_an_act_not_on_the_bill(tmp_path:
     assert realclips.load_overrides(tmp_path / "missing.csv") == {}
 
 
-def test_a_persona_post_carries_its_clips_and_four_or_more_make_two_posts() -> None:
-    clips = [clip(str(i), 21, i) for i in range(5)]
-    assert run.post_groups([]) == []
-    assert run.post_groups(clips[:3]) == [clips[:3]]
-    assert run.post_groups(clips[:4]) == [clips[:2], clips[2:4]]
-    assert [len(g) for g in run.post_groups(clips)] == [2, 3]
+def test_persona_posts_carry_three_or_four_clips_varying_by_gig() -> None:
+    assert run.post_sizes(0, "g", cap=8) == []
+    assert run.post_sizes(2, "g", cap=8) == [2]  # too few for 3: one post of what there is
+    sizes = {n: run.post_sizes(n, "g", cap=8) for n in range(3, 22)}
+    for n, made in sizes.items():
+        assert 1 <= len(made) <= run.POSTS_PER_GIG
+        assert all(3 <= size <= 4 for size in made), (n, made)
+        assert sum(made) <= min(n, 8)
+    assert sizes[21] == run.post_sizes(21, "g", cap=8)  # the same on every run
+    firsts = {run.post_sizes(21, f"gig-{i}", cap=8)[0] for i in range(20)}
+    assert firsts == {3, 4}  # it varies from gig to gig
+    assert run.post_sizes(21, "g", cap=3) == [3]
+
+
+def test_post_groups_cut_the_clips_in_filmed_order() -> None:
+    clips = [clip(str(i), 21, i) for i in range(7)]
+    assert run.post_groups(clips, [4, 3]) == [clips[:4], clips[4:]]
+    assert run.post_groups(clips[:2], [2]) == [clips[:2]]
+    assert run.post_groups([], []) == []
 
 
 def test_a_batch_stops_at_its_size_but_always_takes_the_first_clip(tmp_path: Path) -> None:
@@ -208,7 +221,7 @@ def test_the_archive_goes_completes_the_bill_and_posts_every_clip_over_two_batch
     ]
 
 
-def test_persona_posts_carry_several_clips_and_replace_the_one_clip_posts(
+def test_persona_posts_carry_three_or_four_clips_and_replace_older_posts_of_them(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(encode, "encode", lambda src, out, start, length, log: None)
@@ -218,16 +231,26 @@ def test_persona_posts_carry_several_clips_and_replace_the_one_clip_posts(
         lambda self, who, path, ct, meta=None: Media(f"m-{path.stem}", "SINGLE"),
     )
     clips = []
-    for name, hh, mm in (("a", 20, 5), ("b", 20, 10), ("c", 21, 20), ("d", 21, 40)):
+    times = (("a", 20, 5), ("b", 20, 10), ("c", 21, 20), ("d", 21, 40), ("e", 21, 50))
+    for name, hh, mm in (*times, ("f", 22, 0), ("g", 22, 10)):
         (tmp_path / name).write_bytes(b"x")
         clips.append(clip(name, hh, mm, path=tmp_path / name))
     g = gig("Westside Cowboy", "Geese")
-    settings = run.Settings(root=tmp_path, clips_per_gig=4)
+    settings = run.Settings(root=tmp_path, clips_per_gig=8)
     settings.clips_dir.mkdir(parents=True)
     state = run.State.load(tmp_path / "state.json")
     indie = [p for p in PERSONAS if p.indie]
     poster = run.attendees(g, indie)[0]
+    # A one-clip post of the old kind, and two-clip posts from before posts of 3 or 4 (#0, #1),
+    # plus a slot the new sizes do not have (#2).
     state.section("posts")["a"] = {"post_id": "old-a", "persona": poster.handle}
+    gig_posts = state.section("gig_posts")
+    for i, names in enumerate((["a", "b"], ["c", "d"], ["e"])):
+        gig_posts[f"{g.key}#{i}"] = {
+            "post_id": f"old-{i}",
+            "persona": poster.handle,
+            "clips": names,
+        }
     server = Server()
     server.lineup.append({"id": "a-wc", "name": "Westside Cowboy"})
     api = Api(
@@ -248,16 +271,18 @@ def test_persona_posts_carry_several_clips_and_replace_the_one_clip_posts(
         run.Batch(),
         lambda _: None,
     )
+    sizes = run.post_sizes(7, g.key, 8)
     made = [c[2] for c in server.calls if c[:2] == ("POST", "/api/v1/posts")]
-    assert [[x["mediaId"] for x in body["clips"]] for body in made] == [
-        ["m-a", "m-b"],
-        ["m-c", "m-d"],
-    ]
-    assert made[0]["clips"][0]["artistId"] == "a-wc" and made[0]["artistIds"] == ["a-wc"]
-    assert made[1]["artistIds"] == ["a-geese"]
-    assert ("DELETE", "/api/v1/posts/old-a", {}) in server.calls
+    ids = [f"m-{c.name}" for c in realclips.pick(clips, sum(sizes))]  # spread over the night
+    expected = [ids[sum(sizes[:i]) : sum(sizes[: i + 1])] for i in range(len(sizes))]
+    assert [[x["mediaId"] for x in body["clips"]] for body in made] == expected
+    assert all(3 <= len(body["clips"]) <= 4 for body in made)
+    assert made[0]["clips"][0]["artistId"] == "a-wc" and "a-wc" in made[0]["artistIds"]
+    deleted = {c[1] for c in server.calls if c[0] == "DELETE"}
+    assert {f"/api/v1/posts/old-{i}" for i in range(3)} <= deleted
+    assert "/api/v1/posts/old-a" in deleted
     assert state.section("posts") == {}
-    assert set(state.section("gig_posts")) == {f"{g.key}#0", f"{g.key}#1"}
+    assert set(state.section("gig_posts")) == {f"{g.key}#{i}" for i in range(len(sizes))}
 
 
 def test_a_post_holds_ten_clips_of_an_act_spread_over_the_set_keeping_those_posted() -> None:

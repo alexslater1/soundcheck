@@ -46,7 +46,7 @@ def seed_demo(
     ),
     gigs: int | None = typer.Option(None, help="Only the first N of my gigs (a small run)"),
     clips_per_gig: int = typer.Option(
-        4, min=0, help="Real clips posted per gig, at most (up to 4 to exercise the UI)"
+        8, min=0, help="Real clips posted per gig, at most (persona posts of 3 or 4, two a gig)"
     ),
     max_clip_seconds: float = typer.Option(45.0, min=5, max=60),
     month: str = typer.Option("", help="Batch: only my gigs of this month (YYYY-MM)"),
