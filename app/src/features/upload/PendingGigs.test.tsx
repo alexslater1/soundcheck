@@ -106,7 +106,10 @@ describe('PendingGigs', () => {
     // Another account on the same phone still sees its own badge.
     expect((await renderHook(() => usePendingGigCount('other'))).result.current).toBe(2);
 
-    mockUnposted.mockReturnValue({ isPending: false, data: [{ id: 'c' }, { id: 'a' }, { id: 'b' }] });
+    mockUnposted.mockReturnValue({
+      isPending: false,
+      data: [{ id: 'c' }, { id: 'a' }, { id: 'b' }],
+    });
     expect((await renderHook(() => usePendingGigCount('me'))).result.current).toBe(1);
   });
 

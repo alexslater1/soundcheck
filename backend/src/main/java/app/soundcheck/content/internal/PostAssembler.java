@@ -157,6 +157,7 @@ class PostAssembler {
                         clip.id(),
                         clip.position(),
                         clip.artistId() == null ? null : artists.get(clip.artistId()),
+                        clip.song(),
                         owner,
                         status,
                         playback,

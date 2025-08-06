@@ -38,8 +38,13 @@ public class PostEditService {
             @Nullable List<UUID> taggedUserIds,
             @Nullable List<ClipPlacement> clips) {}
 
-    /** One clip in the edited order, with its act (null: no act). */
-    public record ClipPlacement(UUID id, @Nullable UUID artistId) {}
+    /** One clip in the edited order, with its act (null: no act) and its song (null or blank: none). */
+    public record ClipPlacement(UUID id, @Nullable UUID artistId, @Nullable String song) {
+
+        public ClipPlacement {
+            song = Songs.clean(song);
+        }
+    }
 
     private final PostRepository posts;
     private final ClipRepository clips;
@@ -75,7 +80,7 @@ public class PostEditService {
                 .filter(c -> c.postId().equals(postId) && c.ownerId().equals(actorId))
                 .orElseThrow(() -> ApiException.notFound("CLIP_NOT_FOUND", "No such clip in this post"));
         if (previewMediaId != null) {
-            rules.checkNewClips(actorId, List.of(new NewClip(null, null, previewMediaId)));
+            rules.checkNewClips(actorId, List.of(new NewClip(null, null, null, previewMediaId)));
             clips.setPreview(clipId, previewMediaId);
         }
         if (mediaId != null && !mediaId.equals(clip.mediaId())) {
@@ -192,7 +197,7 @@ public class PostEditService {
         }
     }
 
-    /** The clips in the given order and acts; clips left out are removed. */
+    /** The clips in the given order, acts and songs; clips left out are removed. */
     private void reorder(PostRow post, List<ClipPlacement> placements) {
         List<ClipRow> current = clips.of(post.id());
         Set<UUID> ids = current.stream().map(ClipRow::id).collect(Collectors.toSet());
@@ -213,7 +218,8 @@ public class PostEditService {
                         .distinct()
                         .toList());
         for (int i = 0; i < placements.size(); i++) {
-            clips.place(placements.get(i).id(), i, placements.get(i).artistId());
+            ClipPlacement placement = placements.get(i);
+            clips.place(placement.id(), i, placement.artistId(), placement.song());
         }
         List<UUID> gone = new ArrayList<>();
         for (ClipRow clip : current) {

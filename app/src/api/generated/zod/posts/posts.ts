@@ -73,6 +73,7 @@ export const listArtistPostsResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -210,6 +211,7 @@ export const listGigPostsResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -387,6 +389,7 @@ export const listMyPostsResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -473,6 +476,9 @@ export const createPostBodyArtistIdsMax = 10;
 export const createPostBodyCaptionMin = 0;
 
 export const createPostBodyCaptionMax = 2200;
+export const createPostBodyClipsItemSongMin = 0;
+
+export const createPostBodyClipsItemSongMax = 120;
 export const createPostBodyClipsMin = 0;
 
 export const createPostBodyClipsMax = 60;
@@ -487,7 +493,8 @@ export const createPostBody = zod.object({
   "clips": zod.array(zod.object({
   "artistId": zod.string().uuid().nullish(),
   "mediaId": zod.string().uuid().nullish(),
-  "previewMediaId": zod.string().uuid().nullish()
+  "previewMediaId": zod.string().uuid().nullish(),
+  "song": zod.string().min(createPostBodyClipsItemSongMin).max(createPostBodyClipsItemSongMax).nullish().describe('The song in the clip, as typed; blank is none')
 })).min(createPostBodyClipsMin).max(createPostBodyClipsMax),
   "day": zod.string().date().nullish().describe('UK day the clips are from; default: the gig\'s day'),
   "gigId": zod.string().uuid().nullish(),
@@ -541,6 +548,7 @@ export const createPostResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -673,6 +681,7 @@ export const getPostResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -757,6 +766,9 @@ export const editPostBodyArtistIdsMax = 10;
 export const editPostBodyCaptionMin = 0;
 
 export const editPostBodyCaptionMax = 2200;
+export const editPostBodyClipsItemSongMin = 0;
+
+export const editPostBodyClipsItemSongMax = 120;
 export const editPostBodyClipsMin = 0;
 
 export const editPostBodyClipsMax = 60;
@@ -770,7 +782,8 @@ export const editPostBody = zod.object({
   "caption": zod.string().min(editPostBodyCaptionMin).max(editPostBodyCaptionMax).nullish(),
   "clips": zod.array(zod.object({
   "artistId": zod.string().uuid().nullish(),
-  "id": zod.string().uuid()
+  "id": zod.string().uuid(),
+  "song": zod.string().min(editPostBodyClipsItemSongMin).max(editPostBodyClipsItemSongMax).nullish().describe('The song in the clip; null or blank: none')
 })).min(editPostBodyClipsMin).max(editPostBodyClipsMax).nullish(),
   "day": zod.string().date().nullish(),
   "gigId": zod.string().uuid().nullish(),
@@ -824,6 +837,7 @@ export const editPostResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -902,6 +916,9 @@ export const addPostClipsParams = zod.object({
   "id": zod.string().uuid()
 })
 
+export const addPostClipsBodyClipsItemSongMin = 0;
+
+export const addPostClipsBodyClipsItemSongMax = 120;
 export const addPostClipsBodyClipsMin = 0;
 
 export const addPostClipsBodyClipsMax = 60;
@@ -911,7 +928,8 @@ export const addPostClipsBody = zod.object({
   "clips": zod.array(zod.object({
   "artistId": zod.string().uuid().nullish(),
   "mediaId": zod.string().uuid().nullish(),
-  "previewMediaId": zod.string().uuid().nullish()
+  "previewMediaId": zod.string().uuid().nullish(),
+  "song": zod.string().min(addPostClipsBodyClipsItemSongMin).max(addPostClipsBodyClipsItemSongMax).nullish().describe('The song in the clip, as typed; blank is none')
 })).min(addPostClipsBodyClipsMin).max(addPostClipsBodyClipsMax)
 })
 
@@ -962,6 +980,7 @@ export const addPostClipsResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -1101,6 +1120,7 @@ export const fillPostClipResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -1237,6 +1257,7 @@ export const setPostOnProfileResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -1371,6 +1392,7 @@ export const listUserPostsResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -1507,6 +1529,7 @@ export const listVenuePostsResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),

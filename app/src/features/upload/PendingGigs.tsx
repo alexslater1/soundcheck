@@ -25,7 +25,12 @@ import { unseenCount, usePendingSeen } from './pendingSeen';
 export function usePendingGigCount(userId: string | null): number {
   const gigs = useListUnpostedGigs().data;
   const seen = usePendingSeen((state) => (userId ? state.seen[userId] : undefined));
-  return gigs && userId ? unseenCount(gigs.map((gig) => gig.id), seen) : 0;
+  return gigs && userId
+    ? unseenCount(
+        gigs.map((gig) => gig.id),
+        seen,
+      )
+    : 0;
 }
 
 /**

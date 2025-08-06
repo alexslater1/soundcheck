@@ -9,6 +9,7 @@ import type { ArtistSummary } from './artistSummary';
 import type { UserSummary } from './userSummary';
 import type { Playback } from './playback';
 import type { PostClipPreviewUrl } from './postClipPreviewUrl';
+import type { PostClipSong } from './postClipSong';
 import type { PostClipStatus } from './postClipStatus';
 
 export interface PostClip {
@@ -18,5 +19,6 @@ export interface PostClip {
   playback: Playback;
   position: number;
   previewUrl?: PostClipPreviewUrl;
+  song?: PostClipSong;
   status: PostClipStatus;
 }

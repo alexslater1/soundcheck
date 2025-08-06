@@ -69,6 +69,7 @@ export const getFollowingFeedResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),
@@ -213,6 +214,7 @@ export const getHomeFeedResponse = zod.object({
 }),
   "position": zod.number(),
   "previewUrl": zod.string().nullish(),
+  "song": zod.string().nullish(),
   "status": zod.enum(['WAITING', 'PROCESSING', 'READY', 'FAILED'])
 })),
   "commentCount": zod.number(),

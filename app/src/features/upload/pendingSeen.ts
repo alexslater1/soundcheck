@@ -22,8 +22,7 @@ export const usePendingSeen = create<PendingSeen>()(
   persist(
     (set) => ({
       seen: {},
-      markSeen: (userId, gigIds) =>
-        set((state) => ({ seen: { ...state.seen, [userId]: gigIds } })),
+      markSeen: (userId, gigIds) => set((state) => ({ seen: { ...state.seen, [userId]: gigIds } })),
     }),
     {
       name: 'pending-seen',

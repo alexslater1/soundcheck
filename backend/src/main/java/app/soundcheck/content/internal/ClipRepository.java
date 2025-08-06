@@ -35,6 +35,7 @@ public class ClipRepository {
                 .set(POST_CLIP.OWNER_ID, clip.ownerId())
                 .set(POST_CLIP.POSITION, clip.position())
                 .set(POST_CLIP.ARTIST_ID, clip.artistId())
+                .set(POST_CLIP.SONG, clip.song())
                 .set(POST_CLIP.MEDIA_ID, clip.mediaId())
                 .set(POST_CLIP.PREVIEW_MEDIA_ID, clip.previewMediaId())
                 .set(POST_CLIP.CREATED_AT, at(clip.createdAt()))
@@ -89,10 +90,11 @@ public class ClipRepository {
                 .execute();
     }
 
-    public void place(UUID clipId, int position, @Nullable UUID artistId) {
+    public void place(UUID clipId, int position, @Nullable UUID artistId, @Nullable String song) {
         dsl.update(POST_CLIP)
                 .set(POST_CLIP.POSITION, position)
                 .set(POST_CLIP.ARTIST_ID, artistId)
+                .set(POST_CLIP.SONG, song)
                 .where(POST_CLIP.ID.eq(clipId))
                 .execute();
     }
@@ -135,6 +137,7 @@ public class ClipRepository {
                 r.get(POST_CLIP.OWNER_ID),
                 r.get(POST_CLIP.POSITION),
                 r.get(POST_CLIP.ARTIST_ID),
+                r.get(POST_CLIP.SONG),
                 r.get(POST_CLIP.MEDIA_ID),
                 r.get(POST_CLIP.PREVIEW_MEDIA_ID),
                 r.get(POST_CLIP.CREATED_AT).toInstant());
