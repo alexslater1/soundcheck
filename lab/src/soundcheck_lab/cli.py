@@ -35,6 +35,26 @@ def schema() -> None:
         typer.echo(f"  {feature.index:>2}  {feature.name:<20} {feature.description}")
 
 
+@app.command("regroup-posts")
+def regroup_posts(
+    api_url: str = typer.Option("http://localhost:8088", envvar="SOUNDCHECK_API_URL"),
+    apply: bool = typer.Option(False, "--apply", help="Make the changes (default: only list them)"),
+    gig: str = typer.Option("", help="Only gigs whose key contains this (e.g. 2026-03-25)"),
+    archive_followers: str = typer.Option(
+        "",
+        help="My real handles (comma-separated): accept their follow requests to the archive",
+    ),
+) -> None:
+    """Regroup the personas' posts of my clips into the seed's current split, reusing the
+    uploaded clips (no upload, no transcode; local stack only)."""
+    from soundcheck_lab.seed import regroup as regrouping
+    from soundcheck_lab.seed import run as seeding
+
+    settings = seeding.Settings(root=seeding.default_root(), api_url=api_url)
+    handles = [h.strip().lstrip("@") for h in archive_followers.split(",") if h.strip()]
+    regrouping.regroup(settings, typer.echo, apply, handles, gig)
+
+
 @app.command("seed-demo")
 def seed_demo(
     api_url: str = typer.Option("http://localhost:8088", envvar="SOUNDCHECK_API_URL"),
@@ -46,7 +66,7 @@ def seed_demo(
     ),
     gigs: int | None = typer.Option(None, help="Only the first N of my gigs (a small run)"),
     clips_per_gig: int = typer.Option(
-        8, min=0, help="Real clips posted per gig, at most (persona posts of 3 or 4, two a gig)"
+        4, min=0, help="Real clips posted per gig, at most, shared between 1-3 persona posts"
     ),
     max_clip_seconds: float = typer.Option(45.0, min=5, max=60),
     month: str = typer.Option("", help="Batch: only my gigs of this month (YYYY-MM)"),

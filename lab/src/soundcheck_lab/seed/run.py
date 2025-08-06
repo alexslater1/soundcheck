@@ -56,7 +56,7 @@ class Settings:
     root: Path
     api_url: str = "http://localhost:8088"
     personas: int = len(PERSONAS)
-    clips_per_gig: int = 8
+    clips_per_gig: int = 4
     max_clip_s: float = 45.0
     synthetic_per_persona: int = 3
     real: bool = True
@@ -471,24 +471,47 @@ def caption(gig: Gig, acts: Sequence[str], clip: Clip) -> str:
     return options[stable(clip.name) % len(options)]
 
 
-POSTS_PER_GIG = 2  # J5: more than one voice at a gig, without re-uploading every clip twice
+MAX_POSTS_PER_GIG = 3
+# How likely a gig is to have one, two or three persona posts: one or two voices mostly, now and
+# then three. Shared equally among the ways of splitting the clips that many ways, and each post
+# of a single clip makes a way less likely (otherwise nearly half the posts were one clip).
+POSTS_WEIGHT = {1: 0.45, 2: 0.45, 3: 0.1}
+SINGLE_CLIP_WEIGHT = 0.3
 
 
-def post_sizes(available: int, key: str, cap: int) -> list[int]:
-    """How many clips each persona post of a gig carries (3 or 4, make it
-    vary): up to {@code POSTS_PER_GIG} posts of 3 or 4 clips, chosen by a stable hash of the gig
-    so a re-run gives the same posts, and at most {@code cap} clips in all. A gig with fewer than
-    three clips makes one post of what there is; a post never ends up with fewer than three
-    otherwise (leftover clips stay unposted)."""
-    budget = min(available, cap)
-    if budget < 3:
-        return [budget] if budget > 0 else []
-    sizes: list[int] = []
-    while len(sizes) < POSTS_PER_GIG and budget >= 3:
-        size = min(3 + stable(f"{key}#{len(sizes)}") % 2, budget)
-        sizes.append(size)
-        budget -= size
-    return sizes
+def compositions(n: int, parts: int) -> list[list[int]]:
+    """Every way to write n as an ordered sum of {@code parts} positive sizes."""
+    if parts == 1:
+        return [[n]] if n > 0 else []
+    return [[first, *rest] for first in range(1, n) for rest in compositions(n - first, parts - 1)]
+
+
+def post_split(n: int, key: str) -> list[int]:
+    """How a gig's n chosen clips are shared between personas' posts (varied so it seems more
+    random, e.g. four clips as 4, 2+2 or 1+3). The split is drawn from
+    every way of cutting the clips into one to three posts ({@code POSTS_WEIGHT}), with a stable
+    hash of the gig, so a re-run gives the same posts."""
+    options: list[tuple[float, list[int]]] = []
+    for parts, weight in POSTS_WEIGHT.items():
+        ways = compositions(n, parts) if parts <= min(n, MAX_POSTS_PER_GIG) else []
+        options += [(weight / len(ways) * SINGLE_CLIP_WEIGHT ** way.count(1), way) for way in ways]
+    if not options:
+        return []
+    total = sum(weight for weight, _ in options)
+    point = stable(f"{key}#split") / 2**64 * total
+    for weight, way in options:
+        point -= weight
+        if point < 0:
+            return way
+    return options[-1][1]
+
+
+def poster_for(gig: Gig, people: Sequence[Persona], i: int) -> Persona:
+    """Who makes a gig's i-th persona post: now and then the demo fan first, otherwise the gig's
+    attendees from a gig-dependent starting point, so different people post different gigs."""
+    if i == 0 and stable(gig.key) % 3 == 0:
+        return DEMO
+    return people[(stable(f"{gig.key}#who") + i) % len(people)]
 
 
 def post_groups(chosen: Sequence[Clip], sizes: Sequence[int]) -> list[list[Clip]]:
@@ -575,8 +598,8 @@ def real_posts(
     batch: Batch,
     log: Log,
 ) -> None:
-    """The personas' posts of my clips: up to two posts a gig of 3 or 4 clips each
-    ({@code post_sizes}), each by a different persona and each clip tagged with its act (J17).
+    """The personas' posts of my clips: up to {@code clips_per_gig} a gig, shared between one
+    to three personas' posts ({@code post_split}), each clip tagged with its act.
     An old one-clip post (the "posts" section) is deleted once its clip is in a multi-clip
     post, and a post whose clips the sizes have regrouped is deleted before its replacement."""
     old = state.section("posts")
@@ -594,9 +617,8 @@ def real_posts(
             continue
         acts, rule = acts_by_clip(gig, clips, overrides)
         people = attendees(gig, indie)
-        usable = realclips.pick(clips, len(clips))
-        sizes = post_sizes(len(usable), gig.key, settings.clips_per_gig)
-        chosen = realclips.pick(clips, sum(sizes))
+        chosen = realclips.pick(clips, settings.clips_per_gig)
+        sizes = post_split(len(chosen), gig.key)
         for clip in clips:
             if clip not in chosen:
                 manifest.append(
@@ -605,7 +627,7 @@ def real_posts(
                         "night": str(clip.night),
                         "gig": gig.key,
                         "status": "not posted",
-                        "reason": f"posts of {'+'.join(map(str, sizes))} clips",
+                        "reason": f"{settings.clips_per_gig} clips per gig",
                     }
                 )
         gig_id = summaries[gig.key]["id"]
@@ -618,7 +640,7 @@ def real_posts(
                 retired += 1
                 state.save()
         for i, group in enumerate(groups):
-            poster = DEMO if i == 0 and stable(gig.key) % 3 == 0 else people[i % len(people)]
+            poster = poster_for(gig, people, i)
             key = f"{gig.key}#{i}"
             names = [c.name for c in group]
             rows = [
@@ -923,7 +945,9 @@ def archive_followers(api: Api, handles: Sequence[str], log: Log) -> None:
     for handle in handles:
         hits = api.get(ARCHIVE, "/api/v1/search/people", q=handle)
         items = hits["items"] if isinstance(hits, dict) else hits
-        user = next((u for u in items if u["handle"].lower() == handle.lower()), None)
+        # Each result is {user, profileVisibility} (PeopleSearchService.PersonResult).
+        users = [item["user"] for item in items]
+        user = next((u for u in users if u["handle"].lower() == handle.lower()), None)
         if user is None:
             log(f"archive: no account @{handle}")
             continue
