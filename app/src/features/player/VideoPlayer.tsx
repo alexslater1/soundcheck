@@ -60,7 +60,15 @@ function newPlayer(hlsUrl: string): NativePlayer {
  * rendered and no player exists.
  */
 export function VideoPlayer(props: VideoPlayerProps) {
-  const { live = true, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, rounded, testID } = props;
+  const {
+    live = true,
+    posterUrl,
+    blurhash,
+    aspectRatio = DEFAULT_ASPECT,
+    rounded,
+    shade,
+    testID,
+  } = props;
   if (!live) {
     return (
       <PlayerFrame
@@ -70,6 +78,7 @@ export function VideoPlayer(props: VideoPlayerProps) {
         showPoster
         showSound={false}
         rounded={rounded}
+        shade={shade}
         testID={testID}
       />
     );
@@ -145,7 +154,15 @@ type LiveProps = VideoPlayerProps & {
  * shows the poster and leaves the player alone.
  */
 function LivePlayer(props: LiveProps) {
-  const { clipKey, hlsUrl, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, rounded } = props;
+  const {
+    clipKey,
+    hlsUrl,
+    posterUrl,
+    blurhash,
+    aspectRatio = DEFAULT_ASPECT,
+    rounded,
+    shade,
+  } = props;
   const [holder] = useState(pool.newHolder);
 
   // Before paint: the first frame on screen already has the player (or the poster for one pass).
@@ -168,6 +185,7 @@ function LivePlayer(props: LiveProps) {
         showPoster
         showSound={false}
         rounded={rounded}
+        shade={shade}
       />
     );
   }
@@ -187,6 +205,8 @@ function HeldPlayer({
   loop = true,
   hasAudio,
   soundAtTop,
+  soundButton,
+  shade,
   rounded,
   surface = 'surfaceView',
   onDoubleTap,
@@ -250,6 +270,8 @@ function HeldPlayer({
       showSound
       noSound={hasAudio === false}
       soundAtTop={soundAtTop}
+      soundButton={soundButton}
+      shade={shade}
       rounded={rounded}
       failed={failed}
       onRetry={onRetry}

@@ -5,6 +5,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import type { Post, PostClip } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { ClipShade } from '@/features/player/ClipShade';
 import { PhotoSlide } from '@/features/player/PhotoSlide';
 import { PROCESSING_HINT } from '@/features/player/processing';
 import type { TapPoint } from '@/features/player/tapGesture';
@@ -31,6 +32,10 @@ type Props = {
   live?: boolean;
   /** The sound button at the top of the clip (the feed lays its controls over the foot). */
   soundAtTop?: boolean;
+  /** False: the carousel around the clip draws the sound button, so it stays still (see `PlayerFrame`). */
+  soundButton?: boolean;
+  /** A dark gradient over the foot of the clip, under its controls, for the feed's text (`ClipShade`). */
+  shade?: boolean;
   /**
    * The shape of the box the clip is shown in, when it is not the clip's own: the feed fills a page
    * whose shape is close to the clip's, cropping the edges (see `pageFit`).
@@ -65,6 +70,8 @@ export function PostMedia({
   active,
   live = true,
   soundAtTop,
+  soundButton,
+  shade = false,
   frameAspect,
   rounded,
   surface,
@@ -119,6 +126,7 @@ export function PostMedia({
           aspectRatio={aspectRatio}
           active={active}
           rounded={rounded ?? frameAspect === undefined}
+          shade={shade}
           onDoubleTap={post.status === 'PUBLISHED' ? onDoubleTap : undefined}
           onProgress={onProgress}
         />
@@ -142,6 +150,8 @@ export function PostMedia({
           active={active}
           live={live}
           soundAtTop={soundAtTop}
+          soundButton={soundButton}
+          shade={shade}
           rounded={rounded ?? frameAspect === undefined}
           surface={surface}
           startAtMs={startAtMs}
@@ -157,6 +167,7 @@ export function PostMedia({
   if (clip?.status === 'FAILED' || (!clip && post.status === 'FAILED')) {
     return (
       <View style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}>
+        {shade ? <ClipShade /> : null}
         <Text muted>This clip could not be processed.</Text>
       </View>
     );
@@ -167,7 +178,7 @@ export function PostMedia({
     const mine = myId !== undefined && (myId === clip.owner.id || myId === post.author.id);
     return (
       <View
-        style={[styles.pending, styles.onItsWay, { backgroundColor: colors.surface, aspectRatio }]}
+        style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}
         testID="clip-on-its-way"
       >
         {clip.previewUrl ? (
@@ -180,6 +191,7 @@ export function PostMedia({
             testID="clip-preview"
           />
         ) : null}
+        {shade ? <ClipShade /> : null}
         <ActivityIndicator color={clip.previewUrl ? LIGHT : colors.accent} />
         <Text style={clip.previewUrl ? styles.light : undefined}>On its way</Text>
         {mine ? (
@@ -201,6 +213,7 @@ export function PostMedia({
       style={[styles.pending, { backgroundColor: colors.surface, aspectRatio }]}
       testID="post-processing"
     >
+      {shade ? <ClipShade /> : null}
       <ActivityIndicator color={colors.accent} />
       <Text>Processing your clip…</Text>
       <Text variant="caption" muted style={styles.hint}>
@@ -215,6 +228,7 @@ const LIGHT = '#FFFFFF';
 const styles = StyleSheet.create({
   pending: {
     width: '100%',
+    overflow: 'hidden',
     borderRadius: radius.md,
     alignItems: 'center',
     justifyContent: 'center',
@@ -222,7 +236,6 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
   },
   hint: { textAlign: 'center' },
-  onItsWay: { overflow: 'hidden' },
   light: {
     color: LIGHT,
     textShadowColor: 'rgba(0,0,0,0.6)',

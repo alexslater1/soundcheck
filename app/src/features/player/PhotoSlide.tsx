@@ -7,6 +7,7 @@ import { useLookTime } from '@/features/telemetry/lookTime';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
 
+import { ClipShade } from './ClipShade';
 import { usePlayback } from './PlaybackScope';
 import { createTapClassifier, type TapClassifier, type TapPoint } from './tapGesture';
 import type { PlaybackProgress } from './types';
@@ -18,6 +19,8 @@ type Props = {
   /** The item in view: its time on screen counts (a stand-in for watch time). */
   active: boolean;
   rounded?: boolean;
+  /** A dark gradient over the foot of the photo, for text laid over it (the feed, `ClipShade`). */
+  shade?: boolean;
   /** A double tap likes the post, as on a clip. */
   onDoubleTap?: (point: TapPoint) => void;
   /** Time on screen, reported as a clip's progress (`useLookTime`). */
@@ -37,6 +40,7 @@ export function PhotoSlide({
   aspectRatio,
   active,
   rounded = true,
+  shade = false,
   onDoubleTap,
   onProgress,
   testID,
@@ -82,6 +86,7 @@ export function PhotoSlide({
         accessibilityLabel="Photo"
         testID={testID ? `${testID}-image` : undefined}
       />
+      {shade ? <ClipShade /> : null}
       {onDoubleTap ? (
         <Pressable
           style={StyleSheet.absoluteFill}

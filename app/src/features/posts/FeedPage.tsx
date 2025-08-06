@@ -141,12 +141,26 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
             testID="page-backdrop"
           />
         )}
+        {clip.fill ? null : (
+          // A fitted clip leaves the blurred backdrop showing round it: it gets the same gradient,
+          // drawn behind the clip.
+          <LinearGradient
+            pointerEvents="none"
+            colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
+            locations={[0, 0.55, 1]}
+            style={[styles.shade, { height: Math.min(box.height * 0.45, 360) }]}
+          />
+        )}
         <View style={{ width: clip.width }}>
           <ClipCarousel
             post={post}
             active={active}
             live={live}
             onClipChange={setInView}
+            // A gradient from clear to dark under the overlay keeps the text readable on a bright
+            // frame. The clip draws it under its own controls, so the seek bar shows
+            // above it (2025-08-06: over the card it all but hid the bar).
+            shade
             overlayTop={!ticketOnTop && post.gig ? TICKET_HEIGHT + spacing.sm : 0}
             soundAtTop
             frameAspect={clip.fill ? box.width / box.height : undefined}
@@ -157,14 +171,6 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
             surface={immersive ? 'surfaceView' : 'textureView'}
           />
         </View>
-        {/* A gradient from clear to dark under the overlay: text stays readable on a bright frame
-            without a box over the clip. */}
-        <LinearGradient
-          pointerEvents="none"
-          colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.85)']}
-          locations={[0, 0.55, 1]}
-          style={[styles.shade, { height: Math.min(box.height * 0.45, 360) }]}
-        />
         {!ticketOnTop && post.gig ? (
           <View style={styles.ticketOver} pointerEvents="box-none">
             <GigTicket gig={post.gig} postId={post.id} onDark />

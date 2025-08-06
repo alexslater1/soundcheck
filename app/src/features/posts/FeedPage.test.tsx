@@ -12,6 +12,7 @@ import { TICKET_HEIGHT } from './GigTicket';
 
 const mockPush = jest.fn();
 const mockHandOver = jest.fn((_key: string) => true);
+const mockShade = jest.fn();
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 jest.mock('expo-router', () => ({
@@ -33,10 +34,12 @@ jest.mock('@/features/player/VideoPlayer', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    VideoPlayer: (props: { surface?: string; rounded?: boolean }) =>
-      React.createElement(View, {
+    VideoPlayer: (props: { surface?: string; rounded?: boolean; shade?: boolean }) => {
+      mockShade(props.shade);
+      return React.createElement(View, {
         testID: `video-${props.surface ?? 'surfaceView'}-${props.rounded ? 'rounded' : 'square'}`,
-      }),
+      });
+    },
     handOverPlayer: (key: string) => mockHandOver(key),
   };
 });
@@ -116,6 +119,11 @@ describe('FeedPage', () => {
     expect(card.width).toBe(PAGE.width);
     expect(screen.getByTestId('video-surfaceView-square')).toBeTruthy();
     expect(screen.getByTestId('gig-ticket')).toBeTruthy();
+  });
+
+  it('has the clip draw the dark gradient under its own seek bar', async () => {
+    await renderPage('cards');
+    expect(mockShade).toHaveBeenCalledWith(true);
   });
 
   it('Ticket: the gig on a stub above a shorter rounded card', async () => {

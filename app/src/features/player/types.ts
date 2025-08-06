@@ -25,6 +25,10 @@ export type VideoPlayerProps = {
   rounded?: boolean;
   /** Puts the sound button in the top corner (the feed lays its own controls over the foot of the clip). */
   soundAtTop?: boolean;
+  /** False: the screen draws the sound button itself (see `PlayerFrame`). Default true. */
+  soundButton?: boolean;
+  /** A dark gradient over the foot of the clip, under its controls (the feed, `ClipShade`). */
+  shade?: boolean;
   /**
    * Android's video surface. A `SurfaceView` (the default) is cheapest but is not clipped by rounded
    * corners while its parent scrolls; the post page uses a `TextureView`. Fixed per view.
