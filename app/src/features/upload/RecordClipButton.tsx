@@ -10,6 +10,7 @@ import { spacing } from '@/theme/tokens';
 
 import { discardFile } from './compress';
 import { megabytes } from './labels';
+import { LOCAL_FILE_BUFFER } from './localPlayback';
 import { recordWithCamera, type PickResult } from './pickVideo';
 import type { PickedVideo } from './types';
 import { problemWith } from './validate';
@@ -105,6 +106,7 @@ export function ClipReview({
   const insets = useSafeAreaInsets();
   const player = useVideoPlayer({ uri: video.uri }, (created) => {
     created.loop = false;
+    created.bufferOptions = LOCAL_FILE_BUFFER;
     created.play();
   });
   const problem = problemWith(video);

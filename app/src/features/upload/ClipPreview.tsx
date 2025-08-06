@@ -7,6 +7,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
 
+import { LOCAL_FILE_BUFFER } from './localPlayback';
+
 /**
  * A picked clip played straight from the phone: the compose form shows what is being
  * posted while it is compressed and uploaded in the background. Nothing goes over the network. Tap to
@@ -18,6 +20,7 @@ export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
   const [playing, setPlaying] = useState(false);
   const player = useVideoPlayer({ uri }, (created) => {
     created.loop = true;
+    created.bufferOptions = LOCAL_FILE_BUFFER;
   });
 
   useEffect(() => {

@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react-nativ
 
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
+import { LOCAL_FILE_BUFFER } from './localPlayback';
 import type { PickResult } from './pickVideo';
 import { clipLength, RecordClipButton } from './RecordClipButton';
 import type { PickedVideo } from './types';
@@ -15,13 +16,20 @@ jest.mock('./compress', () => ({ discardFile: (uri: string) => mockDiscard(uri) 
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 16, left: 0, right: 0 }),
 }));
-// The native player is not there under Jest: the review's player is a box that records `play`.
+// The native player is not there under Jest: the review's player is a box that records `play`, and
+// the buffer limits it had when it started.
 jest.mock('expo-video', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
     useVideoPlayer: (_source: unknown, setup?: (player: unknown) => void) => {
-      const player = React.useRef({ loop: true, play: () => mockPlay() }).current;
+      const player = React.useRef({
+        loop: true,
+        bufferOptions: undefined as unknown,
+        play() {
+          mockPlay(this.bufferOptions);
+        },
+      }).current;
       React.useEffect(() => setup?.(player), [player, setup]);
       return player;
     },
@@ -67,7 +75,8 @@ describe('RecordClipButton', () => {
     expect(await screen.findByTestId('clip-review')).toBeTruthy();
     expect(screen.getByTestId('clip-review-video').props.nativeControls).toBe(true);
     expect(screen.getByTestId('clip-review-facts')).toHaveTextContent('0:42 · 85.0 MB');
-    expect(mockPlay).toHaveBeenCalled();
+    // Limited before it starts: a 4K take buffered whole would fill the Java heap (2025-08-06).
+    expect(mockPlay).toHaveBeenCalledWith(LOCAL_FILE_BUFFER);
     expect(onPick).not.toHaveBeenCalled();
 
     await fireEvent.press(screen.getByTestId('clip-review-use'));
