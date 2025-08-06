@@ -65,7 +65,7 @@ const input = (localIds: string[], over: Partial<Parameters<typeof submitPost>[0
   day: null,
   taggedUserIds: [],
   joinPostId: null,
-  clips: localIds.map((localId) => ({ localId, artistId: 'artist-1' })),
+  clips: localIds.map((localId) => ({ localId, artistId: 'artist-1', song: ' Stars ' })),
   ...over,
 });
 
@@ -111,7 +111,7 @@ describe('upload runner', () => {
     const key = useUploadQueue.getState().entries[0]!.draft!.groupKey;
     expect(mockCreatePost).toHaveBeenCalledWith(
       {
-        clips: [{ mediaId: null, artistId: 'artist-1', previewMediaId: null }],
+        clips: [{ mediaId: null, artistId: 'artist-1', song: 'Stars', previewMediaId: null }],
         caption: 'Encore',
         gigId: 'gig-1',
         day: null,
@@ -196,7 +196,7 @@ describe('upload runner', () => {
 
     expect(mockCreatePost).not.toHaveBeenCalled();
     expect(mockAddPostClips).toHaveBeenCalledWith('their-post', {
-      clips: [{ mediaId: null, artistId: 'artist-1', previewMediaId: null }],
+      clips: [{ mediaId: null, artistId: 'artist-1', song: 'Stars', previewMediaId: null }],
     });
     expect(useUploadQueue.getState().entries[0]).toMatchObject({
       postId: 'their-post',

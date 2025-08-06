@@ -41,6 +41,7 @@ export function requestFor(entries: UploadEntry[]): PostRequest {
   const clips = entries.map((entry) => ({
     mediaId: accepted(entry) ? entry.mediaId : null,
     artistId: entry.artistId,
+    song: entry.song,
     previewMediaId: entry.previewState === 'READY' ? entry.previewMediaId : null,
   }));
   if (head.joinPostId) {

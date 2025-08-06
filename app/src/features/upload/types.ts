@@ -88,6 +88,8 @@ export type UploadEntry = {
   attached: boolean;
   /** The act on stage in this clip (the act bar); null: no act. */
   artistId: string | null;
+  /** The song in this clip, as the user typed it; null: none. */
+  song: string | null;
   /** A frame of the clip, uploaded as an image, shown blurred while the clip is on its way. */
   previewMediaId: string | null;
   previewState: 'NONE' | 'MAKING' | 'READY' | 'FAILED';
@@ -118,7 +120,12 @@ export type PostDraft = {
 
 /** What was sent for a draft: a whole post, or clips for an existing one. */
 export type PostRequest = {
-  clips: { mediaId: string | null; artistId: string | null; previewMediaId: string | null }[];
+  clips: {
+    mediaId: string | null;
+    artistId: string | null;
+    song?: string | null;
+    previewMediaId: string | null;
+  }[];
   caption?: string | null;
   gigId?: string | null;
   day?: string | null;

@@ -142,8 +142,8 @@ export type PostInput = {
   taggedUserIds: string[];
   /** Add the clips to this existing post instead of making one. */
   joinPostId: string | null;
-  /** The clips in the order they are announced (running order), each with its act. */
-  clips: { localId: string; artistId: string | null }[];
+  /** The clips in the order they are announced (running order), each with its act and song. */
+  clips: { localId: string; artistId: string | null; song?: string | null }[];
 };
 
 /**
@@ -159,6 +159,7 @@ export async function submitPost(input: PostInput): Promise<void> {
   input.clips.forEach((clip, order) =>
     useUploadQueue.getState().patch(clip.localId, {
       artistId: clip.artistId,
+      song: clip.song?.trim() || null,
       postError: null,
       draft: {
         groupKey,

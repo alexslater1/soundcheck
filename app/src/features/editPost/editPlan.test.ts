@@ -60,10 +60,33 @@ describe('editPlan', () => {
     expect(changes(before, { ...before, caption: '' })).toEqual({ caption: '' });
     const reordered = { ...before, clips: moveClip(before.clips, 0, 1) };
     expect(changes(before, reordered).clips).toEqual([
-      { id: 'c2', artistId: 'keo' },
-      { id: 'c1', artistId: 'cards' },
-      { id: 'c3', artistId: 'other' },
+      { id: 'c2', artistId: 'keo', song: null },
+      { id: 'c1', artistId: 'cards', song: null },
+      { id: 'c3', artistId: 'other', song: null },
     ]);
     expect(changes(before, { ...before, tagged: [] })).toEqual({ taggedUserIds: [] });
+  });
+
+  it('sends the clips when a song changes, trimmed, and a cleared song as none', () => {
+    const before = initialState({
+      ...post,
+      clips: [{ ...clip('c1', 'cards'), song: 'Stars' }, clip('c2', 'keo')],
+    } as unknown as Post);
+    expect(before.clips.map((c) => c.song)).toEqual(['Stars', '']);
+    // Spaces alone change nothing.
+    const spaced = { ...before, clips: before.clips.map((c) => ({ ...c, song: ` ${c.song} ` })) };
+    expect(changes(before, spaced)).toEqual({});
+
+    const after = {
+      ...before,
+      clips: [
+        { ...before.clips[0]!, song: '' },
+        { ...before.clips[1]!, song: '  Bloodhound ' },
+      ],
+    };
+    expect(changes(before, after).clips).toEqual([
+      { id: 'c1', artistId: 'cards', song: null },
+      { id: 'c2', artistId: 'keo', song: 'Bloodhound' },
+    ]);
   });
 });

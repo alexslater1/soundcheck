@@ -342,7 +342,7 @@ describe('CreateScreen', () => {
     expect(mockStartUpload).not.toHaveBeenCalled();
   });
 
-  it('Post makes one post of the clips in running order, each with its act, then offers more from the gig', async () => {
+  it('Post makes one post of the clips in running order, each with its act and song, then offers more from the gig', async () => {
     const second = { ...video, uri: 'file:///DCIM/clip2.mp4', fileName: 'clip2.mp4' };
     await renderScreen();
     await fireEvent.press(screen.getByText('pick-gig-stub'));
@@ -354,6 +354,8 @@ describe('CreateScreen', () => {
     await fireEvent.press(screen.getByTestId(`act-${secondId}`));
     await fireEvent.press(screen.getByText('Opener'));
     expect(screen.getByTestId(`act-${secondId}`)).toHaveTextContent('Opener');
+    // A song typed for one clip goes with it.
+    await fireEvent.changeText(screen.getByTestId(`song-${firstId}`), 'Bloodhound');
 
     await fireEvent.press(screen.getByTestId('compose-stub'));
 
@@ -366,8 +368,8 @@ describe('CreateScreen', () => {
       joinPostId: null,
       // The opener plays first.
       clips: [
-        { localId: secondId, artistId: 'opener' },
-        { localId: firstId, artistId: 'head' },
+        { localId: secondId, artistId: 'opener', song: null },
+        { localId: firstId, artistId: 'head', song: 'Bloodhound' },
       ],
     });
     expect(mockPush).toHaveBeenCalledWith('/me');

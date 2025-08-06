@@ -1,6 +1,7 @@
+import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import type { Post, Reason } from '@/api/generated/model';
+import type { Post, PostClip, Reason } from '@/api/generated/model';
 import { spacing } from '@/theme/tokens';
 
 import { PostActions } from './PostActions';
@@ -40,6 +41,8 @@ export function PostCard({
   startAtMs,
   clipId,
 }: Props) {
+  // The clip in view: its song shows under the caption.
+  const [inView, setInView] = useState<PostClip | undefined>(undefined);
   return (
     <View style={styles.card} testID={`post-${post.id}`}>
       <View style={aspectOf(post) < 1 ? styles.portrait : undefined}>
@@ -52,9 +55,10 @@ export function PostCard({
           startAtMs={startAtMs}
           initialClipId={clipId}
           actBar="above"
+          onClipChange={setInView}
         />
       </View>
-      <PostMeta post={post} />
+      <PostMeta post={post} song={inView?.song} />
       <PostActions post={post} onGone={onGone} reasons={reasons} onComment={onComment} />
     </View>
   );

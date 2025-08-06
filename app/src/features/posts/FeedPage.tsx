@@ -82,7 +82,7 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
         </View>
         <View style={[styles.panel, { backgroundColor: colors.surface }]}>
           {post.gig ? <GigTicket gig={post.gig} postId={post.id} /> : null}
-          <PostMeta post={post} onCaptionPress={open} showGig={false} />
+          <PostMeta post={post} onCaptionPress={open} showGig={false} song={inView?.song} />
           <PostActions post={post} onGone={onGone} reasons={reasons} onComment={open} />
           {reasons && reasons.length > 0 ? (
             <View style={styles.reasons} testID="post-reasons">
@@ -183,7 +183,13 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
           pointerEvents="box-none"
         >
           <View style={styles.scrim}>
-            <PostMeta post={post} onDark onCaptionPress={open} showGig={false} />
+            <PostMeta
+              post={post}
+              onDark
+              onCaptionPress={open}
+              showGig={false}
+              song={inView?.song}
+            />
           </View>
           <PostActions
             post={post}

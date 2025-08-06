@@ -43,4 +43,21 @@ describe('PostMeta: the people the author went with', () => {
     );
     expect(screen.queryByTestId('post-with')).toBeNull();
   });
+
+  it('names the song in the clip in view, and says nothing without one', async () => {
+    await render(
+      <ThemeProvider>
+        <PostMeta post={post([])} song="Bloodhound" />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('post-song')).toHaveTextContent('Bloodhound');
+
+    await screen.unmount();
+    await render(
+      <ThemeProvider>
+        <PostMeta post={post([])} song={null} />
+      </ThemeProvider>,
+    );
+    expect(screen.queryByTestId('post-song')).toBeNull();
+  });
 });

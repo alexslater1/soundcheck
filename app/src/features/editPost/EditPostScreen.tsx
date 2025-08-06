@@ -15,6 +15,7 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { MAX_SONG } from '@/features/upload/postPlan';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
@@ -33,7 +34,7 @@ import { refreshPosts } from './refreshPosts';
 const MAX_TAGGED = 10;
 
 /**
- * ⋯ → Edit (H31): the caption, the clips' order and acts, removing clips (never the last one), and the
+ * ⋯ → Edit: the caption, the clips' order, acts and songs, removing clips (never the last one), and
  * the people tagged. Adding clips goes through Create, which uploads them into this post.
  */
 export function EditPostScreen({ id }: { id: string }) {
@@ -141,7 +142,8 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
           CLIPS
         </Text>
         <Text variant="caption" muted>
-          Tap an act to change it. Clips of one act play together, in this order.
+          Tap an act to change it, and name the song if you like. Clips of one act play together, in
+          this order.
         </Text>
         {state.clips.map((clip, index) => (
           <View
@@ -171,6 +173,21 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
                     ),
                   }))
                 }
+              />
+              <TextInput
+                value={clip.song}
+                onChangeText={(song) =>
+                  setState((s) => ({
+                    ...s,
+                    clips: s.clips.map((c) => (c.id === clip.id ? { ...c, song } : c)),
+                  }))
+                }
+                placeholder="Song (optional)"
+                placeholderTextColor={colors.textMuted}
+                maxLength={MAX_SONG}
+                accessibilityLabel="Song in this clip"
+                style={[styles.song, { color: colors.text, borderColor: colors.border }]}
+                testID={`edit-song-${clip.id}`}
               />
               {clip.owner.id !== myId ? (
                 <Text variant="caption" muted>
@@ -281,6 +298,13 @@ function IconAction({
 }
 
 const styles = StyleSheet.create({
+  song: {
+    alignSelf: 'stretch',
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
   form: { gap: spacing.sm, paddingBottom: spacing.xl },
   input: {
     minHeight: 72,
