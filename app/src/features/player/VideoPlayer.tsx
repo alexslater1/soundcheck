@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useState, useSyncExternalStore } from 'reac
 import { StyleSheet } from 'react-native';
 
 import { usePlayback } from './PlaybackScope';
+import { usePlayerPrefs } from './playerPrefs';
 import { ClipPoster, PlayerFrame } from './PlayerFrame';
 import { createPlayerPool } from './playerPool';
 import type { PlaybackProgress, VideoPlayerProps } from './types';
@@ -38,10 +39,17 @@ export function livePlayerCount(): number {
   return pool.size();
 }
 
+/**
+ * A new player starts with the app's sound setting rather than muted: it is paused until it is the
+ * active clip, so it is silent anyway. Muting it here and unmuting it a moment later (in `configure`)
+ * left it silent for good: expo-video 57 applies each `muted` write on the main thread, and when the
+ * mute's `volume = 0` lands after JS has already unmuted, its `onVolumeChanged` stores 0 as the user's
+ * volume, which the unmute then restores. The clip played without sound while the button said it was on.
+ */
 function newPlayer(hlsUrl: string): NativePlayer {
   const player = createVideoPlayer({ uri: hlsUrl, contentType: 'hls' });
   player.loop = true;
-  player.muted = true;
+  player.muted = usePlayerPrefs.getState().muted;
   player.timeUpdateEventInterval = 0.25;
   return player;
 }
