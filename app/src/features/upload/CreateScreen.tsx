@@ -31,7 +31,7 @@ import { ComposeForm, type ComposeResult } from './ComposeForm';
 import { billOf } from './composeDraft';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
-import { PendingGigs } from './PendingGigs';
+import { PendingGigs, useMarkPendingGigsSeen } from './PendingGigs';
 import { PhotoPreview } from './PhotoPreview';
 import { pickFromLibrary, type PickResult } from './pickVideo';
 import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, postHint, runningOrder } from './postPlan';
@@ -93,6 +93,9 @@ export function CreateScreen() {
   // The gig of the last post from this screen, offered for more clips.
   const [lastGig, setLastGig] = useState<GigSummary | null>(null);
   const [marked, setMarked] = useState<string | null>(null);
+
+  // Opening the tab clears the pending gigs from its badge.
+  useMarkPendingGigsSeen(ownerId);
 
   // Uploads the worker had not finished when the app was last open: ask about them again.
   useEffect(() => {
@@ -254,7 +257,6 @@ export function CreateScreen() {
             testID="more-from-gig"
           />
         ) : null}
-        {!joining && !gigChosen ? <PendingGigs onPick={chooseGig} /> : null}
 
         {joining ? (
           <Step title="The post" done={joinPost.data !== undefined}>
@@ -453,14 +455,19 @@ export function CreateScreen() {
           ) : null}
         </Step>
 
-        <ComposeForm
-          key={joinPostId ?? 'new'}
-          meId={ownerId}
-          clips={composingEntries.length}
-          hint={hint}
-          joining={joining}
-          onPost={post}
-        />
+        <Step title={joining ? 'Add them' : 'Caption and post'} done={hint === null}>
+          <ComposeForm
+            key={joinPostId ?? 'new'}
+            meId={ownerId}
+            clips={composingEntries.length}
+            hint={hint}
+            joining={joining}
+            onPost={post}
+          />
+        </Step>
+
+        {/* Below the post being made: a way to start the next one. */}
+        {!joining && !gigChosen ? <PendingGigs onPick={chooseGig} /> : null}
 
         <Text variant="label" muted style={styles.heading}>
           ON THEIR WAY
@@ -509,6 +516,7 @@ function Step({
       <View style={styles.stepHead}>
         <View
           style={[styles.badge, { backgroundColor: done ? colors.accent : colors.surfaceRaised }]}
+          testID={`step-${title}-${done ? 'done' : 'todo'}`}
         >
           {done ? (
             <Ionicons name="checkmark" size={14} color={colors.onAccent} />

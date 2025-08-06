@@ -15,7 +15,8 @@ export type ComposeResult = { caption: string; taggedUserIds: string[] };
 
 /**
  * The last part of a post: who the user was with and a caption, then Post. The Create tab draws it
- * then Post. The clips (and the act in each) are chosen above; one post holds them all. Post is shown at
+ * in a step box like the parts above it, ticked once Post can be pressed. The clips (and the act in
+ * each) are chosen above; one post holds them all. Post is shown at all times but stays disabled,
  * with `hint` saying what is missing, until the gig and the clips are set. When clips join
  * someone's existing post (`joining`), there is nothing to write: only Post.
  */
@@ -38,10 +39,7 @@ export function ComposeForm({
   const [people, setPeople] = useState<UserSummary[]>([]);
 
   return (
-    <View
-      style={[styles.form, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      testID="compose-form"
-    >
+    <View style={styles.form} testID="compose-form">
       {joining ? null : (
         <>
           <PeopleTagger meId={meId} value={people} onChange={setPeople} />
@@ -76,7 +74,7 @@ export function ComposeForm({
 }
 
 const styles = StyleSheet.create({
-  form: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
+  form: { gap: spacing.sm },
   input: {
     minHeight: 72,
     borderWidth: 1,

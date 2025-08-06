@@ -84,6 +84,7 @@ jest.mock('./PendingGigs', () => {
   return {
     PendingGigs: ({ onPick }: { onPick: (gig: unknown) => void }) =>
       React.createElement(Text, { onPress: () => onPick(paleKites) }, 'pending-stub'),
+    useMarkPendingGigsSeen: () => undefined,
   };
 });
 // The compose form has its own test; here it is a button that posts when it may, showing how many
@@ -241,6 +242,18 @@ describe('CreateScreen', () => {
 
     await fireEvent.press(screen.getByText('pick-gig-stub'));
     expect(screen.getByTestId('compose-stub')).toHaveTextContent('compose 1 new ready');
+  });
+
+  it('ticks the last step once Post can be pressed, with the Pending list below it', async () => {
+    await renderScreen();
+    expect(screen.getByTestId('step-Caption and post-todo')).toBeTruthy();
+    // The Pending list comes after the post being made.
+    const text = JSON.stringify(screen.toJSON());
+    expect(text.indexOf('compose-stub')).toBeLessThan(text.indexOf('pending-stub'));
+
+    await pickClips(video);
+    await fireEvent.press(screen.getByText('pick-gig-stub'));
+    expect(screen.getByTestId('step-Caption and post-done')).toBeTruthy();
   });
 
   it('can go on without a gig, and back', async () => {
