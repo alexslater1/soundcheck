@@ -19,9 +19,10 @@ describe('the act bar of a post', () => {
     ]);
   });
 
-  it('shows only for two acts or more', () => {
+  it('shows whenever a clip has an act, one act included', () => {
     expect(showsActBar(actSegments(clips))).toBe(true);
-    expect(showsActBar(actSegments([{ act: keo }, { act: keo }, { act: undefined }]))).toBe(false);
+    expect(showsActBar(actSegments([{ act: keo }, { act: keo }, { act: undefined }]))).toBe(true);
+    expect(showsActBar(actSegments([{ act: undefined }, { act: null }]))).toBe(false);
     expect(showsActBar(actSegments([]))).toBe(false);
   });
 
