@@ -83,22 +83,6 @@ export function ClipCarousel({
     onClipChange?.(current);
   }, [current, onClipChange]);
 
-  if (clips.length <= 1) {
-    return (
-      <PostMedia
-        post={post}
-        clip={clips[0]}
-        active={active}
-        live={live}
-        soundAtTop={soundAtTop}
-        frameAspect={frameAspect}
-        rounded={rounded}
-        surface={surface}
-        startAtMs={startAtMs}
-      />
-    );
-  }
-
   const goTo = (target: number) => {
     const bounded = Math.max(0, Math.min(clips.length - 1, target));
     setIndex(bounded);
@@ -130,6 +114,45 @@ export function ClipCarousel({
   ) : null;
   const filmedBy =
     current && current.owner.id !== post.author.id ? `filmed by @${current.owner.handle}` : null;
+
+  if (clips.length <= 1) {
+    const media = (
+      <PostMedia
+        post={post}
+        clip={clips[0]}
+        active={active}
+        live={live}
+        soundAtTop={soundAtTop}
+        frameAspect={frameAspect}
+        rounded={rounded}
+        surface={surface}
+        startAtMs={startAtMs}
+      />
+    );
+    if (!bar) {
+      return media;
+    }
+    // One clip has no carousel, but still says whose set it is.
+    return (
+      <View>
+        {actBar === 'above' ? <View style={styles.above}>{bar}</View> : null}
+        <View>
+          {media}
+          {actBar === 'overlay' ? (
+            <View
+              style={[
+                styles.overlay,
+                { top: overlayTop, right: soundAtTop ? SOUND_ROOM : spacing.sm },
+              ]}
+              pointerEvents="box-none"
+            >
+              {bar}
+            </View>
+          ) : null}
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View testID="clip-carousel">

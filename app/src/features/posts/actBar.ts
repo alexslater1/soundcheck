@@ -25,9 +25,12 @@ export function actSegments(
   return segments;
 }
 
-/** The bar is worth showing only when the clips are of two acts or more. */
+/**
+ * The bar shows whenever a clip has an act, one act included (each clip should say
+ * whose set it is; it was hidden for a single act). Only a post with no act on any clip has none.
+ */
 export function showsActBar(segments: readonly ActSegment[]): boolean {
-  return segments.length >= 2;
+  return segments.length >= 1;
 }
 
 /** The act of the clip at `index` (the chip to highlight), or null for a clip with no act. */

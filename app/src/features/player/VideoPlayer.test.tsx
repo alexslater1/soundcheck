@@ -27,6 +27,8 @@ type FakePlayer = {
   replaceAsync: jest.Mock;
   listeners: Record<string, Listener[]>;
   source: unknown;
+  /** Every value assigned to `muted`, in order (expo-video's native setter races on a quick flip). */
+  mutedWrites: boolean[];
 };
 
 // The native module is not there under Jest: a fake player records what the component asks of it.
@@ -49,7 +51,16 @@ jest.mock('expo-video', () => {
         replaceAsync: jest.fn(() => Promise.resolve()),
         listeners: {},
         source,
+        mutedWrites: [],
       };
+      let muted = false;
+      Object.defineProperty(player, 'muted', {
+        get: () => muted,
+        set: (value: boolean) => {
+          player.mutedWrites.push(value);
+          muted = value;
+        },
+      });
       mockPlayers.push(player);
       return player;
     },
@@ -117,6 +128,19 @@ describe('VideoPlayer (native)', () => {
     expect(player.muted).toBe(true);
     expect(player.play).toHaveBeenCalledTimes(1);
     expect(player.pause).not.toHaveBeenCalled();
+  });
+
+  it('creates the player with the sound setting, never muting it first when sound is on', async () => {
+    // expo-video 57 on Android: muted = true then false before the main thread applies the first
+    // write makes the player keep volume 0 for good (its onVolumeChanged stores 0 as the user's
+    // volume), so the clip plays silently while the button says sound is on.
+    usePlayerPrefs.setState({ muted: false });
+    await renderPlayer();
+
+    const player = mockPlayers[0]!;
+    expect(player.muted).toBe(false);
+    expect(player.mutedWrites).not.toContain(true);
+    expect(player.play).toHaveBeenCalledTimes(1);
   });
 
   it('pauses when it stops being the active clip and resumes when it is again', async () => {

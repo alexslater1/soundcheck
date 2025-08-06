@@ -98,6 +98,13 @@ describe('ClipCarousel', () => {
     expect(screen.queryByTestId('clip-carousel')).toBeNull();
     expect(screen.getByTestId('player-c1-active')).toBeTruthy();
     expect(screen.queryByTestId('clip-counter')).toBeNull();
+    // Its act still shows.
+    expect(screen.getByTestId('act-chip-a-keo')).toBeOnTheScreen();
+  });
+
+  it('shows no act chip for a post of one clip with no act', async () => {
+    await show(postWith([ready('c1')]));
+    expect(screen.queryByTestId('act-bar')).toBeNull();
   });
 
   it('plays only the clip in view, and swiping moves the counter, the dots and the act highlight', async () => {
@@ -160,10 +167,16 @@ describe('ClipCarousel', () => {
     expect(screen.getByTestId('player-c2-active')).toBeTruthy();
   });
 
-  it('has no act bar when the clips are of one act', async () => {
+  it('shows the act bar when the clips are of one act', async () => {
     await show(postWith([ready('c1', keo), ready('c2', keo)]));
-    expect(screen.queryByTestId('act-bar')).toBeNull();
+    expect(screen.getByTestId('act-bar')).toBeOnTheScreen();
+    expect(screen.getByTestId('act-chip-a-keo')).toBeOnTheScreen();
     expect(screen.getByTestId('clip-counter')).toBeTruthy();
+  });
+
+  it('has no act bar when no clip has an act', async () => {
+    await show(postWith([ready('c1'), ready('c2')]));
+    expect(screen.queryByTestId('act-bar')).toBeNull();
   });
 
   it('starts on the clip it was opened at, and plays nothing while the post is not in view', async () => {

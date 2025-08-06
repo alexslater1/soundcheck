@@ -56,7 +56,7 @@ class Settings:
     root: Path
     api_url: str = "http://localhost:8088"
     personas: int = len(PERSONAS)
-    clips_per_gig: int = 4
+    clips_per_gig: int = 8
     max_clip_s: float = 45.0
     synthetic_per_persona: int = 3
     real: bool = True
@@ -471,14 +471,37 @@ def caption(gig: Gig, acts: Sequence[str], clip: Clip) -> str:
     return options[stable(clip.name) % len(options)]
 
 
-def post_groups(chosen: Sequence[Clip]) -> list[list[Clip]]:
-    """J5: a persona's post of a gig carries all its clips of the gig. Up to three chosen clips
-    are one persona's post; four or more are two personas' posts (the first and second half of
-    the night), so a gig still has more than one voice."""
-    if len(chosen) < 4:
-        return [list(chosen)] if chosen else []
-    half = len(chosen) // 2
-    return [list(chosen[:half]), list(chosen[half:])]
+POSTS_PER_GIG = 2  # J5: more than one voice at a gig, without re-uploading every clip twice
+
+
+def post_sizes(available: int, key: str, cap: int) -> list[int]:
+    """How many clips each persona post of a gig carries (3 or 4, make it
+    vary): up to {@code POSTS_PER_GIG} posts of 3 or 4 clips, chosen by a stable hash of the gig
+    so a re-run gives the same posts, and at most {@code cap} clips in all. A gig with fewer than
+    three clips makes one post of what there is; a post never ends up with fewer than three
+    otherwise (leftover clips stay unposted)."""
+    budget = min(available, cap)
+    if budget < 3:
+        return [budget] if budget > 0 else []
+    sizes: list[int] = []
+    while len(sizes) < POSTS_PER_GIG and budget >= 3:
+        size = min(3 + stable(f"{key}#{len(sizes)}") % 2, budget)
+        sizes.append(size)
+        budget -= size
+    return sizes
+
+
+def post_groups(chosen: Sequence[Clip], sizes: Sequence[int]) -> list[list[Clip]]:
+    """The chosen clips (in the order they were filmed) cut into one post per size, so the
+    first post is the earlier part of the night."""
+    groups: list[list[Clip]] = []
+    start = 0
+    for size in sizes:
+        group = list(chosen[start : start + size])
+        if group:
+            groups.append(group)
+        start += size
+    return groups
 
 
 @dataclass
@@ -552,9 +575,10 @@ def real_posts(
     batch: Batch,
     log: Log,
 ) -> None:
-    """The personas' posts of my clips: up to {@code clips_per_gig} a gig, one post per persona
-    with all its clips of the gig (J5), each clip tagged with its act (J17). A post from before J5
-    (one clip each, the "posts" section) is deleted once its clip is in a J5 post."""
+    """The personas' posts of my clips: up to two posts a gig of 3 or 4 clips each
+    ({@code post_sizes}), each by a different persona and each clip tagged with its act (J17).
+    An old one-clip post (the "posts" section) is deleted once its clip is in a multi-clip
+    post, and a post whose clips the sizes have regrouped is deleted before its replacement."""
     old = state.section("posts")
     done = state.section("gig_posts")
     by_handle = {p.handle: p for p in [*indie, DEMO]}
@@ -570,7 +594,9 @@ def real_posts(
             continue
         acts, rule = acts_by_clip(gig, clips, overrides)
         people = attendees(gig, indie)
-        chosen = realclips.pick(clips, settings.clips_per_gig)
+        usable = realclips.pick(clips, len(clips))
+        sizes = post_sizes(len(usable), gig.key, settings.clips_per_gig)
+        chosen = realclips.pick(clips, sum(sizes))
         for clip in clips:
             if clip not in chosen:
                 manifest.append(
@@ -579,11 +605,19 @@ def real_posts(
                         "night": str(clip.night),
                         "gig": gig.key,
                         "status": "not posted",
-                        "reason": f"{settings.clips_per_gig} clips per gig",
+                        "reason": f"posts of {'+'.join(map(str, sizes))} clips",
                     }
                 )
         gig_id = summaries[gig.key]["id"]
-        for i, group in enumerate(post_groups(chosen)):
+        groups = post_groups(chosen, sizes)
+        # A post of this gig the groups no longer have (the sizes changed, 2025-08-06): its clips
+        # go into the new posts, so it is deleted rather than left as a duplicate.
+        for key in [k for k in done if k.startswith(f"{gig.key}#")]:
+            if int(key.rsplit("#", 1)[1]) >= len(groups):
+                _retire(api, by_handle, done.pop(key))
+                retired += 1
+                state.save()
+        for i, group in enumerate(groups):
             poster = DEMO if i == 0 and stable(gig.key) % 3 == 0 else people[i % len(people)]
             key = f"{gig.key}#{i}"
             names = [c.name for c in group]
@@ -607,6 +641,10 @@ def real_posts(
             if not all(batch.admit(c) for c in group):
                 manifest.extend(r | {"status": "next batch"} for r in rows)
                 continue
+            if mine:  # the same slot with other clips: the old post goes before the new one
+                _retire(api, by_handle, done.pop(key))
+                retired += 1
+                state.save()
             try:
                 ids = lineup_ids(api, poster, gig_id)
                 body: dict[str, Any] = {
@@ -646,8 +684,15 @@ def real_posts(
                         _delete_post(api, who, before["post_id"])
                         retired += 1
             state.save()
-    log(f"real clips: {posted} persona posts made; {retired} one-clip posts from before J5 removed")
+    log(f"real clips: {posted} persona posts made; {retired} older posts of the same clips removed")
     merge_manifest(settings.clips_dir / "manifest.csv", manifest, MANIFEST_FIELDS)
+
+
+def _retire(api: Api, by_handle: dict[str, Persona], made: dict[str, Any]) -> None:
+    """Deletes a persona post the seed made before (one in the "gig_posts" section)."""
+    who = by_handle.get(made["persona"])
+    if who is not None:
+        _delete_post(api, who, made["post_id"])
 
 
 def _delete_post(api: Api, persona: Persona, post_id: str) -> None:
