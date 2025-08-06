@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
+import { StyleSheet } from 'react-native';
+
 import type { Post, PostClip } from '@/api/generated/model';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider } from '@/theme/ThemeProvider';
@@ -128,6 +130,24 @@ describe('ClipCarousel', () => {
     expect(screen.getByTestId('act-chip-a-keo').props.accessibilityState.selected).toBe(true);
     expect(screen.getByTestId('act-chip-a-cards').props.accessibilityState.selected).toBe(false);
     expect(onClipChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'c3' }));
+  });
+
+  it('centres the dots on the clip even when the overlay leaves room for the sound button', async () => {
+    const clips = [ready('c1'), ready('c2')];
+    const shiftOf = () =>
+      (
+        StyleSheet.flatten(screen.getByTestId('clip-dots').props.style) as {
+          transform: { translateX: number }[];
+        }
+      ).transform[0]?.translateX;
+
+    await show(postWith(clips));
+    expect(shiftOf()).toBe(0);
+
+    await screen.unmount();
+    await show(postWith(clips), { soundAtTop: true });
+    // Overlay inset 8 left, 64 right: the dots move right by half of the 56 difference.
+    expect(shiftOf()).toBe(28);
   });
 
   it('holds a photo as a slide of its own: shaped like any clip, swiped to like one, with its act', async () => {

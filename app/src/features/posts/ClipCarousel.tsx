@@ -112,6 +112,8 @@ export function ClipCarousel({
       onDark={actBar === 'overlay'}
     />
   ) : null;
+  // Clear of the sound button when it sits at the top right.
+  const overlayRight = soundAtTop ? SOUND_ROOM : spacing.sm;
   const filmedBy =
     current && current.owner.id !== post.author.id ? `filmed by @${current.owner.handle}` : null;
 
@@ -140,10 +142,7 @@ export function ClipCarousel({
           {media}
           {actBar === 'overlay' ? (
             <View
-              style={[
-                styles.overlay,
-                { top: overlayTop, right: soundAtTop ? SOUND_ROOM : spacing.sm },
-              ]}
+              style={[styles.overlay, { top: overlayTop, right: overlayRight }]}
               pointerEvents="box-none"
             >
               {bar}
@@ -203,8 +202,7 @@ export function ClipCarousel({
           />
         )}
         <View
-          // Clear of the sound button when it sits at the top right.
-          style={[styles.overlay, { top: overlayTop, right: soundAtTop ? SOUND_ROOM : spacing.sm }]}
+          style={[styles.overlay, { top: overlayTop, right: overlayRight }]}
           pointerEvents="box-none"
         >
           {actBar === 'overlay' ? bar : null}
@@ -227,7 +225,13 @@ export function ClipCarousel({
               </View>
             ) : null}
           </View>
-          <View style={styles.dots} pointerEvents="none">
+          <View
+            // The overlay is inset more on the right (the sound button): shift the dots back by half
+            // the difference so they sit in the middle of the clip, not of the overlay.
+            style={[styles.dots, { transform: [{ translateX: (overlayRight - spacing.sm) / 2 }] }]}
+            pointerEvents="none"
+            testID="clip-dots"
+          >
             {clips.map((clip, i) => (
               <View
                 key={clip.id}
