@@ -1,11 +1,13 @@
-import { render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { ClipPreview } from './ClipPreview';
 import { LOCAL_FILE_BUFFER } from './localPlayback';
+import { usePreviewPlaying } from './previewPlaying';
 
 const mockPlayers: Record<string, unknown>[] = [];
+type Players = { play: jest.Mock; pause: jest.Mock };
 
 jest.mock('@react-navigation/native', () => ({ useIsFocused: () => true }));
 // The native player is not there under Jest: each preview's player is a plain object, kept so the
@@ -42,5 +44,34 @@ describe('ClipPreview', () => {
       expect(player.bufferOptions).toEqual(LOCAL_FILE_BUFFER);
       expect(player.loop).toBe(true);
     }
+  });
+
+  it('pauses on a second tap, and plays one preview at a time', async () => {
+    mockPlayers.length = 0;
+    usePreviewPlaying.setState({ playing: null });
+    await render(
+      <ThemeProvider>
+        <ClipPreview uri="file:///picked/a.mp4" testID="preview-a" />
+        <ClipPreview uri="file:///picked/b.mp4" testID="preview-b" />
+      </ThemeProvider>,
+    );
+    const [a, b] = mockPlayers as [Players, Players];
+
+    await act(async () => fireEvent.press(screen.getByTestId('preview-a')));
+    expect(a.play).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('preview-a').props.accessibilityLabel).toBe('Pause the clip');
+
+    // Playing b pauses a.
+    a.pause.mockClear();
+    await act(async () => fireEvent.press(screen.getByTestId('preview-b')));
+    expect(b.play).toHaveBeenCalledTimes(1);
+    expect(a.pause).toHaveBeenCalled();
+    expect(screen.getByTestId('preview-a').props.accessibilityLabel).toBe('Play the clip');
+
+    // A second tap pauses b.
+    b.pause.mockClear();
+    await act(async () => fireEvent.press(screen.getByTestId('preview-b')));
+    expect(b.pause).toHaveBeenCalled();
+    expect(usePreviewPlaying.getState().playing).toBeNull();
   });
 });
