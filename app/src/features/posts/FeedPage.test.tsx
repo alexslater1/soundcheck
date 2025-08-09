@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 
 import type { Post, PostClip } from '@/api/generated/model';
 import { handoffFor } from '@/features/player/handoff';
+import { SEEK_TRACK_ROOM } from '@/features/player/SeekBar';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { useThemePrefs, type FeedStyle } from '@/theme/themePrefs';
 
@@ -125,6 +126,17 @@ describe('FeedPage', () => {
     await renderPage('cards');
     expect(mockShade).toHaveBeenCalledWith(true);
   });
+
+  it.each<FeedStyle>(['cards', 'immersive', 'ticket'])(
+    '%s: over a clip that fills the card, the text ends just above the seek bar’s track',
+    async (style) => {
+      await renderPage(style);
+      const overlay = StyleSheet.flatten(screen.getByTestId('feed-overlay').props.style);
+      // Lifted once, by the room the track needs, with no padding under the text.
+      expect(overlay.bottom).toBe(SEEK_TRACK_ROOM);
+      expect(overlay.paddingBottom).toBe(0);
+    },
+  );
 
   it('Ticket: the gig on a stub above a shorter rounded card', async () => {
     await renderPage('ticket');
