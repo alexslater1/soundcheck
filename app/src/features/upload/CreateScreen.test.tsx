@@ -230,6 +230,29 @@ describe('CreateScreen', () => {
     expect(mockResume).toHaveBeenCalledWith('user-1');
   });
 
+  it('shows every picked clip before any upload or preview frame starts', async () => {
+    await renderScreen();
+    const shownAtStart: boolean[] = [];
+    mockStartUpload.mockImplementation((localId: string) => {
+      const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+      shownAtStart.push(screen.queryByText(`preview ${entry?.previewUri ?? ''}`) !== null);
+      return Promise.resolve(undefined);
+    });
+    await pickClips(video, { ...video, uri: 'file:///b.mp4' });
+    expect(shownAtStart).toEqual([true, true]);
+    mockStartUpload.mockReset();
+  });
+
+  it('says it is getting the clips while the picker is still copying them', async () => {
+    await renderScreen();
+    let hand: (result: PickResult) => void = () => undefined;
+    mockPick.mockReturnValueOnce(new Promise<PickResult>((resolve) => (hand = resolve)));
+    await fireEvent.press(screen.getByTestId('choose-video'));
+    expect(screen.getByTestId('clips-fetching')).toHaveTextContent('Getting your clips…');
+    await act(async () => hand({ kind: 'picked', videos: [video] }));
+    await waitFor(() => expect(screen.queryByTestId('clips-fetching')).toBeNull());
+  });
+
   it('takes the gig and the clips in either order; Post says what is missing until both are set', async () => {
     await renderScreen();
     expect(screen.getByTestId('choose-video')).toBeEnabled();

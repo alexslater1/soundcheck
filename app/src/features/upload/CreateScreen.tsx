@@ -2,7 +2,15 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 
 import {
   getListGigsToPostQueryKey,
@@ -95,6 +103,8 @@ export function CreateScreen() {
   const [day, setDay] = useState<string | null>(null);
   // The uploads this post is for, the act chosen for each, and the clip whose act is being chosen.
   const [composing, setComposing] = useState<string[]>([]);
+  // The picker has handed back control but is still copying the chosen files.
+  const [fetching, setFetching] = useState(false);
   const [acts, setActs] = useState<Record<string, TaggedArtist | null>>({});
   const [choosingAct, setChoosingAct] = useState<string | null>(null);
   // The song typed for each clip: free text, optional.
@@ -169,8 +179,11 @@ export function CreateScreen() {
 
   const add = async (pick: () => Promise<PickResult>) => {
     setProblem(null);
+    // Not on the web: a cancelled file dialog may never answer there.
+    setFetching(Platform.OS !== 'web');
     try {
       const picked = await pick();
+      setFetching(false);
       if (picked.kind === 'denied') {
         setProblem('Camera access was not granted. You can allow it in the system settings.');
         return;
@@ -181,7 +194,7 @@ export function CreateScreen() {
       // Clips that cannot be posted (too long, too big) are named; the others go ahead.
       const several = picked.videos.length > 1;
       const refusals: string[] = [];
-      const queued: string[] = [];
+      const queued: { localId: string; photo: boolean }[] = [];
       for (const video of picked.videos) {
         const refused = problemWith(video);
         if (refused) {
@@ -194,19 +207,25 @@ export function CreateScreen() {
         const localId = useUploadQueue
           .getState()
           .enqueue(ownerId, video, { platform: Platform.OS }, false, photo);
+        queued.push({ localId, photo });
+      }
+      if (refusals.length > 0) {
+        setProblem(refusals.join('\n'));
+      }
+      // Every clip shows under "Your clips" first; the uploads and preview frames start after.
+      setComposing((current) => [...current, ...queued.map((q) => q.localId)]);
+      await nextTurn();
+      for (const { localId, photo } of queued) {
         void startUpload(localId);
         if (!photo) {
           // The frame shown blurred while the clip is on its way; never waited for.
           void makePreview(localId);
         }
-        queued.push(localId);
       }
-      if (refusals.length > 0) {
-        setProblem(refusals.join('\n'));
-      }
-      setComposing((current) => [...current, ...queued]);
     } catch {
       setProblem('That file could not be opened. Try another one.');
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -371,6 +390,13 @@ export function CreateScreen() {
             Videos up to {CLIP_LENGTH} each, photos up to 10 MB, up to {MAX_CLIPS_PER_ACT} of each
             act. They upload while you write.
           </Text>
+          {fetching ? (
+            // The system picker copies every chosen file before it hands them over.
+            <View style={styles.fetching} testID="clips-fetching">
+              <ActivityIndicator color={colors.accent} />
+              <Text muted>Getting your clips…</Text>
+            </View>
+          ) : null}
           {composingEntries.length > 0 ? (
             <ScrollView
               horizontal
@@ -556,7 +582,13 @@ function Step({
   );
 }
 
+/** Lets React draw what was just set before slower work starts. */
+function nextTurn(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 const styles = StyleSheet.create({
+  fetching: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   content: { gap: spacing.md, paddingBottom: spacing.xl },
   step: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
