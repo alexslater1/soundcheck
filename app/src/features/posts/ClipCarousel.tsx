@@ -218,9 +218,9 @@ export function ClipCarousel({
           style={[styles.overlay, { top: overlayTop, right: overlayRight }]}
           pointerEvents="box-none"
         >
-          {actBar === 'overlay' ? bar : null}
-          <View style={styles.where} pointerEvents="none">
-            <View style={styles.counter}>
+          {/* The counter, then the act chips on the same line; long chips scroll sideways. */}
+          <View style={styles.where} pointerEvents="box-none" testID="clip-where">
+            <View style={styles.counter} pointerEvents="none">
               <Text
                 variant="caption"
                 style={styles.counterText}
@@ -230,14 +230,15 @@ export function ClipCarousel({
                 {index + 1}/{clips.length}
               </Text>
             </View>
-            {filmedBy ? (
-              <View style={styles.counter}>
-                <Text variant="caption" style={styles.counterText} testID="clip-filmed-by">
-                  {filmedBy}
-                </Text>
-              </View>
-            ) : null}
+            {actBar === 'overlay' && bar ? <View style={styles.barBeside}>{bar}</View> : null}
           </View>
+          {filmedBy ? (
+            <View style={styles.counter} pointerEvents="none">
+              <Text variant="caption" style={styles.counterText} testID="clip-filmed-by">
+                {filmedBy}
+              </Text>
+            </View>
+          ) : null}
           <View
             // The overlay is inset more on the right (the sound button): shift the dots back by half
             // the difference so they sit in the middle of the clip, not of the overlay.
@@ -370,7 +371,8 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     alignItems: 'flex-start',
   },
-  where: { flexDirection: 'row', gap: spacing.xs },
+  where: { flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', gap: spacing.xs },
+  barBeside: { flexShrink: 1 },
   counter: {
     backgroundColor: 'rgba(0,0,0,0.45)',
     borderRadius: radius.pill,
