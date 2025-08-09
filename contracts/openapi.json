@@ -320,6 +320,12 @@
           "id" : {
             "format" : "uuid",
             "type" : "string"
+          },
+          "song" : {
+            "description" : "The song in the clip; null or blank: none",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "id" ],
@@ -1280,6 +1286,12 @@
           "previewMediaId" : {
             "format" : "uuid",
             "type" : [ "string", "null" ]
+          },
+          "song" : {
+            "description" : "The song in the clip, as typed; blank is none",
+            "maxLength" : 120,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
           }
         },
         "type" : "object"
@@ -1773,6 +1785,9 @@
             "type" : "integer"
           },
           "previewUrl" : {
+            "type" : [ "string", "null" ]
+          },
+          "song" : {
             "type" : [ "string", "null" ]
           },
           "status" : {

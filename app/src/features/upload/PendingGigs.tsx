@@ -1,5 +1,6 @@
+import { useIsFocused } from '@react-navigation/native';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import {
@@ -15,21 +16,50 @@ import { DidYouGo, isGigList } from '@/features/gigs/AttendanceButtons';
 import { spacing } from '@/theme/tokens';
 
 import { GigRow } from './GigPicker';
+import { unseenCount, usePendingSeen } from './pendingSeen';
 
-/** The number on the Create tab's badge: gigs waiting for clips (0 while loading or on error). */
-export function usePendingGigCount(): number {
-  return useListUnpostedGigs().data?.length ?? 0;
+/**
+ * The number on the Create tab's badge: gigs waiting for clips that the user has not seen on Create yet
+ * (0 while loading or on error). Opening the tab clears it (`useMarkPendingGigsSeen`).
+ */
+export function usePendingGigCount(userId: string | null): number {
+  const gigs = useListUnpostedGigs().data;
+  const seen = usePendingSeen((state) => (userId ? state.seen[userId] : undefined));
+  return gigs && userId
+    ? unseenCount(
+        gigs.map((gig) => gig.id),
+        seen,
+      )
+    : 0;
+}
+
+/**
+ * While the Create tab is open, every pending gig counts as seen, so its badge goes. The gigs stay
+ * in the list until the user posts from them or says they did not go.
+ */
+export function useMarkPendingGigsSeen(userId: string | null): void {
+  const gigs = useListUnpostedGigs().data;
+  const focused = useIsFocused();
+  const markSeen = usePendingSeen((state) => state.markSeen);
+  // One string, so a refetch with the same gigs does not write again.
+  const ids = gigs?.map((gig) => gig.id).join(',');
+  useEffect(() => {
+    if (focused && userId && ids !== undefined) {
+      markSeen(userId, ids === '' ? [] : ids.split(','));
+    }
+  }, [focused, userId, ids, markSeen]);
 }
 
 /** How many pending gigs show before "Show all". */
 const FOLDED = 3;
 
 /**
- * H44's Pending list: gigs the user went to (said "I was there", or marked Went) and has not posted from
- * yet, newest first, with no time limit. Tapping one starts a post for it. It lives on Create only (it was
- * also on My gigs). It disappears when there is nothing pending, and the Create tab's badge counts it
- * (`usePendingGigCount`). A gig the user said Going to that is now over is listed too, asking "Did you
- * go?": Yes confirms the Went, No removes the mark and the gig leaves the list.
+ * The Pending list: gigs the user went to (said "I was there", or marked Went) and has not posted
+ * from yet, newest first, with no time limit. Tapping one starts a post for it. It lives on Create
+ * only. It disappears when there is nothing pending, and the Create tab's badge counts the gigs not
+ * seen here yet (`usePendingGigCount`). A gig the user said Going to that is now over is listed
+ * too, asking "Did you go?": Yes confirms the Went, No removes the mark and the gig leaves the
+ * list.
  */
 export function PendingGigs({ onPick }: { onPick: (gig: GigSummary) => void }) {
   const pending = useListUnpostedGigs();

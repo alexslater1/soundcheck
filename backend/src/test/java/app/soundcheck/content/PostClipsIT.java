@@ -31,7 +31,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * as slots and filled as uploads complete; the post goes live with its first playable clip and shows the
  * rest as "on its way"; a second post from the same gig and day joins the first; limits per act; clips
  * grouped by act; failed clips only for their owner; slots that never get a clip expire; the author's
- * edit.
+ * edit; the song typed for each clip.
  */
 class PostClipsIT extends IntegrationTest {
 
@@ -381,6 +381,48 @@ class PostClipsIT extends IntegrationTest {
                 Map.of("clips", List.of(clip(data.video(fan.id(), "READY"), headliner, null))),
                 fan));
         assertThat(added.path("clipCount").asInt()).isEqualTo(2);
+    }
+
+    @Test
+    void eachClipCarriesTheSongTypedForItAndTheAuthorCanChangeIt() {
+        Map<String, Object> first = clip(data.video(fan.id(), "READY"), headliner, null);
+        first.put("song", "  Bloodhound  ");
+        Map<String, Object> second = clip(data.video(fan.id(), "READY"), headliner, null);
+        second.put("song", "   ");
+        Map<String, Object> third = clip(data.video(fan.id(), "READY"), headliner, null);
+        JsonNode post =
+                created(api.post("/api/v1/posts", Map.of("clips", List.of(first, second, third), "gigId", gig), fan));
+        String postId = post.path("id").asText("");
+        List<String> clips = ids(post.path("clips"));
+
+        // Trimmed; a blank song or none at all is no song.
+        JsonNode seen = ok(api.get("/api/v1/posts/" + postId, viewer)).path("clips");
+        assertThat(seen.get(0).path("song").asText("")).isEqualTo("Bloodhound");
+        assertThat(seen.get(1).path("song").isNull()).isTrue();
+        assertThat(seen.get(2).path("song").isNull()).isTrue();
+
+        // The author's edit sets each clip's song, or clears it.
+        Map<String, Object> placeSecond = new HashMap<>();
+        placeSecond.put("id", clips.get(1));
+        placeSecond.put("artistId", headliner.toString());
+        placeSecond.put("song", "Stars");
+        Map<String, Object> placeFirst = new HashMap<>();
+        placeFirst.put("id", clips.get(0));
+        placeFirst.put("artistId", headliner.toString());
+        placeFirst.put("song", null);
+        JsonNode edited = ok(api.patch(
+                "/api/v1/posts/" + postId,
+                Map.of("clips", List.of(placeSecond, placeFirst, Map.of("id", clips.get(2)))),
+                fan));
+        assertThat(edited.path("clips").get(0).path("song").asText("")).isEqualTo("Stars");
+        assertThat(edited.path("clips").get(1).path("song").isNull()).isTrue();
+
+        // A song name is at most 120 characters.
+        Map<String, Object> tooLong = clip(data.video(fan.id(), "READY"), headliner, null);
+        tooLong.put("song", "x".repeat(121));
+        assertThat(api.post("/api/v1/posts/" + postId + "/clips", Map.of("clips", List.of(tooLong)), fan)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test

@@ -30,6 +30,7 @@ const entry = (patch: Partial<UploadEntry> = {}): UploadEntry & { ownerId: strin
   clipId: null,
   attached: false,
   artistId: null,
+  song: null,
   previewMediaId: null,
   previewState: 'NONE',
   previewSent: false,

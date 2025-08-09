@@ -1,13 +1,14 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Image } from 'expo-image';
 import { useEffect, useRef, type PropsWithChildren } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
+import { ClipShade } from './ClipShade';
 import { usePlayback } from './PlaybackScope';
 import { SEEK_BAR_HEIGHT, SeekBar } from './SeekBar';
 import { createTapClassifier, type TapClassifier, type TapPoint } from './tapGesture';
@@ -31,6 +32,13 @@ type Props = PropsWithChildren<{
   noSound?: boolean;
   /** The sound button in the top corner instead of the bottom one. */
   soundAtTop?: boolean;
+  /**
+   * False: the screen around the clip draws the sound button (`SoundButton`), so it stays still while
+   * a carousel's clips swipe past under it. Default true.
+   */
+  soundButton?: boolean;
+  /** A dark gradient over the foot of the clip, under the controls, for text laid over it (the feed). */
+  shade?: boolean;
   /** False: square corners (a clip filling a feed page). */
   rounded?: boolean;
   failed?: boolean;
@@ -85,6 +93,8 @@ export function PlayerFrame({
   showSound,
   noSound = false,
   soundAtTop = false,
+  soundButton = true,
+  shade = false,
   rounded = true,
   failed = false,
   onRetry,
@@ -95,7 +105,6 @@ export function PlayerFrame({
   testID,
 }: Props) {
   const { colors } = useTheme();
-  const { muted, toggleMuted } = usePlayback();
 
   // The classifier lives as long as the frame, made on the first tap; it reads the latest handlers
   // through a ref when its timer fires.
@@ -135,6 +144,7 @@ export function PlayerFrame({
           testID={testID ? `${testID}-poster` : undefined}
         />
       ) : null}
+      {shade ? <ClipShade testID={testID ? `${testID}-shade` : undefined} /> : null}
       {failed ? (
         <View
           style={[StyleSheet.absoluteFill, styles.failed]}
@@ -167,37 +177,14 @@ export function PlayerFrame({
           ) : null}
         </Pressable>
       ) : null}
-      {controls && noSound ? (
-        <View
-          style={[
-            styles.soundBadge,
-            styles.noSound,
-            soundAtTop ? styles.soundAtTop : { bottom: spacing.sm + (seek ? SEEK_BAR_HEIGHT : 0) },
-          ]}
-          accessible
-          accessibilityLabel="No sound"
-          testID={testID ? `${testID}-no-sound` : undefined}
-        >
-          <Ionicons name="volume-mute" size={16} color="#FFFFFF" />
-          <Text variant="caption" style={styles.onVideo}>
-            No sound
-          </Text>
-        </View>
-      ) : null}
-      {controls && !noSound ? (
-        <Pressable
-          style={[
-            styles.soundBadge,
-            soundAtTop ? styles.soundAtTop : { bottom: spacing.sm + (seek ? SEEK_BAR_HEIGHT : 0) },
-          ]}
-          onPress={toggleMuted}
-          hitSlop={8}
-          accessibilityRole="button"
-          accessibilityLabel={muted ? 'Turn sound on' : 'Turn sound off'}
-          testID={testID ? `${testID}-sound` : undefined}
-        >
-          <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" />
-        </Pressable>
+      {controls && soundButton ? (
+        <SoundButton
+          noSound={noSound}
+          style={
+            soundAtTop ? styles.soundAtTop : { bottom: spacing.sm + (seek ? SEEK_BAR_HEIGHT : 0) }
+          }
+          testID={testID}
+        />
       ) : null}
       {controls && seek ? (
         <SeekBar
@@ -208,6 +195,50 @@ export function PlayerFrame({
         />
       ) : null}
     </View>
+  );
+}
+
+/**
+ * The speaker button, the only way to turn sound on or off, at `style`'s place in the box
+ * around it; for a clip without an audio track, a crossed-out speaker and "No sound" instead.
+ * With `testID` set, the toggle is `${testID}-sound` and the badge `${testID}-no-sound`.
+ */
+export function SoundButton({
+  noSound = false,
+  style,
+  testID,
+}: {
+  noSound?: boolean;
+  style: StyleProp<ViewStyle>;
+  testID?: string;
+}) {
+  const { muted, toggleMuted } = usePlayback();
+  if (noSound) {
+    return (
+      <View
+        style={[styles.soundBadge, styles.noSound, style]}
+        accessible
+        accessibilityLabel="No sound"
+        testID={testID ? `${testID}-no-sound` : undefined}
+      >
+        <Ionicons name="volume-mute" size={16} color="#FFFFFF" />
+        <Text variant="caption" style={styles.onVideo}>
+          No sound
+        </Text>
+      </View>
+    );
+  }
+  return (
+    <Pressable
+      style={[styles.soundBadge, style]}
+      onPress={toggleMuted}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityLabel={muted ? 'Turn sound on' : 'Turn sound off'}
+      testID={testID ? `${testID}-sound` : undefined}
+    >
+      <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={20} color="#FFFFFF" />
+    </Pressable>
   );
 }
 

@@ -37,7 +37,15 @@ export function livePlayerCount(): number {
  * Extensions; Safari plays HLS natively and gets the URL directly.
  */
 export function VideoPlayer(props: VideoPlayerProps) {
-  const { live = true, posterUrl, blurhash, aspectRatio = DEFAULT_ASPECT, rounded, testID } = props;
+  const {
+    live = true,
+    posterUrl,
+    blurhash,
+    aspectRatio = DEFAULT_ASPECT,
+    rounded,
+    shade,
+    testID,
+  } = props;
   if (!live) {
     return (
       <PlayerFrame
@@ -47,6 +55,7 @@ export function VideoPlayer(props: VideoPlayerProps) {
         showPoster
         showSound={false}
         rounded={rounded}
+        shade={shade}
         testID={testID}
       />
     );
@@ -64,6 +73,8 @@ function LivePlayer({
   loop = true,
   hasAudio,
   soundAtTop,
+  soundButton,
+  shade,
   rounded,
   onDoubleTap,
   startAtMs,
@@ -165,6 +176,8 @@ function LivePlayer({
       showSound
       noSound={hasAudio === false}
       soundAtTop={soundAtTop}
+      soundButton={soundButton}
+      shade={shade}
       rounded={rounded}
       paused={userPaused}
       onTogglePause={() => setUserPaused((paused) => !paused)}

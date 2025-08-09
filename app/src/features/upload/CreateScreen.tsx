@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import {
   getListGigsToPostQueryKey,
@@ -31,10 +31,17 @@ import { ComposeForm, type ComposeResult } from './ComposeForm';
 import { billOf } from './composeDraft';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
-import { PendingGigs } from './PendingGigs';
+import { PendingGigs, useMarkPendingGigsSeen } from './PendingGigs';
 import { PhotoPreview } from './PhotoPreview';
 import { pickFromLibrary, type PickResult } from './pickVideo';
-import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, postHint, runningOrder } from './postPlan';
+import {
+  actsOverLimit,
+  festivalDays,
+  MAX_CLIPS_PER_ACT,
+  MAX_SONG,
+  postHint,
+  runningOrder,
+} from './postPlan';
 import { RecordClipButton } from './RecordClipButton';
 import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';
@@ -59,7 +66,7 @@ function dayLabel(day: string): string {
 
 /**
  * Create tab: which gig and the clips from it, in either order, the act on stage in each clip and
- * on stage in each clip, who the user was with and a caption, then Post: the clips become one post.
+ * the song (typed, optional), who the user was with and a caption, then Post: the clips become one
  * post. Picked clips are queued at once and play straight from the phone while the queue prepares
  * them (compressing only off Wi-Fi) and uploads them; the post is made at once and each clip fills
  * its place in it as its upload completes. "I was there" marks a gig Went without posting, and the
@@ -90,9 +97,14 @@ export function CreateScreen() {
   const [composing, setComposing] = useState<string[]>([]);
   const [acts, setActs] = useState<Record<string, TaggedArtist | null>>({});
   const [choosingAct, setChoosingAct] = useState<string | null>(null);
+  // The song typed for each clip: free text, optional.
+  const [songs, setSongs] = useState<Record<string, string>>({});
   // The gig of the last post from this screen, offered for more clips.
   const [lastGig, setLastGig] = useState<GigSummary | null>(null);
   const [marked, setMarked] = useState<string | null>(null);
+
+  // Opening the tab clears the pending gigs from its badge.
+  useMarkPendingGigsSeen(ownerId);
 
   // Uploads the worker had not finished when the app was last open: ask about them again.
   useEffect(() => {
@@ -137,6 +149,7 @@ export function CreateScreen() {
   const clipActs = composingEntries.map((entry) => ({
     localId: entry.localId,
     artistId: actOf(entry.localId)?.id ?? null,
+    song: songs[entry.localId] ?? null,
   }));
   const overLimit = actsOverLimit(clipActs).length > 0;
   const hint = postHint({
@@ -229,6 +242,7 @@ export function CreateScreen() {
     });
     setComposing([]);
     setActs({});
+    setSongs({});
     setChoosingAct(null);
     if (joinPostId) {
       router.setParams({ postId: undefined, gigId: undefined });
@@ -254,7 +268,6 @@ export function CreateScreen() {
             testID="more-from-gig"
           />
         ) : null}
-        {!joining && !gigChosen ? <PendingGigs onPick={chooseGig} /> : null}
 
         {joining ? (
           <Step title="The post" done={joinPost.data !== undefined}>
@@ -410,6 +423,18 @@ export function CreateScreen() {
                       </Text>
                       <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
                     </Pressable>
+                    <TextInput
+                      value={songs[entry.localId] ?? ''}
+                      onChangeText={(song) =>
+                        setSongs((now) => ({ ...now, [entry.localId]: song }))
+                      }
+                      placeholder="Song (optional)"
+                      placeholderTextColor={colors.textMuted}
+                      maxLength={MAX_SONG}
+                      accessibilityLabel={`Song in ${entry.fileName ?? 'this clip'}`}
+                      style={[styles.songInput, { color: colors.text, borderColor: colors.border }]}
+                      testID={`song-${entry.localId}`}
+                    />
                   </View>
                 );
               })}
@@ -453,14 +478,19 @@ export function CreateScreen() {
           ) : null}
         </Step>
 
-        <ComposeForm
-          key={joinPostId ?? 'new'}
-          meId={ownerId}
-          clips={composingEntries.length}
-          hint={hint}
-          joining={joining}
-          onPost={post}
-        />
+        <Step title={joining ? 'Add them' : 'Caption and post'} done={hint === null}>
+          <ComposeForm
+            key={joinPostId ?? 'new'}
+            meId={ownerId}
+            clips={composingEntries.length}
+            hint={hint}
+            joining={joining}
+            onPost={post}
+          />
+        </Step>
+
+        {/* Below the post being made: a way to start the next one. */}
+        {!joining && !gigChosen ? <PendingGigs onPick={chooseGig} /> : null}
 
         <Text variant="label" muted style={styles.heading}>
           ON THEIR WAY
@@ -509,6 +539,7 @@ function Step({
       <View style={styles.stepHead}>
         <View
           style={[styles.badge, { backgroundColor: done ? colors.accent : colors.surfaceRaised }]}
+          testID={`step-${title}-${done ? 'done' : 'todo'}`}
         >
           {done ? (
             <Ionicons name="checkmark" size={14} color={colors.onAccent} />
@@ -552,6 +583,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.sm,
     paddingHorizontal: spacing.xs,
     paddingVertical: 2,
+  },
+  songInput: {
+    borderWidth: 1,
+    borderRadius: radius.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: 2,
+    fontSize: 12,
   },
   heading: { marginTop: spacing.md },
 });

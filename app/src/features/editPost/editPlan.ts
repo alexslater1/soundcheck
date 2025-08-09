@@ -1,9 +1,11 @@
 import type { ArtistSummary, EditPostRequest, Post, UserSummary } from '@/api/generated/model';
 
-/** One clip in the edit screen: which clip, its act (null: no act), and whose it is. */
+/** One clip in the edit screen: which clip, its act (null: no act), its song, and whose it is. */
 export type EditClip = {
   id: string;
   act: ArtistSummary | null;
+  /** The song in the clip, as typed ('' for none). */
+  song: string;
   owner: UserSummary;
   thumbUrl: string | null;
   status: string;
@@ -18,6 +20,7 @@ export function initialState(post: Post): EditState {
     clips: post.clips.map((clip) => ({
       id: clip.id,
       act: clip.act ?? null,
+      song: clip.song ?? '',
       owner: clip.owner,
       thumbUrl: clip.playback.thumbUrl ?? clip.previewUrl ?? null,
       status: clip.status,
@@ -70,8 +73,8 @@ export function nextAct(
 }
 
 /**
- * The PATCH body: only what changed. The clips are sent in full whenever their order, acts or number
- * changed (clips left out are removed by the server).
+ * The PATCH body: only what changed. The clips are sent in full whenever their order, acts, songs or
+ * number changed (clips left out are removed by the server).
  */
 export function changes(before: EditState, after: EditState): EditPostRequest {
   const body: EditPostRequest = {};
@@ -79,9 +82,13 @@ export function changes(before: EditState, after: EditState): EditPostRequest {
     body.caption = after.caption.trim();
   }
   const placement = (state: EditState) =>
-    state.clips.map((c) => `${c.id}:${c.act?.id ?? ''}`).join(',');
+    JSON.stringify(state.clips.map((c) => [c.id, c.act?.id ?? null, c.song.trim()]));
   if (placement(after) !== placement(before)) {
-    body.clips = after.clips.map((clip) => ({ id: clip.id, artistId: clip.act?.id ?? null }));
+    body.clips = after.clips.map((clip) => ({
+      id: clip.id,
+      artistId: clip.act?.id ?? null,
+      song: clip.song.trim() === '' ? null : clip.song.trim(),
+    }));
   }
   const people = (state: EditState) =>
     state.tagged

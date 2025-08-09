@@ -8,9 +8,16 @@
 import type { NewClipRequestArtistId } from './newClipRequestArtistId';
 import type { NewClipRequestMediaId } from './newClipRequestMediaId';
 import type { NewClipRequestPreviewMediaId } from './newClipRequestPreviewMediaId';
+import type { NewClipRequestSong } from './newClipRequestSong';
 
 export interface NewClipRequest {
   artistId?: NewClipRequestArtistId;
   mediaId?: NewClipRequestMediaId;
   previewMediaId?: NewClipRequestPreviewMediaId;
+  /**
+   * The song in the clip, as typed; blank is none
+   * @minLength 0
+   * @maxLength 120
+   */
+  song?: NewClipRequestSong;
 }

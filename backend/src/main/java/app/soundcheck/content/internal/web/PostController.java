@@ -105,7 +105,7 @@ public class PostController {
                         body.clips() == null
                                 ? null
                                 : body.clips().stream()
-                                        .map(c -> new PostEditService.ClipPlacement(c.id(), c.artistId()))
+                                        .map(c -> new PostEditService.ClipPlacement(c.id(), c.artistId(), c.song()))
                                         .toList()));
     }
 
@@ -247,10 +247,15 @@ public class PostController {
                     List<@NotNull UUID> artistIds,
             @Schema(nullable = true) @Size(max = 10) List<@NotNull UUID> taggedUserIds) {}
 
-    /** A clip announced in a post: its video if the upload is already complete, the act on stage, a frame. */
+    /**
+     * A clip announced in a post: its video if the upload is already complete, the act on stage, the song,
+     * a frame.
+     */
     public record NewClipRequest(
             @Schema(nullable = true) UUID mediaId,
             @Schema(nullable = true) UUID artistId,
+            @Schema(nullable = true, description = "The song in the clip, as typed; blank is none") @Size(max = 120)
+                    String song,
             @Schema(nullable = true) UUID previewMediaId) {}
 
     public record AddClipsRequest(@NotEmpty @Size(max = 60) List<@NotNull @Valid NewClipRequest> clips) {}
@@ -266,13 +271,17 @@ public class PostController {
             @Schema(nullable = true) @Size(max = 10) List<@NotNull UUID> taggedUserIds,
             @Schema(nullable = true) @Size(max = 60) List<@NotNull @Valid ClipPlacementRequest> clips) {}
 
-    public record ClipPlacementRequest(@NotNull UUID id, @Schema(nullable = true) UUID artistId) {}
+    public record ClipPlacementRequest(
+            @NotNull UUID id,
+            @Schema(nullable = true) UUID artistId,
+            @Schema(nullable = true, description = "The song in the clip; null or blank: none") @Size(max = 120)
+                    String song) {}
 
     public record MyTagRequest(boolean onProfile) {}
 
     private static List<NewClip> newClips(List<NewClipRequest> clips) {
         return clips.stream()
-                .map(c -> new NewClip(c.mediaId(), c.artistId(), c.previewMediaId()))
+                .map(c -> new NewClip(c.mediaId(), c.artistId(), c.song(), c.previewMediaId()))
                 .toList();
     }
 }

@@ -6,8 +6,15 @@
  * OpenAPI spec version: v1
  */
 import type { ClipPlacementRequestArtistId } from './clipPlacementRequestArtistId';
+import type { ClipPlacementRequestSong } from './clipPlacementRequestSong';
 
 export interface ClipPlacementRequest {
   artistId?: ClipPlacementRequestArtistId;
   id: string;
+  /**
+   * The song in the clip; null or blank: none
+   * @minLength 0
+   * @maxLength 120
+   */
+  song?: ClipPlacementRequestSong;
 }

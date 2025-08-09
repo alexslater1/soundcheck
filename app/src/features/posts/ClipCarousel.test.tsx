@@ -9,15 +9,19 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 import { ClipCarousel } from './ClipCarousel';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+const mockPlayerProps = jest.fn();
 // The player is native; here it is a box that says which clip it plays and whether it is active.
 jest.mock('@/features/player/VideoPlayer', () => {
   const React = jest.requireActual<typeof import('react')>('react');
   const { View } = jest.requireActual<typeof import('react-native')>('react-native');
   return {
-    VideoPlayer: ({ clipKey, active, live }: { clipKey: string; active: boolean; live: boolean }) =>
-      React.createElement(View, {
+    VideoPlayer: (props: { clipKey: string; active: boolean; live: boolean }) => {
+      mockPlayerProps(props);
+      const { clipKey, active, live } = props;
+      return React.createElement(View, {
         testID: `player-${clipKey}-${active ? 'active' : live === false ? 'poster' : 'idle'}`,
-      }),
+      });
+    },
   };
 });
 jest.mock('@/features/telemetry/TelemetryScope', () => ({ useTrack: () => jest.fn() }));
@@ -177,6 +181,40 @@ describe('ClipCarousel', () => {
     expect(screen.getByTestId('post-photo')).toBeTruthy();
     expect(screen.queryByTestId('player-c1-active')).toBeNull();
     expect(screen.getByTestId('act-chip-a-keo').props.accessibilityState.selected).toBe(true);
+  });
+
+  it('keeps one sound button still while the clips swipe past, for the clip in view', async () => {
+    const silent = ready('c2');
+    silent.playback = { ...silent.playback, hasAudio: false };
+    const photo = {
+      ...ready('c3'),
+      playback: { status: 'READY', kind: 'IMAGE', posterUrl: 'http://media/c3/image.jpg' },
+    } as PostClip;
+    mockPlayerProps.mockClear();
+    await show(postWith([ready('c1'), silent, photo]), { soundAtTop: true });
+
+    // The clips draw none of their own: the carousel's sits over them all.
+    expect(mockPlayerProps).toHaveBeenCalledWith(expect.objectContaining({ soundButton: false }));
+    const button = screen.getByTestId('clip-carousel-sound');
+    expect(button).toBeOnTheScreen();
+
+    await swipeTo(1);
+    expect(screen.queryByTestId('clip-carousel-sound')).toBeNull();
+    expect(screen.getByTestId('clip-carousel-no-sound')).toBeOnTheScreen();
+
+    await swipeTo(2);
+    // A photo has no sound to turn on.
+    expect(screen.queryByTestId('clip-carousel-sound')).toBeNull();
+    expect(screen.queryByTestId('clip-carousel-no-sound')).toBeNull();
+  });
+
+  it('leaves the sound button to the clip for a post of one clip', async () => {
+    mockPlayerProps.mockClear();
+    await show(postWith([ready('c1')]));
+    expect(screen.queryByTestId('clip-carousel-sound')).toBeNull();
+    expect(mockPlayerProps).not.toHaveBeenCalledWith(
+      expect.objectContaining({ soundButton: false }),
+    );
   });
 
   it("jumps to an act's first clip when its chip is tapped", async () => {

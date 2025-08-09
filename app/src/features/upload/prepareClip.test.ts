@@ -36,6 +36,7 @@ function setup(
     clipId: null,
     attached: false,
     artistId: null,
+    song: null,
     previewMediaId: null,
     previewState: 'NONE',
     previewSent: false,

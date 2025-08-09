@@ -225,7 +225,9 @@ class PostRules {
         }
         UUID sole = candidates.getFirst();
         return newClips.stream()
-                .map(clip -> clip.artistId() == null ? new NewClip(clip.mediaId(), sole, clip.previewMediaId()) : clip)
+                .map(clip -> clip.artistId() == null
+                        ? new NewClip(clip.mediaId(), sole, clip.song(), clip.previewMediaId())
+                        : clip)
                 .toList();
     }
 
@@ -276,6 +278,7 @@ class PostRules {
                     ownerId,
                     ++position,
                     clip.artistId(),
+                    clip.song(),
                     clip.mediaId(),
                     clip.previewMediaId(),
                     now);

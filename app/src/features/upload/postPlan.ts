@@ -7,8 +7,11 @@ export const MAX_CLIPS_PER_ACT = 10;
 /** A festival's later days a post can be for, after its first (the server's limit). */
 export const MAX_DAYS_AFTER = 3;
 
-/** A clip on the compose form with the act chosen for it (null: no act). */
-export type ClipAct = { localId: string; artistId: string | null };
+/** The longest song name a clip can be tagged with (the server's limit). */
+export const MAX_SONG = 120;
+
+/** A clip on the compose form with the act chosen for it (null: no act), and the song typed for it. */
+export type ClipAct = { localId: string; artistId: string | null; song?: string | null };
 
 /**
  * The clips in the order acts play: support acts first, the last-billed support first, then

@@ -19,6 +19,8 @@ type Props = {
   onCaptionPress?: () => void;
   /** False where a ticket already shows the gig and its venue (the feed). */
   showGig?: boolean;
+  /** The song in the clip in view, as its owner typed it. */
+  song?: string | null;
 };
 
 const AVATAR = 32;
@@ -27,11 +29,13 @@ const LIGHT = '#FFFFFF';
 const LIGHT_MUTED = 'rgba(255,255,255,0.8)';
 
 /**
- * Who posted the clip, the people they went with ("with @a, @b"; each opens their profile), the caption (two lines until tapped; in the feed a tap opens the post), the gig (its date and venue),
- * the venue and the artists. The author, the gig, the venue and each artist are links; tapping the
- * author or the gig is reported as a signal of interest.
+ * Who posted the clip, the song in the clip in view (typed by whoever filmed it), the people they
+ * went with ("with @a, @b"; each opens their profile), the caption (two lines until tapped; in the
+ * feed a tap opens the post), the gig (its date and venue), the venue and the artists. The author,
+ * the gig, the venue and each artist are links; tapping the author or the gig is reported as a
+ * signal of interest.
  */
-export function PostMeta({ post, onDark = false, onCaptionPress, showGig = true }: Props) {
+export function PostMeta({ post, onDark = false, onCaptionPress, showGig = true, song }: Props) {
   const { colors } = useTheme();
   const track = useTrack();
   const [expanded, setExpanded] = useState(false);
@@ -86,6 +90,23 @@ export function PostMeta({ post, onDark = false, onCaptionPress, showGig = true 
         >
           {post.caption}
         </Text>
+      ) : null}
+      {song ? (
+        <View style={styles.with} testID="post-song">
+          <Ionicons
+            name="musical-notes-outline"
+            size={16}
+            color={onDark ? LIGHT_MUTED : colors.textMuted}
+          />
+          <Text
+            variant="caption"
+            style={[styles.bold, ink]}
+            numberOfLines={1}
+            accessibilityLabel={`Song: ${song}`}
+          >
+            {song}
+          </Text>
+        </View>
       ) : null}
       {post.withUsers.length > 0 ? (
         <View style={styles.with} testID="post-with">

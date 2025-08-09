@@ -83,8 +83,8 @@ describe('EditPostScreen', () => {
     await waitFor(() => expect(mockBack).toHaveBeenCalled());
     expect(mockEdit).toHaveBeenCalledWith('p1', {
       clips: [
-        { id: 'c2', artistId: null },
-        { id: 'c1', artistId: null },
+        { id: 'c2', artistId: null, song: null },
+        { id: 'c1', artistId: null, song: null },
       ],
       taggedUserIds: ['mate'],
     });

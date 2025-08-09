@@ -14,6 +14,9 @@ import {
 
 import type { Post, PostClip } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
+import { ClipShade } from '@/features/player/ClipShade';
+import { SoundButton } from '@/features/player/PlayerFrame';
+import { SEEK_BAR_HEIGHT } from '@/features/player/SeekBar';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing, touchTarget } from '@/theme/tokens';
 
@@ -43,6 +46,8 @@ type Props = {
   actBar?: 'above' | 'overlay';
   /** Room to leave at the top of the overlay (a gig ticket drawn over the clip). */
   overlayTop?: number;
+  /** A dark gradient over the foot of each clip, under its controls (the feed's text sits there). */
+  shade?: boolean;
 };
 
 /**
@@ -65,6 +70,7 @@ export function ClipCarousel({
   onClipChange,
   actBar = 'overlay',
   overlayTop = 0,
+  shade,
 }: Props) {
   const { colors } = useTheme();
   const clips = post.clips;
@@ -114,6 +120,7 @@ export function ClipCarousel({
   ) : null;
   // Clear of the sound button when it sits at the top right.
   const overlayRight = soundAtTop ? SOUND_ROOM : spacing.sm;
+  const sound = soundOf(current);
   const filmedBy =
     current && current.owner.id !== post.author.id ? `filmed by @${current.owner.handle}` : null;
 
@@ -125,6 +132,7 @@ export function ClipCarousel({
         active={active}
         live={live}
         soundAtTop={soundAtTop}
+        shade={shade}
         frameAspect={frameAspect}
         rounded={rounded}
         surface={surface}
@@ -179,6 +187,7 @@ export function ClipCarousel({
                   clip={item}
                   boxAspect={boxAspect}
                   rounded={rounded ?? frameAspect === undefined}
+                  shade={shade}
                 >
                   <PostMedia
                     post={post}
@@ -186,6 +195,10 @@ export function ClipCarousel({
                     active={active && i === index}
                     live={live && Math.abs(i - index) <= 1}
                     soundAtTop={soundAtTop}
+                    // One sound button for the carousel, drawn below: it stays still while the
+                    // clips swipe past under it, as the counter and the dots do.
+                    soundButton={false}
+                    shade={shade}
                     frameAspect={shapeOf(item) ?? boxAspect}
                     rounded={rounded ?? frameAspect === undefined}
                     surface={surface}
@@ -241,6 +254,17 @@ export function ClipCarousel({
             ))}
           </View>
         </View>
+        {live && sound ? (
+          <SoundButton
+            noSound={sound === 'none'}
+            style={
+              soundAtTop
+                ? styles.soundAtTop
+                : { bottom: spacing.sm + (sound === 'toggle' ? SEEK_BAR_HEIGHT : 0) }
+            }
+            testID="clip-carousel"
+          />
+        ) : null}
         {Platform.OS === 'web' && width > 0 ? (
           <>
             {index > 0 ? <Arrow side="left" onPress={() => goTo(index - 1)} /> : null}
@@ -252,6 +276,18 @@ export function ClipCarousel({
       </View>
     </View>
   );
+}
+
+/**
+ * What the carousel's sound button shows for the clip in view: the toggle for a playable video, "No
+ * sound" for one without an audio track, nothing for a photo or a clip still on its way.
+ */
+export function soundOf(clip: PostClip | undefined): 'toggle' | 'none' | null {
+  const playback = clip?.playback;
+  if (!playback || playback.status !== 'READY' || playback.kind === 'IMAGE' || !playback.hlsUrl) {
+    return null;
+  }
+  return playback.hasAudio === false ? 'none' : 'toggle';
 }
 
 /** A clip's own shape (width over height), or null while its size is unknown. */
@@ -269,8 +305,9 @@ function ShapedClip({
   clip,
   boxAspect,
   rounded,
+  shade,
   children,
-}: PropsWithChildren<{ clip: PostClip; boxAspect: number; rounded: boolean }>) {
+}: PropsWithChildren<{ clip: PostClip; boxAspect: number; rounded: boolean; shade?: boolean }>) {
   const fit = clipInBox(shapeOf(clip), boxAspect);
   if (!fit) {
     return <>{children}</>;
@@ -290,6 +327,8 @@ function ShapedClip({
         accessibilityIgnoresInvertColors
         testID={`clip-${clip.id}-backdrop`}
       />
+      {/* The feed's text runs over the backdrop too. */}
+      {shade ? <ClipShade /> : null}
       <View style={{ width: `${fit.width * 100}%`, aspectRatio: own }}>{children}</View>
     </View>
   );
@@ -353,6 +392,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(0,0,0,0.45)',
   },
+  soundAtTop: { top: spacing.sm },
   arrowLeft: { left: spacing.sm },
   arrowRight: { right: spacing.sm },
 });

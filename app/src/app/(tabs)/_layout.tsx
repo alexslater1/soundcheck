@@ -35,13 +35,15 @@ export default function TabsLayout() {
   const { colors, typeStyle } = useTheme();
   const insets = useSafeAreaInsets();
   const labelFont = fontFamily(typeStyle, 'label', 600);
+  const me = useAuthStore((state) => state.me?.id ?? null);
   // The unread count on the Activity tab; refreshed every minute.
   const inbox = useListNotifications({ limit: 1 }, { query: { refetchInterval: 60_000 } });
   const unread = inbox.data?.unreadCount ?? 0;
   // Uploads that failed and need the user count on Create's badge, wherever they are.
-  const uploadProblems = useUploadProblemCount(useAuthStore((state) => state.me?.id ?? null));
-  // Gigs the user went to and has not posted from (J6): they are listed on Create, so the badge sits there.
-  const pendingGigs = usePendingGigCount();
+  const uploadProblems = useUploadProblemCount(me);
+  // Gigs the user went to and has not posted from: they are listed on Create, so the badge sits
+  // there, until the tab is opened.
+  const pendingGigs = usePendingGigCount(me);
   const badges: Record<string, number> = {
     activity: unread,
     create: uploadProblems + pendingGigs,

@@ -4,7 +4,8 @@ import { fireEvent, render, renderHook, screen, waitFor } from '@testing-library
 import type { GigSummary } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { PendingGigs, usePendingGigCount } from './PendingGigs';
+import { PendingGigs, useMarkPendingGigsSeen, usePendingGigCount } from './PendingGigs';
+import { usePendingSeen } from './pendingSeen';
 
 const gig = (id: string): GigSummary =>
   ({
@@ -33,6 +34,13 @@ jest.mock('@/api/generated/catalog/catalog', () => ({
   useClearGigAttendance: () => ({ mutateAsync: mockClear, isPending: false }),
 }));
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
+const mockFocused = jest.fn(() => true);
+jest.mock('@react-navigation/native', () => ({ useIsFocused: () => mockFocused() }));
+
+beforeEach(() => {
+  mockFocused.mockReturnValue(true);
+  usePendingSeen.setState({ seen: {} });
+});
 
 async function show(props: Partial<React.ComponentProps<typeof PendingGigs>> = {}) {
   const onPick = jest.fn();
@@ -86,9 +94,30 @@ describe('PendingGigs', () => {
 
   it('counts the pending gigs for the Create tab badge, and 0 while loading', async () => {
     mockUnposted.mockReturnValue({ isPending: true });
-    expect((await renderHook(() => usePendingGigCount())).result.current).toBe(0);
+    expect((await renderHook(() => usePendingGigCount('me'))).result.current).toBe(0);
     mockUnposted.mockReturnValue({ isPending: false, data: [{ id: 'a' }, { id: 'b' }] });
-    expect((await renderHook(() => usePendingGigCount())).result.current).toBe(2);
+    expect((await renderHook(() => usePendingGigCount('me'))).result.current).toBe(2);
+  });
+
+  it('clears the badge once Create has been open, and counts a gig pending after that', async () => {
+    mockUnposted.mockReturnValue({ isPending: false, data: [{ id: 'a' }, { id: 'b' }] });
+    await renderHook(() => useMarkPendingGigsSeen('me'));
+    expect((await renderHook(() => usePendingGigCount('me'))).result.current).toBe(0);
+    // Another account on the same phone still sees its own badge.
+    expect((await renderHook(() => usePendingGigCount('other'))).result.current).toBe(2);
+
+    mockUnposted.mockReturnValue({
+      isPending: false,
+      data: [{ id: 'c' }, { id: 'a' }, { id: 'b' }],
+    });
+    expect((await renderHook(() => usePendingGigCount('me'))).result.current).toBe(1);
+  });
+
+  it('does not mark anything seen while the tab is not in view', async () => {
+    mockFocused.mockReturnValue(false);
+    mockUnposted.mockReturnValue({ isPending: false, data: [{ id: 'a' }] });
+    await renderHook(() => useMarkPendingGigsSeen('me'));
+    expect((await renderHook(() => usePendingGigCount('me'))).result.current).toBe(1);
   });
 
   it('offers a retry when the list cannot be loaded', async () => {
