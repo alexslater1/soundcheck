@@ -88,8 +88,11 @@ class PeopleSearchIT extends IntegrationTest {
                 .doesNotContain(viewer.handle());
         assertThat(handles(ok(api.get("/api/v1/search/people?q=" + viewer.handle(), blocked))))
                 .doesNotContain(viewer.handle());
+        // First, not only: other tests' users share the database, and a similar handle ("viewer_18…" for
+        // "viewer_1863…") is a fair fuzzy match too (seen on CI).
         assertThat(handles(ok(api.get("/api/v1/search/people?q=" + viewer.handle(), stranger))))
-                .containsExactly(viewer.handle());
+                .first()
+                .isEqualTo(viewer.handle());
     }
 
     @Test
