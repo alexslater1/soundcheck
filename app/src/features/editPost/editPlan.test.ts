@@ -1,6 +1,6 @@
 import type { Post } from '@/api/generated/model';
 
-import { actChoices, canRemove, changes, initialState, moveClip, nextAct } from './editPlan';
+import { actChoices, canRemove, changes, initialState, moveClip } from './editPlan';
 
 const user = (id: string) => ({ id, handle: id, displayName: id });
 const artist = (id: string) => ({ id, name: id }) as never;
@@ -48,9 +48,6 @@ describe('editPlan', () => {
   it('offers the bill, then other acts in use, and cycles through no act', () => {
     const choices = actChoices(post, initialState(post).clips);
     expect(choices.map((a) => a.id)).toEqual(['keo', 'cards', 'other']);
-    expect(nextAct(choices, null)?.id).toBe('keo');
-    expect(nextAct(choices, choices[0]!)?.id).toBe('cards');
-    expect(nextAct(choices, choices[2]!)).toBeNull();
   });
 
   it('sends only what changed', () => {

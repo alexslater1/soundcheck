@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
 
 import type { Post } from '@/api/generated/model';
 import { useAuthStore } from '@/features/auth/store';
@@ -20,6 +20,10 @@ jest.mock('@tanstack/react-query', () => ({
 jest.mock('@/api/generated/posts/posts', () => ({
   useGetPost: () => mockQuery,
   editPost: (id: string, body: unknown) => mockEdit(id, body),
+}));
+const mockArtists = jest.fn();
+jest.mock('@/api/generated/catalog/catalog', () => ({
+  useListArtists: (params: { q: string }) => mockArtists(params),
 }));
 jest.mock('@/api/generated/social/social', () => ({
   useListFollowing: () => ({
@@ -87,6 +91,31 @@ describe('EditPostScreen', () => {
         { id: 'c1', artistId: null, song: null },
       ],
       taggedUserIds: ['mate'],
+    });
+  });
+
+  it('picks an act from outside the bill for a clip, sent as its act', async () => {
+    jest.useFakeTimers();
+    mockArtists.mockReturnValue({
+      isError: false,
+      data: { items: [{ id: 'guest', name: 'Guest Spot' }] },
+    });
+    mockQuery = { isPending: false, isError: false, data: post, refetch: jest.fn() };
+    await renderScreen();
+
+    await fireEvent.press(screen.getAllByText('Which act is this?')[0]!);
+    await fireEvent.changeText(screen.getByLabelText('Find another act'), 'Guest');
+    await act(async () => jest.advanceTimersByTime(300));
+    await fireEvent.press(screen.getByText('+ Guest Spot'));
+    jest.useRealTimers();
+    await fireEvent.press(screen.getByTestId('edit-save'));
+
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
+    expect(mockEdit).toHaveBeenCalledWith('p1', {
+      clips: [
+        { id: 'c1', artistId: 'guest', song: null },
+        { id: 'c2', artistId: null, song: null },
+      ],
     });
   });
 });

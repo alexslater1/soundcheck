@@ -15,19 +15,12 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { ActPicker } from '@/features/upload/ActPicker';
 import { MAX_SONG } from '@/features/upload/postPlan';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
-import {
-  actChoices,
-  canRemove,
-  changes,
-  type EditState,
-  initialState,
-  moveClip,
-  nextAct,
-} from './editPlan';
+import { actChoices, canRemove, changes, type EditState, initialState, moveClip } from './editPlan';
 import { refreshPosts } from './refreshPosts';
 
 /** People a post can tag. */
@@ -81,6 +74,8 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
   const [state, setState] = useState<EditState>(before);
   const [saving, setSaving] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  // The clip whose act is being picked (any act, the bill's first).
+  const [picking, setPicking] = useState<string | null>(null);
   const following = useListFollowing(myId, { limit: 50 });
   const choices = actChoices(post, state.clips);
 
@@ -142,8 +137,7 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
           CLIPS
         </Text>
         <Text variant="caption" muted>
-          Tap an act to change it, and name the song if you like. Clips of one act play together, in
-          this order.
+          Tap an act to change it, and name the song if you like. The clips play in this order.
         </Text>
         {state.clips.map((clip, index) => (
           <View
@@ -165,15 +159,22 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
                 // A clip with no act is on no artist's page (J17): ask, when the gig has acts to pick.
                 label={clip.act?.name ?? (choices.length > 0 ? 'Which act is this?' : 'No act')}
                 selected={clip.act !== null}
-                onPress={() =>
-                  setState((s) => ({
-                    ...s,
-                    clips: s.clips.map((c) =>
-                      c.id === clip.id ? { ...c, act: nextAct(choices, c.act) } : c,
-                    ),
-                  }))
-                }
+                onPress={() => setPicking((open) => (open === clip.id ? null : clip.id))}
               />
+              {picking === clip.id ? (
+                // An act from outside the bill joins the gig's bill once the post is saved (K2).
+                <ActPicker
+                  bill={choices}
+                  value={clip.act}
+                  onChange={(act) => {
+                    setState((s) => ({
+                      ...s,
+                      clips: s.clips.map((c) => (c.id === clip.id ? { ...c, act } : c)),
+                    }));
+                    setPicking(null);
+                  }}
+                />
+              ) : null}
               <TextInput
                 value={clip.song}
                 onChangeText={(song) =>
