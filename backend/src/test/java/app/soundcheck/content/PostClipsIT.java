@@ -30,7 +30,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Over HTTP against real PostGIS: a post is one fan's clips from one gig and day. Clips are announced
  * as slots and filled as uploads complete; the post goes live with its first playable clip and shows the
  * rest as "on its way"; a second post from the same gig and day joins the first; limits per act; clips
- * grouped by act; failed clips only for their owner; slots that never get a clip expire; the author's
+ * in the poster's order; failed clips only for their owner; slots that never get a clip expire; the author's
  * edit; the song typed for each clip.
  */
 class PostClipsIT extends IntegrationTest {
@@ -101,7 +101,7 @@ class PostClipsIT extends IntegrationTest {
                 .as("the cover is the playable clip")
                 .isEqualTo("READY");
 
-        // Everyone sees the post with its other slots on their way, in act order (support first).
+        // Everyone sees the post with its other slots on their way, in the poster's order (support first).
         JsonNode seen = ok(api.get("/api/v1/posts/" + postId, viewer));
         assertThat(statuses(seen)).containsExactly("WAITING", "READY", "WAITING");
         assertThat(seen.path("clipCount").asInt()).isEqualTo(3);
@@ -218,7 +218,7 @@ class PostClipsIT extends IntegrationTest {
     }
 
     @Test
-    void tenClipsPerPersonPerActAndGroupsInTheOrderTheyFirstAppear() {
+    void tenClipsPerPersonPerActAndTheClipsKeepThePostersOrder() {
         List<Map<String, Object>> eleven = new ArrayList<>();
         for (int i = 0; i < 11; i++) {
             eleven.add(clip(null, headliner, null));
@@ -237,15 +237,16 @@ class PostClipsIT extends IntegrationTest {
         }
         clips.add(clip(data.video(fan.id(), "READY"), null, null));
         JsonNode post = created(api.post("/api/v1/posts", Map.of("clips", clips, "gigId", gig), fan));
-        // Interleaved when announced; each act's clips together, acts in the order they first appeared.
+        // Interleaved when announced, and kept so: the poster's order, not grouped by act.
         List<String> acts = new ArrayList<>();
         post.path("clips")
                 .forEach(c -> acts.add(
                         c.path("act").isNull()
                                 ? "none"
                                 : c.path("act").path("id").asText("")));
-        assertThat(acts.subList(0, 10)).containsOnly(support.toString());
-        assertThat(acts.subList(10, 20)).containsOnly(headliner.toString());
+        for (int i = 0; i < 20; i++) {
+            assertThat(acts.get(i)).isEqualTo((i % 2 == 0 ? support : headliner).toString());
+        }
         assertThat(acts.get(20)).isEqualTo("none");
         // The post's acts are its clips' acts (and, with none given, the gig's bill).
         assertThat(post.path("artists").size()).isEqualTo(2);

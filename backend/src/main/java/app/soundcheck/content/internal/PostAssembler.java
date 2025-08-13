@@ -12,7 +12,6 @@ import app.soundcheck.media.Playback;
 import app.soundcheck.shared.media.PublicImages;
 import app.soundcheck.social.SocialGraph;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -165,7 +164,8 @@ class PostAssembler {
                                 ? null
                                 : previews.get(clip.previewMediaId())));
             }
-            List<PostClip> ordered = groupedByAct(shown);
+            // The poster's order (no longer regrouped by act).
+            List<PostClip> ordered = shown;
             // The cover: the first playable clip; for the author, while none is, the first clip, or (a post
             // whose every clip is gone) nothing playable, so a failed post still shows on their profile.
             Optional<Playback> cover = ordered.stream()
@@ -208,25 +208,6 @@ class PostAssembler {
                     row.status()));
         }
         return result;
-    }
-
-    /**
-     * The clips with each act's together, the acts in the order they first appear (the app announces them
-     * in running order), and the clips of one act in their positions (the act bar).
-     */
-    static List<PostClip> groupedByAct(List<PostClip> clips) {
-        Map<Optional<UUID>, Integer> firstAt = new HashMap<>();
-        for (PostClip clip : clips) {
-            firstAt.merge(act(clip), clip.position(), Math::min);
-        }
-        return clips.stream()
-                .sorted(Comparator.comparingInt((PostClip clip) -> firstAt.get(act(clip)))
-                        .thenComparingInt(PostClip::position))
-                .toList();
-    }
-
-    private static Optional<UUID> act(PostClip clip) {
-        return Optional.ofNullable(clip.act()).map(ArtistSummary::id);
     }
 
     static String status(ClipRow clip, Playback playback) {
