@@ -103,7 +103,13 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
 
   const immersive = feedStyle === 'immersive';
   const box = cardBox(feedStyle, width, height, post.gig != null);
-  const clip = pageFit(aspect, box.width, box.height);
+  // A post of several clips fills the card with its carousel: each clip is fitted once, in the page's
+  // box, over its own blurred poster. Shaping them all by the first clip nested a portrait clip in
+  // a landscape box in the page, blurred twice.
+  const clip =
+    post.clips.length > 1
+      ? { fill: true, width: box.width, height: box.height }
+      : pageFit(aspect, box.width, box.height);
   const ticketOnTop = feedStyle === 'ticket';
   return (
     <View
