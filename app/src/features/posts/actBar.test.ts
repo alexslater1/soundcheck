@@ -14,8 +14,8 @@ const clips = [
 describe('the act bar of a post', () => {
   it('has one segment per act, in clip order, and none for clips with no act', () => {
     expect(actSegments(clips)).toEqual([
-      { actId: 'a2', name: 'Cardinals', first: 0, last: 1 },
-      { actId: 'a1', name: 'Keo', first: 2, last: 4 },
+      { actId: 'a2', name: 'Cardinals', first: 0, count: 2 },
+      { actId: 'a1', name: 'Keo', first: 2, count: 3 },
     ]);
   });
 
@@ -27,10 +27,21 @@ describe('the act bar of a post', () => {
   });
 
   it('highlights the act of the clip in view, moving at the boundary', () => {
-    const segments = actSegments(clips);
-    expect(actAt(segments, 1)).toBe('a2');
-    expect(actAt(segments, 2)).toBe('a1');
-    expect(actAt(segments, 5)).toBeNull();
+    expect(actAt(clips, 1)).toBe('a2');
+    expect(actAt(clips, 2)).toBe('a1');
+    expect(actAt(clips, 5)).toBeNull();
+    expect(actAt(clips, 9)).toBeNull();
+  });
+
+  it('keeps interleaved acts in the poster’s order: one chip per act, the clip’s own act lit', () => {
+    const interleaved = [{ act: keo }, { act: cards }, { act: keo }];
+    expect(actSegments(interleaved)).toEqual([
+      { actId: 'a1', name: 'Keo', first: 0, count: 2 },
+      { actId: 'a2', name: 'Cardinals', first: 1, count: 1 },
+    ]);
+    expect(actAt(interleaved, 1)).toBe('a2');
+    expect(actAt(interleaved, 2)).toBe('a1');
+    expect(firstClipOf(actSegments(interleaved), 'a1')).toBe(0);
   });
 
   it("jumps to an act's first clip", () => {

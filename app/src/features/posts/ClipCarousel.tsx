@@ -113,8 +113,11 @@ export function ClipCarousel({
   const bar = showsActBar(segments) ? (
     <ActBar
       segments={segments}
-      current={actAt(segments, index)}
-      onPick={(actId) => goTo(firstClipOf(segments, actId))}
+      current={actAt(clips, index)}
+      // Already on that act's clips: stay on the clip in view.
+      onPick={(actId) =>
+        actId === actAt(clips, index) ? undefined : goTo(firstClipOf(segments, actId))
+      }
       onDark={actBar === 'overlay'}
     />
   ) : null;
