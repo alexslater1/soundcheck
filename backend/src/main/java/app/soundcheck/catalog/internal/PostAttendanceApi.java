@@ -15,10 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 class PostAttendanceApi implements PostAttendance {
 
     private final CatalogReadRepository repository;
+    private final SubmissionRepository submissions;
     private final Clock clock;
 
-    PostAttendanceApi(CatalogReadRepository repository, Clock clock) {
+    PostAttendanceApi(CatalogReadRepository repository, SubmissionRepository submissions, Clock clock) {
         this.repository = repository;
+        this.submissions = submissions;
         this.clock = clock;
     }
 
@@ -32,6 +34,13 @@ class PostAttendanceApi implements PostAttendance {
                         !LocalDate.ofInstant(startsAt, UserSubmissionService.UK).isAfter(today))
                 .ifPresent(startsAt -> {
                     repository.markWentFromPost(userId, gigId, now);
+                    // An act filmed that is not on the bill joins it as the filmer's fan-added act, logged
+                    // as an edit; being on the bill, it counts as seen.
+                    for (UUID act : actsFilmed) {
+                        if (submissions.addAct(gigId, act, userId)) {
+                            submissions.logEdit(gigId, userId, "ACT_ADDED", null, act.toString(), now);
+                        }
+                    }
                     repository.unmiss(userId, gigId, actsFilmed);
                 });
     }
