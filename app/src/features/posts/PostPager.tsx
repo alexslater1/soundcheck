@@ -195,6 +195,10 @@ export function PostPager({
     ({ item }: { item: PagerItem }) => (
       <TelemetryScope place={{ surface, sessionId: item.sessionId, position: item.position }}>
         <FeedPage
+          // A page drawn before the pager's size settled (a screen under a page header is laid out
+          // again once the header is measured) kept its first video surface at the old size: the clip
+          // sat shifted, with gaps in the overlay. On the phone a new size makes a fresh page.
+          key={Platform.OS === 'web' ? undefined : `${width}x${height}`}
           post={item.post}
           reasons={item.reasons}
           width={width}
