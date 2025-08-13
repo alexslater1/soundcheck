@@ -21,10 +21,12 @@ import { spacing } from '@/theme/tokens';
 
 import { isGigList } from './AttendanceButtons';
 
-/** Whether the viewer may fix this gig's details: they are Going or went, and it is on. */
+/**
+ * Whether the viewer may fix this gig's details: anyone signed in, whatever their mark, unless the
+ * gig was cancelled. Only the fan who added it gets the date and venue.
+ */
 export function canEditGig(detail: GigDetail): boolean {
-  const mark = detail.gig.myAttendance;
-  return (mark === 'GOING' || mark === 'WENT') && detail.gig.status !== 'CANCELLED';
+  return detail.gig.status !== 'CANCELLED';
 }
 
 /** "2026-10-03" for a valid calendar date, else null. */
