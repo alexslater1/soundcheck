@@ -93,6 +93,13 @@ describe('PostPager', () => {
     expect(mockMounts).toContain('a');
   });
 
+  it('opens at a later page when asked, the header still out of sight', async () => {
+    await renderPager({ onRefresh: jest.fn(), initialIndex: 2 });
+    const list = screen.getByTestId('post-pager-list');
+    expect(list.props.contentOffset).toEqual({ x: 0, y: REFRESH_HEADER_HEIGHT + 700 * 2 });
+    expect(list.props.initialScrollIndex).toBe(2);
+  });
+
   it('pages plainly without a refresh', async () => {
     await renderPager();
     const list = screen.getByTestId('post-pager-list');

@@ -190,7 +190,7 @@ export function MeScreen() {
               No clips yet. Share one from the Create tab.
             </Text>
           ) : (
-            <PostGrid posts={posts.data.items} />
+            <PostGrid posts={posts.data.items} pagerOf={{ userId: me.id, mine: true }} />
           )
         ) : tab === 'gigs' ? (
           <MyGigsCalendar />

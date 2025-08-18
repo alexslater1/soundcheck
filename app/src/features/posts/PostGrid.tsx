@@ -27,7 +27,19 @@ export function badgeFor(status: Post['status']): string | null {
  * clips when there are several); a tile opens the post. With an act (an artist's page, a gig's
  * act), a tile shows that act's first clip and opens the post at it.
  */
-export function PostGrid({ posts, actId }: { posts: Post[]; actId?: string }) {
+export function PostGrid({
+  posts,
+  actId,
+  pagerOf,
+}: {
+  posts: Post[];
+  actId?: string;
+  /**
+   * A profile's grid: a tile opens the profile's posts to swipe through, at that post, instead of
+   * the post on its own. `mine` is Me's grid (its list includes posts still on their way).
+   */
+  pagerOf?: { userId: string; mine?: boolean };
+}) {
   const { colors } = useTheme();
   return (
     <View style={styles.grid} testID="post-grid">
@@ -39,7 +51,22 @@ export function PostGrid({ posts, actId }: { posts: Post[]; actId?: string }) {
           ? { id: post.id, clip: clip.id }
           : { id: post.id };
         return (
-          <Link key={post.id} href={{ pathname: '/post/[id]', params }} asChild>
+          <Link
+            key={post.id}
+            href={
+              pagerOf
+                ? {
+                    pathname: '/user-posts/[id]',
+                    params: {
+                      id: pagerOf.userId,
+                      start: post.id,
+                      ...(pagerOf.mine ? { mine: '1' } : {}),
+                    },
+                  }
+                : { pathname: '/post/[id]', params }
+            }
+            asChild
+          >
             <Pressable
               // One flat object: expo-router's <Link asChild> rejects a style array on web.
               style={StyleSheet.flatten([styles.tile, { backgroundColor: colors.surface }])}

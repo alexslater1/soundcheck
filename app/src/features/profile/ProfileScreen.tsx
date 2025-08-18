@@ -170,7 +170,7 @@ function UserPosts({ userId }: { userId: string }) {
       </Text>
     );
   }
-  return <PostGrid posts={posts.data.items} />;
+  return <PostGrid posts={posts.data.items} pagerOf={{ userId }} />;
 }
 
 const styles = StyleSheet.create({

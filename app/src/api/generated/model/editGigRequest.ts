@@ -24,7 +24,7 @@ export interface EditGigRequest {
    */
   addArtistNames?: EditGigRequestAddArtistNames;
   date?: EditGigRequestDate;
-  /** J22: the act on the bill that headlined (Going or Went) */
+  /** The act on the bill that headlined */
   headlinerId?: EditGigRequestHeadlinerId;
   startTime?: EditGigRequestStartTime;
   venueId?: EditGigRequestVenueId;

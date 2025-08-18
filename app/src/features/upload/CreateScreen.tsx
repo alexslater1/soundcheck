@@ -44,13 +44,7 @@ import { stateLabel } from './labels';
 import { PendingGigs, useMarkPendingGigsSeen } from './PendingGigs';
 import { PhotoPreview } from './PhotoPreview';
 import { pickFromLibrary, type PickResult } from './pickVideo';
-import {
-  actsOverLimit,
-  festivalDays,
-  MAX_CLIPS_PER_ACT,
-  MAX_SONG,
-  postHint,
-} from './postPlan';
+import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, MAX_SONG, postHint } from './postPlan';
 import { RecordClipButton } from './RecordClipButton';
 import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';

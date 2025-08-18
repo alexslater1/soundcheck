@@ -47,6 +47,8 @@ type Props = {
    * keeps its place, but it holds no players, counts no impressions and takes no keys.
    */
   visible?: boolean;
+  /** The page to open at (a profile's post tapped in its grid); the first by default. */
+  initialIndex?: number;
 };
 
 /** An item is "current" (plays) at 80 % visible; it counts towards an impression at 50 %. */
@@ -70,6 +72,7 @@ export function PostPager({
   onRefresh,
   refreshing = false,
   visible = true,
+  initialIndex = 0,
 }: Props) {
   const [manager] = useState(createPlayerManager);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -219,7 +222,12 @@ export function PostPager({
     () => pageOffsets(items.length, height, header),
     [items.length, height, header],
   );
-  const start = useMemo(() => ({ x: 0, y: header }), [header]);
+  // Opened at a page other than the first, the list starts there; the header stays out of sight.
+  const [firstIndex] = useState(initialIndex);
+  const start = useMemo(
+    () => ({ x: 0, y: header + height * firstIndex }),
+    [header, height, firstIndex],
+  );
 
   return (
     <View style={styles.fill} onLayout={onLayout} testID="post-pager">
@@ -237,7 +245,8 @@ export function PostPager({
             // list snaps to its own offsets, one page per swipe; without one, plain paging.
             {...(header > 0
               ? { snapToOffsets: offsets, disableIntervalMomentum: true, contentOffset: start }
-              : { pagingEnabled: true, snapToInterval: height })}
+              : { pagingEnabled: true, snapToInterval: height, contentOffset: start })}
+            initialScrollIndex={firstIndex > 0 ? firstIndex : undefined}
             snapToAlignment="start"
             decelerationRate="fast"
             showsVerticalScrollIndicator={false}
