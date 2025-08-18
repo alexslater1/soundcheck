@@ -26,7 +26,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e \
+.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e screens \
 	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -176,6 +176,14 @@ e2e: ## Playwright web journeys through the edge (needs `make up`, `make api`, `
 	# soft-delete those posts afterwards so they never reach a feed.
 	status=0
 	CI=1 npx playwright test || status=$$?
+	$(CURDIR)/ops/scripts/prune-test-posts.sh --apply || true
+	exit $$status
+
+screens: ## Web screenshots for docs/screens/web (synthetic clips; needs `make dev` and `make clips`; CLIPS_DIR=… from a worktree)
+	curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make dev'"; exit 1; }
+	cd $(CURDIR)/app
+	status=0
+	npx playwright test --config screens.config.ts || status=$$?
 	$(CURDIR)/ops/scripts/prune-test-posts.sh --apply || true
 	exit $$status
 
