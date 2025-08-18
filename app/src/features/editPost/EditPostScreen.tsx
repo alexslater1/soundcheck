@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Animated, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import type { Post, UserSummary } from '@/api/generated/model';
 import { editPost, useGetPost } from '@/api/generated/posts/posts';
@@ -14,6 +14,7 @@ import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { reorder, useDragReorder } from '@/components/ui/useDragReorder';
 import { useAuthStore } from '@/features/auth/store';
 import { ActPicker } from '@/features/upload/ActPicker';
 import { MAX_SONG } from '@/features/upload/postPlan';
@@ -78,6 +79,11 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
   const [picking, setPicking] = useState<string | null>(null);
   const following = useListFollowing(myId, { limit: 50 });
   const choices = actChoices(post, state.clips);
+  // Hold a clip and drag it to its place; Move up / Move down stay for screen readers.
+  const drag = useDragReorder({
+    count: state.clips.length,
+    onMove: (from, to) => setState((s) => ({ ...s, clips: reorder(s.clips, from, to) })),
+  });
 
   // The people offered: whoever is tagged now, then the people the author follows.
   const people: UserSummary[] = [...state.tagged];
@@ -118,7 +124,11 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
 
   return (
     <Screen keyboard>
-      <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.form}
+        keyboardShouldPersistTaps="handled"
+        scrollEnabled={!drag.active}
+      >
         <Text variant="label" muted>
           CAPTION
         </Text>
@@ -137,87 +147,98 @@ function EditForm({ post, myId }: { post: Post; myId: string }) {
           CLIPS
         </Text>
         <Text variant="caption" muted>
-          Tap an act to change it, and name the song if you like. The clips play in this order.
+          Tap an act to change it, and name the song if you like. The clips play in this order: hold
+          one to drag it to another place.
         </Text>
-        {state.clips.map((clip, index) => (
-          <View
-            key={clip.id}
-            style={[styles.clip, { borderColor: colors.border, backgroundColor: colors.surface }]}
-            testID={`edit-clip-${clip.id}`}
-          >
-            <View style={[styles.thumb, { backgroundColor: colors.surfaceRaised }]}>
-              {clip.thumbUrl ? (
-                <Image
-                  source={{ uri: clip.thumbUrl }}
-                  style={StyleSheet.absoluteFill}
-                  contentFit="cover"
+        <View style={styles.clips} {...drag.containerProps} testID="edit-clips">
+          {state.clips.map((clip, index) => (
+            <Animated.View key={clip.id} {...drag.itemProps(index)} testID={`edit-slot-${clip.id}`}>
+              <Pressable
+                // Not a control of its own: the long press lifts the clip; its parts stay reachable.
+                accessible={false}
+                {...drag.liftProps(index)}
+                style={[
+                  styles.clip,
+                  { borderColor: colors.border, backgroundColor: colors.surface },
+                ]}
+                testID={`edit-clip-${clip.id}`}
+              >
+                <View style={[styles.thumb, { backgroundColor: colors.surfaceRaised }]}>
+                  {clip.thumbUrl ? (
+                    <Image
+                      source={{ uri: clip.thumbUrl }}
+                      style={StyleSheet.absoluteFill}
+                      contentFit="cover"
+                    />
+                  ) : null}
+                </View>
+                <View style={styles.grow}>
+                  <Chip
+                    // A clip with no act is on no artist's page: ask, when the gig
+                    // has acts to pick.
+                    label={clip.act?.name ?? (choices.length > 0 ? 'Which act is this?' : 'No act')}
+                    selected={clip.act !== null}
+                    onPress={() => setPicking((open) => (open === clip.id ? null : clip.id))}
+                  />
+                  {picking === clip.id ? (
+                    // An act from outside the bill joins the gig's bill once the post is saved.
+                    <ActPicker
+                      bill={choices}
+                      value={clip.act}
+                      onChange={(act) => {
+                        setState((s) => ({
+                          ...s,
+                          clips: s.clips.map((c) => (c.id === clip.id ? { ...c, act } : c)),
+                        }));
+                        setPicking(null);
+                      }}
+                    />
+                  ) : null}
+                  <TextInput
+                    value={clip.song}
+                    onChangeText={(song) =>
+                      setState((s) => ({
+                        ...s,
+                        clips: s.clips.map((c) => (c.id === clip.id ? { ...c, song } : c)),
+                      }))
+                    }
+                    placeholder="Song (optional)"
+                    placeholderTextColor={colors.textMuted}
+                    maxLength={MAX_SONG}
+                    accessibilityLabel="Song in this clip"
+                    style={[styles.song, { color: colors.text, borderColor: colors.border }]}
+                    testID={`edit-song-${clip.id}`}
+                  />
+                  {clip.owner.id !== myId ? (
+                    <Text variant="caption" muted>
+                      Filmed by @{clip.owner.handle}
+                    </Text>
+                  ) : null}
+                </View>
+                <IconAction
+                  icon="chevron-up"
+                  label="Move up"
+                  disabled={index === 0}
+                  onPress={() => setState((s) => ({ ...s, clips: moveClip(s.clips, index, -1) }))}
                 />
-              ) : null}
-            </View>
-            <View style={styles.grow}>
-              <Chip
-                // A clip with no act is on no artist's page (J17): ask, when the gig has acts to pick.
-                label={clip.act?.name ?? (choices.length > 0 ? 'Which act is this?' : 'No act')}
-                selected={clip.act !== null}
-                onPress={() => setPicking((open) => (open === clip.id ? null : clip.id))}
-              />
-              {picking === clip.id ? (
-                // An act from outside the bill joins the gig's bill once the post is saved (K2).
-                <ActPicker
-                  bill={choices}
-                  value={clip.act}
-                  onChange={(act) => {
-                    setState((s) => ({
-                      ...s,
-                      clips: s.clips.map((c) => (c.id === clip.id ? { ...c, act } : c)),
-                    }));
-                    setPicking(null);
-                  }}
+                <IconAction
+                  icon="chevron-down"
+                  label="Move down"
+                  disabled={index === state.clips.length - 1}
+                  onPress={() => setState((s) => ({ ...s, clips: moveClip(s.clips, index, 1) }))}
                 />
-              ) : null}
-              <TextInput
-                value={clip.song}
-                onChangeText={(song) =>
-                  setState((s) => ({
-                    ...s,
-                    clips: s.clips.map((c) => (c.id === clip.id ? { ...c, song } : c)),
-                  }))
-                }
-                placeholder="Song (optional)"
-                placeholderTextColor={colors.textMuted}
-                maxLength={MAX_SONG}
-                accessibilityLabel="Song in this clip"
-                style={[styles.song, { color: colors.text, borderColor: colors.border }]}
-                testID={`edit-song-${clip.id}`}
-              />
-              {clip.owner.id !== myId ? (
-                <Text variant="caption" muted>
-                  Filmed by @{clip.owner.handle}
-                </Text>
-              ) : null}
-            </View>
-            <IconAction
-              icon="chevron-up"
-              label="Move up"
-              disabled={index === 0}
-              onPress={() => setState((s) => ({ ...s, clips: moveClip(s.clips, index, -1) }))}
-            />
-            <IconAction
-              icon="chevron-down"
-              label="Move down"
-              disabled={index === state.clips.length - 1}
-              onPress={() => setState((s) => ({ ...s, clips: moveClip(s.clips, index, 1) }))}
-            />
-            <IconAction
-              icon="close-circle"
-              label="Remove this clip"
-              disabled={!canRemove(state.clips)}
-              onPress={() =>
-                setState((s) => ({ ...s, clips: s.clips.filter((c) => c.id !== clip.id) }))
-              }
-            />
-          </View>
-        ))}
+                <IconAction
+                  icon="close-circle"
+                  label="Remove this clip"
+                  disabled={!canRemove(state.clips)}
+                  onPress={() =>
+                    setState((s) => ({ ...s, clips: s.clips.filter((c) => c.id !== clip.id) }))
+                  }
+                />
+              </Pressable>
+            </Animated.View>
+          ))}
+        </View>
         {!canRemove(state.clips) ? (
           <Text variant="caption" muted>
             A post keeps at least one clip. To remove this one, delete the post.
@@ -314,6 +335,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     textAlignVertical: 'top',
   },
+  clips: { gap: spacing.sm },
   clip: {
     flexDirection: 'row',
     alignItems: 'center',

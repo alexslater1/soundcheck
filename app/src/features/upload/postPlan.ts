@@ -13,30 +13,6 @@ export const MAX_SONG = 120;
 /** A clip on the compose form with the act chosen for it (null: no act), and the song typed for it. */
 export type ClipAct = { localId: string; artistId: string | null; song?: string | null };
 
-/**
- * The clips in the order acts play: support acts first, the last-billed support first, then
- * the headliner, then acts not on the bill, then clips with no act; one act's clips in the order they
- * were picked. The server keeps each act's clips together in the order they first appear, so this is
- * the order of the post's act bar.
- */
-export function runningOrder<T extends ClipAct>(clips: T[], gig: GigSummary | null): T[] {
-  const support = gig?.support ?? [];
-  const rank = (artistId: string | null): number => {
-    if (artistId === null) {
-      return support.length + 2;
-    }
-    const index = support.findIndex((act) => act.id === artistId);
-    if (index >= 0) {
-      return support.length - 1 - index;
-    }
-    return gig?.headliner.id === artistId ? support.length : support.length + 1;
-  };
-  return clips
-    .map((clip, index) => ({ clip, index }))
-    .sort((a, b) => rank(a.clip.artistId) - rank(b.clip.artistId) || a.index - b.index)
-    .map(({ clip }) => clip);
-}
-
 /** The acts (null: "no act") with more clips than a post may hold. */
 export function actsOverLimit(clips: ClipAct[]): (string | null)[] {
   const counts = new Map<string | null, number>();

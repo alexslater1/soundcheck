@@ -6,7 +6,6 @@ import {
   looksMultiDay,
   MAX_CLIPS_PER_ACT,
   postHint,
-  runningOrder,
 } from './postPlan';
 
 const act = (id: string) => ({ id, name: id, genres: [], isFollowing: false }) as ArtistSummary;
@@ -24,35 +23,6 @@ function gig(over: Partial<GigSummary> = {}): GigSummary {
     ...over,
   } as GigSummary;
 }
-
-describe('runningOrder', () => {
-  it('puts support acts first (the opener first), then the headliner, others, and no act last', () => {
-    const clips = [
-      { localId: '1', artistId: 'head' },
-      { localId: '2', artistId: null },
-      { localId: '3', artistId: 'main-support' },
-      { localId: '4', artistId: 'someone-else' },
-      { localId: '5', artistId: 'opener' },
-      { localId: '6', artistId: 'head' },
-    ];
-    expect(runningOrder(clips, gig()).map((c) => c.localId)).toEqual([
-      '5',
-      '3',
-      '1',
-      '6',
-      '4',
-      '2',
-    ]);
-  });
-
-  it('keeps the picked order without a gig', () => {
-    const clips = [
-      { localId: '1', artistId: null },
-      { localId: '2', artistId: 'x' },
-    ];
-    expect(runningOrder(clips, null).map((c) => c.localId)).toEqual(['2', '1']);
-  });
-});
 
 describe('actsOverLimit', () => {
   it('names an act with more clips than a post may hold', () => {

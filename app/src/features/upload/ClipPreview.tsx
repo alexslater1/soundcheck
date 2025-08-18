@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useIsFocused } from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEffect } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
@@ -16,7 +16,16 @@ import { usePreviewPlaying } from './previewPlaying';
  * sound, tap again to pause; playing another preview or leaving the tab pauses it. The web twin is
  * `ClipPreview.web.tsx`.
  */
-export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
+export function ClipPreview({
+  uri,
+  testID,
+  hold,
+}: {
+  uri: string;
+  testID?: string;
+  /** A long press on the clip (Create lifts it to drag it to another place). */
+  hold?: Pick<PressableProps, 'onLongPress' | 'onPressOut' | 'delayLongPress'>;
+}) {
   const { colors } = useTheme();
   const onScreen = useIsFocused();
   // One preview plays at a time: tapping another pauses this one.
@@ -42,6 +51,7 @@ export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
       accessibilityRole="button"
       accessibilityLabel={playing ? 'Pause the clip' : 'Play the clip'}
       onPress={() => toggle(uri)}
+      {...hold}
       style={[styles.frame, { backgroundColor: colors.surfaceRaised }]}
       testID={testID}
     >

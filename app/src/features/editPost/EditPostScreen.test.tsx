@@ -118,4 +118,28 @@ describe('EditPostScreen', () => {
       ],
     });
   });
+
+  it('reorders the clips by holding one and dragging it', async () => {
+    mockQuery = { isPending: false, isError: false, data: post, refetch: jest.fn() };
+    await renderScreen();
+    const at = (y: number) => ({ nativeEvent: { layout: { x: 0, y, width: 300, height: 90 } } });
+    await fireEvent(screen.getByTestId('edit-slot-c1'), 'layout', at(0));
+    await fireEvent(screen.getByTestId('edit-slot-c2'), 'layout', at(100));
+
+    await fireEvent(screen.getByTestId('edit-clip-c1'), 'longPress');
+    const list = screen.getByTestId('edit-clips');
+    expect(list.props.onMoveShouldSetResponderCapture()).toBe(true);
+    await fireEvent(list, 'responderGrant', { nativeEvent: { pageX: 0, pageY: 40 } });
+    await fireEvent(list, 'responderMove', { nativeEvent: { pageX: 0, pageY: 150 } });
+    await fireEvent(list, 'responderRelease');
+    await fireEvent.press(screen.getByTestId('edit-save'));
+
+    await waitFor(() => expect(mockBack).toHaveBeenCalled());
+    expect(mockEdit).toHaveBeenCalledWith('p1', {
+      clips: [
+        { id: 'c2', artistId: null, song: null },
+        { id: 'c1', artistId: null, song: null },
+      ],
+    });
+  });
 });
