@@ -94,6 +94,7 @@ function RootStack() {
         <Stack.Screen name="venue/[id]" options={{ title: 'Venue' }} />
         <Stack.Screen name="clip/[id]" options={{ title: 'Clip' }} />
         <Stack.Screen name="post/[id]" options={{ title: 'Post' }} />
+        <Stack.Screen name="user-posts/[id]" options={{ title: 'Posts' }} />
         <Stack.Screen name="edit-post/[id]" options={{ title: 'Edit post' }} />
         <Stack.Screen name="u/[handle]/index" options={{ title: 'Profile' }} />
         {/* The lists say "Followers" / "Following" as their own heading, so the header shows only the chevron. */}

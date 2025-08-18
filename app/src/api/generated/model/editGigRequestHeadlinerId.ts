@@ -7,6 +7,6 @@
  */
 
 /**
- * J22: the act on the bill that headlined (Going or Went)
+ * The act on the bill that headlined
  */
 export type EditGigRequestHeadlinerId = string | null;

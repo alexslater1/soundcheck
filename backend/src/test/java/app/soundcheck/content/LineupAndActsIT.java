@@ -74,19 +74,16 @@ class LineupAndActsIT extends IntegrationTest {
     // ── editing a gig ───────────────────────────────────────────────────────────────────────────
 
     @Test
-    void someoneGoingAddsActsAndFixesTheStartTimeAndEveryEditIsLogged() {
+    void anyoneSignedInAddsActsAndFixesTheStartTimeAndEveryEditIsLogged() {
         Instant at = LocalDate.now(GigTime.UK)
                 .plusDays(5)
                 .atTime(19, 0)
                 .atZone(GigTime.UK)
                 .toInstant();
         UUID gig = data.gig("KEO " + tag, venue, at, keo);
-        TestApi.User stranger = api.register("stranger");
         Map<String, Object> addTooth = Map.of("addArtistIds", List.of(tooth));
 
-        assertProblem(api.patch(path(gig), addTooth, stranger), HttpStatus.FORBIDDEN, "NOT_ATTENDING");
-
-        ok(api.put(path(gig) + "/attendance", Map.of("status", "GOING"), fan));
+        // No Going or Went mark is needed (it was refused with NOT_ATTENDING before).
         JsonNode edited = ok(api.patch(
                 path(gig),
                 Map.of(
@@ -151,7 +148,7 @@ class LineupAndActsIT extends IntegrationTest {
     // ── which act headlined ─────────────────────────────────────────────────────────────────────
 
     @Test
-    void someoneGoingSaysWhichActHeadlinedAndATitleThatWasTheOldHeadlinerFollows() {
+    void anyoneSignedInSaysWhichActHeadlinedAndATitleThatWasTheOldHeadlinerFollows() {
         Instant at = LocalDate.now(GigTime.UK)
                 .plusDays(5)
                 .atTime(19, 0)
@@ -161,8 +158,7 @@ class LineupAndActsIT extends IntegrationTest {
         UUID other = data.artist("Not On The Bill " + tag);
         Map<String, Object> toothHeadlines = Map.of("headlinerId", tooth);
 
-        assertProblem(api.patch(path(gig), toothHeadlines, fan), HttpStatus.FORBIDDEN, "NOT_ATTENDING");
-        ok(api.put(path(gig) + "/attendance", Map.of("status", "GOING"), fan));
+        // No mark needed.
         assertProblem(
                 api.patch(path(gig), Map.of("headlinerId", other), fan), HttpStatus.BAD_REQUEST, "ACT_NOT_ON_BILL");
 
@@ -232,6 +228,30 @@ class LineupAndActsIT extends IntegrationTest {
         assertThat(ok(api.get(path(gig), fan)).path("gig").path("myActsMissed").size())
                 .isZero();
         assertThat(timesSeen(tooth)).isEqualTo(1);
+    }
+
+    @Test
+    void aClipOfAnActNotOnTheBillAddsItAsTheFansActAndCountsItSeen() {
+        UUID gig = pastGig(keo);
+        UUID guest = data.artist("Guest Spot " + tag);
+
+        created(api.post(
+                "/api/v1/posts",
+                Map.of(
+                        "clips",
+                        List.of(Map.of("mediaId", data.video(fan.id(), "READY"), "artistId", guest)),
+                        "gigId",
+                        gig),
+                fan));
+
+        // On the bill after the gig's own act, added by the fan, logged as an edit to the bill.
+        assertThat(lineup(gig)).containsExactly("KEO " + tag, "Guest Spot " + tag);
+        assertThat(dsl.fetch("select field, user_id, new_value from catalog.gig_edit where gig_id = ?", gig)
+                        .map(r -> r.get(0) + " " + r.get(1) + " " + r.get(2)))
+                .containsExactly("ACT_ADDED " + fan.id() + " " + guest);
+        assertThat(ok(api.get(path(gig), fan)).path("gig").path("myActsMissed").size())
+                .isZero();
+        assertThat(timesSeen(guest)).isEqualTo(1);
     }
 
     @Test

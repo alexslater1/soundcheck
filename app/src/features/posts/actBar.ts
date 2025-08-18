@@ -1,10 +1,10 @@
-/** One act's run of clips in a post: where its clips start and end (the act bar). */
-export type ActSegment = { actId: string; name: string; first: number; last: number };
+/** One act of a post's clips, for the act bar: its first clip and how many clips are its. */
+export type ActSegment = { actId: string; name: string; first: number; count: number };
 
 /**
- * The acts of a post's clips, in clip order, one segment per act. The server sends each act's clips
- * together; if an act's clips were ever split, its segment spans from its first clip to its last. Clips
- * with no act belong to no segment.
+ * The acts of a post's clips, one chip per act in the order each first appears. The clips stay in the
+ * poster's order, so an act's clips may not be next to each other (A1, A2, A1). Clips with
+ * no act belong to no segment.
  */
 export function actSegments(
   clips: readonly { act?: { id: string; name: string } | null }[],
@@ -17,9 +17,9 @@ export function actSegments(
     }
     const segment = segments.find((s) => s.actId === act.id);
     if (segment) {
-      segment.last = index;
+      segment.count += 1;
     } else {
-      segments.push({ actId: act.id, name: act.name, first: index, last: index });
+      segments.push({ actId: act.id, name: act.name, first: index, count: 1 });
     }
   });
   return segments;
@@ -33,9 +33,15 @@ export function showsActBar(segments: readonly ActSegment[]): boolean {
   return segments.length >= 1;
 }
 
-/** The act of the clip at `index` (the chip to highlight), or null for a clip with no act. */
-export function actAt(segments: readonly ActSegment[], index: number): string | null {
-  return segments.find((s) => index >= s.first && index <= s.last)?.actId ?? null;
+/**
+ * The act of the clip at `index` (the chip to highlight), or null for a clip with no act. It is the
+ * clip's own act, so interleaved acts (A1, A2, A1) highlight right.
+ */
+export function actAt(
+  clips: readonly { act?: { id: string } | null }[],
+  index: number,
+): string | null {
+  return clips[index]?.act?.id ?? null;
 }
 
 /** Where tapping an act's chip scrolls to: its first clip (0 for an unknown act). */

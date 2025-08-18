@@ -6,6 +6,8 @@ import { ThemeProvider } from '@/theme/ThemeProvider';
 import { PostPager, type PagerItem } from './PostPager';
 import { REFRESH_HEADER_HEIGHT } from './RefreshHeader';
 
+const mockMounts: string[] = [];
+
 // A page shows what its player slot allows, instead of a clip.
 jest.mock('./FeedPage', () => {
   const React = jest.requireActual<typeof import('react')>('react');
@@ -16,6 +18,9 @@ jest.mock('./FeedPage', () => {
   return {
     FeedPage: ({ post }: { post: Post }) => {
       const { live, active } = usePlayerSlot(post.id);
+      React.useEffect(() => {
+        mockMounts.push(post.id);
+      }, [post.id]);
       return React.createElement(
         Text,
         { testID: `page-${post.id}` },
@@ -77,6 +82,22 @@ describe('PostPager', () => {
 
     expect(onRefresh).not.toHaveBeenCalled();
     expect(screen.getByTestId('equalizer-animating')).toBeTruthy();
+  });
+
+  it('draws the pages afresh when its size settles, as under a page header', async () => {
+    await renderPager();
+    mockMounts.length = 0;
+    await fireEvent(screen.getByTestId('post-pager'), 'layout', {
+      nativeEvent: { layout: { x: 0, y: 0, width: 400, height: 640 } },
+    });
+    expect(mockMounts).toContain('a');
+  });
+
+  it('opens at a later page when asked, the header still out of sight', async () => {
+    await renderPager({ onRefresh: jest.fn(), initialIndex: 2 });
+    const list = screen.getByTestId('post-pager-list');
+    expect(list.props.contentOffset).toEqual({ x: 0, y: REFRESH_HEADER_HEIGHT + 700 * 2 });
+    expect(list.props.initialScrollIndex).toBe(2);
   });
 
   it('pages plainly without a refresh', async () => {

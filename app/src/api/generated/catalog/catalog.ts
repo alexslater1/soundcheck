@@ -865,7 +865,7 @@ export function useGetGig<TData = Awaited<ReturnType<typeof getGig>>, TError = u
 
 
 /**
- * @summary J9: add acts to the bill, fix the start time and (J22) say which act headlined (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author
+ * @summary Add acts to the bill, fix the start time and say which act headlined (anyone signed in); change the date or venue of a gig you added. Every edit is logged with its author
  */
 export const getEditGigUrl = (id: string,) => {
 
@@ -921,7 +921,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type EditGigMutationError = unknown
 
     /**
- * @summary J9: add acts to the bill, fix the start time and (J22) say which act headlined (Going or Went); change the date or venue of a gig you added. Every edit is logged with its author
+ * @summary Add acts to the bill, fix the start time and say which act headlined (anyone signed in); change the date or venue of a gig you added. Every edit is logged with its author
  */
 export const useEditGig = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof editGig>>, TError,{id: string;data: EditGigRequest}, TContext>, request?: SecondParameter<typeof customFetch>}

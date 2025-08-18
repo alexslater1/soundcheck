@@ -1,23 +1,38 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useIsFocused } from '@react-navigation/native';
 import { useVideoPlayer, VideoView } from 'expo-video';
-import { useEffect, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect } from 'react';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
 
 import { LOCAL_FILE_BUFFER } from './localPlayback';
+import { usePreviewPlaying } from './previewPlaying';
 
 /**
- * A picked clip played straight from the phone: the compose form shows what is being
- * posted while it is compressed and uploaded in the background. Nothing goes over the network. Tap to
- * play with sound, tap again to pause; leaving the tab pauses it. The web twin is `ClipPreview.web.tsx`.
+ * A picked clip played straight from the phone: the compose form shows what is being posted while
+ * it is compressed and uploaded in the background. Nothing goes over the network. Tap to play with
+ * sound, tap again to pause; playing another preview or leaving the tab pauses it. The web twin is
+ * `ClipPreview.web.tsx`.
  */
-export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
+export function ClipPreview({
+  uri,
+  testID,
+  hold,
+}: {
+  uri: string;
+  testID?: string;
+  /** A long press on the clip (Create lifts it to drag it to another place). */
+  hold?: Pick<PressableProps, 'onLongPress' | 'onPressOut' | 'delayLongPress'>;
+}) {
   const { colors } = useTheme();
   const onScreen = useIsFocused();
-  const [playing, setPlaying] = useState(false);
+  // One preview plays at a time: tapping another pauses this one.
+  const playing = usePreviewPlaying((state) => state.playing === uri);
+  const toggle = usePreviewPlaying((state) => state.toggle);
+  const release = usePreviewPlaying((state) => state.release);
+  useEffect(() => () => release(uri), [release, uri]);
   const player = useVideoPlayer({ uri }, (created) => {
     created.loop = true;
     created.bufferOptions = LOCAL_FILE_BUFFER;
@@ -35,16 +50,21 @@ export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={playing ? 'Pause the clip' : 'Play the clip'}
-      onPress={() => setPlaying((p) => !p)}
+      onPress={() => toggle(uri)}
+      {...hold}
       style={[styles.frame, { backgroundColor: colors.surfaceRaised }]}
       testID={testID}
     >
-      <VideoView
-        player={player}
-        style={StyleSheet.absoluteFill}
-        contentFit="cover"
-        nativeControls={false}
-      />
+      {/* The native view took the tap once it played, so the clip could not be paused: it gets
+          no touches, and every tap reaches the Pressable. */}
+      <View style={StyleSheet.absoluteFill} pointerEvents="none">
+        <VideoView
+          player={player}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+          nativeControls={false}
+        />
+      </View>
       {playing ? null : (
         <View style={styles.play}>
           <Ionicons name="play" size={28} color="#FFFFFF" />

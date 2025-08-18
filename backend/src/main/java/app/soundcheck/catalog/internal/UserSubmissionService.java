@@ -170,8 +170,9 @@ public class UserSubmissionService {
             @Nullable UUID headlinerId) {}
 
     /**
-     * {@code PATCH /gigs/{id}}. Anyone whose mark reads Going or Went adds acts and fixes the
-     * start time; only the fan who added a gig changes its date or venue, since a source's next
+     * {@code PATCH /gigs/{id}}. Anyone signed in adds acts, fixes the start time and
+     * picks the headliner, whatever their mark; only the fan who added a gig changes its
+     * date or venue, since a source's next
      * listing would overwrite them on an ingested gig. Each change is logged ({@code catalog.gig_edit})
      * with its author, so a bad edit can be found and undone. A cancelled gig is not edited.
      */
@@ -180,11 +181,6 @@ public class UserSubmissionService {
                 reads.timing(gigId).orElseThrow(() -> ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId));
         if ("CANCELLED".equals(gig.status())) {
             throw ApiException.unprocessable("GIG_CANCELLED", "This gig was cancelled");
-        }
-        CatalogReadRepository.Mark mark =
-                reads.attendance(userId, List.of(gigId)).get(gigId);
-        if (mark == null || !("GOING".equals(mark.status()) || "WENT".equals(mark.status()))) {
-            throw ApiException.forbidden("NOT_ATTENDING", "Mark the gig Going or Went to edit it");
         }
         boolean mine = submissions.gigAddedBy(gigId).map(userId::equals).orElse(false);
         if ((edit.date() != null || edit.venueId() != null) && !mine) {

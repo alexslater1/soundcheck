@@ -2,7 +2,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { useQueryClient } from '@tanstack/react-query';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Animated,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 
 import {
   getListGigsToPostQueryKey,
@@ -16,6 +25,7 @@ import { Chip } from '@/components/ui/Chip';
 import { Screen } from '@/components/ui/Screen';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
+import { reorder, useDragReorder } from '@/components/ui/useDragReorder';
 import { useAuthStore } from '@/features/auth/store';
 import { isGigList } from '@/features/gigs/AttendanceButtons';
 import { dayHasCome } from '@/features/gigs/attendance';
@@ -34,14 +44,7 @@ import { stateLabel } from './labels';
 import { PendingGigs, useMarkPendingGigsSeen } from './PendingGigs';
 import { PhotoPreview } from './PhotoPreview';
 import { pickFromLibrary, type PickResult } from './pickVideo';
-import {
-  actsOverLimit,
-  festivalDays,
-  MAX_CLIPS_PER_ACT,
-  MAX_SONG,
-  postHint,
-  runningOrder,
-} from './postPlan';
+import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, MAX_SONG, postHint } from './postPlan';
 import { RecordClipButton } from './RecordClipButton';
 import { UploadProblems } from './UploadProblems';
 import { UploadRow } from './UploadRow';
@@ -95,6 +98,8 @@ export function CreateScreen() {
   const [day, setDay] = useState<string | null>(null);
   // The uploads this post is for, the act chosen for each, and the clip whose act is being chosen.
   const [composing, setComposing] = useState<string[]>([]);
+  // The picker has handed back control but is still copying the chosen files.
+  const [fetching, setFetching] = useState(false);
   const [acts, setActs] = useState<Record<string, TaggedArtist | null>>({});
   const [choosingAct, setChoosingAct] = useState<string | null>(null);
   // The song typed for each clip: free text, optional.
@@ -134,13 +139,27 @@ export function CreateScreen() {
     }
   }, [paramGig.data, paramGigId]);
 
+  // The clips shown under "Your clips", in the order the fan put them; a held clip drags along.
+  const shownIds = composing.filter((localId) =>
+    all.some((entry) => entry.localId === localId && entry.ownerId === ownerId && !entry.draft),
+  );
+  const drag = useDragReorder({
+    count: shownIds.length,
+    horizontal: true,
+    onMove: (from, to) => {
+      const moved = reorder(shownIds, from, to);
+      setComposing((current) => [...moved, ...current.filter((id) => !moved.includes(id))]);
+    },
+  });
+
   if (!ownerId) {
     return null;
   }
   const entries = all.filter((entry) => entry.ownerId === ownerId);
-  const composingEntries = entries.filter(
-    (entry) => composing.includes(entry.localId) && !entry.draft,
-  );
+  // In the order the fan put them: a dragged clip keeps its new place in the post.
+  const composingEntries = composing
+    .map((localId) => entries.find((entry) => entry.localId === localId))
+    .filter((entry): entry is (typeof entries)[number] => entry !== undefined && !entry.draft);
   const joining = joinPostId !== null;
   const postGig = joining ? (joinPost.data?.gig ?? null) : gig;
   const bill = postGig ? billOf(postGig) : [];
@@ -169,8 +188,11 @@ export function CreateScreen() {
 
   const add = async (pick: () => Promise<PickResult>) => {
     setProblem(null);
+    // Not on the web: a cancelled file dialog may never answer there.
+    setFetching(Platform.OS !== 'web');
     try {
       const picked = await pick();
+      setFetching(false);
       if (picked.kind === 'denied') {
         setProblem('Camera access was not granted. You can allow it in the system settings.');
         return;
@@ -181,7 +203,7 @@ export function CreateScreen() {
       // Clips that cannot be posted (too long, too big) are named; the others go ahead.
       const several = picked.videos.length > 1;
       const refusals: string[] = [];
-      const queued: string[] = [];
+      const queued: { localId: string; photo: boolean }[] = [];
       for (const video of picked.videos) {
         const refused = problemWith(video);
         if (refused) {
@@ -194,19 +216,25 @@ export function CreateScreen() {
         const localId = useUploadQueue
           .getState()
           .enqueue(ownerId, video, { platform: Platform.OS }, false, photo);
+        queued.push({ localId, photo });
+      }
+      if (refusals.length > 0) {
+        setProblem(refusals.join('\n'));
+      }
+      // Every clip shows under "Your clips" first; the uploads and preview frames start after.
+      setComposing((current) => [...current, ...queued.map((q) => q.localId)]);
+      await nextTurn();
+      for (const { localId, photo } of queued) {
         void startUpload(localId);
         if (!photo) {
           // The frame shown blurred while the clip is on its way; never waited for.
           void makePreview(localId);
         }
-        queued.push(localId);
       }
-      if (refusals.length > 0) {
-        setProblem(refusals.join('\n'));
-      }
-      setComposing((current) => [...current, ...queued]);
     } catch {
       setProblem('That file could not be opened. Try another one.');
+    } finally {
+      setFetching(false);
     }
   };
 
@@ -231,7 +259,8 @@ export function CreateScreen() {
   };
 
   const post = ({ caption, taggedUserIds }: ComposeResult) => {
-    const clips = runningOrder(clipActs, postGig);
+    // The poster's order, as shown under "Your clips": no longer sorted by the bill.
+    const clips = clipActs;
     void submitPost({
       caption,
       gigId: joining ? null : (gig?.id ?? null),
@@ -371,73 +400,129 @@ export function CreateScreen() {
             Videos up to {CLIP_LENGTH} each, photos up to 10 MB, up to {MAX_CLIPS_PER_ACT} of each
             act. They upload while you write.
           </Text>
+          {fetching ? (
+            // The system picker copies every chosen file before it hands them over.
+            <View style={styles.fetching} testID="clips-fetching">
+              <ActivityIndicator color={colors.accent} />
+              <Text muted>Getting your clips…</Text>
+            </View>
+          ) : null}
           {composingEntries.length > 0 ? (
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.previews}
+              scrollEnabled={!drag.active}
               testID="clip-previews"
             >
-              {composingEntries.map((entry) => {
-                const act = actOf(entry.localId);
-                return (
-                  <View key={entry.localId} style={styles.preview}>
-                    {isPhoto(entry) ? (
-                      <PhotoPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
-                    ) : (
-                      <ClipPreview uri={entry.previewUri} testID={`preview-${entry.localId}`} />
-                    )}
-                    <View style={styles.previewFoot}>
-                      <Text variant="label" muted numberOfLines={1} style={styles.grow}>
-                        {stateLabel(entry)}
-                      </Text>
+              {/* Hold a clip to lift it, drag it along, let go: the post keeps that order. */}
+              <View style={styles.previews} {...drag.containerProps} testID="clip-previews-row">
+                {composingEntries.map((entry, index) => {
+                  const act = actOf(entry.localId);
+                  const move = (to: number) => {
+                    if (to >= 0 && to < composingEntries.length) {
+                      const moved = reorder(shownIds, index, to);
+                      setComposing((current) => [
+                        ...moved,
+                        ...current.filter((id) => !moved.includes(id)),
+                      ]);
+                    }
+                  };
+                  return (
+                    <Animated.View key={entry.localId} {...drag.itemProps(index)}>
                       <Pressable
-                        accessibilityRole="button"
-                        accessibilityLabel={`Remove ${entry.fileName ?? 'this clip'}`}
-                        hitSlop={8}
-                        onPress={() => {
-                          setComposing((current) => current.filter((id) => id !== entry.localId));
-                          void removeUpload(entry.localId).catch(() => undefined);
-                        }}
+                        // Not a control of its own: the long press lifts the clip; its parts stay reachable.
+                        accessible={false}
+                        {...drag.liftProps(index)}
+                        style={styles.preview}
+                        testID={`tile-${entry.localId}`}
                       >
-                        <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                        {isPhoto(entry) ? (
+                          <PhotoPreview
+                            uri={entry.previewUri}
+                            testID={`preview-${entry.localId}`}
+                          />
+                        ) : (
+                          <ClipPreview
+                            uri={entry.previewUri}
+                            testID={`preview-${entry.localId}`}
+                            hold={drag.liftProps(index)}
+                          />
+                        )}
+                        <View style={styles.previewFoot}>
+                          <Text
+                            variant="label"
+                            muted
+                            numberOfLines={1}
+                            style={styles.grow}
+                            // Dragging needs a finger: a screen reader moves the clip with these instead.
+                            accessibilityLabel={`${stateLabel(entry)}. Clip ${index + 1} of ${composingEntries.length}`}
+                            accessibilityActions={[
+                              { name: 'moveUp', label: 'Move up' },
+                              { name: 'moveDown', label: 'Move down' },
+                            ]}
+                            onAccessibilityAction={(event) =>
+                              move(
+                                event.nativeEvent.actionName === 'moveUp' ? index - 1 : index + 1,
+                              )
+                            }
+                            testID={`order-${entry.localId}`}
+                          >
+                            {stateLabel(entry)}
+                          </Text>
+                          <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel={`Remove ${entry.fileName ?? 'this clip'}`}
+                            hitSlop={8}
+                            onPress={() => {
+                              setComposing((current) =>
+                                current.filter((id) => id !== entry.localId),
+                              );
+                              void removeUpload(entry.localId).catch(() => undefined);
+                            }}
+                          >
+                            <Ionicons name="close-circle" size={20} color={colors.textMuted} />
+                          </Pressable>
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel={`Act in ${entry.fileName ?? 'this clip'}: ${act?.name ?? 'no act'}`}
+                          onPress={() =>
+                            setChoosingAct((now) => (now === entry.localId ? null : entry.localId))
+                          }
+                          style={[
+                            styles.actChip,
+                            {
+                              borderColor:
+                                choosingAct === entry.localId ? colors.accent : colors.border,
+                            },
+                          ]}
+                          testID={`act-${entry.localId}`}
+                        >
+                          <Text variant="caption" numberOfLines={1} style={styles.grow}>
+                            {act?.name ?? 'No act'}
+                          </Text>
+                          <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
+                        </Pressable>
+                        <TextInput
+                          value={songs[entry.localId] ?? ''}
+                          onChangeText={(song) =>
+                            setSongs((now) => ({ ...now, [entry.localId]: song }))
+                          }
+                          placeholder="Song (optional)"
+                          placeholderTextColor={colors.textMuted}
+                          maxLength={MAX_SONG}
+                          accessibilityLabel={`Song in ${entry.fileName ?? 'this clip'}`}
+                          style={[
+                            styles.songInput,
+                            { color: colors.text, borderColor: colors.border },
+                          ]}
+                          testID={`song-${entry.localId}`}
+                        />
                       </Pressable>
-                    </View>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Act in ${entry.fileName ?? 'this clip'}: ${act?.name ?? 'no act'}`}
-                      onPress={() =>
-                        setChoosingAct((now) => (now === entry.localId ? null : entry.localId))
-                      }
-                      style={[
-                        styles.actChip,
-                        {
-                          borderColor:
-                            choosingAct === entry.localId ? colors.accent : colors.border,
-                        },
-                      ]}
-                      testID={`act-${entry.localId}`}
-                    >
-                      <Text variant="caption" numberOfLines={1} style={styles.grow}>
-                        {act?.name ?? 'No act'}
-                      </Text>
-                      <Ionicons name="chevron-down" size={14} color={colors.textMuted} />
-                    </Pressable>
-                    <TextInput
-                      value={songs[entry.localId] ?? ''}
-                      onChangeText={(song) =>
-                        setSongs((now) => ({ ...now, [entry.localId]: song }))
-                      }
-                      placeholder="Song (optional)"
-                      placeholderTextColor={colors.textMuted}
-                      maxLength={MAX_SONG}
-                      accessibilityLabel={`Song in ${entry.fileName ?? 'this clip'}`}
-                      style={[styles.songInput, { color: colors.text, borderColor: colors.border }]}
-                      testID={`song-${entry.localId}`}
-                    />
-                  </View>
-                );
-              })}
+                    </Animated.View>
+                  );
+                })}
+              </View>
             </ScrollView>
           ) : null}
           {choosingAct && composing.includes(choosingAct) ? (
@@ -556,7 +641,13 @@ function Step({
   );
 }
 
+/** Lets React draw what was just set before slower work starts. */
+function nextTurn(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
 const styles = StyleSheet.create({
+  fetching: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   content: { gap: spacing.md, paddingBottom: spacing.xl },
   step: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.sm },
   stepHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
@@ -572,7 +663,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   grow: { flex: 1 },
   buttons: { gap: spacing.sm },
-  previews: { gap: spacing.sm },
+  previews: { flexDirection: 'row', gap: spacing.sm },
   preview: { width: 120, gap: spacing.xs },
   previewFoot: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
   actChip: {

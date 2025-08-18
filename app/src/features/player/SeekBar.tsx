@@ -16,6 +16,11 @@ type Props = {
 
 /** The strip at the foot of a clip that takes the finger: taller than the bar it draws. */
 export const SEEK_BAR_HEIGHT = 24;
+/**
+ * How far text laid over a clip's foot stays above the clip's bottom edge: clear of the bar it draws
+ * (6 pt while dragging), though inside the taller strip that takes the finger.
+ */
+export const SEEK_TRACK_ROOM = 12;
 /** One accessibility "increment" or "decrement". */
 const STEP_MS = 5000;
 

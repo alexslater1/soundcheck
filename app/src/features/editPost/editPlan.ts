@@ -1,9 +1,12 @@
 import type { ArtistSummary, EditPostRequest, Post, UserSummary } from '@/api/generated/model';
 
+/** An act as the edit screen needs it: any act, on the bill or found by name. */
+export type ActRef = Pick<ArtistSummary, 'id' | 'name'>;
+
 /** One clip in the edit screen: which clip, its act (null: no act), its song, and whose it is. */
 export type EditClip = {
   id: string;
-  act: ArtistSummary | null;
+  act: ActRef | null;
   /** The song in the clip, as typed ('' for none). */
   song: string;
   owner: UserSummary;
@@ -47,10 +50,10 @@ export function canRemove(clips: EditClip[]): boolean {
 }
 
 /** The acts a clip can be tagged with: the gig's bill (headliner first), then any other act already used. */
-export function actChoices(post: Post, clips: EditClip[]): ArtistSummary[] {
+export function actChoices(post: Post, clips: EditClip[]): ActRef[] {
   const bill = post.gig ? [post.gig.headliner, ...post.gig.support] : [];
   const seen = new Set(bill.map((artist) => artist.id));
-  const others: ArtistSummary[] = [];
+  const others: ActRef[] = [];
   for (const clip of clips) {
     if (clip.act && !seen.has(clip.act.id)) {
       seen.add(clip.act.id);
@@ -58,18 +61,6 @@ export function actChoices(post: Post, clips: EditClip[]): ArtistSummary[] {
     }
   }
   return [...bill, ...others];
-}
-
-/** The next act for a clip when its chip is tapped: through the choices, then "no act", then round again. */
-export function nextAct(
-  choices: ArtistSummary[],
-  current: ArtistSummary | null,
-): ArtistSummary | null {
-  if (current === null) {
-    return choices[0] ?? null;
-  }
-  const at = choices.findIndex((artist) => artist.id === current.id);
-  return at < 0 || at === choices.length - 1 ? null : choices[at + 1]!;
 }
 
 /**

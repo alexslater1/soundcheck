@@ -1,10 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useIsFocused } from '@react-navigation/native';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useEffect, useRef, type CSSProperties } from 'react';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius } from '@/theme/tokens';
+
+import { usePreviewPlaying } from './previewPlaying';
 
 const FILL: CSSProperties = {
   position: 'absolute',
@@ -12,13 +14,28 @@ const FILL: CSSProperties = {
   width: '100%',
   height: '100%',
   objectFit: 'cover',
+  // Every click reaches the Pressable.
+  pointerEvents: 'none',
 };
 
 /** A picked clip played from its `blob:` URL in the browser (the native twin is `ClipPreview.tsx`). */
-export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
+export function ClipPreview({
+  uri,
+  testID,
+  hold,
+}: {
+  uri: string;
+  testID?: string;
+  /** A long press on the clip (Create lifts it to drag it to another place). */
+  hold?: Pick<PressableProps, 'onLongPress' | 'onPressOut' | 'delayLongPress'>;
+}) {
   const { colors } = useTheme();
   const onScreen = useIsFocused();
-  const [playing, setPlaying] = useState(false);
+  // One preview plays at a time: tapping another pauses this one.
+  const playing = usePreviewPlaying((state) => state.playing === uri);
+  const toggle = usePreviewPlaying((state) => state.toggle);
+  const release = usePreviewPlaying((state) => state.release);
+  useEffect(() => () => release(uri), [release, uri]);
   const video = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
@@ -27,17 +44,18 @@ export function ClipPreview({ uri, testID }: { uri: string; testID?: string }) {
       return;
     }
     if (playing && onScreen) {
-      element.play().catch(() => setPlaying(false));
+      element.play().catch(() => release(uri));
     } else {
       element.pause();
     }
-  }, [playing, onScreen]);
+  }, [playing, onScreen, release, uri]);
 
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={playing ? 'Pause the clip' : 'Play the clip'}
-      onPress={() => setPlaying((p) => !p)}
+      onPress={() => toggle(uri)}
+      {...hold}
       style={[styles.frame, { backgroundColor: colors.surfaceRaised }]}
       testID={testID}
     >

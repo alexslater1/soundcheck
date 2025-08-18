@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 
 import { StyleSheet } from 'react-native';
 
@@ -230,6 +230,13 @@ describe('ClipCarousel', () => {
     expect(screen.getByTestId('act-bar')).toBeOnTheScreen();
     expect(screen.getByTestId('act-chip-a-keo')).toBeOnTheScreen();
     expect(screen.getByTestId('clip-counter')).toBeTruthy();
+  });
+
+  it('puts the act chips beside the counter, on one line', async () => {
+    await show(postWith([ready('c1', keo), ready('c2', keo)]));
+    const row = screen.getByTestId('clip-where');
+    expect(within(row).getByTestId('clip-counter')).toBeTruthy();
+    expect(within(row).getByTestId('act-bar')).toBeTruthy();
   });
 
   it('has no act bar when no clip has an act', async () => {

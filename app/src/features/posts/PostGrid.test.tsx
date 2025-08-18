@@ -51,4 +51,18 @@ describe('PostGrid', () => {
     );
     expect(mockHrefs.at(-1)).toEqual({ pathname: '/post/[id]', params: { id: 'p3', clip: 'c2' } });
   });
+
+  it("on a profile, opens the profile's posts to swipe through at the tapped one", async () => {
+    mockHrefs.length = 0;
+    await render(
+      <ThemeProvider>
+        <PostGrid posts={[post('p1', 1)]} pagerOf={{ userId: 'u1' }} />
+        <PostGrid posts={[post('p2', 1)]} pagerOf={{ userId: 'me', mine: true }} />
+      </ThemeProvider>,
+    );
+    expect(mockHrefs).toEqual([
+      { pathname: '/user-posts/[id]', params: { id: 'u1', start: 'p1' } },
+      { pathname: '/user-posts/[id]', params: { id: 'me', start: 'p2', mine: '1' } },
+    ]);
+  });
 });

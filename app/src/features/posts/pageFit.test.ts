@@ -48,3 +48,13 @@ describe('clipInBox', () => {
     expect(fit?.width).toBeCloseTo(9 / 16 / (16 / 9));
   });
 });
+
+describe('a feed page of several clips', () => {
+  it('fits a landscape clip whole in the page’s box, and lets a portrait one fill it', () => {
+    const page = 412 / 780;
+    const landscape = clipInBox(16 / 9, page);
+    expect(landscape?.width).toBe(1);
+    expect(landscape?.height).toBeCloseTo(page / (16 / 9));
+    expect(clipInBox(9 / 16, page)).toBeNull();
+  });
+});

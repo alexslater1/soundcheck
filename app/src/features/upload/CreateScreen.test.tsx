@@ -230,6 +230,29 @@ describe('CreateScreen', () => {
     expect(mockResume).toHaveBeenCalledWith('user-1');
   });
 
+  it('shows every picked clip before any upload or preview frame starts', async () => {
+    await renderScreen();
+    const shownAtStart: boolean[] = [];
+    mockStartUpload.mockImplementation((localId: string) => {
+      const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+      shownAtStart.push(screen.queryByText(`preview ${entry?.previewUri ?? ''}`) !== null);
+      return Promise.resolve(undefined);
+    });
+    await pickClips(video, { ...video, uri: 'file:///b.mp4' });
+    expect(shownAtStart).toEqual([true, true]);
+    mockStartUpload.mockReset();
+  });
+
+  it('says it is getting the clips while the picker is still copying them', async () => {
+    await renderScreen();
+    let hand: (result: PickResult) => void = () => undefined;
+    mockPick.mockReturnValueOnce(new Promise<PickResult>((resolve) => (hand = resolve)));
+    await fireEvent.press(screen.getByTestId('choose-video'));
+    expect(screen.getByTestId('clips-fetching')).toHaveTextContent('Getting your clips…');
+    await act(async () => hand({ kind: 'picked', videos: [video] }));
+    await waitFor(() => expect(screen.queryByTestId('clips-fetching')).toBeNull());
+  });
+
   it('takes the gig and the clips in either order; Post says what is missing until both are set', async () => {
     await renderScreen();
     expect(screen.getByTestId('choose-video')).toBeEnabled();
@@ -342,7 +365,7 @@ describe('CreateScreen', () => {
     expect(mockStartUpload).not.toHaveBeenCalled();
   });
 
-  it('Post makes one post of the clips in running order, each with its act and song, then offers more from the gig', async () => {
+  it('Post makes one post of the clips in the order shown, each with its act and song, then offers more from the gig', async () => {
     const second = { ...video, uri: 'file:///DCIM/clip2.mp4', fileName: 'clip2.mp4' };
     await renderScreen();
     await fireEvent.press(screen.getByText('pick-gig-stub'));
@@ -357,6 +380,21 @@ describe('CreateScreen', () => {
     // A song typed for one clip goes with it.
     await fireEvent.changeText(screen.getByTestId(`song-${firstId}`), 'Bloodhound');
 
+    // The clips show in the order picked; holding the first and dragging it past the second puts the
+    // opener first.
+    const at = (x: number) => ({ nativeEvent: { layout: { x, y: 0, width: 120, height: 300 } } });
+    const slots = screen.getByTestId('clip-previews-row').children as unknown as {
+      props: object;
+    }[];
+    expect(slots).toHaveLength(2);
+    await fireEvent(slots[0] as never, 'layout', at(0));
+    await fireEvent(slots[1] as never, 'layout', at(128));
+    await fireEvent(screen.getByTestId(`tile-${firstId}`), 'longPress');
+    const row = screen.getByTestId('clip-previews-row');
+    await fireEvent(row, 'responderGrant', { nativeEvent: { pageX: 10, pageY: 0 } });
+    await fireEvent(row, 'responderMove', { nativeEvent: { pageX: 150, pageY: 0 } });
+    await fireEvent(row, 'responderRelease');
+
     await fireEvent.press(screen.getByTestId('compose-stub'));
 
     expect(mockSubmit).toHaveBeenCalledTimes(1);
@@ -366,7 +404,7 @@ describe('CreateScreen', () => {
       day: null,
       taggedUserIds: ['u9'],
       joinPostId: null,
-      // The opener plays first.
+      // The opener plays first: it was dragged there.
       clips: [
         { localId: secondId, artistId: 'opener', song: null },
         { localId: firstId, artistId: 'head', song: 'Bloodhound' },
@@ -376,6 +414,31 @@ describe('CreateScreen', () => {
 
     await fireEvent.press(screen.getByText('Add more clips from Pale Kites'));
     expect(screen.getByText('gig: Pale Kites')).toBeTruthy();
+  });
+
+  it('moves a clip with the screen reader’s Move up and Move down', async () => {
+    const second = { ...video, uri: 'file:///DCIM/clip2.mp4', fileName: 'clip2.mp4' };
+    await renderScreen();
+    await fireEvent.press(screen.getByText('pick-gig-stub'));
+    await pickClips(video, second);
+    const [secondId, firstId] = useUploadQueue.getState().entries.map((entry) => entry.localId);
+    const order = () =>
+      (
+        screen.getByTestId('clip-previews-row').children as unknown as {
+          props: { children: unknown };
+        }[]
+      ).length;
+    expect(order()).toBe(2);
+    expect(screen.getByTestId(`order-${firstId}`).props.accessibilityLabel).toMatch(/Clip 1 of 2$/);
+
+    await fireEvent(screen.getByTestId(`order-${secondId}`), 'accessibilityAction', {
+      nativeEvent: { actionName: 'moveUp' },
+    });
+
+    expect(screen.getByTestId(`order-${secondId}`).props.accessibilityLabel).toMatch(
+      /Clip 1 of 2$/,
+    );
+    expect(screen.getByTestId(`order-${firstId}`).props.accessibilityLabel).toMatch(/Clip 2 of 2$/);
   });
 
   it('a clip can have no act, and more than ten of one act stops Post', async () => {

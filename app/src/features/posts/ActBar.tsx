@@ -41,7 +41,7 @@ export function ActBar({ segments, current, onPick, onDark = false }: Props) {
             key={segment.actId}
             accessibilityRole="button"
             accessibilityState={{ selected }}
-            accessibilityLabel={`${segment.name}, ${segment.last - segment.first + 1} clips`}
+            accessibilityLabel={`${segment.name}, ${segment.count} ${segment.count === 1 ? 'clip' : 'clips'}`}
             onPress={() => onPick(segment.actId)}
             style={[styles.chip, { backgroundColor: background }]}
             testID={`act-chip-${segment.actId}`}

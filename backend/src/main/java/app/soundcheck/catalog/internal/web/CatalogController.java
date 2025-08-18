@@ -232,8 +232,9 @@ public class CatalogController {
     @PatchMapping("/gigs/{id}")
     @Operation(
             operationId = "editGig",
-            summary = "J9: add acts to the bill, fix the start time and (J22) say which act headlined (Going or "
-                    + "Went); change the date or venue of a gig you added. Every edit is logged with its author")
+            summary = "Add acts to the bill, fix the start time and say which act headlined (anyone "
+                    + "signed in); change the date or venue of a gig you added. Every edit is logged with "
+                    + "its author")
     public GigDetail editGig(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody EditGigRequest body) {
         return submissions.editGig(
@@ -449,8 +450,7 @@ public class CatalogController {
             @Schema(type = "string", format = "time", example = "19:30", nullable = true) LocalTime startTime,
             @Schema(nullable = true) LocalDate date,
             @Schema(nullable = true) UUID venueId,
-            @Schema(nullable = true, description = "J22: the act on the bill that headlined (Going or Went)")
-                    UUID headlinerId) {}
+            @Schema(nullable = true, description = "The act on the bill that headlined") UUID headlinerId) {}
 
     public record ActsSeenRequest(@NotNull @Size(min = 1, max = 50) List<@NotNull UUID> artistIds) {}
 

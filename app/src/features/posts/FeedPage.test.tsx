@@ -4,6 +4,7 @@ import { StyleSheet } from 'react-native';
 
 import type { Post, PostClip } from '@/api/generated/model';
 import { handoffFor } from '@/features/player/handoff';
+import { SEEK_TRACK_ROOM } from '@/features/player/SeekBar';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 import { useThemePrefs, type FeedStyle } from '@/theme/themePrefs';
 
@@ -126,6 +127,17 @@ describe('FeedPage', () => {
     expect(mockShade).toHaveBeenCalledWith(true);
   });
 
+  it.each<FeedStyle>(['cards', 'immersive', 'ticket'])(
+    '%s: over a clip that fills the card, the text ends just above the seek bar’s track',
+    async (style) => {
+      await renderPage(style);
+      const overlay = StyleSheet.flatten(screen.getByTestId('feed-overlay').props.style);
+      // Lifted once, by the room the track needs, with no padding under the text.
+      expect(overlay.bottom).toBe(SEEK_TRACK_ROOM);
+      expect(overlay.paddingBottom).toBe(0);
+    },
+  );
+
   it('Ticket: the gig on a stub above a shorter rounded card', async () => {
     await renderPage('ticket');
 
@@ -168,6 +180,41 @@ describe('FeedPage with several clips', () => {
       status: 'READY',
       playback: post.playback,
     }) as PostClip;
+
+  it('fits each clip once in the page’s box: a landscape first clip does not box the portrait ones', async () => {
+    const landscape = {
+      ...clip('c1'),
+      playback: { ...post.playback, width: 1920, height: 1080, posterUrl: 'http://p/c1.jpg' },
+    } as PostClip;
+    const several = {
+      ...post,
+      playback: landscape.playback,
+      clips: [landscape, clip('c2')],
+      clipCount: 2,
+    };
+    useThemePrefs.setState({ feedStyle: 'immersive' });
+    await render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider>
+          <FeedPage post={several} width={PAGE.width} height={PAGE.height} />
+        </ThemeProvider>
+      </QueryClientProvider>,
+    );
+    await act(async () => {
+      fireEvent(screen.getByTestId('clip-frame'), 'layout', {
+        nativeEvent: { layout: { width: PAGE.width, height: PAGE.height, x: 0, y: 0 } },
+      });
+    });
+
+    // No page backdrop round the carousel; the landscape clip has its own, the portrait one none.
+    expect(screen.queryByTestId('page-backdrop')).toBeNull();
+    expect(screen.getByTestId('clip-c1-backdrop')).toBeTruthy();
+    expect(screen.queryByTestId('clip-c2-backdrop')).toBeNull();
+    expect(screen.getAllByTestId(/backdrop$/)).toHaveLength(1);
+    // The box is the page's shape, not the first clip's.
+    const shaped = StyleSheet.flatten(screen.getByTestId('clip-c1-shaped').props.style);
+    expect(shaped.aspectRatio).toBeCloseTo(PAGE.width / PAGE.height);
+  });
 
   it('opens the post on the clip in view and hands that clip’s player over', async () => {
     const several = { ...post, clips: [clip('c1'), clip('c2'), clip('c3')], clipCount: 3 };

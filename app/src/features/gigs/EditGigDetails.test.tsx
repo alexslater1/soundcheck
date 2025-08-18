@@ -41,11 +41,11 @@ beforeEach(() => {
 });
 
 describe('EditGigDetails', () => {
-  it('is for fans who are going or went, on a gig that is on', () => {
+  it('is for anyone signed in, whatever their mark, on a gig that is on', () => {
     expect(canEditGig(detail('GOING'))).toBe(true);
     expect(canEditGig(detail('WENT'))).toBe(true);
-    expect(canEditGig(detail('INTERESTED'))).toBe(false);
-    expect(canEditGig(detail(null))).toBe(false);
+    expect(canEditGig(detail('INTERESTED'))).toBe(true);
+    expect(canEditGig(detail(null))).toBe(true);
     expect(canEditGig(detail('GOING', false, 'CANCELLED'))).toBe(false);
   });
 
@@ -109,8 +109,8 @@ describe('EditGigDetails', () => {
     expect(screen.queryByText('Who headlined?')).toBeNull();
   });
 
-  it('shows nothing to a fan who is only interested', async () => {
+  it('offers the fix to a fan who is only interested', async () => {
     await show(detail('INTERESTED'));
-    expect(screen.queryByTestId('edit-gig-open')).toBeNull();
+    expect(screen.getByTestId('edit-gig-open')).toBeTruthy();
   });
 });

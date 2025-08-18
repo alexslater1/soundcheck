@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 import type { Post, PostClip, Reason } from '@/api/generated/model';
 import { Text } from '@/components/ui/Text';
 import { usePlayerSlot } from '@/features/player/playerManager';
-import { SEEK_BAR_HEIGHT } from '@/features/player/SeekBar';
+import { SEEK_TRACK_ROOM } from '@/features/player/SeekBar';
 import { useTheme } from '@/theme/ThemeProvider';
 import { useThemePrefs, type FeedStyle } from '@/theme/themePrefs';
 import { radius, spacing } from '@/theme/tokens';
@@ -103,7 +103,13 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
 
   const immersive = feedStyle === 'immersive';
   const box = cardBox(feedStyle, width, height, post.gig != null);
-  const clip = pageFit(aspect, box.width, box.height);
+  // A post of several clips fills the card with its carousel: each clip is fitted once, in the page's
+  // box, over its own blurred poster. Shaping them all by the first clip nested a portrait clip in
+  // a landscape box in the page, blurred twice.
+  const clip =
+    post.clips.length > 1
+      ? { fill: true, width: box.width, height: box.height }
+      : pageFit(aspect, box.width, box.height);
   const ticketOnTop = feedStyle === 'ticket';
   return (
     <View
@@ -177,12 +183,17 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
           </View>
         ) : null}
         {/* box-none: taps between the controls reach the clip (a tap pauses it). Over a clip that
-            fills the card it stops above the seek bar. */}
+            fills the card, the text ends just above the seek bar's track, in line with the clip's
+            foot (it was lifted by the whole touch strip and two paddings, 48 pt). */}
         <View
-          style={[styles.overlay, clip.fill ? { bottom: SEEK_BAR_HEIGHT } : null]}
+          style={[styles.overlay, clip.fill ? styles.overlayOnClip : null]}
           pointerEvents="box-none"
+          testID="feed-overlay"
         >
-          <View style={styles.scrim}>
+          <View
+            style={[styles.scrim, clip.fill ? styles.scrimOnClip : null]}
+            pointerEvents="box-none"
+          >
             <PostMeta
               post={post}
               onDark
@@ -232,7 +243,9 @@ const styles = StyleSheet.create({
     padding: spacing.md,
   },
   shade: { position: 'absolute', left: 0, right: 0, bottom: 0 },
+  overlayOnClip: { bottom: SEEK_TRACK_ROOM, paddingBottom: 0 },
   scrim: { flex: 1, paddingVertical: spacing.sm },
+  scrimOnClip: { paddingBottom: 0 },
   wide: {
     flexDirection: 'row',
     alignItems: 'center',
