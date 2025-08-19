@@ -5,6 +5,7 @@ import app.soundcheck.content.internal.GigCommentService.GigCommentView;
 import app.soundcheck.content.internal.web.EngagementController.CommentRequest;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
+import app.soundcheck.shared.web.Actors;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -73,7 +74,7 @@ public class GigCommentController {
     @DeleteMapping("/gig-comments/{id}")
     @Operation(operationId = "deleteGigComment", summary = "Delete a gig comment (its author or an admin)")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        comments.delete(userId(jwt), "ADMIN".equals(jwt.getClaimAsString("role")), id);
+        comments.delete(userId(jwt), Actors.isAdmin(jwt), id);
         return ResponseEntity.noContent().build();
     }
 

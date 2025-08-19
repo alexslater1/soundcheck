@@ -115,6 +115,8 @@ soundcheck:
     # Bootstrap ADMIN account created on API start when absent; blank email disables it.
     email: ${SOUNDCHECK_ADMIN_EMAIL:}
     password: ${SOUNDCHECK_ADMIN_PASSWORD:}
+    # Accounts at these email domains are synthetic (seed and simulator personas); the console tags them.
+    synthetic-email-domains: seed.soundcheck.test,sim.soundcheck.test
 
 management:
   endpoints:

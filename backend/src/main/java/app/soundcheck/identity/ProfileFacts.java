@@ -1,5 +1,7 @@
 package app.soundcheck.identity;
 
+import java.util.Collection;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -10,6 +12,9 @@ import java.util.UUID;
 public interface ProfileFacts {
 
     Counts counts(UUID userId);
+
+    /** Published posts each user wrote, in one query; a user with none is absent (for the console's user picker). */
+    Map<UUID, Long> postCounts(Collection<UUID> userIds);
 
     Relation relation(UUID viewerId, UUID profileUserId);
 

@@ -5,6 +5,7 @@ import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
+import app.soundcheck.shared.web.Actors;
 import com.tngtech.archunit.base.DescribedPredicate;
 import com.tngtech.archunit.core.domain.JavaAnnotation;
 import com.tngtech.archunit.core.domain.JavaClass;
@@ -15,10 +16,14 @@ import com.tngtech.archunit.lang.ArchCondition;
 import com.tngtech.archunit.lang.ArchRule;
 import com.tngtech.archunit.lang.ConditionEvents;
 import com.tngtech.archunit.lang.SimpleConditionEvent;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -92,6 +97,62 @@ class ArchitectureTests {
                 .beAnnotatedWith(apiRole)
                 .as("every @RestController is registered only in the api role")
                 .check(classes);
+    }
+
+    @Test
+    void everyAdminControllerIsLockedToOperators() {
+        // The second lock beside SecurityConfig's URL rule. Any controller with a route under
+        // /api/v1/admin (class and method mappings combined) carries @PreAuthorize("hasRole('ADMIN')").
+        classes()
+                .that()
+                .areAnnotatedWith(RestController.class)
+                .should(
+                        new ArchCondition<>("carry @PreAuthorize(\"" + Actors.ADMIN_ONLY + "\") when mapped under "
+                                + ADMIN_PREFIX) {
+                            @Override
+                            public void check(JavaClass item, ConditionEvents events) {
+                                Class<?> type = item.reflect();
+                                if (!mapsUnderAdmin(type)) {
+                                    return;
+                                }
+                                PreAuthorize lock = type.getAnnotation(PreAuthorize.class);
+                                if (lock == null || !Actors.ADMIN_ONLY.equals(lock.value())) {
+                                    events.add(SimpleConditionEvent.violated(
+                                            item,
+                                            item.getName() + " serves " + ADMIN_PREFIX
+                                                    + " without the class-level lock"));
+                                }
+                            }
+                        })
+                .as("every controller under " + ADMIN_PREFIX + " is @PreAuthorize(\"" + Actors.ADMIN_ONLY + "\")")
+                .check(classes);
+    }
+
+    static final String ADMIN_PREFIX = "/api/v1/admin";
+
+    private static boolean mapsUnderAdmin(Class<?> type) {
+        List<String> bases = paths(AnnotatedElementUtils.findMergedAnnotation(type, RequestMapping.class));
+        for (Method method : type.getDeclaredMethods()) {
+            RequestMapping mapping = AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class);
+            if (mapping == null) {
+                continue;
+            }
+            for (String base : bases) {
+                for (String path : paths(mapping)) {
+                    if ((base + path).startsWith(ADMIN_PREFIX)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static List<String> paths(RequestMapping mapping) {
+        if (mapping == null || mapping.path().length == 0) {
+            return List.of("");
+        }
+        return List.of(mapping.path());
     }
 
     @Test

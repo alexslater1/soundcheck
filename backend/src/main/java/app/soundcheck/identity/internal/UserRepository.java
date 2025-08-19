@@ -7,6 +7,7 @@ import app.soundcheck.catalog.GeoPoint;
 import app.soundcheck.identity.ProfileVisibility;
 import app.soundcheck.identity.UserMatch;
 import app.soundcheck.shared.web.ApiException;
+import app.soundcheck.shared.web.Cursor;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record;
@@ -166,6 +168,42 @@ public class UserRepository {
                 .orderBy(tier, similarity.desc(), APP_USER.HANDLE)
                 .limit(limit)
                 .fetch(r -> new UserMatch(r.value1(), r.value2(), r.value3()));
+    }
+
+    /**
+     * One page of the console's user list: live users, newest first, optionally narrowed to those
+     * whose handle or display name contains {@code text} (or whose email is exactly it) and to synthetic or
+     * real accounts ({@code synthetic}; synthetic means an email at one of {@code syntheticDomains}).
+     * Expected indexes: app_user_created (V131) walks the order and the cursor; app_user_search_key_trgm
+     * (V095, the same expression as {@link #search}) narrows a search.
+     */
+    public List<UserRecord> adminPage(
+            @Nullable String text,
+            @Nullable Boolean synthetic,
+            Collection<String> syntheticDomains,
+            @Nullable Cursor after,
+            int limit) {
+        Condition where = APP_USER.DELETED_AT.isNull();
+        if (text != null) {
+            Field<String> key =
+                    DSL.field("lower({0}::text || ' ' || {1})", String.class, APP_USER.HANDLE, APP_USER.DISPLAY_NAME);
+            where = where.and(key.like("%" + DSL.escape(text, '!') + "%", '!').or(APP_USER.EMAIL.eq(text)));
+        }
+        if (synthetic != null) {
+            Condition atSyntheticDomain = syntheticDomains.isEmpty()
+                    ? DSL.falseCondition()
+                    : DSL.lower(DSL.field("split_part({0}::text, '@', 2)", String.class, APP_USER.EMAIL))
+                            .in(syntheticDomains);
+            where = where.and(synthetic ? atSyntheticDomain : DSL.not(atSyntheticDomain));
+        }
+        if (after != null) {
+            where = where.and(DSL.row(APP_USER.CREATED_AT, APP_USER.ID).lt(at(after.at()), after.id()));
+        }
+        return dsl.selectFrom(APP_USER)
+                .where(where)
+                .orderBy(APP_USER.CREATED_AT.desc(), APP_USER.ID.desc())
+                .limit(limit)
+                .fetch(UserRepository::toRecord);
     }
 
     public boolean emailExists(String email) {

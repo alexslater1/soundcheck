@@ -3,7 +3,9 @@ package app.soundcheck.content.internal;
 import app.soundcheck.identity.ProfileFacts;
 import app.soundcheck.social.ProfileAccess;
 import app.soundcheck.social.SocialGraph;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,11 @@ class ProfileFactsProvider implements ProfileFacts {
                 social.followingCount(userId),
                 posts.countPublished(userId),
                 social.followedArtistCount(userId));
+    }
+
+    @Override
+    public Map<UUID, Long> postCounts(Collection<UUID> userIds) {
+        return posts.countPublishedByAuthors(userIds);
     }
 
     @Override

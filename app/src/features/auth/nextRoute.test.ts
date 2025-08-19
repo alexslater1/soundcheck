@@ -90,6 +90,53 @@ const rows: Row[] = [
   ['onboarded at the root', { status: 'signedIn', onboarded: true, group: undefined }, null],
   ['onboarded on settings', { status: 'signedIn', onboarded: true, group: 'settings' }, null],
   ['onboarded on console', { status: 'signedIn', onboarded: true, group: 'console' }, null],
+
+  // The console round trip: signed out on a console page → sign-in → back to that page.
+  [
+    'signed out on a console page remembers it',
+    {
+      status: 'signedOut',
+      onboarded: undefined,
+      group: 'console',
+      path: '/console/users?range=30d',
+    },
+    '/sign-in?next=%2Fconsole%2Fusers%3Frange%3D30d',
+  ],
+  [
+    'signed out elsewhere remembers nothing',
+    { status: 'signedOut', onboarded: undefined, group: '(tabs)', path: '/gig/1' },
+    '/sign-in',
+  ],
+  [
+    'signed in on auth with a console next goes there',
+    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/console/users?range=30d' },
+    '/console/users?range=30d',
+  ],
+  [
+    'a next outside the console is ignored',
+    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/settings' },
+    '/',
+  ],
+  [
+    'a next to another site is ignored',
+    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/console//evil.example' },
+    '/',
+  ],
+  [
+    'not onboarded (the bootstrap admin) signing in for the console goes there',
+    { status: 'signedIn', onboarded: false, group: '(auth)', next: '/console' },
+    '/console',
+  ],
+  [
+    'not onboarded on the console stays',
+    { status: 'signedIn', onboarded: false, group: 'console' },
+    null,
+  ],
+  [
+    'not onboarded with a next outside the console still onboards',
+    { status: 'signedIn', onboarded: false, group: '(auth)', next: '/settings' },
+    '/onboarding',
+  ],
 ];
 
 describe('nextRoute', () => {
