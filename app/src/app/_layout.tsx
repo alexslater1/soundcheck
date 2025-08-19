@@ -1,13 +1,20 @@
 import { QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import {
+  Stack,
+  useGlobalSearchParams,
+  usePathname,
+  useRouter,
+  useSegments,
+  type Href,
+} from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Platform, View } from 'react-native';
 
 import { queryClient } from '@/api/queryClient';
 import { pageStackOptions } from '@/components/ui/PageHeader';
-import { nextRoute } from '@/features/auth/nextRoute';
+import { nextRoute, type Redirect } from '@/features/auth/nextRoute';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
 import { UnreachableScreen } from '@/features/auth/UnreachableScreen';
@@ -39,6 +46,8 @@ function RootStack() {
   const me = useAuthStore((s) => s.me);
   const bootstrap = useAuthStore((s) => s.bootstrap);
   const segments = useSegments();
+  const pathname = usePathname();
+  const search = useGlobalSearchParams();
   const router = useRouter();
   // Space Grotesk and Inter. A font that fails to load leaves the platform font in place,
   // so an error counts as "done" and never blocks the app.
@@ -51,10 +60,18 @@ function RootStack() {
 
   // Signed out → auth screens; signed in but not onboarded → onboarding; otherwise the tabs.
   // The rules live in nextRoute() (pure, table-tested); this effect only applies its answer.
+  // A console page is remembered across sign-in (`next`), with its query (the date range).
+  const next = typeof search.next === 'string' ? search.next : undefined;
   useEffect(() => {
-    const target = nextRoute({ status, onboarded: me?.onboarded, group: segments[0] });
-    if (target) router.replace(target);
-  }, [status, me, segments, router]);
+    const target = nextRoute({
+      status,
+      onboarded: me?.onboarded,
+      group: segments[0],
+      path: currentPath(pathname),
+      next,
+    });
+    if (target) router.replace(asHref(target));
+  }, [status, me, segments, router, pathname, next]);
 
   // Ready = the session check has answered and the fonts are settled. Until then the native splash
   // covers the screen (at most SPLASH_MAX_MS); the view below is what the web, or a slow start, shows.
@@ -110,4 +127,28 @@ function RootStack() {
       <OfflineBanner />
     </>
   );
+}
+
+/**
+ * A redirect with a query as expo-router's object form. Given as a string, `/sign-in?next=%2Fconsole…`
+ * restarted the web app (the session check ran again and the `next` was lost).
+ */
+function asHref(target: NonNullable<Redirect>): Href {
+  const [path, query] = target.split('?');
+  if (!query) return target;
+  return {
+    pathname: path as Href & string,
+    params: Object.fromEntries(new URLSearchParams(query)),
+  };
+}
+
+/**
+ * The page the browser is on, with its query (the console's date range): expo-router's pathname has
+ * no query, so on the web the browser's own address is read. The console is web only.
+ */
+function currentPath(pathname: string): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    return window.location.pathname + window.location.search;
+  }
+  return pathname;
 }

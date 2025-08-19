@@ -1,10 +1,11 @@
 import { Link } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { useIsAdmin } from '@/features/console/useIsAdmin';
 import { HealthBadge } from '@/features/health/HealthBadge';
 import { spacing, touchTarget } from '@/theme/tokens';
 
@@ -15,6 +16,8 @@ import { spacing, touchTarget } from '@/theme/tokens';
 export default function SettingsScreen() {
   const signOut = useAuthStore((s) => s.signOut);
   const homeCity = useAuthStore((s) => s.me?.homeCity?.name);
+  // The operators' console is a web page; the Android app doesn't offer it.
+  const showConsole = useIsAdmin() && Platform.OS === 'web';
   return (
     <Screen>
       <View style={styles.list}>
@@ -36,6 +39,11 @@ export default function SettingsScreen() {
         <Link href="/settings/account" style={styles.item}>
           <Text>Account and deletion →</Text>
         </Link>
+        {showConsole ? (
+          <Link href="/console" style={styles.item} testID="settings-console">
+            <Text>Console: operators only →</Text>
+          </Link>
+        ) : null}
       </View>
       <Button title="Sign out" variant="secondary" onPress={() => void signOut()} />
       <View style={styles.about}>
