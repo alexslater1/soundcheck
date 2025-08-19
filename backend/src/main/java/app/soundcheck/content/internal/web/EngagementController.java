@@ -5,6 +5,7 @@ import app.soundcheck.content.internal.EngagementService.CommentView;
 import app.soundcheck.content.internal.EngagementService.LikeState;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
+import app.soundcheck.shared.web.Actors;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -89,7 +90,7 @@ public class EngagementController {
     @DeleteMapping("/comments/{id}")
     @Operation(operationId = "deleteComment", summary = "Delete a comment (its author, the post's author, or an admin)")
     public ResponseEntity<Void> deleteComment(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        engagement.deleteComment(userId(jwt), "ADMIN".equals(jwt.getClaimAsString("role")), id);
+        engagement.deleteComment(userId(jwt), Actors.isAdmin(jwt), id);
         return ResponseEntity.noContent().build();
     }
 

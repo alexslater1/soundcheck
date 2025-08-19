@@ -8,6 +8,7 @@ import app.soundcheck.content.internal.PostEditService;
 import app.soundcheck.content.internal.PostService;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
+import app.soundcheck.shared.web.Actors;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.Operation;
@@ -167,7 +168,7 @@ public class PostController {
     @DeleteMapping("/posts/{id}")
     @Operation(operationId = "deletePost", summary = "Delete a post (its author, or an admin)")
     public ResponseEntity<Void> delete(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
-        posts.delete(userId(jwt), "ADMIN".equals(jwt.getClaimAsString("role")), id);
+        posts.delete(userId(jwt), Actors.isAdmin(jwt), id);
         return ResponseEntity.noContent().build();
     }
 

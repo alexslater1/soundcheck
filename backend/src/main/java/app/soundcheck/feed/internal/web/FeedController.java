@@ -6,6 +6,7 @@ import app.soundcheck.feed.internal.FollowingFeedService;
 import app.soundcheck.feed.internal.HomeFeedService;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
+import app.soundcheck.shared.web.Actors;
 import app.soundcheck.shared.web.Page;
 import app.soundcheck.shared.web.RateLimitProperties;
 import app.soundcheck.shared.web.RateLimiter;
@@ -62,7 +63,7 @@ public class FeedController {
             // Building a session is the most expensive request the API has; paging through one is cheap.
             rateLimiter.enforce("feed-build:" + userId, limits.feedBuildsPerMinute(), Duration.ofMinutes(1));
         }
-        boolean admin = "ADMIN".equals(jwt.getClaimAsString("role"));
+        boolean admin = Actors.isAdmin(jwt);
         return home.home(userId, cursor, limit, debug && admin);
     }
 

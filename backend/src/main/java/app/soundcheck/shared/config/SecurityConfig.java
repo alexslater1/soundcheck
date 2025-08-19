@@ -1,5 +1,6 @@
 package app.soundcheck.shared.config;
 
+import app.soundcheck.shared.web.Actors;
 import app.soundcheck.shared.web.ProblemAuthHandlers;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
@@ -46,6 +47,14 @@ class SecurityConfig {
     };
 
     /**
+     * Operator-only paths: every console endpoint, and the actuator endpoints other than
+     * health ({@code metrics}, {@code modulith}, {@code info}: they describe the system's internals).
+     * Each admin controller also carries {@code @PreAuthorize}, so one forgotten annotation
+     * or one mistyped matcher doesn't open anything.
+     */
+    static final String[] ADMIN_PATHS = {"/api/v1/admin/**", "/actuator/**"};
+
+    /**
      * The app's origins are the Expo dev server (:8081) and the local edge (:8088). The
      * edge must be listed even though it proxies to us: with forwarded headers Tomcat reports port 80, so
      * a browser request from :8088 looks cross-origin to Spring's CORS check. On AWS (CloudFront) nothing
@@ -73,8 +82,11 @@ class SecurityConfig {
                 .httpBasic(basic -> basic.disable())
                 .formLogin(form -> form.disable())
                 .logout(logout -> logout.disable())
+                // First match wins: the public health paths sit under /actuator, so they come first.
                 .authorizeHttpRequests(auth -> auth.requestMatchers(PUBLIC_PATHS)
                         .permitAll()
+                        .requestMatchers(ADMIN_PATHS)
+                        .hasRole(Actors.ADMIN_ROLE)
                         .anyRequest()
                         .authenticated())
                 .headers(Customizer.withDefaults())
