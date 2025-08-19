@@ -39,8 +39,13 @@ public final class TestApi {
     }
 
     public User register(String prefix) {
+        return register(prefix, "example.com");
+    }
+
+    /** A user whose email is at {@code domain} (e.g. a synthetic persona's {@code seed.soundcheck.test}). */
+    public User register(String prefix, String domain) {
         String suffix = UUID.randomUUID().toString().substring(0, 8);
-        String email = prefix + "-" + suffix + "@example.com";
+        String email = prefix + "-" + suffix + "@" + domain;
         String handle = prefix + "_" + suffix;
         ResponseEntity<JsonNode> response = call(
                 HttpMethod.POST,

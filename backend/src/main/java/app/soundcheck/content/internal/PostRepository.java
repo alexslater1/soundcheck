@@ -363,6 +363,22 @@ public class PostRepository {
         return dsl.fetchCount(POST, POST.STATUS.eq("PUBLISHED").and(onProfileOf(List.of(authorId))));
     }
 
+    /**
+     * Published posts each of the users wrote (the console's user list); users without any are
+     * absent. Expected index: post_author_pub (author_id, published_at desc, id) where status = 'PUBLISHED'.
+     */
+    public Map<UUID, Long> countPublishedByAuthors(Collection<UUID> authorIds) {
+        if (authorIds.isEmpty()) {
+            return Map.of();
+        }
+        return dsl.select(POST.AUTHOR_ID, DSL.count())
+                .from(POST)
+                .where(POST.AUTHOR_ID.in(authorIds))
+                .and(POST.STATUS.eq("PUBLISHED"))
+                .groupBy(POST.AUTHOR_ID)
+                .fetchMap(r -> r.value1(), r -> (long) r.value2());
+    }
+
     /** Posts by any of the users, or put on the profile of any of them. */
     private static Condition onProfileOf(Collection<UUID> userIds) {
         return POST.AUTHOR_ID.in(userIds).or(POST.ID.in(profilePosts(userIds)));

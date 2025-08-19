@@ -139,6 +139,39 @@
         "required" : [ "created", "item" ],
         "type" : "object"
       },
+      "AdminUser" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "displayName" : {
+            "type" : "string"
+          },
+          "email" : {
+            "type" : "string"
+          },
+          "handle" : {
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "posts" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "role" : {
+            "type" : "string"
+          },
+          "synthetic" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "createdAt", "displayName", "email", "handle", "id", "posts", "role", "synthetic" ],
+        "type" : "object"
+      },
       "AlertedGigView" : {
         "properties" : {
           "because" : {
@@ -1398,6 +1431,21 @@
         "required" : [ "level" ],
         "type" : "object"
       },
+      "PageAdminUser" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/AdminUser"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PageArtistSummary" : {
         "properties" : {
           "items" : {
@@ -2435,6 +2483,61 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/admin/users" : {
+      "get" : {
+        "operationId" : "adminListUsers",
+        "parameters" : [ {
+          "description" : "Handle, part of a name, or an exact email",
+          "in" : "query",
+          "name" : "q",
+          "required" : false,
+          "schema" : {
+            "maxLength" : 100,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        }, {
+          "description" : "true: only seed and simulator personas; false: only real accounts",
+          "in" : "query",
+          "name" : "synthetic",
+          "required" : false,
+          "schema" : {
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageAdminUser"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Live accounts, newest first; synthetic ones are tagged",
+        "tags" : [ "admin-users" ]
+      }
+    },
     "/api/v1/artists" : {
       "get" : {
         "operationId" : "listArtists",
@@ -6011,6 +6114,9 @@
   }, {
     "description" : "Service health",
     "name" : "health"
+  }, {
+    "description" : "Console: find accounts (operators only)",
+    "name" : "admin-users"
   }, {
     "description" : "Past concerts from setlist.fm, looked up live and not stored",
     "name" : "past-gigs"
