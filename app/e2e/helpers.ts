@@ -60,3 +60,21 @@ export async function chooseVideo(page: Page, file: string): Promise<void> {
   await page.getByTestId('choose-video').click();
   await (await chooser).setFiles(file);
 }
+
+/**
+ * Signs in as the bootstrap admin (`SOUNDCHECK_ADMIN_EMAIL/PASSWORD`, as the API was started with; CI
+ * sets throwaway values) on the sign-in screen the page is showing. Never logs the password.
+ */
+export async function signInAsAdmin(page: Page): Promise<void> {
+  const email = process.env.SOUNDCHECK_ADMIN_EMAIL;
+  const password = process.env.SOUNDCHECK_ADMIN_PASSWORD;
+  if (!email || !password) {
+    throw new Error(
+      'Set SOUNDCHECK_ADMIN_EMAIL and SOUNDCHECK_ADMIN_PASSWORD (the API’s bootstrap admin)',
+    );
+  }
+  await expect(page.getByText('Welcome back')).toBeVisible();
+  await page.getByLabel('Email').last().fill(email);
+  await page.getByLabel('Password').last().fill(password);
+  await page.getByRole('button', { name: 'Sign in' }).last().click();
+}

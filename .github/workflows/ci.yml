@@ -190,6 +190,10 @@ jobs:
     timeout-minutes: 45
     env:
       COMPOSE_FILES: -f compose.yaml -f ops/ci/compose.e2e.yaml
+      # A CI-only throwaway admin (like the ITs' admin@test.local): the API's bootstrap creates it and the
+      # console journeys sign in with it. It exists only in this job's throwaway database.
+      SOUNDCHECK_ADMIN_EMAIL: admin@ci.soundcheck.test
+      SOUNDCHECK_ADMIN_PASSWORD: ci-only-throwaway-passphrase
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
