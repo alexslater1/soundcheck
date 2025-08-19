@@ -1,6 +1,8 @@
 package app.soundcheck.identity.internal;
 
 import app.soundcheck.identity.ProfileFacts;
+import app.soundcheck.shared.config.ConditionalOnRole;
+import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.shared.web.Page;
 import java.time.Instant;
@@ -15,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * The console's user picker: a read-only list of live accounts, newest first, that tags
  * the synthetic ones (seed and simulator personas, by email domain) so nobody mistakes them for real
- * people. No suspend or ban this phase.
+ * people. No suspend or ban this phase. API role only, like {@link AdminBootstrap} whose
+ * properties it reads: a worker or cli process has no console to serve.
  */
 @Service
+@ConditionalOnRole(Roles.API)
 @Transactional(readOnly = true)
 public class AdminUsersService {
 
