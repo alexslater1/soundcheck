@@ -109,23 +109,46 @@ const rows: Row[] = [
   ],
   [
     'signed in on auth with a console next goes there',
-    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/console/users?range=30d' },
+    {
+      status: 'signedIn',
+      onboarded: true,
+      group: '(auth)',
+      next: '/console/users?range=30d',
+      admin: true,
+    },
     '/console/users?range=30d',
   ],
   [
+    // Signed out of the console, then signed in with a fan's account: home, not "for operators".
+    'a fan signing in with a console next goes home',
+    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/console/users?range=30d' },
+    '/',
+  ],
+  [
     'a next outside the console is ignored',
-    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/settings' },
+    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/settings', admin: true },
     '/',
   ],
   [
     'a next to another site is ignored',
-    { status: 'signedIn', onboarded: true, group: '(auth)', next: '/console//evil.example' },
+    {
+      status: 'signedIn',
+      onboarded: true,
+      group: '(auth)',
+      next: '/console//evil.example',
+      admin: true,
+    },
     '/',
   ],
   [
     'not onboarded (the bootstrap admin) signing in for the console goes there',
-    { status: 'signedIn', onboarded: false, group: '(auth)', next: '/console' },
+    { status: 'signedIn', onboarded: false, group: '(auth)', next: '/console', admin: true },
     '/console',
+  ],
+  [
+    'not onboarded and not an admin, a console next still onboards',
+    { status: 'signedIn', onboarded: false, group: '(auth)', next: '/console' },
+    '/onboarding',
   ],
   [
     'not onboarded on the console stays',

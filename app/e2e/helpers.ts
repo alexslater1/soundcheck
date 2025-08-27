@@ -1,15 +1,18 @@
 import { expect, type Page } from '@playwright/test';
 
 export type E2eUser = { handle: string; password: string };
+/** A fresh account from `signUpAndOnboard`, with the email it signs in with. */
+export type E2eSignUp = E2eUser & { email: string };
 
 /** Signs up a fresh account and walks through onboarding (city, two genres, no artists) to the Home tab. */
-export async function signUpAndOnboard(page: Page, displayName = 'E2E User'): Promise<E2eUser> {
+export async function signUpAndOnboard(page: Page, displayName = 'E2E User'): Promise<E2eSignUp> {
   const suffix = `${Date.now().toString(36)}${Math.floor(Math.random() * 100000)}`;
   const handle = `e2e_${suffix}`.slice(0, 30);
+  const email = `e2e-${suffix}@example.com`;
   const password = 'correct horse battery';
   await page.goto('/');
   await page.getByText('New here? Create an account').click();
-  await page.getByLabel('Email').last().fill(`e2e-${suffix}@example.com`);
+  await page.getByLabel('Email').last().fill(email);
   await page.getByLabel('Handle').last().fill(handle);
   await page.getByLabel('Display name').last().fill(displayName);
   await page.getByLabel('Password').last().fill(password);
@@ -29,7 +32,7 @@ export async function signUpAndOnboard(page: Page, displayName = 'E2E User'): Pr
   await expect(page.getByText('Follow some artists')).toBeVisible();
   await page.getByRole('button', { name: 'Finish' }).last().click();
   await expect(page.getByRole('radio', { name: 'For You' }).last()).toBeVisible();
-  return { handle, password };
+  return { handle, email, password };
 }
 
 /**

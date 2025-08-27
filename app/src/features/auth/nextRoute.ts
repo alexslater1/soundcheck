@@ -22,6 +22,8 @@ export interface RouteState {
   path?: string;
   /** The sign-in screen's `next` parameter: where to go once signed in. */
   next?: string;
+  /** `me.role === 'ADMIN'`: only an admin is sent on to a console `next` after signing in. */
+  admin?: boolean;
 }
 
 /**
@@ -40,7 +42,7 @@ export function safeNext(next: string | undefined): `/console${string}` | null {
  * signed out → the auth screens; signed in but not onboarded → onboarding; onboarded users are moved
  * out of the auth and onboarding screens. Everything else stays put.
  */
-export function nextRoute({ status, onboarded, group, path, next }: RouteState): Redirect {
+export function nextRoute({ status, onboarded, group, path, next, admin }: RouteState): Redirect {
   // Still resuming, or could not reach the server to resume (the root shows "Can't connect" instead).
   if (status === 'unknown' || status === 'unreachable') return null;
   const inAuth = group === '(auth)';
@@ -52,13 +54,15 @@ export function nextRoute({ status, onboarded, group, path, next }: RouteState):
     return back ? `/sign-in?next=${encodeURIComponent(back)}` : '/sign-in';
   }
   if (onboarded === undefined) return null;
+  // Someone who signs out of the console and back in as a fan goes home, not to "for operators".
+  const back = admin ? safeNext(next) : null;
   // The console needs no city or genres: the bootstrap admin is never onboarded, so the console
   // is exempt, and signing in for a console page goes straight there.
   if (!onboarded) {
     if (group === 'console') return null;
-    if (inAuth && safeNext(next)) return safeNext(next);
+    if (inAuth && back) return back;
     return inOnboarding ? null : '/onboarding';
   }
-  if (inAuth) return safeNext(next) ?? '/';
+  if (inAuth) return back ?? '/';
   return inOnboarding ? '/' : null;
 }

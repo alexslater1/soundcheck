@@ -1,6 +1,7 @@
 import { Suspense, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
+import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
@@ -13,12 +14,15 @@ import { LazyConsoleShell } from './lazy';
 
 /**
  * The console layout's guard. Native: a pointer to the desktop. Web: signed out → the root
- * layout sends the user to sign-in and back; not an admin → "for operators", and the pages (which make
- * the admin requests) are never mounted; too narrow → "open on a wider screen"; an admin → the shell.
+ * layout sends the user to sign-in and back; not an admin → "for operators", with a way to switch to the
+ * admin account, and the pages (which make the admin requests) are never mounted; too narrow → "open on
+ * a wider screen"; an admin → the shell.
  */
 export function ConsoleGate({ children }: { children: ReactNode }) {
   const status = useAuthStore((s) => s.status);
   const role = useAuthStore((s) => s.me?.role);
+  const handle = useAuthStore((s) => s.me?.handle);
+  const signOut = useAuthStore((s) => s.signOut);
   const { width } = useWindowDimensions();
   const access = consoleAccess({ platform: Platform.OS, status, role, width });
 
@@ -39,8 +43,12 @@ export function ConsoleGate({ children }: { children: ReactNode }) {
         <Message
           testID="console-forbidden"
           title="This area is for operators"
-          detail="The console is only for Soundcheck's admin account. Head back to the app to keep exploring gigs."
-        />
+          detail={`The console is only for Soundcheck's admin account, and you're signed in as @${handle ?? '…'}.`}
+        >
+          {/* Signed out on a console page, the root layout sends the user to sign-in and then into the
+              console (its Overview: this page doesn't mount the console's pages, so the address is /console). */}
+          <Button title="Sign out and sign in as admin" onPress={() => void signOut()} />
+        </Message>
       );
     case 'narrow':
       return (
@@ -59,12 +67,23 @@ export function ConsoleGate({ children }: { children: ReactNode }) {
   }
 }
 
-function Message({ title, detail, testID }: { title: string; detail: string; testID: string }) {
+function Message({
+  title,
+  detail,
+  testID,
+  children,
+}: {
+  title: string;
+  detail: string;
+  testID: string;
+  children?: ReactNode;
+}) {
   return (
     <Screen>
       <View style={styles.message} testID={testID}>
         <Text variant="title">{title}</Text>
         <Text muted>{detail}</Text>
+        {children ? <View style={styles.actions}>{children}</View> : null}
       </View>
     </Screen>
   );
@@ -81,5 +100,6 @@ function Loading() {
 
 const styles = StyleSheet.create({
   message: { gap: spacing.sm, paddingTop: spacing.xl },
+  actions: { alignItems: 'flex-start', paddingTop: spacing.sm },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

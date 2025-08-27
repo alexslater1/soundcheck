@@ -1,4 +1,4 @@
-import { act, render, screen } from '@testing-library/react-native';
+import { act, fireEvent, render, screen } from '@testing-library/react-native';
 import { Platform, Text } from 'react-native';
 
 import type { MeResponse } from '@/api/generated/model';
@@ -26,10 +26,10 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 /** Stands in for a console page: if it renders, the page's admin requests would be sent. */
 const Page = () => <Text testID="admin-page">page</Text>;
 
-function signIn(role: string | undefined) {
+function signIn(role: string | undefined, handle = 'someone') {
   useAuthStore.setState({
     status: role === undefined ? 'signedOut' : 'signedIn',
-    me: role === undefined ? null : ({ role } as MeResponse),
+    me: role === undefined ? null : ({ role, handle } as MeResponse),
   });
 }
 
@@ -69,6 +69,20 @@ describe('ConsoleGate', () => {
     expect(screen.getByText('This area is for operators')).toBeOnTheScreen();
     expect(screen.queryByTestId('admin-page')).toBeNull();
     expect(screen.queryByTestId('console-shell')).toBeNull();
+  });
+
+  it("lets a USER sign out to switch to the admin account, naming who's signed in", async () => {
+    const signOut = jest.fn(() => Promise.resolve());
+    const realSignOut = useAuthStore.getState().signOut;
+    signIn('USER', 'alex1223');
+    useAuthStore.setState({ signOut });
+    await renderGate();
+    expect(screen.getByText(/signed in as @alex1223/)).toBeOnTheScreen();
+    await act(async () => {
+      fireEvent.press(screen.getByText('Sign out and sign in as admin'));
+    });
+    expect(signOut).toHaveBeenCalledTimes(1);
+    useAuthStore.setState({ signOut: realSignOut });
   });
 
   it('waits while signed out (the root layout is sending the user to sign-in)', async () => {

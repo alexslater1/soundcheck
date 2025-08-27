@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { Wordmark } from '@/components/ui/Wordmark';
+import { useAuthStore } from '@/features/auth/store';
 import { env } from '@/lib/env';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
@@ -15,13 +16,18 @@ import { useConsoleRange } from './useConsoleRange';
 
 /**
  * The console's frame: the left nav from `nav.ts`, and a top bar with the date range (kept in
- * the URL), the environment badge and the synthetic-data note. Pages render inside it.
+ * the URL), the environment badge and the synthetic-data note. Pages render inside it. The nav's foot
+ * names the account and signs out (signing back in as a fan goes home, `nextRoute`); "Back to the app"
+ * shows only for an onboarded account, since the bootstrap admin would be sent to onboarding.
  */
 export function ConsoleShell({ children }: PropsWithChildren) {
   const { colors } = useTheme();
   const pathname = usePathname();
   const [range, setRange] = useConsoleRange();
   const environment = environmentLabel(env.apiBaseUrl);
+  const handle = useAuthStore((s) => s.me?.handle);
+  const onboarded = useAuthStore((s) => s.me?.onboarded === true);
+  const signOut = useAuthStore((s) => s.signOut);
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View
@@ -62,13 +68,27 @@ export function ConsoleShell({ children }: PropsWithChildren) {
           );
         })}
         <View style={styles.navFooter}>
-          <Link href="/" asChild>
-            <Pressable accessibilityRole="link">
-              <Text variant="caption" muted>
-                ← Back to the app
-              </Text>
-            </Pressable>
-          </Link>
+          <Text variant="caption" muted testID="console-account">
+            {`Signed in as @${handle ?? '…'}`}
+          </Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => void signOut()}
+            testID="console-sign-out"
+          >
+            <Text variant="caption" style={{ color: colors.accent, fontWeight: '600' }}>
+              Sign out
+            </Text>
+          </Pressable>
+          {onboarded ? (
+            <Link href="/" asChild>
+              <Pressable accessibilityRole="link">
+                <Text variant="caption" muted>
+                  ← Back to the app
+                </Text>
+              </Pressable>
+            </Link>
+          ) : null}
         </View>
       </View>
       <View style={styles.main}>
@@ -139,7 +159,7 @@ const styles = StyleSheet.create({
   },
   brand: { gap: spacing.xs, marginBottom: spacing.lg },
   navItem: { paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, borderRadius: radius.sm },
-  navFooter: { marginTop: 'auto', paddingTop: spacing.lg },
+  navFooter: { marginTop: 'auto', paddingTop: spacing.lg, gap: spacing.xs },
   main: { flex: 1, minWidth: 0 },
   topBar: {
     flexDirection: 'row',

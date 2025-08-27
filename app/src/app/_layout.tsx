@@ -69,6 +69,7 @@ function RootStack() {
       group: segments[0],
       path: currentPath(pathname),
       next,
+      admin: me?.role === 'ADMIN',
     });
     if (target) router.replace(asHref(target));
   }, [status, me, segments, router, pathname, next]);
