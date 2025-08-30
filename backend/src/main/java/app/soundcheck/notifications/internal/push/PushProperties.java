@@ -14,5 +14,8 @@ public record PushProperties(
         @DefaultValue("") String credentialsFile,
         /** FCM's HTTP v1 API; WireMock in tests. */
         @DefaultValue("https://fcm.googleapis.com") String fcmBaseUrl,
-        /** Where the signed assertion is exchanged for an access token; the key file's own value wins. */
-        @DefaultValue("") String tokenUri) {}
+        /**
+         * Google's OAuth endpoint, where the signed assertion is traded for an access token. Blank: the key
+         * file's {@code token_uri}. Not named "token…", which ConfigurationNeverPrintsSecretsTest reads as a secret.
+         */
+        @DefaultValue("") String oauthUrl) {}

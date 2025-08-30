@@ -66,7 +66,7 @@ class FcmClient implements PushGateway {
         requests.setReadTimeout(Duration.ofSeconds(10));
         this.rest = RestClient.builder().requestFactory(requests).build();
         this.credentials = credentials;
-        this.tokenUri = properties.tokenUri().isBlank() ? credentials.tokenUri() : properties.tokenUri();
+        this.tokenUri = properties.oauthUrl().isBlank() ? credentials.tokenUri() : properties.oauthUrl();
         this.json = json;
         this.clock = clock;
         this.baseUrl = properties.fcmBaseUrl();

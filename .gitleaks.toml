@@ -10,9 +10,13 @@ useDefault = true
 # TicketmasterSourceTest uses an obviously fake key ("test-key-that-must-never-leak-…") to prove the
 # client never leaks its key; the `generic-api-key` rule flags that literal. Only that exact literal is
 # allowed, so any real key, in that file or elsewhere, is still caught.
-description = "JwtKeys.toPem() string literal; the fake key literal in TicketmasterSourceTest"
+#
+# FcmCredentialsTest builds a key file around an RSA key generated during the test, with PEM
+# framing as string literals; matched on that code expression, as for JwtKeys.
+description = "JwtKeys.toPem() string literal; the fake key literal in TicketmasterSourceTest; FcmCredentialsTest's generated key"
 regexTarget = "match"
 regexes = [
   '''encodeToString\(privateKey\.getEncoded\(\)\)''',
   '''test-key-that-must-never-leak-0123456789''',
+  '''String\.join\("\\\\n", base64\.split''',
 ]
