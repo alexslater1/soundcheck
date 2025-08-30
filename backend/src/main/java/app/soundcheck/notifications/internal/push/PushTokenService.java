@@ -1,7 +1,9 @@
 package app.soundcheck.notifications.internal.push;
 
+import app.soundcheck.identity.UserDeleted;
 import java.time.Clock;
 import java.util.UUID;
+import org.springframework.modulith.events.ApplicationModuleListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,5 +26,14 @@ public class PushTokenService {
 
     public void unregister(UUID userId, String token) {
         tokens.delete(token, userId);
+    }
+
+    /**
+     * An account deleted: its sessions are revoked at once, so its phones stop getting pushes at once too,
+     * not when the purge removes the user row days later (its tokens would cascade then).
+     */
+    @ApplicationModuleListener
+    void on(UserDeleted event) {
+        tokens.deleteAllOf(event.userId());
     }
 }

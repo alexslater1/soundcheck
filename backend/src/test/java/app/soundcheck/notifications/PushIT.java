@@ -132,6 +132,16 @@ class PushIT extends IntegrationTest {
     }
 
     @Test
+    void deletingTheAccountStopsItsPushesAtOnce() {
+        String phone = "token-" + UUID.randomUUID();
+        register(author, phone, "android");
+
+        // DELETE /me revokes the sessions now and purges the user row days later; the phone goes now.
+        api.call(HttpMethod.DELETE, "/api/v1/me", Map.of("password", "correct horse battery"), author);
+        await().atMost(Duration.ofSeconds(10)).until(() -> tokensOf(author).isEmpty());
+    }
+
+    @Test
     void onlyAndroidTokensAreTaken() {
         assertThat(register(author, "token-x", "ios")).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(register(author, "", "android")).isEqualTo(HttpStatus.BAD_REQUEST);

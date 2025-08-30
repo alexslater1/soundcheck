@@ -45,6 +45,11 @@ class PushTokenRepository {
                 .execute();
     }
 
+    /** The account was deleted (index: push_token_user). */
+    void deleteAllOf(UUID userId) {
+        dsl.deleteFrom(PUSH_TOKEN).where(PUSH_TOKEN.USER_ID.eq(userId)).execute();
+    }
+
     /** FCM said the token is gone. */
     void delete(String token) {
         dsl.deleteFrom(PUSH_TOKEN).where(PUSH_TOKEN.TOKEN.eq(token)).execute();
