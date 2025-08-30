@@ -137,16 +137,23 @@ android: phone ## Build and install the Android dev build on the connected phone
 # `adb reverse` (EXPO_PUBLIC_API_BASE_URL). Release builds drop expo-dev-client. Signed with the debug key, as the
 # Expo template's release build is, so it installs over the dev build (same package) and keeps its data; that is fine
 # for testing, not for a store. APP_ENV stays unset so the manifest keeps cleartext HTTP for http://localhost:8088.
-# Needs ~4 GB free. No daemons: Gradle and the Kotlin compiler run in this process and exit with it, and nothing else is
-# stopped (`make api` and `make worker` run under Gradle too). Install: see the README's quick start.
+# Needs ~6 GB free: stop `make dev` first. No daemons: Gradle and the Kotlin compiler run in this process and exit with
+# it, and nothing else is stopped (`make api` and `make worker` run under Gradle too). Kotlin in-process shares Gradle's
+# heap, so this build raises it above gradle.properties' 2 GB (which ran out compiling the native modules, 2025-08-30).
+# Four workers, not one per core: 20 parallel native (CMake) builds took ~9 GB in a minute. Only arm64-v8a, the
+# phones we test on (a Pixel), instead of all four ABIs a release build makes by default.
+# Install: see the README's quick start.
 APK := $(CURDIR)/app/android/app/build/outputs/apk/release/app-release.apk
 apk: ## Build a release APK (debug-signed, JS bundled, local edge) for rehearsal; install with adb install -r
 	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
 	cd $(CURDIR)/app
-	[ -d android ] || env -u APP_ENV npx expo prebuild --platform android --no-install
+	# Always, not only when android/ is missing: a new native module or config plugin (expo-notifications and
+	# google-services.json) only reaches the native project through prebuild. In place, not --clean.
+	env -u APP_ENV npx expo prebuild --platform android --no-install
 	cd android
 	env -u APP_ENV EXPO_PUBLIC_API_BASE_URL=http://localhost:8088 \
-	  ./gradlew --no-daemon -Pkotlin.compiler.execution.strategy=in-process assembleRelease
+	  ./gradlew --no-daemon --max-workers=4 -Pkotlin.compiler.execution.strategy=in-process \
+	  "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" -PreactNativeArchitectures=arm64-v8a assembleRelease
 	ls -lh $(APK)
 	echo "install: adb install -r $(APK)   (replaces the dev build; 'make android' puts it back)"
 
