@@ -71,7 +71,8 @@ class CandidateGenerationIT extends IntegrationTest {
                     "FRESH",
                     100),
             50,
-            3);
+            3,
+            5);
 
     @Autowired
     TestRestTemplate rest;
@@ -244,7 +245,7 @@ class CandidateGenerationIT extends IntegrationTest {
         // With a cap of zero a generator is switched off.
         Map<String, Integer> noFresh = new HashMap<>(PARAMS.candidateCaps());
         noFresh.put("FRESH", 0);
-        RankingConfig.Params withoutFresh = new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, noFresh, 50, 3);
+        RankingConfig.Params withoutFresh = new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, noFresh, 50, 3, 5);
         assertThat(generator.candidates(context, withoutFresh, now))
                 .extracting(Candidate::postId)
                 .contains(pFollow)
@@ -260,7 +261,7 @@ class CandidateGenerationIT extends IntegrationTest {
         one.put("LOCAL", 0);
         Map<UUID, Set<CandidateSource>> capped =
                 generator
-                        .candidates(context, new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, one, 50, 3), now)
+                        .candidates(context, new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, one, 50, 3, 5), now)
                         .stream()
                         .collect(Collectors.toMap(Candidate::postId, Candidate::sources));
         assertThat(capped.get(pFollowNewest)).containsExactly(CandidateSource.FOLLOWING);

@@ -16,6 +16,10 @@ public final class RankingConfig {
 
     public static final String BIAS = "bias";
 
+    /**
+     * The stage parameters, plus {@code authorCapPerSession}: at most this many posts by one author in
+     * a session, as long as enough other authors have posts.
+     */
     public record Params(
             double halfLifeHours,
             double priorStrength,
@@ -25,7 +29,8 @@ public final class RankingConfig {
             int pageSize,
             Map<String, Integer> candidateCaps,
             double localRadiusKm,
-            int seenWindowDays) {
+            int seenWindowDays,
+            int authorCapPerSession) {
 
         public Params {
             candidateCaps = candidateCaps == null ? Map.of() : Map.copyOf(candidateCaps);
@@ -41,7 +46,8 @@ public final class RankingConfig {
                 "pageSize",
                 "candidateCaps",
                 "localRadiusKm",
-                "seenWindowDays");
+                "seenWindowDays",
+                "authorCapPerSession");
 
         /** Which of {@link #NAMES} are absent from the given names. */
         public static List<String> missingFrom(java.util.Collection<String> present) {
@@ -165,6 +171,9 @@ public final class RankingConfig {
         }
         if (params.seenWindowDays() < 0 || params.seenWindowDays() > 30) {
             problems.add("seenWindowDays must be between 0 and 30");
+        }
+        if (params.authorCapPerSession() < 1 || params.authorCapPerSession() > 50) {
+            problems.add("authorCapPerSession must be between 1 and 50");
         }
         return problems;
     }

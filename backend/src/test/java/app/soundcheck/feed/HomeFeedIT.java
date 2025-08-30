@@ -572,6 +572,7 @@ class HomeFeedIT extends IntegrationTest {
                         "FRESH",
                         100),
                 50,
-                3);
+                3,
+                5);
     }
 }

@@ -90,6 +90,16 @@ class RankingConfigTest {
     }
 
     @Test
+    void theAuthorCapIsBetweenOneAndFifty() {
+        assertThat(problems(v1Weights(), withAuthorCap(0)))
+                .containsExactly("authorCapPerSession must be between 1 and 50");
+        assertThat(problems(v1Weights(), withAuthorCap(51)))
+                .containsExactly("authorCapPerSession must be between 1 and 50");
+        assertThat(problems(v1Weights(), withAuthorCap(1))).isEmpty();
+        assertThat(problems(v1Weights(), withAuthorCap(50))).isEmpty();
+    }
+
+    @Test
     void candidateCapsMustNameEverySourceAndStayWithinAThousand() {
         Map<String, Integer> tooBig = v1Caps();
         tooBig.put("TASTE", 1001);
@@ -134,13 +144,13 @@ class RankingConfigTest {
         assertThat(Params.missingFrom(Params.NAMES)).isEmpty();
         assertThat(Params.missingFrom(List.of(
                         "halfLifeHours", "priorStrength", "sessionSize", "pageSize", "candidateCaps", "localRadiusKm")))
-                .containsExactly("diversityLambda", "explorationRate", "seenWindowDays");
-        // The record's components and the list of names are the same nine.
+                .containsExactly("diversityLambda", "explorationRate", "seenWindowDays", "authorCapPerSession");
+        // The record's components and the list of names are the same ten.
         assertThat(java.util.Arrays.stream(Params.class.getRecordComponents())
                         .map(java.lang.reflect.RecordComponent::getName))
                 .containsExactlyElementsOf(Params.NAMES);
         // A document without candidateCaps is a validation problem, not a NullPointerException.
-        assertThat(problems(v1Weights(), new Params(24, 20, 0.8, 0.1, 200, 10, null, 50, 3)))
+        assertThat(problems(v1Weights(), new Params(24, 20, 0.8, 0.1, 200, 10, null, 50, 3, 5)))
                 .singleElement()
                 .asString()
                 .contains("candidateCaps must name exactly");
@@ -160,10 +170,14 @@ class RankingConfigTest {
             double radiusKm,
             int seenDays) {
         return new Params(
-                halfLife, priorStrength, lambda, exploration, sessionSize, pageSize, v1Caps(), radiusKm, seenDays);
+                halfLife, priorStrength, lambda, exploration, sessionSize, pageSize, v1Caps(), radiusKm, seenDays, 5);
+    }
+
+    private static Params withAuthorCap(int cap) {
+        return new Params(24, 20, 0.8, 0.1, 200, 10, v1Caps(), 50, 3, cap);
     }
 
     private static Params withCaps(Map<String, Integer> caps) {
-        return new Params(24, 20, 0.8, 0.1, 200, 10, caps, 50, 3);
+        return new Params(24, 20, 0.8, 0.1, 200, 10, caps, 50, 3, 5);
     }
 }

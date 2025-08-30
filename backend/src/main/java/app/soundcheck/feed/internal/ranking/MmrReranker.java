@@ -1,8 +1,11 @@
 package app.soundcheck.feed.internal.ranking;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
@@ -20,6 +23,10 @@ import org.jspecify.annotations.Nullable;
  *   <li>With λ &lt; 1 an author is not repeated within three consecutive items as long as any
  *       candidate by someone else is left. The MMR term alone does not guarantee that (a high enough
  *       score outweighs the penalty when λ is close to 1), so it is a rule.
+ *   <li>No author gets more than {@code authorCap} items while a candidate by an author
+ *       still under the cap is left. The cap is a rule for the whole session, the spacing only for the
+ *       last three items, so the cap wins when the two disagree. When every author left is at the cap
+ *       (too few authors for the session), the rest is filled as before, by MMR and spacing alone.
  * </ul>
  */
 public final class MmrReranker {
@@ -33,40 +40,61 @@ public final class MmrReranker {
 
     private MmrReranker() {}
 
-    /** The first {@code size} items of the diversified order. */
-    public static List<Item> rerank(List<Item> candidates, double lambda, int size) {
+    /**
+     * The first {@code size} items of the diversified order.
+     *
+     * @param authorCap at most this many items per author while other authors have candidates left
+     */
+    public static List<Item> rerank(List<Item> candidates, double lambda, int size, int authorCap) {
         List<Item> byScore = new ArrayList<>(candidates);
         byScore.sort(Comparator.comparingDouble(Item::score).reversed().thenComparing(Item::postId));
         int wanted = Math.min(size, byScore.size());
+        Map<UUID, Integer> perAuthor = new HashMap<>();
         if (lambda >= 1) {
-            return List.copyOf(byScore.subList(0, wanted));
+            // Plain score order; an author's items beyond the cap go to the end, in score order.
+            List<Item> selected = new ArrayList<>(wanted);
+            List<Item> overCap = new ArrayList<>();
+            for (Item item : byScore) {
+                if (perAuthor.merge(item.authorId(), 1, Integer::sum) <= authorCap) {
+                    selected.add(item);
+                } else {
+                    overCap.add(item);
+                }
+            }
+            selected.addAll(overCap);
+            return List.copyOf(selected.subList(0, wanted));
         }
         List<Item> selected = new ArrayList<>(wanted);
         boolean[] taken = new boolean[byScore.size()];
         while (selected.size() < wanted) {
-            int best = -1;
-            double bestValue = Double.NEGATIVE_INFINITY;
-            int bestSpaced = -1;
-            double bestSpacedValue = Double.NEGATIVE_INFINITY;
+            // The best candidate in each of four tiers, in order of preference: under the cap and spaced,
+            // under the cap, spaced, anything.
+            int[] best = {-1, -1, -1, -1};
+            double[] bestValue = {
+                Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY
+            };
             for (int i = 0; i < byScore.size(); i++) {
                 if (taken[i]) {
                     continue;
                 }
                 Item candidate = byScore.get(i);
                 double value = lambda * candidate.score() - (1 - lambda) * maxSimilarity(candidate, selected);
-                // Strictly greater: among equals the higher score (earlier in the list) wins.
-                if (value > bestValue) {
-                    best = i;
-                    bestValue = value;
-                }
-                if (!authorJustShown(candidate, selected) && value > bestSpacedValue) {
-                    bestSpaced = i;
-                    bestSpacedValue = value;
+                boolean underCap = perAuthor.getOrDefault(candidate.authorId(), 0) < authorCap;
+                boolean spaced = !authorJustShown(candidate, selected);
+                boolean[] inTier = {underCap && spaced, underCap, spaced, true};
+                for (int tier = 0; tier < inTier.length; tier++) {
+                    // Strictly greater: among equals the higher score (earlier in the list) wins.
+                    if (inTier[tier] && value > bestValue[tier]) {
+                        best[tier] = i;
+                        bestValue[tier] = value;
+                    }
                 }
             }
-            int pick = bestSpaced >= 0 ? bestSpaced : best;
+            int pick = Arrays.stream(best).filter(i -> i >= 0).findFirst().orElseThrow();
             taken[pick] = true;
-            selected.add(byScore.get(pick));
+            Item picked = byScore.get(pick);
+            selected.add(picked);
+            perAuthor.merge(picked.authorId(), 1, Integer::sum);
         }
         return selected;
     }
