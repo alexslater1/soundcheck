@@ -101,6 +101,8 @@ make worker         # terminal 2 — transcode worker (role worker)
 make app            # terminal 3 — Expo dev server; press w for web, or open http://localhost:8088
 make android        # build + install the dev build on the connected phone (needs JDK 17, see below); only after native changes
 make phone          # just the phone's port forwards (adb reverse): rerun after replugging USB when the app is already installed
+make apk            # a release APK for rehearsal: JS bundled in (no Metro), the local edge via adb reverse, debug-signed; ~4 GB free
+adb install -r app/android/app/build/outputs/apk/release/app-release.apk   # replaces the dev build (same package); make android puts it back
 make status         # what is running: containers, api/worker/expo, build daemons, phone forwards
 make help           # every target with a one-line description
 ```

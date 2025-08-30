@@ -29,4 +29,4 @@ Data is synthetic only: the Ticketmaster-shaped fixtures (`make ingest INGESTION
 | `14-create-progress.png` | Create: a picked clip uploading ("Uploading 0%"), its act and song fields |
 | `15-me-processing.png` | Your own grid right after posting: the new post shows Processing… until the worker is done. The "2 Posts" count leaves it out until it is published |
 
-Android screenshots are still to be taken on the phone.
+The Android counterparts of `10`–`15` are in `docs/screens/android/` (2025-08-30, a Pixel).

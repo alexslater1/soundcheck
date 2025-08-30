@@ -26,7 +26,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android web test verify lab-check e2e screens \
+.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
 	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
@@ -132,6 +132,23 @@ android: phone ## Build and install the Android dev build on the connected phone
 	# The Android Gradle build needs JDK 17 (JDK 24+ breaks AGP's CMake step); use SDKMAN's 17 when present.
 	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
 	cd $(CURDIR)/app && npx expo run:android --device
+
+# A release APK for the phone: the JS is bundled in, so it runs without Metro, against the local edge through
+# `adb reverse` (EXPO_PUBLIC_API_BASE_URL). Release builds drop expo-dev-client. Signed with the debug key, as the
+# Expo template's release build is, so it installs over the dev build (same package) and keeps its data; that is fine
+# for testing, not for a store. APP_ENV stays unset so the manifest keeps cleartext HTTP for http://localhost:8088.
+# Needs ~4 GB free. No daemons: Gradle and the Kotlin compiler run in this process and exit with it, and nothing else is
+# stopped (`make api` and `make worker` run under Gradle too). Install: see the README's quick start.
+APK := $(CURDIR)/app/android/app/build/outputs/apk/release/app-release.apk
+apk: ## Build a release APK (debug-signed, JS bundled, local edge) for rehearsal; install with adb install -r
+	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
+	cd $(CURDIR)/app
+	[ -d android ] || env -u APP_ENV npx expo prebuild --platform android --no-install
+	cd android
+	env -u APP_ENV EXPO_PUBLIC_API_BASE_URL=http://localhost:8088 \
+	  ./gradlew --no-daemon -Pkotlin.compiler.execution.strategy=in-process assembleRelease
+	ls -lh $(APK)
+	echo "install: adb install -r $(APK)   (replaces the dev build; 'make android' puts it back)"
 
 web: ## Export the web build (expo export -p web)
 	cd $(CURDIR)/app && npx expo export -p web
