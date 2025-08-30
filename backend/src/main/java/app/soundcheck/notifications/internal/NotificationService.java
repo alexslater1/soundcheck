@@ -7,6 +7,7 @@ import app.soundcheck.content.PostLookup.Subject;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.notifications.internal.NotificationRepository.Row;
+import app.soundcheck.notifications.internal.push.PushRequested;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.web.ApiException;
 import app.soundcheck.shared.web.Cursor;
@@ -28,6 +29,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -113,6 +115,7 @@ public class NotificationService {
     private final SocialGraph social;
     private final PostWatchers watchers;
     private final JsonMapper json;
+    private final ApplicationEventPublisher events;
     private final Clock clock;
 
     NotificationService(
@@ -122,6 +125,7 @@ public class NotificationService {
             SocialGraph social,
             PostWatchers watchers,
             JsonMapper json,
+            ApplicationEventPublisher events,
             Clock clock) {
         this.notifications = notifications;
         this.users = users;
@@ -129,18 +133,24 @@ public class NotificationService {
         this.social = social;
         this.watchers = watchers;
         this.json = json;
+        this.events = events;
         this.clock = clock;
     }
 
     /**
      * Records that something happened to {@code userId}. Nothing is recorded when the actor is the user
-     * themselves (liking or commenting on one's own post is not news).
+     * themselves (liking or commenting on one's own post is not news). A row that was really written (not
+     * a like collapsed into an unread one, not a second delivery) is also pushed to the user's phones once
+     * this transaction commits.
      */
     void record(UUID userId, String type, @Nullable UUID actorId, @Nullable UUID postId, @Nullable UUID commentId) {
         if (userId.equals(actorId)) {
             return;
         }
-        notifications.insert(new Row(Ids.newId(), userId, type, actorId, postId, commentId, Instant.now(clock), null));
+        UUID id = Ids.newId();
+        if (notifications.insert(new Row(id, userId, type, actorId, postId, commentId, Instant.now(clock), null))) {
+            events.publishEvent(new PushRequested(id, userId, type, actorId, postId));
+        }
     }
 
     /**
