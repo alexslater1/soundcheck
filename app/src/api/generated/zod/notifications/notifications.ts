@@ -58,6 +58,32 @@ export const listNotificationsResponse = zod.object({
 })
 
 /**
+ * @summary Stop pushing to this phone (on sign-out)
+ */
+export const removePushTokenBodyTokenMin = 0;
+
+export const removePushTokenBodyTokenMax = 4096;
+
+
+export const removePushTokenBody = zod.object({
+  "token": zod.string().min(removePushTokenBodyTokenMin).max(removePushTokenBodyTokenMax)
+})
+
+/**
+ * @summary Push this phone's notifications to it (FCM token)
+ */
+export const registerPushTokenBodyPlatformRegExp = new RegExp('android');
+export const registerPushTokenBodyTokenMin = 0;
+
+export const registerPushTokenBodyTokenMax = 4096;
+
+
+export const registerPushTokenBody = zod.object({
+  "platform": zod.string().min(1).regex(registerPushTokenBodyPlatformRegExp),
+  "token": zod.string().min(registerPushTokenBodyTokenMin).max(registerPushTokenBodyTokenMax)
+})
+
+/**
  * @summary Mark everything up to a notification as read
  */
 export const markNotificationsReadBody = zod.object({

@@ -1,8 +1,15 @@
+import { existsSync } from 'node:fs';
+
 import type { ConfigContext, ExpoConfig } from 'expo/config';
 
 // Release builds must not allow cleartext HTTP; dev builds talk to http://localhost:8088.
 // `make android` leaves APP_ENV unset (dev); the release build sets APP_ENV=production.
 const isProduction = process.env.APP_ENV === 'production';
+// The Firebase project's Android config (gitignored, see docs/SETUP.md). Without it the build
+// still works, with no push notifications: Activity only.
+const googleServicesFile = existsSync('./google-services.json')
+  ? './google-services.json'
+  : undefined;
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
   ...config,
@@ -15,6 +22,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
   userInterfaceStyle: 'automatic',
   android: {
     package: 'app.soundcheck',
+    googleServicesFile,
+    // Draw behind the system bars and the keyboard (opt-in on SDK 53): `Screen` makes the room itself.
+    edgeToEdgeEnabled: true,
     // Distances need only the approximate location: without the precise permission, Android
     // offers "approximate" alone. expo-location's own manifest asks for both, so the precise one is removed.
     blockedPermissions: ['android.permission.ACCESS_FINE_LOCATION'],
@@ -49,6 +59,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       },
     ],
     'expo-video',
+    [
+      // Push notifications through FCM. The status-bar icon is the monochrome mark.
+      'expo-notifications',
+      { icon: './assets/android-icon-monochrome.png', color: '#7C3AED' },
+    ],
     [
       'expo-image-picker',
       {
