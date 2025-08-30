@@ -67,7 +67,13 @@ export function ComposeForm({
         title={joining ? (clips > 1 ? `Add ${clips} clips` : 'Add clip') : postLabel(clips)}
         testID="post-button"
         disabled={hint !== null}
-        onPress={() => onPost({ caption, taggedUserIds: people.map((person) => person.id) })}
+        onPress={() => {
+          onPost({ caption, taggedUserIds: people.map((person) => person.id) });
+          // The Create tab stays mounted after a post, so the next one would start with this caption
+          // and these people. A post that fails keeps them: its row offers Post again.
+          setCaption('');
+          setPeople([]);
+        }}
       />
     </View>
   );

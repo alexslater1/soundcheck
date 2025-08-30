@@ -44,6 +44,19 @@ describe('ComposeForm', () => {
     expect(onPost).toHaveBeenCalledWith({ caption: 'What a night', taggedUserIds: ['u1'] });
   });
 
+  it('starts the next post empty: the caption and the tagged people are cleared once posted', async () => {
+    const { onPost } = await renderForm();
+    await fireEvent.changeText(screen.getByLabelText('Caption'), 'Camera test');
+    await fireEvent.press(screen.getByText('@sam'));
+    await fireEvent.press(screen.getByText('Post 2 clips'));
+    expect(onPost).toHaveBeenLastCalledWith({ caption: 'Camera test', taggedUserIds: ['u1'] });
+
+    // The Create tab stays mounted, so the form is the one that must forget the last post.
+    expect(screen.getByLabelText('Caption').props.value).toBe('');
+    await fireEvent.press(screen.getByText('Post 2 clips'));
+    expect(onPost).toHaveBeenLastCalledWith({ caption: '', taggedUserIds: [] });
+  });
+
   it('narrows the people by name or handle', async () => {
     await renderForm();
     await fireEvent.changeText(screen.getByLabelText('Find someone to tag'), 'AL');
