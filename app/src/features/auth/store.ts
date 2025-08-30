@@ -156,6 +156,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   async signOut() {
+    // While the session still works: e.g. this phone's push token is removed.
+    await Promise.all(signOutHooks.map((hook) => hook().catch(() => undefined)));
     try {
       const token = await currentRefreshToken();
       await logoutSession(refreshBody(token), { skipRefresh: true, headers: requestedWith() });
@@ -171,6 +173,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ me });
   },
 }));
+
+const signOutHooks: (() => Promise<void>)[] = [];
+
+/**
+ * Runs before sign-out, while the access token is still valid. Lets a feature tidy up on the server
+ * without the store importing it (push: `usePushNotifications.native.ts`). A failing hook never blocks
+ * sign-out.
+ */
+export function beforeSignOut(hook: () => Promise<void>): void {
+  signOutHooks.push(hook);
+}
 
 function requestedWith(): Record<string, string> {
   return clientKind() === 'web' ? { 'X-Requested-With': 'soundcheck' } : {};

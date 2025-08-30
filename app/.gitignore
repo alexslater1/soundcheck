@@ -39,3 +39,5 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+# The Firebase project's Android config: project-specific, kept out of the repo like .env.
+/google-services.json

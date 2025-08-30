@@ -2,7 +2,13 @@ import { ApiError, customFetch, refreshOnce } from '@/api/http';
 import { queryClient } from '@/api/queryClient';
 import { refreshTokenStore } from '@/lib/secureStore';
 
-import { BOOTSTRAP_ATTEMPTS, REFRESH_ATTEMPTS, refreshSession, useAuthStore } from './store';
+import {
+  BOOTSTRAP_ATTEMPTS,
+  beforeSignOut,
+  REFRESH_ATTEMPTS,
+  refreshSession,
+  useAuthStore,
+} from './store';
 
 const fetchMock = jest.fn<Promise<Response>, [RequestInfo | URL, RequestInit | undefined]>();
 
@@ -112,6 +118,21 @@ describe('auth store', () => {
     expect(state.accessToken).toBeNull();
     expect(state.me).toBeNull();
     expect(String(fetchMock.mock.calls[0]![0])).toContain('/auth/logout');
+  });
+
+  it('runs the sign-out hooks first, while the session still works, and a failing one blocks nothing', async () => {
+    const seen: (string | null)[] = [];
+    beforeSignOut(async () => {
+      seen.push(useAuthStore.getState().accessToken);
+    });
+    beforeSignOut(() => Promise.reject(new Error('offline')));
+    useAuthStore.setState({ status: 'signedIn', accessToken: 'access-1', me: me as never });
+    fetchMock.mockResolvedValue(json(200, {}));
+
+    await useAuthStore.getState().signOut();
+
+    expect(seen).toEqual(['access-1']);
+    expect(useAuthStore.getState().status).toBe('signedOut');
   });
 
   it('refreshSession clears the session when the refresh token is gone', async () => {

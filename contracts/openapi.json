@@ -1891,6 +1891,33 @@
         "required" : [ "contentVisible", "counts", "displayName", "handle", "id", "isBlocked", "isFollowing", "isRequested", "profileVisibility" ],
         "type" : "object"
       },
+      "PushTokenRemoval" : {
+        "properties" : {
+          "token" : {
+            "maxLength" : 4096,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "token" ],
+        "type" : "object"
+      },
+      "PushTokenRequest" : {
+        "properties" : {
+          "platform" : {
+            "minLength" : 1,
+            "pattern" : "android",
+            "type" : "string"
+          },
+          "token" : {
+            "maxLength" : 4096,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "platform", "token" ],
+        "type" : "object"
+      },
       "ReadRequest" : {
         "properties" : {
           "upTo" : {
@@ -4569,6 +4596,48 @@
           }
         },
         "summary" : "The inbox, newest first, with the unread count",
+        "tags" : [ "notifications" ]
+      }
+    },
+    "/api/v1/notifications/push-token" : {
+      "delete" : {
+        "operationId" : "removePushToken",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PushTokenRemoval"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Stop pushing to this phone (on sign-out)",
+        "tags" : [ "notifications" ]
+      },
+      "put" : {
+        "operationId" : "registerPushToken",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PushTokenRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "204" : {
+            "description" : "No Content"
+          }
+        },
+        "summary" : "Push this phone's notifications to it (FCM token)",
         "tags" : [ "notifications" ]
       }
     },

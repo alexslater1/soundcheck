@@ -14,6 +14,14 @@ Do Part A (accounts) on day 1: some keys take time to arrive, and AWS setup is e
 | 6 | **AWS** | AWS deploy (create early) | See below. | via SSO profile |
 | 7 | **Expo account** (optional) | EAS builds | Only needed for EAS cloud builds; local builds don't need it. | — |
 | 8 | **Grafana Cloud** (optional) | AWS telemetry | Free stack → OTLP endpoint + token, if you want AWS telemetry in Grafana. | `OTEL_EXPORTER_OTLP_*` |
+| 9 | **Firebase** (push notifications) | Push | See "Firebase" below. Free; no billing account. | `PUSH_ENABLED`, `PUSH_CREDENTIALS_FILE` |
+
+### Firebase (push notifications; ~5 min)
+1. console.firebase.google.com → **Create a project** (any name, e.g. `soundcheck`; Google Analytics off).
+2. Project overview → **Add app → Android** → package name `app.soundcheck` → Register → **download `google-services.json`** → save it as `app/google-services.json` (gitignored). Skip the SDK steps: Expo does them.
+3. Project settings (gear) → **Service accounts** → **Generate new private key** → save it as `.secrets/fcm-service-account.json` (gitignored; it can send to every user's phone, so treat it like a password).
+4. In `.env`: `PUSH_ENABLED=true` (the key path defaults to the file above). Restart `make dev`.
+5. Rebuild the app once: `make android` (dev build) and `make apk` (release); both pick up `google-services.json`. Cloud Messaging (the HTTP v1 API) is on by default for new projects.
 
 ### AWS account (do this early; takes ~30 min)
 1. Create the account at aws.amazon.com. When asked, choose the **Paid plan** — new accounts get sign-up credits on either plan, but the Free plan restricts some services and closes the account after 6 months. Credits still apply to the Paid plan.

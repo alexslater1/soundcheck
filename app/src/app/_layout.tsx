@@ -15,6 +15,7 @@ import { ActivityIndicator, Platform, View } from 'react-native';
 import { queryClient } from '@/api/queryClient';
 import { pageStackOptions } from '@/components/ui/PageHeader';
 import { nextRoute, type Redirect } from '@/features/auth/nextRoute';
+import { usePushNotifications } from '@/features/push/usePushNotifications';
 import { useTelemetryLifecycle } from '@/features/telemetry/useTelemetryLifecycle';
 import { useAuthStore } from '@/features/auth/store';
 import { UnreachableScreen } from '@/features/auth/UnreachableScreen';
@@ -57,6 +58,7 @@ function RootStack() {
     void bootstrap();
   }, [bootstrap]);
   useTelemetryLifecycle();
+  usePushNotifications();
 
   // Signed out → auth screens; signed in but not onboarded → onboarding; otherwise the tabs.
   // The rules live in nextRoute() (pure, table-tested); this effect only applies its answer.

@@ -254,6 +254,8 @@ export * from './profileResponseAvatarUrl';
 export * from './profileResponseBio';
 export * from './profileResponseHomeCityName';
 export * from './profileResponseProfileVisibility';
+export * from './pushTokenRemoval';
+export * from './pushTokenRequest';
 export * from './readRequest';
 export * from './reason';
 export * from './reasonKind';

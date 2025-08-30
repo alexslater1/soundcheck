@@ -28,6 +28,8 @@ import type {
   Inbox,
   ListNotificationsParams,
   NotificationView,
+  PushTokenRemoval,
+  PushTokenRequest,
   ReadRequest,
   UnreadResponse
 } from '.././model';
@@ -142,6 +144,148 @@ export function useListNotifications<TData = Awaited<ReturnType<typeof listNotif
 
 
 /**
+ * @summary Stop pushing to this phone (on sign-out)
+ */
+export const getRemovePushTokenUrl = () => {
+
+
+  
+
+  return `/api/v1/notifications/push-token`
+}
+
+export const removePushToken = async (pushTokenRemoval: PushTokenRemoval, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getRemovePushTokenUrl(),
+  {      
+    ...options,
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      pushTokenRemoval,)
+  }
+);}
+
+
+
+
+export const getRemovePushTokenMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePushToken>>, TError,{data: PushTokenRemoval}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removePushToken>>, TError,{data: PushTokenRemoval}, TContext> => {
+
+const mutationKey = ['removePushToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removePushToken>>, {data: PushTokenRemoval}> = (props) => {
+          const {data} = props ?? {};
+
+          return  removePushToken(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemovePushTokenMutationResult = NonNullable<Awaited<ReturnType<typeof removePushToken>>>
+    export type RemovePushTokenMutationBody = PushTokenRemoval
+    export type RemovePushTokenMutationError = unknown
+
+    /**
+ * @summary Stop pushing to this phone (on sign-out)
+ */
+export const useRemovePushToken = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removePushToken>>, TError,{data: PushTokenRemoval}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof removePushToken>>,
+        TError,
+        {data: PushTokenRemoval},
+        TContext
+      > => {
+
+      const mutationOptions = getRemovePushTokenMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Push this phone's notifications to it (FCM token)
+ */
+export const getRegisterPushTokenUrl = () => {
+
+
+  
+
+  return `/api/v1/notifications/push-token`
+}
+
+export const registerPushToken = async (pushTokenRequest: PushTokenRequest, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getRegisterPushTokenUrl(),
+  {      
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      pushTokenRequest,)
+  }
+);}
+
+
+
+
+export const getRegisterPushTokenMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerPushToken>>, TError,{data: PushTokenRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof registerPushToken>>, TError,{data: PushTokenRequest}, TContext> => {
+
+const mutationKey = ['registerPushToken'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof registerPushToken>>, {data: PushTokenRequest}> = (props) => {
+          const {data} = props ?? {};
+
+          return  registerPushToken(data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RegisterPushTokenMutationResult = NonNullable<Awaited<ReturnType<typeof registerPushToken>>>
+    export type RegisterPushTokenMutationBody = PushTokenRequest
+    export type RegisterPushTokenMutationError = unknown
+
+    /**
+ * @summary Push this phone's notifications to it (FCM token)
+ */
+export const useRegisterPushToken = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof registerPushToken>>, TError,{data: PushTokenRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof registerPushToken>>,
+        TError,
+        {data: PushTokenRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getRegisterPushTokenMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Mark everything up to a notification as read
  */
 export const getMarkNotificationsReadUrl = () => {

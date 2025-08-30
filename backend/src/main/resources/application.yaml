@@ -80,6 +80,11 @@ soundcheck:
       # A rotated refresh token may be presented again this long after its rotation, if the token that
       # replaced it was never presented: the answer was lost on the way.
       refresh-grace: 60s
+  push:
+    # Push notifications through Firebase Cloud Messaging. Off until a Firebase project exists:
+    # PUSH_ENABLED=true and its service account key (`docs/SETUP.md`, gitignored under .secrets/).
+    enabled: ${PUSH_ENABLED:false}
+    credentials-file: ${PUSH_CREDENTIALS_FILE:../.secrets/fcm-service-account.json}
   rate-limit:
     # Auth limits (Bucket4j, per API instance).
     auth:
