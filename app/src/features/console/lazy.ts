@@ -10,3 +10,5 @@ export const LazyConsoleShell = lazy(() =>
 );
 export const LazyPlaceholderPage = lazy(() => import('./PlaceholderPage'));
 export const LazyUsersPage = lazy(() => import('./UsersPage'));
+export const LazyRankingPage = lazy(() => import('./ranking/RankingPage'));
+export const LazyInspectorPage = lazy(() => import('./ranking/InspectorPage'));

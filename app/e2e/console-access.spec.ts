@@ -21,7 +21,7 @@ test('the admin signs in and comes back to the console page they asked for', asy
   await expect(page.getByText('@admin', { exact: false }).first()).toBeVisible();
 
   await page.getByTestId('console-nav-ranking').click();
-  await expect(page.getByText('Built by Group B')).toBeVisible();
+  await expect(page.getByTestId('config-list')).toBeVisible();
 });
 
 test('a fan sees the operators-only page, sends no admin request, and can switch accounts', async ({

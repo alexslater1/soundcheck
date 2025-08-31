@@ -9,11 +9,8 @@ import app.soundcheck.feed.internal.CandidateGenerator.Featured;
 import app.soundcheck.feed.internal.CandidateRepository.Candidate;
 import app.soundcheck.feed.internal.ServedItemLog.Served;
 import app.soundcheck.feed.internal.ranking.CandidateSource;
-import app.soundcheck.feed.internal.ranking.ExplorationInjector;
-import app.soundcheck.feed.internal.ranking.ExplorationInjector.Slot;
 import app.soundcheck.feed.internal.ranking.FeatureSchema;
 import app.soundcheck.feed.internal.ranking.FeatureVector;
-import app.soundcheck.feed.internal.ranking.MmrReranker;
 import app.soundcheck.feed.internal.ranking.RankingConfig;
 import app.soundcheck.feed.internal.ranking.ReasonMapper;
 import app.soundcheck.feed.internal.ranking.Scorer;
@@ -31,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.jspecify.annotations.Nullable;
@@ -124,45 +120,12 @@ public class HomeFeedService {
         List<Featured> featured =
                 stage("features", () -> generator.features(viewer, candidates, params, priors.current(), now));
 
-        // Score every candidate, keeping what the session will store about it.
-        Map<UUID, FeedSession.Item> scored = new HashMap<>();
-        List<MmrReranker.Item> items = stage("score", () -> {
-            List<MmrReranker.Item> list = new ArrayList<>(featured.size());
-            for (Featured f : featured) {
-                double score = Scorer.score(config, f.features()).score();
-                Candidate c = f.candidate();
-                scored.put(
-                        c.postId(),
-                        new FeedSession.Item(c.postId(), score, f.features().toArray(), false, c.sources()));
-                list.add(new MmrReranker.Item(
-                        c.postId(), score, c.authorId(), Set.copyOf(f.facts().artistIds()), c.gigId()));
-            }
-            return list;
-        });
-        List<MmrReranker.Item> ranked =
-                stage("rerank", () -> MmrReranker.rerank(items, params.diversityLambda(), params.sessionSize()));
-
         UUID sessionId = Ids.newId();
-        List<MmrReranker.Item> fresh = items.stream()
-                .filter(item -> scored.get(item.postId()).sources().contains(CandidateSource.FRESH))
-                .toList();
-        List<Slot<MmrReranker.Item>> slots = stage(
-                "explore",
-                () -> ExplorationInjector.inject(
-                        ranked,
-                        fresh,
-                        MmrReranker.Item::postId,
-                        params.explorationRate(),
-                        params.sessionSize(),
-                        // The session id seeds the random draws: the same session can be rebuilt exactly.
-                        sessionId.getMostSignificantBits() ^ sessionId.getLeastSignificantBits()));
-
-        List<FeedSession.Item> ordered = slots.stream()
-                .map(slot -> {
-                    FeedSession.Item item = scored.get(slot.item().postId());
-                    return new FeedSession.Item(
-                            item.postId(), item.score(), item.features(), slot.exploration(), item.sources());
-                })
+        // The ranking itself is FeedRanker's, shared with the console's preview.
+        List<FeedRanker.Ranked> ranked = FeedRanker.rank(featured, config, FeedRanker.seedOf(sessionId), this::stage);
+        List<FeedSession.Item> ordered = ranked.stream()
+                .map(r -> new FeedSession.Item(
+                        r.postId(), r.score(), r.features().toArray(), r.exploration(), r.sources()))
                 .toList();
         FeedSession session = new FeedSession(sessionId, userId, config.id(), now, now.plus(SESSION_TTL), ordered);
         stage("store", () -> {

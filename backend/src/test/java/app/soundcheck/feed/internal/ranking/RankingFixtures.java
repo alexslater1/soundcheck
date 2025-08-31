@@ -42,7 +42,7 @@ final class RankingFixtures {
     }
 
     static RankingConfig.Params v1Params() {
-        return new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, v1Caps(), 50, 3);
+        return new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, v1Caps(), 50, 3, 5);
     }
 
     static RankingConfig v1() {

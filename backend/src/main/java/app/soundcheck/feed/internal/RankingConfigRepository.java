@@ -4,6 +4,7 @@ import static app.soundcheck.shared.jooq.feed.Tables.RANKING_CONFIG;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.jooq.DSLContext;
@@ -21,7 +22,19 @@ public class RankingConfigRepository {
 
     /** A stored config: the JSON documents as they are, not yet checked against the schema. */
     public record Row(
-            UUID id, int version, String status, int featureSchemaVersion, String weightsJson, String paramsJson) {}
+            UUID id,
+            int version,
+            String status,
+            int featureSchemaVersion,
+            String weightsJson,
+            String paramsJson,
+            String source,
+            @Nullable String metricsJson,
+            @Nullable String notes,
+            @Nullable UUID createdBy,
+            Instant createdAt,
+            @Nullable Instant activatedAt,
+            @Nullable UUID activatedBy) {}
 
     private final DSLContext dsl;
 
@@ -42,6 +55,37 @@ public class RankingConfigRepository {
                 .fetchOptional(RankingConfigRepository::toRow);
     }
 
+    /** The row, locked until the transaction ends: an activation and an edit of the same draft queue up. */
+    Optional<Row> findForUpdate(UUID id) {
+        return dsl.selectFrom(RANKING_CONFIG)
+                .where(RANKING_CONFIG.ID.eq(id))
+                .forUpdate()
+                .fetchOptional(RankingConfigRepository::toRow);
+    }
+
+    /** Every config, newest first. A handful of rows (one per saved version), so no paging and no index. */
+    List<Row> list() {
+        return dsl.selectFrom(RANKING_CONFIG)
+                .orderBy(RANKING_CONFIG.VERSION.desc())
+                .fetch(RankingConfigRepository::toRow);
+    }
+
+    /**
+     * Replaces a DRAFT's weights, parameters and notes.
+     *
+     * @return false when there is no such config or it is no longer a draft
+     */
+    boolean updateDraft(UUID id, String weightsJson, String paramsJson, @Nullable String notes) {
+        return dsl.update(RANKING_CONFIG)
+                        .set(RANKING_CONFIG.WEIGHTS, JSONB.valueOf(weightsJson))
+                        .set(RANKING_CONFIG.PARAMS, JSONB.valueOf(paramsJson))
+                        .set(RANKING_CONFIG.NOTES, notes)
+                        .where(RANKING_CONFIG.ID.eq(id))
+                        .and(RANKING_CONFIG.STATUS.eq("DRAFT"))
+                        .execute()
+                == 1;
+    }
+
     /** Adds a DRAFT with the next version number. */
     Row insertDraft(
             UUID id,
@@ -49,6 +93,7 @@ public class RankingConfigRepository {
             String weightsJson,
             String paramsJson,
             String source,
+            @Nullable String metricsJson,
             @Nullable String notes,
             @Nullable UUID createdBy,
             Instant now) {
@@ -66,11 +111,25 @@ public class RankingConfigRepository {
                 .set(RANKING_CONFIG.WEIGHTS, JSONB.valueOf(weightsJson))
                 .set(RANKING_CONFIG.PARAMS, JSONB.valueOf(paramsJson))
                 .set(RANKING_CONFIG.SOURCE, source)
+                .set(RANKING_CONFIG.METRICS, metricsJson == null ? null : JSONB.valueOf(metricsJson))
                 .set(RANKING_CONFIG.NOTES, notes)
                 .set(RANKING_CONFIG.CREATED_BY, createdBy)
                 .set(RANKING_CONFIG.CREATED_AT, now.atOffset(ZoneOffset.UTC))
                 .execute();
-        return new Row(id, version, "DRAFT", featureSchemaVersion, weightsJson, paramsJson);
+        return new Row(
+                id,
+                version,
+                "DRAFT",
+                featureSchemaVersion,
+                weightsJson,
+                paramsJson,
+                source,
+                metricsJson,
+                notes,
+                createdBy,
+                now,
+                null,
+                null);
     }
 
     /**
@@ -78,7 +137,7 @@ public class RankingConfigRepository {
      * allows only one), and the change is announced on {@link #CHANNEL}. PostgreSQL delivers a NOTIFY
      * when the transaction commits, so listeners never hear about a change they cannot yet read.
      */
-    void activate(UUID id, Instant now) {
+    void activate(UUID id, @Nullable UUID activatedBy, Instant now) {
         dsl.update(RANKING_CONFIG)
                 .set(RANKING_CONFIG.STATUS, "ARCHIVED")
                 .where(RANKING_CONFIG.STATUS.eq("ACTIVE"))
@@ -87,6 +146,7 @@ public class RankingConfigRepository {
         dsl.update(RANKING_CONFIG)
                 .set(RANKING_CONFIG.STATUS, "ACTIVE")
                 .set(RANKING_CONFIG.ACTIVATED_AT, now.atOffset(ZoneOffset.UTC))
+                .set(RANKING_CONFIG.ACTIVATED_BY, activatedBy)
                 .where(RANKING_CONFIG.ID.eq(id))
                 .execute();
         dsl.fetch("select pg_notify(?, ?)", CHANNEL, id.toString());
@@ -99,6 +159,13 @@ public class RankingConfigRepository {
                 r.getStatus(),
                 r.getFeatureSchemaVersion(),
                 r.getWeights().data(),
-                r.getParams().data());
+                r.getParams().data(),
+                r.getSource(),
+                r.getMetrics() == null ? null : r.getMetrics().data(),
+                r.getNotes(),
+                r.getCreatedBy(),
+                r.getCreatedAt().toInstant(),
+                r.getActivatedAt() == null ? null : r.getActivatedAt().toInstant(),
+                r.getActivatedBy());
     }
 }

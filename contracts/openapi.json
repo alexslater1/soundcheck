@@ -511,6 +511,35 @@
         "required" : [ "clips" ],
         "type" : "object"
       },
+      "CreateRankingConfigRequest" : {
+        "properties" : {
+          "metrics" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams"
+          },
+          "source" : {
+            "enum" : [ "MANUAL", "LAB" ],
+            "type" : [ "string", "null" ]
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "params", "weights" ],
+        "type" : "object"
+      },
       "CreateUploadRequest" : {
         "properties" : {
           "bytes" : {
@@ -721,6 +750,51 @@
         "required" : [ "events" ],
         "type" : "object"
       },
+      "FeedAffinity" : {
+        "properties" : {
+          "followed" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "followed", "id", "name", "score" ],
+        "type" : "object"
+      },
+      "FeedGenreWeight" : {
+        "properties" : {
+          "chosen" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "engaged" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "weight" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "chosen", "engaged", "id", "name", "weight" ],
+        "type" : "object"
+      },
       "FeedItem" : {
         "properties" : {
           "debug" : {
@@ -742,6 +816,41 @@
           }
         },
         "required" : [ "position", "post", "reasons" ],
+        "type" : "object"
+      },
+      "FeedProfile" : {
+        "properties" : {
+          "artists" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedAffinity"
+            },
+            "type" : "array"
+          },
+          "authors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedAffinity"
+            },
+            "type" : "array"
+          },
+          "followedArtistCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "followingCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "genres" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedGenreWeight"
+            },
+            "type" : "array"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          }
+        },
+        "required" : [ "artists", "authors", "followedArtistCount", "followingCount", "genres", "user" ],
         "type" : "object"
       },
       "FillClipRequest" : {
@@ -1551,6 +1660,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "PageServedSession" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ServedSession"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PageUserSummary" : {
         "properties" : {
           "items" : {
@@ -1918,6 +2042,349 @@
         "required" : [ "platform", "token" ],
         "type" : "object"
       },
+      "RankingConfigRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams",
+            "type" : "null"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "object", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "RankingConfigView" : {
+        "properties" : {
+          "activatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "activatedBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "activatedByHandle" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "createdByHandle" : {
+            "type" : [ "string", "null" ]
+          },
+          "featureSchemaVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "metrics" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams"
+          },
+          "source" : {
+            "enum" : [ "SEED", "MANUAL", "LAB" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "DRAFT", "ACTIVE", "ARCHIVED" ],
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "createdAt", "featureSchemaVersion", "id", "params", "source", "status", "version", "weights" ],
+        "type" : "object"
+      },
+      "RankingParams" : {
+        "properties" : {
+          "authorCapPerSession" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "candidateCaps" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "diversityLambda" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "explorationRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "halfLifeHours" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "localRadiusKm" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "priorStrength" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "seenWindowDays" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sessionSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "authorCapPerSession", "candidateCaps", "diversityLambda", "explorationRate", "halfLifeHours", "localRadiusKm", "pageSize", "priorStrength", "seenWindowDays", "sessionSize" ],
+        "type" : "object"
+      },
+      "RankingPreview" : {
+        "properties" : {
+          "a" : {
+            "$ref" : "#/components/schemas/RankingPreviewList"
+          },
+          "b" : {
+            "$ref" : "#/components/schemas/RankingPreviewList",
+            "type" : "null"
+          },
+          "candidates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "commonItems" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "kendallTau" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "overlapAt10" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "seed" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "a", "candidates", "commonItems" ],
+        "type" : "object"
+      },
+      "RankingPreviewItem" : {
+        "properties" : {
+          "bias" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "contributions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Contribution"
+            },
+            "type" : "array"
+          },
+          "exploration" : {
+            "type" : "boolean"
+          },
+          "logit" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "otherRank" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/Post"
+          },
+          "rank" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "sources" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "bias", "contributions", "exploration", "logit", "post", "rank", "score", "sources" ],
+        "type" : "object"
+      },
+      "RankingPreviewList" : {
+        "properties" : {
+          "configId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RankingPreviewItem"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "configVersion", "items" ],
+        "type" : "object"
+      },
+      "RankingPreviewRequest" : {
+        "properties" : {
+          "configA" : {
+            "$ref" : "#/components/schemas/RankingConfigRef"
+          },
+          "configB" : {
+            "$ref" : "#/components/schemas/RankingConfigRef",
+            "type" : "null"
+          },
+          "exploration" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "limit" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : [ "integer", "null" ]
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "configA", "userId" ],
+        "type" : "object"
+      },
+      "RankingReplayRequest" : {
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/RankingConfigRef"
+          },
+          "explorationOnly" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "config", "from", "to" ],
+        "type" : "object"
+      },
+      "RankingReplayResult" : {
+        "properties" : {
+          "auc" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "byPosition" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReplayPositionEngagement"
+            },
+            "type" : "array"
+          },
+          "configId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "explorationOnly" : {
+            "type" : "boolean"
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "logLoss" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "ndcgAt10" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "positives" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "rows" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sampleFraction" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "sampled" : {
+            "type" : "boolean"
+          },
+          "sessions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sessionsWithPositive" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "byPosition", "configVersion", "explorationOnly", "from", "positives", "rows", "sampleFraction", "sampled", "sessions", "sessionsWithPositive", "to" ],
+        "type" : "object"
+      },
       "ReadRequest" : {
         "properties" : {
           "upTo" : {
@@ -1976,6 +2443,28 @@
           }
         },
         "required" : [ "displayName", "email", "handle", "password" ],
+        "type" : "object"
+      },
+      "ReplayPositionEngagement" : {
+        "properties" : {
+          "items" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positives" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "rate" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "items", "position", "positives" ],
         "type" : "object"
       },
       "ReportRequest" : {
@@ -2105,6 +2594,81 @@
           }
         },
         "required" : [ "artists", "gigs", "pastGigs" ],
+        "type" : "object"
+      },
+      "ServedEntry" : {
+        "properties" : {
+          "exploration" : {
+            "type" : "boolean"
+          },
+          "maxWatchFraction" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "negative" : {
+            "type" : "boolean"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positive" : {
+            "type" : "boolean"
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/Post",
+            "type" : "null"
+          },
+          "postId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "exploration", "negative", "position", "positive", "postId", "score" ],
+        "type" : "object"
+      },
+      "ServedSession" : {
+        "properties" : {
+          "configId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "entries" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ServedEntry"
+            },
+            "type" : "array"
+          },
+          "negatives" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positives" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sessionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "shown" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "configId", "entries", "negatives", "positives", "sessionId", "shown", "startedAt" ],
         "type" : "object"
       },
       "Setlist" : {
@@ -2356,6 +2920,27 @@
         },
         "type" : "object"
       },
+      "UpdateRankingConfigRequest" : {
+        "properties" : {
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams",
+            "type" : "null"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "object", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "UploadTicket" : {
         "properties" : {
           "expiresAt" : {
@@ -2510,6 +3095,278 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/admin/feed/users/{id}/profile" : {
+      "get" : {
+        "operationId" : "adminFeedProfile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FeedProfile"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's genre vector and their strongest artist and author affinities",
+        "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/feed/users/{id}/served" : {
+      "get" : {
+        "operationId" : "adminFeedServed",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageServedSession"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's recent feed sessions, newest first, each item with its outcome (positive, negative, furthest watch)",
+        "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/ranking/configs" : {
+      "get" : {
+        "operationId" : "adminListRankingConfigs",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/RankingConfigView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Every ranking config, newest first",
+        "tags" : [ "admin-ranking" ]
+      },
+      "post" : {
+        "operationId" : "adminCreateRankingConfig",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateRankingConfigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RankingConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Save a DRAFT (validated as for activation); 400 RANKING_CONFIG_INVALID lists every broken rule",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/configs/{id}" : {
+      "get" : {
+        "operationId" : "adminGetRankingConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RankingConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One ranking config",
+        "tags" : [ "admin-ranking" ]
+      },
+      "patch" : {
+        "operationId" : "adminUpdateRankingConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateRankingConfigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RankingConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edit a DRAFT; 409 CONFIG_NOT_DRAFT for an ACTIVE or ARCHIVED one",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/configs/{id}/activate" : {
+      "post" : {
+        "operationId" : "adminActivateRankingConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RankingConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Make a DRAFT, or an ARCHIVED config (the rollback), the active one; new feed sessions use it. 409 CONFIG_ALREADY_ACTIVE",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/preview" : {
+      "post" : {
+        "operationId" : "adminPreviewRanking",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RankingPreviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RankingPreview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's feed under two configs, side by side, with overlap@10 and Kendall's τ; writes nothing",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/replay" : {
+      "post" : {
+        "operationId" : "adminReplayRanking",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/RankingReplayRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/RankingReplayResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Re-score what was served in a window (at most 14 days) with a config: AUC, log-loss, NDCG@10, engagement by position. Biased towards the config that served it. 422 FEATURE_SCHEMA_MISMATCH",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
     "/api/v1/admin/users" : {
       "get" : {
         "operationId" : "adminListUsers",
@@ -6184,8 +7041,14 @@
     "description" : "Service health",
     "name" : "health"
   }, {
+    "description" : "Console: ranking configs, preview and replay (operators only)",
+    "name" : "admin-ranking"
+  }, {
     "description" : "Console: find accounts (operators only)",
     "name" : "admin-users"
+  }, {
+    "description" : "Console: one user's feed, as ranked and as served (operators only)",
+    "name" : "admin-feed"
   }, {
     "description" : "Past concerts from setlist.fm, looked up live and not stored",
     "name" : "past-gigs"
