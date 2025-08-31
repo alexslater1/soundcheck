@@ -25,14 +25,14 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
     href: '/console/ranking',
     label: 'Ranking playground',
     blurb: 'Tune weights, preview a feed, activate a config',
-    built: false,
+    built: true,
   },
   {
     key: 'inspector',
     href: '/console/inspector',
     label: 'Feed inspector',
     blurb: 'What one user would see now, and what they were shown',
-    built: false,
+    built: true,
   },
   {
     key: 'pipeline',
