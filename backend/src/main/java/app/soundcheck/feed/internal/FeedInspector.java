@@ -85,7 +85,7 @@ public class FeedInspector {
     /**
      * One feed session as it was served.
      *
-     * @param items     how many items the user was served (pages they reached)
+     * @param shown     how many items the user was served (the pages they reached)
      * @param positives items with a positive outcome
      */
     @Schema(name = "ServedSession")
@@ -94,7 +94,7 @@ public class FeedInspector {
             Instant startedAt,
             UUID configId,
             @Schema(nullable = true) Integer configVersion,
-            int items,
+            int shown,
             int positives,
             int negatives,
             List<ServedEntry> entries) {}

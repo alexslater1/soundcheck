@@ -194,10 +194,10 @@ export const adminFeedServedResponse = zod.object({
   "postId": zod.string().uuid(),
   "score": zod.number()
 })),
-  "items": zod.number(),
   "negatives": zod.number(),
   "positives": zod.number(),
   "sessionId": zod.string().uuid(),
+  "shown": zod.number(),
   "startedAt": zod.string().datetime({})
 })),
   "nextCursor": zod.string().nullish()

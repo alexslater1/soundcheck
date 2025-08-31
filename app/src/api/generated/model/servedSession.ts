@@ -12,9 +12,9 @@ export interface ServedSession {
   configId: string;
   configVersion?: ServedSessionConfigVersion;
   entries: ServedEntry[];
-  items: number;
   negatives: number;
   positives: number;
   sessionId: string;
+  shown: number;
   startedAt: string;
 }

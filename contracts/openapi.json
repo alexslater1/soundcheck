@@ -2647,10 +2647,6 @@
             },
             "type" : "array"
           },
-          "items" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
           "negatives" : {
             "format" : "int32",
             "type" : "integer"
@@ -2663,12 +2659,16 @@
             "format" : "uuid",
             "type" : "string"
           },
+          "shown" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
           "startedAt" : {
             "format" : "date-time",
             "type" : "string"
           }
         },
-        "required" : [ "configId", "entries", "items", "negatives", "positives", "sessionId", "startedAt" ],
+        "required" : [ "configId", "entries", "negatives", "positives", "sessionId", "shown", "startedAt" ],
         "type" : "object"
       },
       "Setlist" : {

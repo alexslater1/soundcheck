@@ -141,7 +141,7 @@ class FeedInspectorIT extends IntegrationTest {
         JsonNode top = first.path("items").get(0);
         assertThat(top.path("sessionId").asText("")).isEqualTo(newest);
         assertThat(top.path("configVersion").asInt()).isEqualTo(1);
-        assertThat(top.path("items").asInt()).isEqualTo(3);
+        assertThat(top.path("shown").asInt()).isEqualTo(3);
         assertThat(top.path("positives").asInt()).isEqualTo(1);
         JsonNode entry = top.path("entries").get(0);
         assertThat(entry.path("position").asInt()).isEqualTo(1);
