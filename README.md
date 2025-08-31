@@ -2,7 +2,7 @@
 
 Discover live music near you, share concert clips, and get a feed that learns what you care about.
 
-> **Status (2025-06-14):** the core is built and verified against the local stack, and demo data and polish are in progress: two rounds of phone feedback, gig stats and the act bar, London venues read from their own websites, the engagement bootstrap and the security pass are done; demo seeding is built and part-run (it stopped when LocalStack ran out of file handles). The stats, the act bar and the new icon have not run on Android yet (new native modules: `make android`). Web screenshots are in `docs/screens/web/`; measured numbers and the live URL come later.
+> **Status (2025-08-31):** the core is built and verified against the local stack: five rounds of phone feedback on a Pixel, the Android smoke checklist passed on a release APK (`make apk`), 8 web journeys in CI, push notifications through Firebase. Open: the from-empty seeding run, which moves to the new AWS database. Measured performance numbers, the admin console and ranking lab (in progress) and the AWS deployment with a live URL come next.
 
 Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Native client, S3 video storage), built to scale.
 
@@ -17,11 +17,24 @@ Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Nativ
 ## What it does today
 - **Gigs** — real UK gigs from Ticketmaster (a year ahead) plus 21 grassroots London venues read from their own what's-on pages (on in the local profile only, off by default elsewhere), enriched from MusicBrainz and Last.fm and matched across sources so one show stays one gig; fans add the gigs no source lists, including past ones found on setlist.fm. A calendar with ranked artist and venue suggestions, several picks at once, near home / UK-wide / another city, saved searches; gig pages with a bar of the bill's acts, each with its own setlist and clips.
 - **Clips** — record or pick, upload straight to S3 in resumable parts (compressed only on mobile data), transcoded by FFmpeg workers into an HLS ladder, played adaptively on Android and the web.
-- **Social** — posts tagged with the gig and acts, likes, comments, follows, blocks, an Activity inbox driven by domain events, account deletion with a 7-day purge.
+- **Social** — posts tagged with the gig and acts, likes, comments, follows, blocks, an Activity inbox driven by domain events and pushed to the phone through Firebase Cloud Messaging (Android; off until a Firebase project is set up), account deletion with a 7-day purge.
 - **For You** — candidates from seven SQL generators, twelve features, a logistic score with “Why this post?” reasons, diversity re-ranking and exploration, sessions, and a serve-time feature log for the Python lab.
 - **Your stats** — the acts you have seen most and the venues you go back to, counted from the gigs you marked Went (support acts included); private until you share them.
 - **Demo data** — `make seed-demo` seeds 30 personas, a demo fan with the owner's real gig history and own concert clips (local only, never committed) and a scripted engagement pass, all through the public API and safe to re-run.
 - **Security basics** — rate limits on sign-in, uploads, events and every signed-in user (300 requests a minute), Problem Details errors that carry a `traceId` and nothing internal, uploaded images served without their EXIF/GPS, CORS only for the local origins.
+
+## Screenshots
+Real screens with synthetic accounts and clips (`make clips`), dark mode; Ticketmaster's artist photos are masked. Provenance (date, commit, how they were taken) is in `docs/screens/web/README.md` and `docs/screens/android/README.md`.
+
+| Android (on a Pixel) | | | |
+|---|---|---|---|
+| <img src="docs/screens/android/10-feed-following.png" width="190" alt="Following feed: a two-clip post"> | <img src="docs/screens/android/12-gigs-cards.png" width="190" alt="Gig cards with distances"> | <img src="docs/screens/android/14-create-progress.png" width="190" alt="Create: a clip uploading, 72%"> | <img src="docs/screens/android/15-me-processing.png" width="190" alt="Own grid: Processing…"> |
+| Following: a post of two clips | Gigs near home, distances | Create: uploading while you write | Your grid: Processing… |
+
+| Web | | | |
+|---|---|---|---|
+| <img src="docs/screens/web/11-gigs-near-home.png" width="190" alt="Gigs calendar"> | <img src="docs/screens/web/16-gigs-status-badge.png" width="190" alt="A cancelled gig's badge"> | <img src="docs/screens/web/13-profile-grid.png" width="190" alt="A profile grid"> | <img src="docs/screens/web/05-me-stats.png" width="190" alt="Your stats"> |
+| Gigs: the calendar with counts | A real cancelled gig's badge | Someone's profile | Your stats: acts and venues |
 
 ## Architecture
 One Spring Boot jar in three process roles (`api`, `scheduler`, `worker`) as a modular monolith (Spring Modulith: eleven modules, boundaries checked by a test), one PostgreSQL + PostGIS database, S3 for media, SQS for transcode jobs, and an Expo app for Android and the web. The deployed shape:
@@ -51,6 +64,7 @@ flowchart TB
     enrich[MusicBrainz · Last.fm]
     sfm[setlist.fm]
   end
+  fcm[Firebase Cloud<br/>Messaging]
 
   android & web -->|HTTPS| cf
   cf -->|/*| s3web
@@ -69,6 +83,8 @@ flowchart TB
   api -->|polite fetch: robots.txt,<br/>≥ 5 s per host, conditional GET| venues
   api -->|artist enrichment| enrich
   api -->|live setlist lookups<br/>1 h cache, nothing stored in bulk| sfm
+  api & worker -->|push: likes, comments,<br/>follows, clip ready| fcm
+  fcm -.->|notification| android
 ```
 
 Ingestion (Ticketmaster, the venue sites, enrichment) runs in the `scheduler` role, which shares the API service; setlists are looked up when a past gig's page is opened, and the venue sites are read under a compliance gate. Locally the same shape runs in Docker Compose: **Caddy** plays CloudFront (the same path routing on `localhost:8088`, and the security headers CloudFront will add), **LocalStack** plays S3 and SQS, **PostGIS** plays RDS, and **Grafana LGTM** collects the OpenTelemetry traces and metrics. AWS is not deployed yet, and the lab's train/publish loop is still to come.
