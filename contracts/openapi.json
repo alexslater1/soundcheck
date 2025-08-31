@@ -421,6 +421,91 @@
         "required" : [ "status" ],
         "type" : "object"
       },
+      "ConfigRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/Params",
+            "type" : "null"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "object", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "ConfigView" : {
+        "properties" : {
+          "activatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "activatedBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "activatedByHandle" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "createdByHandle" : {
+            "type" : [ "string", "null" ]
+          },
+          "featureSchemaVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "metrics" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/Params"
+          },
+          "source" : {
+            "enum" : [ "SEED", "MANUAL", "LAB" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "DRAFT", "ACTIVE", "ARCHIVED" ],
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "createdAt", "featureSchemaVersion", "id", "params", "source", "status", "version", "weights" ],
+        "type" : "object"
+      },
       "Contribution" : {
         "properties" : {
           "contribution" : {
@@ -462,6 +547,35 @@
           }
         },
         "required" : [ "artists", "followers", "following", "posts" ],
+        "type" : "object"
+      },
+      "CreateConfigRequest" : {
+        "properties" : {
+          "metrics" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/Params"
+          },
+          "source" : {
+            "enum" : [ "MANUAL", "LAB" ],
+            "type" : [ "string", "null" ]
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "params", "weights" ],
         "type" : "object"
       },
       "CreatePostRequest" : {
@@ -1189,6 +1303,50 @@
         "required" : [ "items", "unreadCount" ],
         "type" : "object"
       },
+      "Item" : {
+        "properties" : {
+          "bias" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "contributions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Contribution"
+            },
+            "type" : "array"
+          },
+          "exploration" : {
+            "type" : "boolean"
+          },
+          "logit" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "otherRank" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/PostCard"
+          },
+          "rank" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "sources" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "bias", "contributions", "exploration", "logit", "post", "rank", "score", "sources" ],
+        "type" : "object"
+      },
       "LikeState" : {
         "properties" : {
           "likeCount" : {
@@ -1200,6 +1358,26 @@
           }
         },
         "required" : [ "likeCount", "likedByMe" ],
+        "type" : "object"
+      },
+      "ListView" : {
+        "properties" : {
+          "configId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Item"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "configVersion", "items" ],
         "type" : "object"
       },
       "LoginRequest" : {
@@ -1566,6 +1744,55 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "Params" : {
+        "properties" : {
+          "authorCapPerSession" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "candidateCaps" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "diversityLambda" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "explorationRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "halfLifeHours" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "localRadiusKm" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "priorStrength" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "seenWindowDays" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sessionSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "authorCapPerSession", "candidateCaps", "diversityLambda", "explorationRate", "halfLifeHours", "localRadiusKm", "pageSize", "priorStrength", "seenWindowDays", "sessionSize" ],
+        "type" : "object"
+      },
       "PartRequest" : {
         "properties" : {
           "etag" : {
@@ -1740,6 +1967,28 @@
         "required" : [ "status" ],
         "type" : "object"
       },
+      "PositionEngagement" : {
+        "properties" : {
+          "items" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positives" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "rate" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          }
+        },
+        "required" : [ "items", "position", "positives" ],
+        "type" : "object"
+      },
       "Post" : {
         "properties" : {
           "artists" : {
@@ -1812,6 +2061,42 @@
         "required" : [ "artists", "author", "clipCount", "clips", "commentCount", "id", "likeCount", "likedByMe", "playback", "status", "withUsers" ],
         "type" : "object"
       },
+      "PostCard" : {
+        "properties" : {
+          "artists" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "authorHandle" : {
+            "type" : "string"
+          },
+          "authorId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "caption" : {
+            "type" : [ "string", "null" ]
+          },
+          "gigTitle" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "publishedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "thumbUrl" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "artists", "authorHandle", "authorId", "id" ],
+        "type" : "object"
+      },
       "PostClip" : {
         "properties" : {
           "act" : {
@@ -1844,6 +2129,65 @@
           }
         },
         "required" : [ "id", "owner", "playback", "position", "status" ],
+        "type" : "object"
+      },
+      "Preview" : {
+        "properties" : {
+          "a" : {
+            "$ref" : "#/components/schemas/ListView"
+          },
+          "b" : {
+            "$ref" : "#/components/schemas/ListView",
+            "type" : "null"
+          },
+          "candidates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "commonItems" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "kendallTau" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "overlapAt10" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "seed" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "a", "candidates", "commonItems" ],
+        "type" : "object"
+      },
+      "PreviewRequest" : {
+        "properties" : {
+          "configA" : {
+            "$ref" : "#/components/schemas/ConfigRef"
+          },
+          "configB" : {
+            "$ref" : "#/components/schemas/ConfigRef",
+            "type" : "null"
+          },
+          "exploration" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "limit" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : [ "integer", "null" ]
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "configA", "userId" ],
         "type" : "object"
       },
       "ProfileResponse" : {
@@ -1978,6 +2322,26 @@
         "required" : [ "displayName", "email", "handle", "password" ],
         "type" : "object"
       },
+      "ReplayRequest" : {
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/ConfigRef"
+          },
+          "explorationOnly" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "config", "from", "to" ],
+        "type" : "object"
+      },
       "ReportRequest" : {
         "properties" : {
           "details" : {
@@ -1993,6 +2357,72 @@
           }
         },
         "required" : [ "reason" ],
+        "type" : "object"
+      },
+      "Result" : {
+        "properties" : {
+          "auc" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "byPosition" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PositionEngagement"
+            },
+            "type" : "array"
+          },
+          "configId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "explorationOnly" : {
+            "type" : "boolean"
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "logLoss" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "ndcgAt10" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "positives" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "rows" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sampleFraction" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "sampled" : {
+            "type" : "boolean"
+          },
+          "sessions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sessionsWithPositive" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "byPosition", "configVersion", "explorationOnly", "from", "positives", "rows", "sampleFraction", "sampled", "sessions", "sessionsWithPositive", "to" ],
         "type" : "object"
       },
       "SaveGigFilterRequest" : {
@@ -2324,6 +2754,27 @@
         "required" : [ "unreadCount" ],
         "type" : "object"
       },
+      "UpdateConfigRequest" : {
+        "properties" : {
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/Params",
+            "type" : "null"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "object", "null" ]
+          }
+        },
+        "type" : "object"
+      },
       "UpdateMeRequest" : {
         "properties" : {
           "avatarMediaId" : {
@@ -2510,6 +2961,205 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/admin/ranking/configs" : {
+      "get" : {
+        "operationId" : "adminListRankingConfigs",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/ConfigView"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Every ranking config, newest first",
+        "tags" : [ "admin-ranking" ]
+      },
+      "post" : {
+        "operationId" : "adminCreateRankingConfig",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/CreateConfigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Save a DRAFT (validated as for activation); 400 RANKING_CONFIG_INVALID lists every broken rule",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/configs/{id}" : {
+      "get" : {
+        "operationId" : "adminGetRankingConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One ranking config",
+        "tags" : [ "admin-ranking" ]
+      },
+      "patch" : {
+        "operationId" : "adminUpdateRankingConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/UpdateConfigRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Edit a DRAFT; 409 CONFIG_NOT_DRAFT for an ACTIVE or ARCHIVED one",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/configs/{id}/activate" : {
+      "post" : {
+        "operationId" : "adminActivateRankingConfig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/ConfigView"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Make a DRAFT, or an ARCHIVED config (the rollback), the active one; new feed sessions use it. 409 CONFIG_ALREADY_ACTIVE",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/preview" : {
+      "post" : {
+        "operationId" : "adminPreviewRanking",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Preview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's feed under two configs, side by side, with overlap@10 and Kendall's τ; writes nothing",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/ranking/replay" : {
+      "post" : {
+        "operationId" : "adminReplayRanking",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReplayRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Result"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Re-score what was served in a window (at most 14 days) with a config: AUC, log-loss, NDCG@10, engagement by position. Biased towards the config that served it. 422 FEATURE_SCHEMA_MISMATCH",
+        "tags" : [ "admin-ranking" ]
+      }
+    },
     "/api/v1/admin/users" : {
       "get" : {
         "operationId" : "adminListUsers",
@@ -6183,6 +6833,9 @@
   }, {
     "description" : "Service health",
     "name" : "health"
+  }, {
+    "description" : "Console: ranking configs, preview and replay (operators only)",
+    "name" : "admin-ranking"
   }, {
     "description" : "Console: find accounts (operators only)",
     "name" : "admin-users"
