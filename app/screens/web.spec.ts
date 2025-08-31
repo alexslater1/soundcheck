@@ -169,3 +169,94 @@ test('web screenshots', async ({ browser, request }) => {
     }
   }
 });
+
+/**
+ * A real gig's status badge (the nearest upcoming cancelled, postponed or
+ * rescheduled Ticketmaster gig within 25 km of home: real data, as Ticketmaster reports it), the focus
+ * ring on the sign-in form, and the offline banner. Run alone with `make screens ARGS="-g statuses"`.
+ */
+test('web screenshots: statuses, focus, offline', async ({ browser, request }) => {
+  const fan = await register(request, 'shots_jo', 'Jo Hart');
+  try {
+    // The nearest gig whose status is not SCHEDULED, from the API the Gigs tab itself uses.
+    const from = new Date().toISOString();
+    let odd: { startsAt: string; status: string; title: string } | undefined;
+    let cursor: string | undefined;
+    for (let page = 0; page < 10 && !odd; page++) {
+      const params = new URLSearchParams({
+        lat: '53.48095',
+        lng: '-2.23743',
+        radiusKm: '25',
+        from,
+        limit: '50',
+        ...(cursor ? { cursor } : {}),
+      });
+      const body = await (
+        await request.get(`/api/v1/gigs?${params}`, { headers: fan.auth })
+      ).json();
+      odd = body.items.find((gig: { status: string }) => gig.status !== 'SCHEDULED');
+      cursor = body.nextCursor ?? undefined;
+      if (!cursor) break;
+    }
+    expect(odd, 'an upcoming cancelled/postponed/rescheduled gig near Manchester').toBeDefined();
+    const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/London' }).format(
+      new Date(odd!.startsAt),
+    );
+
+    const context = await browser.newContext();
+    const page = await context.newPage();
+    await signIn(page, fan);
+    await page.getByRole('tab', { name: /Gigs$/ }).click();
+    await expect(page.getByTestId('gig-list')).toBeVisible();
+    const notNow = page.getByRole('button', { name: 'Not now' });
+    if (await notNow.isVisible()) {
+      await notNow.click();
+    }
+    // Move the calendar to the gig's month, then pick its day: the list narrows to that day.
+    for (let i = 0; i < 12 && !(await page.getByTestId(`day-${day}`).last().isVisible()); i++) {
+      await page.getByRole('button', { name: 'Next month' }).last().click();
+    }
+    await page.getByTestId(`day-${day}`).last().click();
+    const card = page.getByTestId('gig-card').filter({ hasText: odd!.title }).first();
+    await card.scrollIntoViewIfNeeded();
+    await expect(card).toBeVisible();
+    await page.waitForTimeout(800);
+    await page.screenshot({
+      path: resolve(OUT, '16-gigs-status-badge.png'),
+      mask: [page.getByTestId('gig-card').locator('img')],
+      maskColor: '#3B2A63',
+      // Above the tab bar: a mask over a half-hidden card would cover it (as in 12).
+      clip: { x: 0, y: 0, width: 412, height: 820 },
+    });
+
+    // Offline, on the Gigs tab (For You shows the seed's clips, which stay out of the repo): the banner,
+    // then gone again when the network is back.
+    await page.getByTestId('gig-list').evaluate((el) => el.scrollTo(0, 0));
+    await context.setOffline(true);
+    await expect(page.getByTestId('offline-banner').last()).toBeVisible();
+    await page.waitForTimeout(500);
+    await page.screenshot({
+      path: resolve(OUT, '18-offline-banner.png'),
+      mask: [page.getByTestId('gig-card').locator('img')],
+      maskColor: '#3B2A63',
+      clip: { x: 0, y: 0, width: 412, height: 820 },
+    });
+    await context.setOffline(false);
+    await expect(page.getByTestId('offline-banner')).toHaveCount(0, { timeout: 30_000 });
+    await context.close();
+
+    // Keyboard focus on the sign-in form: Tab from the page into Email, then Password.
+    const signedOut = await browser.newContext();
+    const form = await signedOut.newPage();
+    await form.goto('/');
+    await expect(form.getByLabel('Email').last()).toBeVisible();
+    await form.getByLabel('Email').last().fill(fan.email);
+    await form.getByLabel('Email').last().focus();
+    await form.keyboard.press('Tab');
+    await expect(form.getByLabel('Password').last()).toBeFocused();
+    await shot(form, '17-focus-outline.png');
+    await signedOut.close();
+  } finally {
+    await request.delete('/api/v1/me', { headers: fan.auth, data: { password: PASSWORD } });
+  }
+});

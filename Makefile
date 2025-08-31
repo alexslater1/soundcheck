@@ -207,7 +207,7 @@ screens: ## Web screenshots for docs/screens/web (synthetic clips; needs `make d
 	curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make dev'"; exit 1; }
 	cd $(CURDIR)/app
 	status=0
-	npx playwright test --config screens.config.ts || status=$$?
+	npx playwright test --config screens.config.ts $(ARGS) || status=$$?
 	$(CURDIR)/ops/scripts/prune-test-posts.sh --apply || true
 	exit $$status
 

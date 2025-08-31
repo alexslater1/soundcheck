@@ -29,4 +29,12 @@ Data is synthetic only: the Ticketmaster-shaped fixtures (`make ingest INGESTION
 | `14-create-progress.png` | Create: a picked clip uploading ("Uploading 0%"), its act and song fields |
 | `15-me-processing.png` | Your own grid right after posting: the new post shows Processing… until the worker is done. The "2 Posts" count leaves it out until it is published |
 
+`16`–`18` were captured 2025-08-31 18:29 BST by `make screens ARGS='-g statuses'` (the second test in `app/screens/web.spec.ts`), same window, from `main` at `a341d51` on the local stack (API and worker from `make api`/`make worker`, the web from an Expo dev server started for the run). One invented account ("Jo Hart", deleted at the end). The gig with a badge is real: the test asks the API for the nearest upcoming gig near Manchester whose Ticketmaster status is not "scheduled", and shows its day. Photos masked as in `12`.
+
+| File | Shows |
+|---|---|
+| `16-gigs-status-badge.png` | One day's gigs (Sat 10 Oct 2026) with a cancelled one: its CANCELLED badge, as Ticketmaster reports it (Rockin'1000, AO Arena) |
+| `17-focus-outline.png` | The sign-in form after Tab: the focus ring on Password (keyboard use) |
+| `18-offline-banner.png` | Gigs with the network cut (`context.setOffline`): "No connection. You are seeing what was already loaded." It goes again when the network is back (the test waits for that) |
+
 The Android counterparts of `10`–`15` are in `docs/screens/android/` (2025-08-30, a Pixel).
