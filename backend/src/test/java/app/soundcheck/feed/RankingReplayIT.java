@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,8 +26,8 @@ import org.springframework.http.ResponseEntity;
 
 /**
  * Replay re-scores the served items of a window from their logged features and compares the
- * scores with the outcomes ({@code feed.served_outcome}). The rows are written by hand in an hour two to
- * five days ahead (its partitions exist; nothing else writes there), with only {@code recency} set, so each
+ * scores with the outcomes ({@code feed.served_outcome}). The rows are written by hand in an hour of
+ * its own two days ahead (its partitions exist; nothing else writes there), with only {@code recency} set, so each
  * config's score order is the recency order and every number can be worked out on paper.
  */
 class RankingReplayIT extends IntegrationTest {
@@ -41,18 +41,20 @@ class RankingReplayIT extends IntegrationTest {
     @Autowired
     DSLContext dsl;
 
+    /** The first test window; each test takes the next free two hours after it. */
+    static final Instant WINDOWS_START = Instant.now().plus(Duration.ofDays(2)).truncatedTo(ChronoUnit.HOURS);
+
+    static final AtomicInteger WINDOW = new AtomicInteger();
+
     TestApi api;
     Instant from;
 
     @BeforeEach
     void setUp() {
         api = new TestApi(rest);
-        // A fresh hour per test, two to five days ahead (partitions exist seven days ahead), so tests don't see each
-        // other's rows.
-        from = Instant.now()
-                .plus(Duration.ofDays(2))
-                .truncatedTo(ChronoUnit.HOURS)
-                .plus(Duration.ofMinutes(ThreadLocalRandom.current().nextInt(0, 3 * 24 * 60)));
+        // An hour of its own per test, two days ahead (partitions exist seven days ahead), so tests never see each
+        // other's rows. Random hours could overlap (they did once in CI: 14 rows instead of 7); a counter can't.
+        from = WINDOWS_START.plus(Duration.ofHours(2L * WINDOW.getAndIncrement()));
     }
 
     /**
