@@ -66,6 +66,7 @@ public class RankingReplay {
      *                              deterministic share of its sessions was replayed
      * @param sampleFraction        the share of sessions kept (1 when not sampled)
      */
+    @Schema(name = "RankingReplayResult")
     public record Result(
             @Schema(nullable = true) UUID configId,
             int configVersion,
@@ -84,6 +85,7 @@ public class RankingReplay {
             double sampleFraction) {}
 
     /** Of the items the replayed config put at this position (1 = top) of their session, how many were positive. */
+    @Schema(name = "ReplayPositionEngagement")
     public record PositionEngagement(int position, long items, long positives, @Schema(nullable = true) Double rate) {}
 
     private final DSLContext dsl;

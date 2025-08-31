@@ -43,6 +43,7 @@ public class AdminRankingConfigs {
      * One stored config as the console shows it. {@code weights} and {@code params} are as stored;
      * {@code metrics} are what the lab measured offline (LAB drafts), or null.
      */
+    @Schema(name = "RankingConfigView")
     public record ConfigView(
             UUID id,
             int version,

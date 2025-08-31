@@ -52,6 +52,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminRankingController {
 
     /** A new draft. {@code source}: MANUAL from the console, LAB from the lab's publish (with its metrics). */
+    @Schema(name = "CreateRankingConfigRequest")
     public record CreateConfigRequest(
             @NotNull Map<String, Double> weights,
             @NotNull RankingConfig.Params params,
@@ -63,12 +64,14 @@ public class AdminRankingController {
             @Schema(nullable = true) @Size(max = 2000) String notes) {}
 
     /** A draft's changes; a part left out stays as it is. */
+    @Schema(name = "UpdateRankingConfigRequest")
     public record UpdateConfigRequest(
             @Schema(nullable = true) Map<String, Double> weights,
             @Schema(nullable = true) RankingConfig.Params params,
             @Schema(nullable = true) @Size(max = 2000) String notes) {}
 
     /** A config by {@code id}, or inline ({@code weights} and {@code params}) as the sliders have it. */
+    @Schema(name = "RankingConfigRef")
     public record ConfigRef(
             @Schema(nullable = true) UUID id,
             @Schema(nullable = true) Map<String, Double> weights,
@@ -79,6 +82,7 @@ public class AdminRankingController {
      *
      * @param exploration off by default, so a weight change isn't mixed up with random injection
      */
+    @Schema(name = "RankingPreviewRequest")
     public record PreviewRequest(
             @NotNull UUID userId,
             @NotNull @Valid ConfigRef configA,
@@ -87,6 +91,7 @@ public class AdminRankingController {
             @Schema(nullable = true) Boolean exploration) {}
 
     /** Replay a config over the items served in [{@code from}, {@code to}), at most 14 days. */
+    @Schema(name = "RankingReplayRequest")
     public record ReplayRequest(
             @NotNull @Valid ConfigRef config,
             @NotNull Instant from,

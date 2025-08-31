@@ -249,7 +249,7 @@ class AdminRankingIT extends IntegrationTest {
         JsonNode top = preview.path("a").path("items").get(0);
         assertThat(top.path("rank").asInt()).isEqualTo(1);
         assertThat(top.path("otherRank").asInt()).isEqualTo(1);
-        assertThat(top.path("post").path("authorHandle").asText("")).isNotBlank();
+        assertThat(top.path("post").path("author").path("handle").asText("")).isNotBlank();
         assertThat(top.path("contributions").size()).isEqualTo(12);
         // The waterfall adds up: bias + Σ contributions = logit, σ(logit) = score.
         double logit = top.path("bias").asDouble();

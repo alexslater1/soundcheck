@@ -421,91 +421,6 @@
         "required" : [ "status" ],
         "type" : "object"
       },
-      "ConfigRef" : {
-        "properties" : {
-          "id" : {
-            "format" : "uuid",
-            "type" : [ "string", "null" ]
-          },
-          "params" : {
-            "$ref" : "#/components/schemas/Params",
-            "type" : "null"
-          },
-          "weights" : {
-            "additionalProperties" : {
-              "format" : "double",
-              "type" : "number"
-            },
-            "type" : [ "object", "null" ]
-          }
-        },
-        "type" : "object"
-      },
-      "ConfigView" : {
-        "properties" : {
-          "activatedAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "activatedBy" : {
-            "format" : "uuid",
-            "type" : [ "string", "null" ]
-          },
-          "activatedByHandle" : {
-            "type" : [ "string", "null" ]
-          },
-          "createdAt" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "createdBy" : {
-            "format" : "uuid",
-            "type" : [ "string", "null" ]
-          },
-          "createdByHandle" : {
-            "type" : [ "string", "null" ]
-          },
-          "featureSchemaVersion" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "id" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "metrics" : {
-            "additionalProperties" : { },
-            "type" : [ "object", "null" ]
-          },
-          "notes" : {
-            "type" : [ "string", "null" ]
-          },
-          "params" : {
-            "$ref" : "#/components/schemas/Params"
-          },
-          "source" : {
-            "enum" : [ "SEED", "MANUAL", "LAB" ],
-            "type" : "string"
-          },
-          "status" : {
-            "enum" : [ "DRAFT", "ACTIVE", "ARCHIVED" ],
-            "type" : "string"
-          },
-          "version" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "weights" : {
-            "additionalProperties" : {
-              "format" : "double",
-              "type" : "number"
-            },
-            "type" : "object"
-          }
-        },
-        "required" : [ "createdAt", "featureSchemaVersion", "id", "params", "source", "status", "version", "weights" ],
-        "type" : "object"
-      },
       "Contribution" : {
         "properties" : {
           "contribution" : {
@@ -547,35 +462,6 @@
           }
         },
         "required" : [ "artists", "followers", "following", "posts" ],
-        "type" : "object"
-      },
-      "CreateConfigRequest" : {
-        "properties" : {
-          "metrics" : {
-            "additionalProperties" : { },
-            "type" : [ "object", "null" ]
-          },
-          "notes" : {
-            "maxLength" : 2000,
-            "minLength" : 0,
-            "type" : [ "string", "null" ]
-          },
-          "params" : {
-            "$ref" : "#/components/schemas/Params"
-          },
-          "source" : {
-            "enum" : [ "MANUAL", "LAB" ],
-            "type" : [ "string", "null" ]
-          },
-          "weights" : {
-            "additionalProperties" : {
-              "format" : "double",
-              "type" : "number"
-            },
-            "type" : "object"
-          }
-        },
-        "required" : [ "params", "weights" ],
         "type" : "object"
       },
       "CreatePostRequest" : {
@@ -623,6 +509,35 @@
           }
         },
         "required" : [ "clips" ],
+        "type" : "object"
+      },
+      "CreateRankingConfigRequest" : {
+        "properties" : {
+          "metrics" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams"
+          },
+          "source" : {
+            "enum" : [ "MANUAL", "LAB" ],
+            "type" : [ "string", "null" ]
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "params", "weights" ],
         "type" : "object"
       },
       "CreateUploadRequest" : {
@@ -835,6 +750,51 @@
         "required" : [ "events" ],
         "type" : "object"
       },
+      "FeedAffinity" : {
+        "properties" : {
+          "followed" : {
+            "type" : "boolean"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "followed", "id", "name", "score" ],
+        "type" : "object"
+      },
+      "FeedGenreWeight" : {
+        "properties" : {
+          "chosen" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "engaged" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "id" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "weight" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "chosen", "engaged", "id", "name", "weight" ],
+        "type" : "object"
+      },
       "FeedItem" : {
         "properties" : {
           "debug" : {
@@ -856,6 +816,41 @@
           }
         },
         "required" : [ "position", "post", "reasons" ],
+        "type" : "object"
+      },
+      "FeedProfile" : {
+        "properties" : {
+          "artists" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedAffinity"
+            },
+            "type" : "array"
+          },
+          "authors" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedAffinity"
+            },
+            "type" : "array"
+          },
+          "followedArtistCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "followingCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "genres" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FeedGenreWeight"
+            },
+            "type" : "array"
+          },
+          "user" : {
+            "$ref" : "#/components/schemas/UserSummary"
+          }
+        },
+        "required" : [ "artists", "authors", "followedArtistCount", "followingCount", "genres", "user" ],
         "type" : "object"
       },
       "FillClipRequest" : {
@@ -1303,50 +1298,6 @@
         "required" : [ "items", "unreadCount" ],
         "type" : "object"
       },
-      "Item" : {
-        "properties" : {
-          "bias" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "contributions" : {
-            "items" : {
-              "$ref" : "#/components/schemas/Contribution"
-            },
-            "type" : "array"
-          },
-          "exploration" : {
-            "type" : "boolean"
-          },
-          "logit" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "otherRank" : {
-            "format" : "int32",
-            "type" : [ "integer", "null" ]
-          },
-          "post" : {
-            "$ref" : "#/components/schemas/PostCard"
-          },
-          "rank" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "score" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "sources" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          }
-        },
-        "required" : [ "bias", "contributions", "exploration", "logit", "post", "rank", "score", "sources" ],
-        "type" : "object"
-      },
       "LikeState" : {
         "properties" : {
           "likeCount" : {
@@ -1358,26 +1309,6 @@
           }
         },
         "required" : [ "likeCount", "likedByMe" ],
-        "type" : "object"
-      },
-      "ListView" : {
-        "properties" : {
-          "configId" : {
-            "format" : "uuid",
-            "type" : [ "string", "null" ]
-          },
-          "configVersion" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "items" : {
-            "items" : {
-              "$ref" : "#/components/schemas/Item"
-            },
-            "type" : "array"
-          }
-        },
-        "required" : [ "configVersion", "items" ],
         "type" : "object"
       },
       "LoginRequest" : {
@@ -1729,6 +1660,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "PageServedSession" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ServedSession"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PageUserSummary" : {
         "properties" : {
           "items" : {
@@ -1742,55 +1688,6 @@
           }
         },
         "required" : [ "items" ],
-        "type" : "object"
-      },
-      "Params" : {
-        "properties" : {
-          "authorCapPerSession" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "candidateCaps" : {
-            "additionalProperties" : {
-              "format" : "int32",
-              "type" : "integer"
-            },
-            "type" : "object"
-          },
-          "diversityLambda" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "explorationRate" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "halfLifeHours" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "localRadiusKm" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "pageSize" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "priorStrength" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "seenWindowDays" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "sessionSize" : {
-            "format" : "int32",
-            "type" : "integer"
-          }
-        },
-        "required" : [ "authorCapPerSession", "candidateCaps", "diversityLambda", "explorationRate", "halfLifeHours", "localRadiusKm", "pageSize", "priorStrength", "seenWindowDays", "sessionSize" ],
         "type" : "object"
       },
       "PartRequest" : {
@@ -1967,28 +1864,6 @@
         "required" : [ "status" ],
         "type" : "object"
       },
-      "PositionEngagement" : {
-        "properties" : {
-          "items" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "position" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "positives" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "rate" : {
-            "format" : "double",
-            "type" : [ "number", "null" ]
-          }
-        },
-        "required" : [ "items", "position", "positives" ],
-        "type" : "object"
-      },
       "Post" : {
         "properties" : {
           "artists" : {
@@ -2061,42 +1936,6 @@
         "required" : [ "artists", "author", "clipCount", "clips", "commentCount", "id", "likeCount", "likedByMe", "playback", "status", "withUsers" ],
         "type" : "object"
       },
-      "PostCard" : {
-        "properties" : {
-          "artists" : {
-            "items" : {
-              "type" : "string"
-            },
-            "type" : "array"
-          },
-          "authorHandle" : {
-            "type" : "string"
-          },
-          "authorId" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "caption" : {
-            "type" : [ "string", "null" ]
-          },
-          "gigTitle" : {
-            "type" : [ "string", "null" ]
-          },
-          "id" : {
-            "format" : "uuid",
-            "type" : "string"
-          },
-          "publishedAt" : {
-            "format" : "date-time",
-            "type" : [ "string", "null" ]
-          },
-          "thumbUrl" : {
-            "type" : [ "string", "null" ]
-          }
-        },
-        "required" : [ "artists", "authorHandle", "authorId", "id" ],
-        "type" : "object"
-      },
       "PostClip" : {
         "properties" : {
           "act" : {
@@ -2129,65 +1968,6 @@
           }
         },
         "required" : [ "id", "owner", "playback", "position", "status" ],
-        "type" : "object"
-      },
-      "Preview" : {
-        "properties" : {
-          "a" : {
-            "$ref" : "#/components/schemas/ListView"
-          },
-          "b" : {
-            "$ref" : "#/components/schemas/ListView",
-            "type" : "null"
-          },
-          "candidates" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "commonItems" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "kendallTau" : {
-            "format" : "double",
-            "type" : [ "number", "null" ]
-          },
-          "overlapAt10" : {
-            "format" : "double",
-            "type" : [ "number", "null" ]
-          },
-          "seed" : {
-            "format" : "int64",
-            "type" : [ "integer", "null" ]
-          }
-        },
-        "required" : [ "a", "candidates", "commonItems" ],
-        "type" : "object"
-      },
-      "PreviewRequest" : {
-        "properties" : {
-          "configA" : {
-            "$ref" : "#/components/schemas/ConfigRef"
-          },
-          "configB" : {
-            "$ref" : "#/components/schemas/ConfigRef",
-            "type" : "null"
-          },
-          "exploration" : {
-            "type" : [ "boolean", "null" ]
-          },
-          "limit" : {
-            "format" : "int32",
-            "maximum" : 50,
-            "minimum" : 1,
-            "type" : [ "integer", "null" ]
-          },
-          "userId" : {
-            "format" : "uuid",
-            "type" : "string"
-          }
-        },
-        "required" : [ "configA", "userId" ],
         "type" : "object"
       },
       "ProfileResponse" : {
@@ -2262,6 +2042,349 @@
         "required" : [ "platform", "token" ],
         "type" : "object"
       },
+      "RankingConfigRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams",
+            "type" : "null"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "object", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "RankingConfigView" : {
+        "properties" : {
+          "activatedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "activatedBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "activatedByHandle" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "createdBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "createdByHandle" : {
+            "type" : [ "string", "null" ]
+          },
+          "featureSchemaVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "metrics" : {
+            "additionalProperties" : { },
+            "type" : [ "object", "null" ]
+          },
+          "notes" : {
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams"
+          },
+          "source" : {
+            "enum" : [ "SEED", "MANUAL", "LAB" ],
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "DRAFT", "ACTIVE", "ARCHIVED" ],
+            "type" : "string"
+          },
+          "version" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : "object"
+          }
+        },
+        "required" : [ "createdAt", "featureSchemaVersion", "id", "params", "source", "status", "version", "weights" ],
+        "type" : "object"
+      },
+      "RankingParams" : {
+        "properties" : {
+          "authorCapPerSession" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "candidateCaps" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "diversityLambda" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "explorationRate" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "halfLifeHours" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "localRadiusKm" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "pageSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "priorStrength" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "seenWindowDays" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sessionSize" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "authorCapPerSession", "candidateCaps", "diversityLambda", "explorationRate", "halfLifeHours", "localRadiusKm", "pageSize", "priorStrength", "seenWindowDays", "sessionSize" ],
+        "type" : "object"
+      },
+      "RankingPreview" : {
+        "properties" : {
+          "a" : {
+            "$ref" : "#/components/schemas/RankingPreviewList"
+          },
+          "b" : {
+            "$ref" : "#/components/schemas/RankingPreviewList",
+            "type" : "null"
+          },
+          "candidates" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "commonItems" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "kendallTau" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "overlapAt10" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "seed" : {
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          }
+        },
+        "required" : [ "a", "candidates", "commonItems" ],
+        "type" : "object"
+      },
+      "RankingPreviewItem" : {
+        "properties" : {
+          "bias" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "contributions" : {
+            "items" : {
+              "$ref" : "#/components/schemas/Contribution"
+            },
+            "type" : "array"
+          },
+          "exploration" : {
+            "type" : "boolean"
+          },
+          "logit" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "otherRank" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/Post"
+          },
+          "rank" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "sources" : {
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "bias", "contributions", "exploration", "logit", "post", "rank", "score", "sources" ],
+        "type" : "object"
+      },
+      "RankingPreviewList" : {
+        "properties" : {
+          "configId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RankingPreviewItem"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "configVersion", "items" ],
+        "type" : "object"
+      },
+      "RankingPreviewRequest" : {
+        "properties" : {
+          "configA" : {
+            "$ref" : "#/components/schemas/RankingConfigRef"
+          },
+          "configB" : {
+            "$ref" : "#/components/schemas/RankingConfigRef",
+            "type" : "null"
+          },
+          "exploration" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "limit" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : [ "integer", "null" ]
+          },
+          "userId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "configA", "userId" ],
+        "type" : "object"
+      },
+      "RankingReplayRequest" : {
+        "properties" : {
+          "config" : {
+            "$ref" : "#/components/schemas/RankingConfigRef"
+          },
+          "explorationOnly" : {
+            "type" : [ "boolean", "null" ]
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "config", "from", "to" ],
+        "type" : "object"
+      },
+      "RankingReplayResult" : {
+        "properties" : {
+          "auc" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "byPosition" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReplayPositionEngagement"
+            },
+            "type" : "array"
+          },
+          "configId" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "explorationOnly" : {
+            "type" : "boolean"
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "logLoss" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "ndcgAt10" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "positives" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "rows" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sampleFraction" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "sampled" : {
+            "type" : "boolean"
+          },
+          "sessions" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "sessionsWithPositive" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "byPosition", "configVersion", "explorationOnly", "from", "positives", "rows", "sampleFraction", "sampled", "sessions", "sessionsWithPositive", "to" ],
+        "type" : "object"
+      },
       "ReadRequest" : {
         "properties" : {
           "upTo" : {
@@ -2322,24 +2445,26 @@
         "required" : [ "displayName", "email", "handle", "password" ],
         "type" : "object"
       },
-      "ReplayRequest" : {
+      "ReplayPositionEngagement" : {
         "properties" : {
-          "config" : {
-            "$ref" : "#/components/schemas/ConfigRef"
+          "items" : {
+            "format" : "int64",
+            "type" : "integer"
           },
-          "explorationOnly" : {
-            "type" : [ "boolean", "null" ]
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
           },
-          "from" : {
-            "format" : "date-time",
-            "type" : "string"
+          "positives" : {
+            "format" : "int64",
+            "type" : "integer"
           },
-          "to" : {
-            "format" : "date-time",
-            "type" : "string"
+          "rate" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
           }
         },
-        "required" : [ "config", "from", "to" ],
+        "required" : [ "items", "position", "positives" ],
         "type" : "object"
       },
       "ReportRequest" : {
@@ -2357,72 +2482,6 @@
           }
         },
         "required" : [ "reason" ],
-        "type" : "object"
-      },
-      "Result" : {
-        "properties" : {
-          "auc" : {
-            "format" : "double",
-            "type" : [ "number", "null" ]
-          },
-          "byPosition" : {
-            "items" : {
-              "$ref" : "#/components/schemas/PositionEngagement"
-            },
-            "type" : "array"
-          },
-          "configId" : {
-            "format" : "uuid",
-            "type" : [ "string", "null" ]
-          },
-          "configVersion" : {
-            "format" : "int32",
-            "type" : "integer"
-          },
-          "explorationOnly" : {
-            "type" : "boolean"
-          },
-          "from" : {
-            "format" : "date-time",
-            "type" : "string"
-          },
-          "logLoss" : {
-            "format" : "double",
-            "type" : [ "number", "null" ]
-          },
-          "ndcgAt10" : {
-            "format" : "double",
-            "type" : [ "number", "null" ]
-          },
-          "positives" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "rows" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "sampleFraction" : {
-            "format" : "double",
-            "type" : "number"
-          },
-          "sampled" : {
-            "type" : "boolean"
-          },
-          "sessions" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "sessionsWithPositive" : {
-            "format" : "int64",
-            "type" : "integer"
-          },
-          "to" : {
-            "format" : "date-time",
-            "type" : "string"
-          }
-        },
-        "required" : [ "byPosition", "configVersion", "explorationOnly", "from", "positives", "rows", "sampleFraction", "sampled", "sessions", "sessionsWithPositive", "to" ],
         "type" : "object"
       },
       "SaveGigFilterRequest" : {
@@ -2535,6 +2594,81 @@
           }
         },
         "required" : [ "artists", "gigs", "pastGigs" ],
+        "type" : "object"
+      },
+      "ServedEntry" : {
+        "properties" : {
+          "exploration" : {
+            "type" : "boolean"
+          },
+          "maxWatchFraction" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "negative" : {
+            "type" : "boolean"
+          },
+          "position" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positive" : {
+            "type" : "boolean"
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/Post",
+            "type" : "null"
+          },
+          "postId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "score" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "exploration", "negative", "position", "positive", "postId", "score" ],
+        "type" : "object"
+      },
+      "ServedSession" : {
+        "properties" : {
+          "configId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "configVersion" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "entries" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ServedEntry"
+            },
+            "type" : "array"
+          },
+          "items" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "negatives" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "positives" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "sessionId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "configId", "entries", "items", "negatives", "positives", "sessionId", "startedAt" ],
         "type" : "object"
       },
       "Setlist" : {
@@ -2754,27 +2888,6 @@
         "required" : [ "unreadCount" ],
         "type" : "object"
       },
-      "UpdateConfigRequest" : {
-        "properties" : {
-          "notes" : {
-            "maxLength" : 2000,
-            "minLength" : 0,
-            "type" : [ "string", "null" ]
-          },
-          "params" : {
-            "$ref" : "#/components/schemas/Params",
-            "type" : "null"
-          },
-          "weights" : {
-            "additionalProperties" : {
-              "format" : "double",
-              "type" : "number"
-            },
-            "type" : [ "object", "null" ]
-          }
-        },
-        "type" : "object"
-      },
       "UpdateMeRequest" : {
         "properties" : {
           "avatarMediaId" : {
@@ -2803,6 +2916,27 @@
           "profileVisibility" : {
             "enum" : [ "PUBLIC", "PRIVATE" ],
             "type" : [ "string", "null" ]
+          }
+        },
+        "type" : "object"
+      },
+      "UpdateRankingConfigRequest" : {
+        "properties" : {
+          "notes" : {
+            "maxLength" : 2000,
+            "minLength" : 0,
+            "type" : [ "string", "null" ]
+          },
+          "params" : {
+            "$ref" : "#/components/schemas/RankingParams",
+            "type" : "null"
+          },
+          "weights" : {
+            "additionalProperties" : {
+              "format" : "double",
+              "type" : "number"
+            },
+            "type" : [ "object", "null" ]
           }
         },
         "type" : "object"
@@ -2961,6 +3095,79 @@
   },
   "openapi" : "3.1.0",
   "paths" : {
+    "/api/v1/admin/feed/users/{id}/profile" : {
+      "get" : {
+        "operationId" : "adminFeedProfile",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/FeedProfile"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's genre vector and their strongest artist and author affinities",
+        "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/feed/users/{id}/served" : {
+      "get" : {
+        "operationId" : "adminFeedServed",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 20,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageServedSession"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "A user's recent feed sessions, newest first, each item with its outcome (positive, negative, furthest watch)",
+        "tags" : [ "admin-feed" ]
+      }
+    },
     "/api/v1/admin/ranking/configs" : {
       "get" : {
         "operationId" : "adminListRankingConfigs",
@@ -2970,7 +3177,7 @@
               "application/json" : {
                 "schema" : {
                   "items" : {
-                    "$ref" : "#/components/schemas/ConfigView"
+                    "$ref" : "#/components/schemas/RankingConfigView"
                   },
                   "type" : "array"
                 }
@@ -2988,7 +3195,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/CreateConfigRequest"
+                "$ref" : "#/components/schemas/CreateRankingConfigRequest"
               }
             }
           },
@@ -2999,7 +3206,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ConfigView"
+                  "$ref" : "#/components/schemas/RankingConfigView"
                 }
               }
             },
@@ -3027,7 +3234,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ConfigView"
+                  "$ref" : "#/components/schemas/RankingConfigView"
                 }
               }
             },
@@ -3052,7 +3259,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/UpdateConfigRequest"
+                "$ref" : "#/components/schemas/UpdateRankingConfigRequest"
               }
             }
           },
@@ -3063,7 +3270,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ConfigView"
+                  "$ref" : "#/components/schemas/RankingConfigView"
                 }
               }
             },
@@ -3091,7 +3298,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/ConfigView"
+                  "$ref" : "#/components/schemas/RankingConfigView"
                 }
               }
             },
@@ -3109,7 +3316,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/PreviewRequest"
+                "$ref" : "#/components/schemas/RankingPreviewRequest"
               }
             }
           },
@@ -3120,7 +3327,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Preview"
+                  "$ref" : "#/components/schemas/RankingPreview"
                 }
               }
             },
@@ -3138,7 +3345,7 @@
           "content" : {
             "application/json" : {
               "schema" : {
-                "$ref" : "#/components/schemas/ReplayRequest"
+                "$ref" : "#/components/schemas/RankingReplayRequest"
               }
             }
           },
@@ -3149,7 +3356,7 @@
             "content" : {
               "application/json" : {
                 "schema" : {
-                  "$ref" : "#/components/schemas/Result"
+                  "$ref" : "#/components/schemas/RankingReplayResult"
                 }
               }
             },
@@ -6839,6 +7046,9 @@
   }, {
     "description" : "Console: find accounts (operators only)",
     "name" : "admin-users"
+  }, {
+    "description" : "Console: one user's feed, as ranked and as served (operators only)",
+    "name" : "admin-feed"
   }, {
     "description" : "Past concerts from setlist.fm, looked up live and not stored",
     "name" : "past-gigs"

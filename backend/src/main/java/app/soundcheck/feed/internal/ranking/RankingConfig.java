@@ -1,5 +1,6 @@
 package app.soundcheck.feed.internal.ranking;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -20,6 +21,7 @@ public final class RankingConfig {
      * The stage parameters, plus {@code authorCapPerSession}: at most this many posts by one author in
      * a session, as long as enough other authors have posts.
      */
+    @Schema(name = "RankingParams")
     public record Params(
             double halfLifeHours,
             double priorStrength,

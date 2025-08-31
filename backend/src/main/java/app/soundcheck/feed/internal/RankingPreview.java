@@ -1,6 +1,5 @@
 package app.soundcheck.feed.internal;
 
-import app.soundcheck.catalog.ArtistSummary;
 import app.soundcheck.content.Post;
 import app.soundcheck.content.PostFeed;
 import app.soundcheck.feed.FeedItem;
@@ -64,6 +63,7 @@ public class RankingPreview {
      * @param seed         the exploration seed both lists shared, or null when exploration was off
      * @param candidates   how many candidates the user has (before ranking)
      */
+    @Schema(name = "RankingPreview")
     public record Preview(
             ListView a,
             @Schema(nullable = true) ListView b,
@@ -74,6 +74,7 @@ public class RankingPreview {
             int candidates) {}
 
     /** One config's ranked list. {@code configId} is null for an inline (unsaved) config. */
+    @Schema(name = "RankingPreviewList")
     public record ListView(@Schema(nullable = true) UUID configId, int configVersion, List<Item> items) {}
 
     /**
@@ -84,27 +85,17 @@ public class RankingPreview {
      * @param bias      the config's bias: the waterfall starts here, adds each contribution and ends at
      *                  {@code logit}, whose logistic is {@code score}
      */
+    @Schema(name = "RankingPreviewItem")
     public record Item(
             int rank,
             @Schema(nullable = true) Integer otherRank,
-            PostCard post,
+            Post post,
             double score,
             double logit,
             double bias,
             List<FeedItem.Contribution> contributions,
             List<String> sources,
             boolean exploration) {}
-
-    /** What the console shows of a post next to its rank. */
-    public record PostCard(
-            UUID id,
-            UUID authorId,
-            String authorHandle,
-            List<String> artists,
-            @Schema(nullable = true) String gigTitle,
-            @Schema(nullable = true) String thumbUrl,
-            @Schema(nullable = true) String caption,
-            @Schema(nullable = true) Instant publishedAt) {}
 
     /** What decides a user's candidates: the cache key. */
     private record Key(UUID userId, int seenWindowDays, Map<String, Integer> caps, double localRadiusKm) {
@@ -274,7 +265,7 @@ public class RankingPreview {
             items.add(new Item(
                     i + 1,
                     otherIndex < 0 ? null : otherIndex + 1,
-                    card(visible.get(r.postId())),
+                    visible.get(r.postId()),
                     r.score(),
                     r.scored().logit(),
                     config.bias(),
@@ -283,18 +274,6 @@ public class RankingPreview {
                     r.exploration()));
         }
         return new ListView(RankingConfigs.INLINE.equals(config.id()) ? null : config.id(), config.version(), items);
-    }
-
-    static PostCard card(Post post) {
-        return new PostCard(
-                post.id(),
-                post.author().id(),
-                post.author().handle(),
-                post.artists().stream().map(ArtistSummary::name).toList(),
-                post.gig() == null ? null : post.gig().title(),
-                post.playback() == null ? null : post.playback().thumbUrl(),
-                post.caption(),
-                post.publishedAt());
     }
 
     /** For tests: forget every cached input. */
