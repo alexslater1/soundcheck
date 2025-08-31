@@ -131,6 +131,10 @@ phone: ## Forward the phone's ports to the laptop (adb reverse 8088, 8081, 4566)
 android: phone ## Build and install the Android dev build on the connected phone (runs make phone first); stays as the bundler
 	# The Android Gradle build needs JDK 17 (JDK 24+ breaks AGP's CMake step); use SDKMAN's 17 when present.
 	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
+	# Four Gradle workers, not one per core: 20 parallel native (CMake) builds ran the 15 GB laptop out of
+	# memory with the API and worker up (2025-08-30). expo run:android takes no Gradle flags; GRADLE_OPTS
+	# reaches Gradle ("Using 4 worker leases" in --debug).
+	export GRADLE_OPTS="$${GRADLE_OPTS:-} -Dorg.gradle.workers.max=4"
 	cd $(CURDIR)/app && npx expo run:android --device
 
 # A release APK for the phone: the JS is bundled in, so it runs without Metro, against the local edge through
