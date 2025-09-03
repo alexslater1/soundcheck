@@ -14,3 +14,14 @@ Data is synthetic only. Two invented accounts with @example.com addresses: "Maya
 | `15-me-processing.png` | Your own grid right after posting: the new post shows Processing… until the worker is done; "4 Posts" leaves it out until it is published |
 
 `15`'s post was created through the API straight after its upload completed: a clip picked in the app finished transcoding while the caption was typed, so its post was published at once and never showed the badge.
+
+`16`, `18` and `feed.gif` were captured 2025-09-03 19:05–19:11 BST on the same phone with the Android **dev build** (installed 18:56, JS from a checkout of `main` at `08c2d67` through Metro), with two invented accounts (deleted afterwards). The location permission was revoked and Expo's Tools button switched off for the captures, then restored. The gig with a badge is real (Ticketmaster's status), as in web `16`; photos masked the same way.
+
+| File | Shows |
+|---|---|
+| `16-gigs-status-badge.png` | Sat 10 Oct 2026 picked in the calendar: the day's gigs, one CANCELLED (Rockin'1000, AO Arena) |
+| `18-offline-banner.png` | Airplane mode switched on for a few seconds (`cmd connectivity airplane-mode enable`): "No connection. You are seeing what was already loaded." It went again when the mode was switched off |
+| `feed.gif` | 13 s of the Following feed (as the second account): a post of two synthetic clips, swipe to the second (it has no audio track, so "No sound"), up to the next post, like. `adb shell screenrecord --size 540x1212`, then ffmpeg: 10 fps, 300 px wide, a 96-colour palette (710 KB) |
+
+There is no Android `17`: web `17` shows keyboard focus rings, which a touch screen does not have.
+

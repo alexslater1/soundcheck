@@ -24,6 +24,8 @@ Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Nativ
 - **Security basics** — rate limits on sign-in, uploads, events and every signed-in user (300 requests a minute), Problem Details errors that carry a `traceId` and nothing internal, uploaded images served without their EXIF/GPS, CORS only for the local origins.
 
 ## Screenshots
+<img src="docs/screens/android/feed.gif" width="220" align="right" alt="The Following feed on a Pixel: two clips in one post, the next post, a like">
+
 Real screens with synthetic accounts and clips (`make clips`), dark mode; Ticketmaster's artist photos are masked. Provenance (date, commit, how they were taken) is in `docs/screens/web/README.md` and `docs/screens/android/README.md`.
 
 | Android (on a Pixel) | | | |
