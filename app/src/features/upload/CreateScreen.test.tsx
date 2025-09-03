@@ -58,6 +58,10 @@ jest.mock('./pickVideo', () => ({
   pickFromLibrary: () => mockPick(),
   recordWithCamera: () => mockPick(),
 }));
+const mockTakeRecovered = jest.fn<PickResult | null, []>(() => null);
+jest.mock('./recoveredRecording', () => ({
+  takeRecovered: () => mockTakeRecovered(),
+}));
 jest.mock('./uploadRunner', () => ({
   startUpload: (localId: string) => mockStartUpload(localId),
   makePreview: (localId: string) => mockMakePreview(localId),
@@ -289,6 +293,15 @@ describe('CreateScreen', () => {
 
     await fireEvent.press(screen.getByText('Choose a gig'));
     expect(screen.getByTestId('compose-stub')).toHaveTextContent(/Choose the gig/);
+  });
+
+  it('takes a recording Android saved when it killed the app during the camera', async () => {
+    mockTakeRecovered.mockReturnValueOnce({ kind: 'picked', videos: [video] });
+    await renderScreen();
+
+    await waitFor(() => expect(useUploadQueue.getState().entries).toHaveLength(1));
+    expect(useUploadQueue.getState().entries[0]).toMatchObject({ fileUri: video.uri });
+    expect(mockStartUpload).toHaveBeenCalled();
   });
 
   it('queues picked clips at once, makes their preview frames, and previews them', async () => {

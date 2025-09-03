@@ -44,6 +44,7 @@ import { stateLabel } from './labels';
 import { PendingGigs, useMarkPendingGigsSeen } from './PendingGigs';
 import { PhotoPreview } from './PhotoPreview';
 import { pickFromLibrary, type PickResult } from './pickVideo';
+import { takeRecovered } from './recoveredRecording';
 import { actsOverLimit, festivalDays, MAX_CLIPS_PER_ACT, MAX_SONG, postHint } from './postPlan';
 import { RecordClipButton } from './RecordClipButton';
 import { UploadProblems } from './UploadProblems';
@@ -152,41 +153,10 @@ export function CreateScreen() {
     },
   });
 
-  if (!ownerId) {
-    return null;
-  }
-  const entries = all.filter((entry) => entry.ownerId === ownerId);
-  // In the order the fan put them: a dragged clip keeps its new place in the post.
-  const composingEntries = composing
-    .map((localId) => entries.find((entry) => entry.localId === localId))
-    .filter((entry): entry is (typeof entries)[number] => entry !== undefined && !entry.draft);
-  const joining = joinPostId !== null;
-  const postGig = joining ? (joinPost.data?.gig ?? null) : gig;
-  const bill = postGig ? billOf(postGig) : [];
-  const actOf = (localId: string): TaggedArtist | null =>
-    localId in acts ? (acts[localId] ?? null) : (bill[0] ?? null);
-  const clipActs = composingEntries.map((entry) => ({
-    localId: entry.localId,
-    artistId: actOf(entry.localId)?.id ?? null,
-    song: songs[entry.localId] ?? null,
-  }));
-  const overLimit = actsOverLimit(clipActs).length > 0;
-  const hint = postHint({
-    gigChosen,
-    clips: composingEntries.length,
-    overLimit,
-    joining,
-  });
-  const days = !joining && gig ? festivalDays(gig, new Date()) : [];
-
-  function chooseGig(next: GigSummary | null) {
-    setGig(next);
-    setGigChosen(next !== null);
-    setDay(null);
-    setMarked(null);
-  }
-
   const add = async (pick: () => Promise<PickResult>) => {
+    if (!ownerId) {
+      return;
+    }
     setProblem(null);
     // Not on the web: a cancelled file dialog may never answer there.
     setFetching(Platform.OS !== 'web');
@@ -237,6 +207,60 @@ export function CreateScreen() {
       setFetching(false);
     }
   };
+
+  // A recording the camera kept for an app Android had killed (useRecoveredRecording, at the root):
+  // queued as if it had just come back from the camera. An effect event, so the effect calls this
+  // render's `add` without depending on it.
+  const queueRecording = useEffectEvent((recovered: PickResult) => {
+    void add(async () => recovered);
+  });
+  // On mount: after Android kills the app, the new process starts on Home and the hook opens Create.
+  useEffect(() => {
+    if (!ownerId) {
+      return;
+    }
+    const recovered = takeRecovered();
+    if (recovered) {
+      // After this render: state changes belong in a callback, not in the effect's body.
+      void Promise.resolve(recovered).then(queueRecording);
+    }
+    // queueRecording is an effect event (the useEffectEvent stand-in): never a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ownerId]);
+
+  if (!ownerId) {
+    return null;
+  }
+  const entries = all.filter((entry) => entry.ownerId === ownerId);
+  // In the order the fan put them: a dragged clip keeps its new place in the post.
+  const composingEntries = composing
+    .map((localId) => entries.find((entry) => entry.localId === localId))
+    .filter((entry): entry is (typeof entries)[number] => entry !== undefined && !entry.draft);
+  const joining = joinPostId !== null;
+  const postGig = joining ? (joinPost.data?.gig ?? null) : gig;
+  const bill = postGig ? billOf(postGig) : [];
+  const actOf = (localId: string): TaggedArtist | null =>
+    localId in acts ? (acts[localId] ?? null) : (bill[0] ?? null);
+  const clipActs = composingEntries.map((entry) => ({
+    localId: entry.localId,
+    artistId: actOf(entry.localId)?.id ?? null,
+    song: songs[entry.localId] ?? null,
+  }));
+  const overLimit = actsOverLimit(clipActs).length > 0;
+  const hint = postHint({
+    gigChosen,
+    clips: composingEntries.length,
+    overLimit,
+    joining,
+  });
+  const days = !joining && gig ? festivalDays(gig, new Date()) : [];
+
+  function chooseGig(next: GigSummary | null) {
+    setGig(next);
+    setGigChosen(next !== null);
+    setDay(null);
+    setMarked(null);
+  }
 
   const wasThere = async () => {
     if (!gig) {

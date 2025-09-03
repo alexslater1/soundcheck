@@ -1,10 +1,12 @@
 import type { ImagePickerAsset } from 'expo-image-picker';
 
-import { pickFromLibrary, recordWithCamera, result, toPicked } from './pickVideo';
+import { pendingRecording, pickFromLibrary, recordWithCamera, result, toPicked } from './pickVideo';
 
 const mockLaunchCamera = jest.fn();
 const mockLaunchLibrary = jest.fn();
+const mockPending = jest.fn();
 jest.mock('expo-image-picker', () => ({
+  getPendingResultAsync: () => mockPending(),
   requestCameraPermissionsAsync: async () => ({ granted: true }),
   launchCameraAsync: (options: unknown) => mockLaunchCamera(options),
   launchImageLibraryAsync: (options: unknown) => mockLaunchLibrary(options),
@@ -131,5 +133,23 @@ describe('pickFromLibrary', () => {
     });
     // Quality 1 (the default): the picker hands over the file itself, so its size is what is sent.
     expect(options.quality).toBeUndefined();
+  });
+});
+
+describe('pendingRecording (Android killed the app while the camera was open)', () => {
+  it('hands back the clip the camera recorded for the app that is gone', async () => {
+    mockPending.mockResolvedValue({ canceled: false, assets: [asset()] });
+    const recovered = await pendingRecording();
+    expect(recovered?.kind).toBe('picked');
+    expect(recovered?.kind === 'picked' && recovered.videos[0]?.uri).toBe('file:///DCIM/clip.mp4');
+  });
+
+  it('is null when nothing is waiting, the camera was cancelled, or it failed', async () => {
+    mockPending.mockResolvedValue(null);
+    await expect(pendingRecording()).resolves.toBeNull();
+    mockPending.mockResolvedValue({ canceled: true, assets: null });
+    await expect(pendingRecording()).resolves.toBeNull();
+    mockPending.mockResolvedValue({ code: 'ERR_CAMERA', message: 'camera failed' });
+    await expect(pendingRecording()).resolves.toBeNull();
   });
 });

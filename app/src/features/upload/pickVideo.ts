@@ -78,3 +78,19 @@ export async function recordWithCamera(): Promise<PickResult> {
   }
   return result(await ImagePicker.launchCameraAsync(OPTIONS), Platform.OS);
 }
+
+/**
+ * Android may kill the app while the system camera is open, because the phone wants the memory
+ * back. The recording then has nobody to go to, and the app starts again on Home (seen on the
+ * phone, 2025-09-03). expo-image-picker keeps the camera's answer for the next start; this collects
+ * it. Null when nothing is waiting (always, off Android), when the camera was cancelled, or when it
+ * failed.
+ */
+export async function pendingRecording(): Promise<PickResult | null> {
+  const pending = await ImagePicker.getPendingResultAsync();
+  if (!pending || !('canceled' in pending)) {
+    return null;
+  }
+  const picked = result(pending, Platform.OS);
+  return picked.kind === 'picked' ? picked : null;
+}
