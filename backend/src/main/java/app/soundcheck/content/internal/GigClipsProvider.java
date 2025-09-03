@@ -34,4 +34,9 @@ class GigClipsProvider implements GigClips {
         Set<UUID> hidden = visibility.hiddenAmong(viewerId, byAuthor.keySet());
         return hidden.stream().mapToLong(byAuthor::get).sum();
     }
+
+    @Override
+    public Set<UUID> gigsWithClips() {
+        return posts.gigsWithPublished();
+    }
 }

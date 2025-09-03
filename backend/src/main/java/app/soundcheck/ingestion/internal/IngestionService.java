@@ -181,10 +181,10 @@ public class IngestionService {
 
     private void fetchAndResolve(
             GigSource source, UUID runId, Instant startedAt, CallBudget budget, RunStats stats, Heartbeat heartbeat) {
-        Instant from = startedAt.truncatedTo(ChronoUnit.DAYS);
-        Instant to = from.plus(Duration.ofDays(properties.horizonDays()));
+        Instant today = startedAt.truncatedTo(ChronoUnit.DAYS);
+        GigSource.Window window = source.window(today, Duration.ofDays(properties.horizonDays()));
         Set<String> seenExternalIds = new HashSet<>();
-        try (Stream<SourcePage> pages = source.pages(from, to, budget)) {
+        try (Stream<SourcePage> pages = source.pages(window.from(), window.to(), budget)) {
             for (Iterator<SourcePage> it = pages.iterator(); it.hasNext(); ) {
                 SourcePage page = it.next();
                 stats.pages++;
@@ -206,7 +206,7 @@ public class IngestionService {
                         stats.issue("DUPLICATE_EXTERNAL_ID", gig.externalId(), gig.title());
                         continue;
                     }
-                    qualityChecks(gig, startedAt, stats);
+                    qualityChecks(gig, startedAt, window.upcoming(today), stats);
                     heartbeat.beat();
                     try {
                         // A scratch tally, merged only after the gig's transaction committed: a gig that
@@ -225,8 +225,11 @@ public class IngestionService {
         }
     }
 
-    /** Data-quality issues; the gig is still ingested. */
-    private static void qualityChecks(SourceGig gig, Instant now, RunStats stats) {
+    /**
+     * Data-quality issues; the gig is still ingested. A start in the past is only odd for a
+     * source of upcoming gigs.
+     */
+    private static void qualityChecks(SourceGig gig, Instant now, boolean upcoming, RunStats stats) {
         Double lat = gig.venue().lat();
         Double lng = gig.venue().lng();
         if (lat == null || lng == null) {
@@ -234,7 +237,7 @@ public class IngestionService {
         } else if (lat < UK_SOUTH || lat > UK_NORTH || lng < UK_WEST || lng > UK_EAST) {
             stats.issue("VENUE_OUTSIDE_UK", gig.externalId(), gig.venue().name() + " (" + lat + ", " + lng + ")");
         }
-        if (gig.startsAt().isBefore(now)) {
+        if (upcoming && gig.startsAt().isBefore(now)) {
             stats.issue("START_IN_PAST", gig.externalId(), gig.title() + " at " + gig.startsAt());
         }
     }

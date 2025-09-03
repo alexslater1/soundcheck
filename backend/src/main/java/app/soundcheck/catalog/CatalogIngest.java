@@ -83,6 +83,15 @@ public interface CatalogIngest {
     /** What enrichment needs to know about an artist. */
     record ArtistToEnrich(UUID id, String name, @Nullable UUID mbid) {}
 
+    /**
+     * Every act on the bill of a gig that has a published clip, by name. These are the acts whose
+     * past gigs the setlist.fm backfill looks up.
+     */
+    List<BilledArtist> artistsOnGigsWithClips();
+
+    /** An act and what setlist.fm can be asked by: its MusicBrainz id when known, else its name. */
+    record BilledArtist(UUID id, String name, @Nullable UUID mbid) {}
+
     /** Replaces the artist's genres (genre id → weight); an empty map leaves the existing genres alone. */
     void replaceArtistGenres(UUID artistId, Map<Short, Float> genreWeights);
 

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,6 +47,16 @@ public class EntityResolver {
     static final double VENUE_NEAR_SIMILARITY = 0.55;
     static final double VENUE_POSTCODE_SIMILARITY = 0.45;
     static final double ARTIST_SIMILARITY = 0.85;
+    /**
+     * setlist.fm places a venue only by its town: its venues sit at the town's centre, so "near"
+     * means the same town and the name does the work, as for a fan-added venue (within 30 km, names
+     * at least 0.9 similar once normalised).
+     */
+    static final Set<String> PLACED_BY_TOWN = Set.of("SETLISTFM");
+
+    static final int TOWN_METRES = 30_000;
+    static final double TOWN_SIMILARITY = 0.9;
+
     /** A primary listing its source has not shown for this long is considered gone. */
     static final Duration PRIMARY_STALE_AFTER = Duration.ofDays(3);
 
@@ -177,8 +188,14 @@ public class EntityResolver {
         // different venue to it (Manchester Academy 1, 2 and 3 share a building and most of a name).
         Optional<UUID> fuzzy = Optional.empty();
         if (venue.lat() != null && venue.lng() != null) {
+            boolean byTown = PLACED_BY_TOWN.contains(source);
             fuzzy = catalog.venueNear(
-                    venue.lat(), venue.lng(), VENUE_NEAR_METRES, venue.name(), VENUE_NEAR_SIMILARITY, source);
+                    venue.lat(),
+                    venue.lng(),
+                    byTown ? TOWN_METRES : VENUE_NEAR_METRES,
+                    venue.name(),
+                    byTown ? TOWN_SIMILARITY : VENUE_NEAR_SIMILARITY,
+                    source);
         }
         if (fuzzy.isEmpty() && venue.postcode() != null) {
             fuzzy = catalog.venueByPostcode(venue.postcode(), venue.name(), VENUE_POSTCODE_SIMILARITY, source);
@@ -294,6 +311,7 @@ public class EntityResolver {
         GigCandidate best = null;
         GigMatcher.Decision bestDecision = null;
         List<Map.Entry<GigCandidate, GigMatcher.Decision>> almost = new ArrayList<>();
+        List<Map.Entry<GigCandidate, GigMatcher.Decision>> oneActMatches = new ArrayList<>();
         for (GigCandidate candidate :
                 catalog.gigsAtVenueBetween(draft.venueId(), nightStart, nightStart.plus(Duration.ofDays(1)))) {
             GigRef ref = candidate.gig();
@@ -310,6 +328,10 @@ public class EntityResolver {
                     existing,
                     ref.listings().stream().map(GigRef.Listing::source).toList(),
                     candidate.venueId().equals(draft.venueId()));
+            if (decision.reason().equals(GigMatcher.ONE_ACT_OF_THE_NIGHT)) {
+                oneActMatches.add(Map.entry(candidate, decision));
+                continue; // decided below, once every candidate has been seen
+            }
             switch (decision.verdict()) {
                 case SAME -> {
                     if (best == null || closer(gig, ref, best.gig())) {
@@ -319,6 +341,23 @@ public class EntityResolver {
                 }
                 case MAYBE -> almost.add(Map.entry(candidate, decision));
                 case DIFFERENT -> {}
+            }
+        }
+        // A setlist that shares no act with any gig of the night joins the night's only gig at the venue; with
+        // two or more there it cannot tell which, so it becomes a gig of its own and the pairs go to review.
+        if (best == null && oneActMatches.size() == 1) {
+            best = oneActMatches.getFirst().getKey();
+            bestDecision = oneActMatches.getFirst().getValue();
+        } else {
+            for (Map.Entry<GigCandidate, GigMatcher.Decision> pair : oneActMatches) {
+                GigMatcher.Decision d = pair.getValue();
+                almost.add(Map.entry(
+                        pair.getKey(),
+                        new GigMatcher.Decision(
+                                GigMatcher.Verdict.MAYBE,
+                                "one act's setlist, more than one gig that night",
+                                d.titleSimilarity(),
+                                d.actSimilarity())));
             }
         }
         if (best != null && bestDecision != null) {

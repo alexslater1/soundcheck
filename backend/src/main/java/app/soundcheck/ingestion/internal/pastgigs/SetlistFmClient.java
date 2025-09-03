@@ -31,7 +31,7 @@ import org.springframework.web.client.RestClient;
 /**
  * setlist.fm {@code GET /1.0/search/setlists} and {@code GET /1.0/setlist/{id}}: past concerts of an
  * artist in the UK, for the "was it this gig?" step of adding a gig, and the songs played at a
- * past gig, for its page. The key travels in the {@code x-api-key} header and never in
+ * past gig, for its page; an act's past gigs page by page, for the backfill. The key travels in the {@code x-api-key} header and never in
  * a message or a log line. setlist.fm answers 404 when a search has no results (its documentation says
  * 200 with an empty list; both are read as "nothing"). 429 and 5xx are temporary.
  */
@@ -108,6 +108,22 @@ public class SetlistFmClient {
             parseSetlist(s).ifPresent(setlists::add);
         }
         return setlists;
+    }
+
+    /**
+     * One page of an act's UK setlists, newest first, as setlist.fm sends it (the backfill): by
+     * MusicBrainz id when known (exact), else by name. Null when setlist.fm has none.
+     */
+    public @Nullable JsonNode artistSetlists(@Nullable UUID artistMbid, String artistName, int page) {
+        Map<String, Object> query = new LinkedHashMap<>();
+        if (artistMbid != null) {
+            query.put("artistMbid", artistMbid.toString());
+        } else {
+            query.put("artistName", artistName);
+        }
+        query.put("countryCode", "GB");
+        query.put("p", page);
+        return fetch(PATH, query);
     }
 
     /** One setlist by its setlist.fm id (a gig added from setlist.fm keeps it). */

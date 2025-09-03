@@ -14,6 +14,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_SIBLING;
 import app.soundcheck.catalog.ArtistDraft;
 import app.soundcheck.catalog.CatalogIngest;
 import app.soundcheck.catalog.GigCandidate;
+import app.soundcheck.catalog.GigClips;
 import app.soundcheck.catalog.GigDraft;
 import app.soundcheck.catalog.GigRef;
 import app.soundcheck.catalog.ListingOverlap;
@@ -57,10 +58,12 @@ class JooqCatalogIngest implements CatalogIngest {
     static final String UNLISTED = "UNLISTED";
 
     private final DSLContext dsl;
+    private final GigClips clips;
     private final Clock clock;
 
-    JooqCatalogIngest(DSLContext dsl, Clock clock) {
+    JooqCatalogIngest(DSLContext dsl, GigClips clips, Clock clock) {
         this.dsl = dsl;
+        this.clips = clips;
         this.clock = clock;
     }
 
@@ -304,6 +307,23 @@ class JooqCatalogIngest implements CatalogIngest {
                 .orderBy(ARTIST.ENRICHED_AT.asc().nullsFirst(), ARTIST.CREATED_AT, ARTIST.ID)
                 .limit(limit)
                 .fetch(r -> new ArtistToEnrich(r.value1(), r.value2(), r.value3()));
+    }
+
+    @Override
+    public List<BilledArtist> artistsOnGigsWithClips() {
+        Set<UUID> gigs = clips.gigsWithClips(); // posts belong to content, which answers through GigClips
+        if (gigs.isEmpty()) {
+            return List.of();
+        }
+        // Once per backfill run, a few hundred gigs: gig_artist's primary key (gig_id, artist_id) serves the
+        // gig_id = any(…) lookup.
+        return dsl.selectDistinct(ARTIST.ID, ARTIST.NAME, ARTIST.MBID)
+                .from(GIG_ARTIST)
+                .join(ARTIST)
+                .on(ARTIST.ID.eq(GIG_ARTIST.ARTIST_ID))
+                .where(GIG_ARTIST.GIG_ID.eq(DSL.any(gigs.toArray(UUID[]::new))))
+                .orderBy(ARTIST.NAME, ARTIST.ID)
+                .fetch(r -> new BilledArtist(r.value1(), r.value2(), r.value3()));
     }
 
     @Override

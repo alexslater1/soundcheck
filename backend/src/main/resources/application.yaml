@@ -110,6 +110,9 @@ soundcheck:
       api-key: ${LASTFM_API_KEY:}
     setlistfm:
       api-key: ${SETLISTFM_API_KEY:}
+      # Store the past gigs of acts with clips (the SETLISTFM source). Off by default.
+      backfill:
+        enabled: ${INGESTION_SETLISTFM_BACKFILL:false}
     # Venues' own websites: off unless enabled, and only the listed registry keys.
     venues:
       enabled: ${INGESTION_VENUES_ENABLED:false}

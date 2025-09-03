@@ -70,8 +70,9 @@ public record IngestionProperties(
             @DefaultValue("24h") Duration backOff) {}
 
     /**
-     * setlist.fm: looked up live when a fan adds a past gig, never ingested. The free key
-     * allows 2 requests a second and 1,440 a day; results may only be cached for short periods.
+     * setlist.fm: looked up live when a fan adds a past gig, and, with {@code backfill.enabled},
+     * read for the past gigs of acts that have clips. The free key allows 2 requests a second
+     * and 1,440 a day; its terms allow caching only for short periods.
      */
     public record Setlistfm(
             @DefaultValue("https://api.setlist.fm") String baseUrl,
@@ -80,7 +81,8 @@ public record IngestionProperties(
             @DefaultValue("1400") int dailyBudget,
             @DefaultValue("1h") Duration cacheFor,
             /** Lookups per user per hour. */
-            @DefaultValue("30") int perUserPerHour) {
+            @DefaultValue("30") int perUserPerHour,
+            @DefaultValue Backfill backfill) {
 
         public boolean configured() {
             return !apiKey.isBlank();
@@ -90,9 +92,31 @@ public record IngestionProperties(
         public String toString() {
             return "Setlistfm[baseUrl=" + baseUrl + ", apiKey=" + Redacted.of(apiKey) + ", requestsPerSecond="
                     + requestsPerSecond + ", dailyBudget=" + dailyBudget + ", cacheFor=" + cacheFor
-                    + ", perUserPerHour=" + perUserPerHour + "]";
+                    + ", perUserPerHour=" + perUserPerHour + ", backfill=" + backfill + "]";
         }
     }
+
+    /**
+     * The SETLISTFM gig source, which stores the past gigs (act, venue, day, setlist link; never
+     * the songs) of every act on the bill of a gig with clips. Off unless enabled.
+     */
+    public record Backfill(
+            @DefaultValue("false") boolean enabled,
+            /** How far back an act's gigs are read on its first read. */
+            @DefaultValue("730d") Duration lookback,
+            /** An act read more recently than this is skipped. */
+            @DefaultValue("7d") Duration resyncAfter,
+            /** A later read goes back this far before the last one, for setlists added late. */
+            @DefaultValue("14d") Duration overlap,
+            /**
+             * Calls per run. The key's 1,440 a day are shared with the app's live lookups, so a
+             * run takes 800 and a backfill bigger than that resumes the next day.
+             */
+            @DefaultValue("800") int callBudget,
+            /** Half the key's rate: the API's live lookups may run at the same time in another process. */
+            @DefaultValue("1") int requestsPerSecond,
+            /** setlist.fm pages hold 20 setlists; an act with more than 200 in the window stops there. */
+            @DefaultValue("10") int maxPagesPerArtist) {}
 
     /**
      * Venue coordinates from postcodes: postcodes.io, free and keyless, up to 100 postcodes a call.

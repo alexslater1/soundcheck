@@ -25,6 +25,8 @@ import java.util.UUID;
  *   <li>When both sides give a real start time, more than 3 h apart is an early and a late show.
  *       A doors time may be up to 4 h before the show; a date-only listing fits anywhere in the night.
  *   <li>A shared act (by catalog id) is the same show.
+ *   <li>A setlist names one act of the night, not the bill (setlist.fm): in the same room it is the
+ *       same show even without a shared act. The resolver only merges it when the night has one such gig.
  *   <li>Otherwise a cleaned title at least {@value #TITLE_SAME} similar is the same show, but only when
  *       one side has no resolved acts: when both name their acts and share none, a similar title
  *       ("Pale Kite" / "Pale Kites") is two artists until someone says otherwise, so it is a MAYBE.
@@ -61,6 +63,12 @@ public final class GigMatcher {
 
     public record Decision(Verdict verdict, String reason, double titleSimilarity, double actSimilarity) {}
 
+    /** Sources whose listing is one act's set rather than the night's bill. */
+    static final Set<String> ONE_ACT_PER_LISTING = Set.of("SETLISTFM");
+
+    /** The reason given by the one-act rule; the resolver merges on it only when it is unambiguous. */
+    public static final String ONE_ACT_OF_THE_NIGHT = "one act's setlist, same room and night";
+
     /** Sources that list each show exactly once: a venue's own site has one page per show. */
     static final Set<String> ONE_LISTING_PER_SHOW = Set.of("VENUE");
 
@@ -79,7 +87,8 @@ public final class GigMatcher {
         if (!night(incoming.startsAt()).equals(night(existing.startsAt()))) {
             return new Decision(Verdict.DIFFERENT, "different night", 0, 0);
         }
-        if (existingSources.contains(incoming.source())) {
+        // A setlist's id names one act's set, not a show, so this rule says nothing for setlist.fm.
+        if (existingSources.contains(incoming.source()) && !ONE_ACT_PER_LISTING.contains(incoming.source())) {
             // A venue's site lists each show once, so two of its listings are two shows, even when both
             // rooms open at 19:00. Another source lists one show twice only in the same room.
             boolean same = !ONE_LISTING_PER_SHOW.contains(incoming.source())
@@ -104,6 +113,9 @@ public final class GigMatcher {
         double acts = bestActSimilarity(incoming.actNames(), existing.actNames());
         if (!shared.isEmpty()) {
             return new Decision(Verdict.SAME, "shared act", titles, 1.0);
+        }
+        if (ONE_ACT_PER_LISTING.contains(incoming.source()) && sameRoom) {
+            return new Decision(Verdict.SAME, ONE_ACT_OF_THE_NIGHT, titles, acts);
         }
         boolean bothNameActs =
                 !incoming.actIds().isEmpty() && !existing.actIds().isEmpty();

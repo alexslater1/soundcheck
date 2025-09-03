@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
-	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -236,6 +236,11 @@ ingest: ## Run a gig ingestion once and exit (per INGESTION_MODE in .env; offlin
 	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=ingest --logging.level.org.jooq.tools.LoggerListener=info'
 	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -c "select source, trigger, status, to_char(started_at, 'YYYY-MM-DD HH24:MI') as started, stats->>'fetched' as fetched, stats->>'created' as created, stats->>'updated' as updated, stats->>'unchanged' as unchanged, stats->>'merged' as merged, stats->>'skipped' as skipped, stats->>'errors' as errors, stats->>'apiCalls' as api_calls from ingestion.ingestion_run order by started_at desc limit 3"
 
+backfill-past-gigs: ## Store the past gigs (setlist.fm) of every act on a gig with clips; at most 800 calls a run, the next run resumes (needs `make up`, SETLISTFM_API_KEY)
+	SOUNDCHECK_ROLES=cli SERVER_PORT=8099 INGESTION_MODE=live INGESTION_SETLISTFM_BACKFILL=true $(GRADLE) bootRun --args='--spring.profiles.active=local --soundcheck.ingestion.cli=ingest --soundcheck.ingestion.cli-sources=SETLISTFM'
+	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -c "select status, to_char(started_at, 'YYYY-MM-DD HH24:MI') as started, stats->>'fetched' as setlists, stats->>'created' as created, stats->>'merged' as merged, stats->>'unchanged' as unchanged, stats->>'flaggedForReview' as review, stats->>'errors' as errors, stats->>'apiCalls' as api_calls from ingestion.ingestion_run where source = 'SETLISTFM' order by started_at desc limit 3" -c "select count(*) as acts_read, (select count(*) from catalog.gig_source where source = 'SETLISTFM') as setlist_links from ingestion.setlistfm_artist_sync"
+purge-past-gigs: ## Remove what the setlist.fm backfill stored that no one has posted to or marked (needs `make up`)
+	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -v ON_ERROR_STOP=1 -f - < $(CURDIR)/ops/scripts/purge-setlistfm-backfill.sql
 purge-fixtures: ## Remove the synthetic fixture gigs, venues and artists from the local database (needs `make up`)
 	$(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -v ON_ERROR_STOP=1 -f - < $(CURDIR)/ops/scripts/purge-synthetic.sql
 prune-local: ## Mark local posts whose clip files LocalStack lost as deleted (needs `make up`)

@@ -1,5 +1,6 @@
 package app.soundcheck.catalog;
 
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -18,4 +19,10 @@ public interface GigClips {
      * and no names.
      */
     long privateAt(UUID viewerId, UUID gigId);
+
+    /**
+     * Every gig with at least one published clip (the setlist.fm backfill looks up the past
+     * gigs of the acts on these gigs' bills).
+     */
+    Set<UUID> gigsWithClips();
 }

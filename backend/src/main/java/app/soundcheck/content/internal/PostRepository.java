@@ -343,6 +343,18 @@ public class PostRepository {
                 .fetch(PostRepository::toRow);
     }
 
+    /**
+     * The gigs that have a published post. Once per backfill run; expected index: post_gig_pub
+     * (partial on PUBLISHED, leading gig_id), read as an index-only scan.
+     */
+    public Set<UUID> gigsWithPublished() {
+        return new HashSet<>(dsl.selectDistinct(POST.GIG_ID)
+                .from(POST)
+                .where(POST.STATUS.eq("PUBLISHED"))
+                .and(POST.GIG_ID.isNotNull())
+                .fetch(POST.GIG_ID));
+    }
+
     /** Expected index: post_gig_pub (gig_id, published_at desc) where status = 'PUBLISHED'. */
     public long countPublishedAt(UUID gigId) {
         return dsl.fetchCount(POST, POST.GIG_ID.eq(gigId).and(POST.STATUS.eq("PUBLISHED")));

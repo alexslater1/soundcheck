@@ -160,4 +160,29 @@ class GigMatcherTest {
         Side venue = side("VENUE", "22:00", DOORS, "Pale Kites + Night Bus", PALE_KITES, NIGHT_BUS);
         assertThat(verdict(venue, tm, "TICKETMASTER")).isEqualTo(DIFFERENT);
     }
+
+    @Test
+    void aSupportActsSetlistJoinsTheNightsGigInTheSameRoomWithoutASharedAct() {
+        // Ticketmaster billed only the headliner; setlist.fm has the support's set.
+        Side tm = side("TICKETMASTER", "19:30", EXACT, "Pale Kites", PALE_KITES);
+        Side setlist = side("SETLISTFM", "20:00", DATE_ONLY, "Night Bus", NIGHT_BUS);
+        GigMatcher.Decision decision = GigMatcher.decide(setlist, tm, List.of("TICKETMASTER"));
+        assertThat(decision.verdict()).isEqualTo(SAME);
+        assertThat(decision.reason()).isEqualTo(GigMatcher.ONE_ACT_OF_THE_NIGHT);
+        // Not in a sibling room, and not on another night.
+        assertThat(GigMatcher.decide(setlist, tm, List.of("TICKETMASTER"), false)
+                        .verdict())
+                .isEqualTo(DIFFERENT);
+        Side nextNight = side("SETLISTFM", "2026-10-17", "20:00", DATE_ONLY, "Night Bus", NIGHT_BUS);
+        assertThat(verdict(nextNight, tm, "TICKETMASTER")).isEqualTo(DIFFERENT);
+    }
+
+    @Test
+    void aSecondSetlistJoinsAGigThatAlreadyHasOneEvenAtAnotherTime() {
+        // The gig follows Ticketmaster's 19:30 and already carries the headliner's setlist; setlist ids
+        // name sets, not shows, so "same source, another time" does not apply.
+        Side tm = side("TICKETMASTER", "19:30", EXACT, "Pale Kites", PALE_KITES);
+        Side support = side("SETLISTFM", "20:00", DATE_ONLY, "Night Bus", NIGHT_BUS);
+        assertThat(verdict(support, tm, "TICKETMASTER", "SETLISTFM")).isEqualTo(SAME);
+    }
 }
