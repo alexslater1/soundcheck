@@ -1,4 +1,4 @@
--- V160 — ingestion: when each act's past gigs were last read from setlist.fm.
+-- V136 — ingestion: when each act's past gigs were last read from setlist.fm.
 -- Our own bookkeeping, no setlist.fm data: lets a backfill stopped by the daily call cap resume the next
 -- day with the acts it has not read yet, and lets later runs read only what is new since the last read.
 -- No foreign key: catalog.artist belongs to another module, and a row left by a merged artist is harmless.
