@@ -2,7 +2,7 @@
 .env
 .env.*
 !.env.example
-.secrets/
+.secrets
 
 # Generated / local data
 .localdata/
@@ -25,7 +25,7 @@ backend/.classpath
 backend/.project
 backend/.settings/
 backend/.factorypath
-app/node_modules/
+app/node_modules
 app/.expo/
 app/dist/
 app/web-build/
@@ -34,7 +34,7 @@ app/ios/
 app/coverage/
 app/test-results/
 app/playwright-report/
-infra/node_modules/
+infra/node_modules
 infra/cdk.out/
 infra/dist/
 lab/.venv/
