@@ -55,7 +55,7 @@ class SignalsJobs {
         this.clock = clock;
     }
 
-    @Scheduled(fixedDelayString = "PT1M", initialDelayString = "PT30S")
+    @Scheduled(fixedDelayString = "${soundcheck.signals.post-stats-interval:PT1M}", initialDelayString = "PT30S")
     @SchedulerLock(name = "post-stats-rollup", lockAtMostFor = "PT10M")
     void rollUpPostStats() {
         timed("post_stats", () -> {

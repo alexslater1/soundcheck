@@ -21,10 +21,13 @@ class Persona:
     city: str
     genres: tuple[str, ...]  # canonical genre names (GET /genres), strongest first
     bio: str
+    # Synthetic accounts are told apart by their email domain (synthetic-email-domains in
+    # application.yaml): the seed's personas here, the simulator's under sim.soundcheck.test.
+    domain: str = EMAIL_DOMAIN
 
     @property
     def email(self) -> str:
-        return f"{self.handle}@{EMAIL_DOMAIN}"
+        return f"{self.handle}@{self.domain}"
 
     @property
     def indie(self) -> bool:

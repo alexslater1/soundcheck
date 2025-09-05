@@ -7,6 +7,7 @@ for big files)."""
 
 from __future__ import annotations
 
+import threading
 import time
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
@@ -53,6 +54,7 @@ class Api:
         self._clock = clock
         self._auth_spacing_s = auth_spacing_s
         self._last_auth = -1e9
+        self._auth_lock = threading.Lock()  # the simulator signs in from several threads
         self._tokens: dict[str, str] = {}
         self.ids: dict[str, str] = {}  # handle → user id
         self.calls = 0
@@ -94,10 +96,11 @@ class Api:
 
     # ── accounts ─────────────────────────────────────────────────────────────────────────────────
     def _pace_auth(self) -> None:
-        wait = self._last_auth + self._auth_spacing_s - self._clock()
-        if wait > 0:
-            self._sleep(wait)
-        self._last_auth = self._clock()
+        with self._auth_lock:
+            wait = self._last_auth + self._auth_spacing_s - self._clock()
+            if wait > 0:
+                self._sleep(wait)
+            self._last_auth = self._clock()
 
     def sign_in(self, persona: Persona) -> str:
         """Registers the persona, or logs in when the email is taken (a re-run). Returns the access

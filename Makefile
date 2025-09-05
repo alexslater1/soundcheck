@@ -286,8 +286,9 @@ clips-check: ## Regenerate the clips into a temp dir and prove they are byte-ide
 	python3 $(CURDIR)/ops/scripts/make_clips.py --check
 
 # ── Ranking lab ──────────────────────────────────────────────────────────────
-simulate: ## Run the engagement simulator against the local API
-	$(call not_yet,simulate)
+simulate: ## Synthetic personas on the simulator's OWN stack: make simulate SIM_API=http://localhost:8140 SIM_DB=postgresql://… [SEED=7 PERSONAS=200 SESSIONS=5 DAYS=14]
+	[ -n "$(SIM_API)" ] && [ -n "$(SIM_DB)" ] || { echo "simulate: set SIM_API and SIM_DB to the simulator's own API and database (never the dev stack)"; exit 1; }
+	$(UV_LAB) run soundcheck-lab simulate --api "$(SIM_API)" --db "$(SIM_DB)" --seed $(or $(SEED),7) --personas $(or $(PERSONAS),200) --sessions $(or $(SESSIONS),5) --days $(or $(DAYS),14)
 
 lab-train: ## Train ranking weights from served-item logs
 	$(call not_yet,lab-train)

@@ -22,6 +22,9 @@ soundcheck:
     # The affinity rollup runs every 10 minutes by default. Locally a minute, so that "like a few clips
     # of one artist, refresh, see that artist move up" can be shown without waiting.
     affinity-rollup-interval: ${AFFINITY_ROLLUP_INTERVAL:PT1M}
+    # Post stats every minute, as everywhere else. The simulator's own stack sets both intervals to PT10S
+    # (POST_STATS_INTERVAL, AFFINITY_ROLLUP_INTERVAL) so each round's feed sees the earlier rounds.
+    post-stats-interval: ${POST_STATS_INTERVAL:PT1M}
   ingestion:
     venues:
       # Locally every venue that passed the compliance gate is read (live mode only). Override
