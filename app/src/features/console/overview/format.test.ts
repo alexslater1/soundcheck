@@ -10,10 +10,13 @@ import {
 } from './format';
 
 describe('overview format', () => {
-  it('writes percentages with a decimal only under 10 %', () => {
+  it('writes percentages with a decimal under 10 % and near 100 %', () => {
     expect(formatPercent(0.4)).toBe('40 %');
     expect(formatPercent(0.0479)).toBe('4.8 %');
-    expect(formatPercent(0.9963)).toBe('100 %');
+    expect(formatPercent(0.9963)).toBe('99.6 %'); // failures are never rounded away
+    expect(formatPercent(0.99996)).toBe('99.9 %');
+    expect(formatPercent(1)).toBe('100 %');
+    expect(formatPercent(0.985)).toBe('99 %');
     expect(formatPercent(0)).toBe('0 %');
     expect(formatPercent(null)).toBe(NONE);
     expect(formatPercent(undefined)).toBe(NONE);

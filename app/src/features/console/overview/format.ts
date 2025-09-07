@@ -6,11 +6,16 @@
 
 export const NONE = '—';
 
-/** 0.4 → "40 %", 0.0479 → "4.8 %" (one decimal under 10 %), null → "—". */
+/**
+ * 0.4 → "40 %", 0.0479 → "4.8 %" (one decimal under 10 %), 0.9963 → "99.6 %" (one decimal near 100 %,
+ * and never "100 %" unless it is: a success rate with failures must not round them away), null → "—".
+ */
 export function formatPercent(fraction: number | null | undefined): string {
   if (fraction === null || fraction === undefined || !Number.isFinite(fraction)) return NONE;
   const pct = fraction * 100;
-  const shown = Math.abs(pct) < 10 ? Math.round(pct * 10) / 10 : Math.round(pct);
+  const fine = Math.abs(pct) < 10 || (pct > 99 && pct < 100);
+  let shown = fine ? Math.round(pct * 10) / 10 : Math.round(pct);
+  if (shown >= 100 && fraction < 1) shown = 99.9;
   return `${shown} %`;
 }
 

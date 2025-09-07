@@ -10,7 +10,9 @@
 -- One row per served For You item (feed.served_outcome: the one definition of "engaged") with
 -- the version of the ranking config that served it. The logged features are left out: no chart needs them.
 -- Expected index: served_item's partition key (served_at) prunes the period's day partitions; the label
--- lateral uses interaction_event_session per pruned partition (V130); ranking_config by its primary key.
+-- lateral (V130) probes each event partition by interaction_event_user (user_id, occurred_at) or
+-- interaction_event_session, whichever the planner picks per partition (both on the demo data);
+-- ranking_config by its primary key.
 create view analytics.serve_fact as
 select o.session_id, o.position, o.served_at, o.user_id, o.post_id, o.config_id,
        c.version      as config_version,
