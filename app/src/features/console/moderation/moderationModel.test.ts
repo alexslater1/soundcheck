@@ -26,10 +26,20 @@ describe('moderationModel', () => {
     expect(reasonLabels(item({}))).toEqual(['Spam ×2', 'Copyright']);
   });
 
-  it('offers hide for posts and delete for comments, dismiss for both', () => {
-    expect(actionsFor('POST')).toEqual(['HIDE_POST', 'DISMISS']);
-    expect(actionsFor('COMMENT')).toEqual(['DELETE_COMMENT', 'DISMISS']);
-    expect(actionsFor('GIG_COMMENT')).toEqual(['DELETE_COMMENT', 'DISMISS']);
+  it('offers hide for published posts and delete for comments still there, dismiss for all', () => {
+    const post = (status: 'PUBLISHED' | 'DELETED' | 'HIDDEN') =>
+      item({ post: { id: 'p1', status, clipCount: 1 } });
+    const comment = (kind: 'COMMENT' | 'GIG_COMMENT', deleted: boolean) =>
+      item({
+        kind,
+        comment: { id: 'c1', body: 'x', createdAt: '2026-10-04T10:00:00Z', deleted },
+      });
+    expect(actionsFor(post('PUBLISHED'))).toEqual(['HIDE_POST', 'DISMISS']);
+    expect(actionsFor(post('DELETED'))).toEqual(['DISMISS']);
+    expect(actionsFor(post('HIDDEN'))).toEqual(['DISMISS']);
+    expect(actionsFor(comment('COMMENT', false))).toEqual(['DELETE_COMMENT', 'DISMISS']);
+    expect(actionsFor(comment('GIG_COMMENT', false))).toEqual(['DELETE_COMMENT', 'DISMISS']);
+    expect(actionsFor(comment('GIG_COMMENT', true))).toEqual(['DISMISS']);
   });
 
   it('says what each decision will change', () => {

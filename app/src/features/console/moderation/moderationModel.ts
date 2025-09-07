@@ -30,9 +30,18 @@ export function reasonLabels(item: Pick<ReportItem, 'reasons'>): string[] {
   );
 }
 
-/** The decisions that fit a target: a post can be hidden, a comment deleted, either dismissed. */
-export function actionsFor(kind: ReportItem['kind']): ResolveRequestAction[] {
-  return kind === 'POST' ? ['HIDE_POST', 'DISMISS'] : ['DELETE_COMMENT', 'DISMISS'];
+/**
+ * The decisions that fit a target: a published post can be hidden, a comment still there deleted, and
+ * anything dismissed. A post its author deleted (or one hidden already) and a deleted comment have
+ * nothing left to act on, so only Dismiss closes their reports.
+ */
+export function actionsFor(
+  item: Pick<ReportItem, 'kind' | 'post' | 'comment'>,
+): ResolveRequestAction[] {
+  if (item.kind === 'POST') {
+    return item.post?.status === 'PUBLISHED' ? ['HIDE_POST', 'DISMISS'] : ['DISMISS'];
+  }
+  return item.comment && !item.comment.deleted ? ['DELETE_COMMENT', 'DISMISS'] : ['DISMISS'];
 }
 
 export const ACTION_LABELS: Record<ResolveRequestAction, string> = {

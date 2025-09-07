@@ -103,7 +103,7 @@ export function ReportCard({
         </View>
       ) : (
         <View style={styles.footer}>
-          {actionsFor(item.kind).map((action) => (
+          {actionsFor(item).map((action) => (
             <Button
               key={action}
               title={ACTION_LABELS[action]}
@@ -217,9 +217,9 @@ const styles = StyleSheet.create({
   },
   quote: { fontStyle: 'italic' },
   target: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  media: { width: 160 },
+  media: { width: 120 },
   poster: {
-    width: 160,
+    width: 120,
     aspectRatio: 9 / 16,
     borderRadius: radius.md,
     overflow: 'hidden',
