@@ -15,12 +15,12 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
+from soundcheck_lab import events as ev
 from soundcheck_lab.seed.api import Api
 from soundcheck_lab.seed.personas import Persona
 from soundcheck_lab.seed.run import stable
 
 Log = Callable[[str], None]
-MAX_BATCH = 100  # POST /events takes 1 to 100 events
 
 
 def interest(persona: Persona, post: dict[str, Any]) -> float:
@@ -43,15 +43,7 @@ def reactions(
     now = datetime.now(UTC).isoformat()
 
     def event(kind: str, value: float | None = None) -> dict[str, Any]:
-        return {
-            "postId": post["id"],
-            "surface": "FOR_YOU",
-            "type": kind,
-            "position": position,
-            "sessionId": session,
-            "clientTs": now,
-            "value": value,
-        }
+        return ev.event(post["id"], kind, position, session, now, value)
 
     events = [event("IMPRESSION")]
     if roll < 0.35 + 0.5 * level:
@@ -79,9 +71,7 @@ def engage(api: Api, people: Sequence[Persona], log: Log, sessions: int = 2, pag
                     if like:
                         api.put(persona, f"/api/v1/posts/{item['post']['id']}/like")
                     batch += events
-                for i in range(0, len(batch), MAX_BATCH):
-                    api.post(persona, "/api/v1/events", {"events": batch[i : i + MAX_BATCH]})
-                sent += len(batch)
+                sent += ev.send(api, persona, batch)
                 cursor = feed.get("nextCursor")
                 if not cursor:
                     break

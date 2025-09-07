@@ -197,12 +197,60 @@ def seed_scale(profile: str = typer.Option("small", help="small | medium | large
 
 @app.command()
 def simulate(
-    personas: int = typer.Option(200),
-    sessions: int = typer.Option(5),
-    days: int = typer.Option(14),
+    api_url: str = typer.Option(
+        ...,
+        "--api",
+        help="The simulator's own API (no default: never the dev stack, :8080/:8088)",
+    ),
+    db: str = typer.Option(
+        ...,
+        "--db",
+        help="The database behind --api, read-only (postgresql://user:pass@host:port/db)",
+    ),
+    personas: int = typer.Option(200, min=1, max=2000),
+    sessions: int = typer.Option(5, min=1, help="Sessions per persona, in total"),
+    days: int = typer.Option(14, min=1, help="Rounds (a round stands for a day)"),
+    seed: int = typer.Option(7, min=0, max=10**9 - 1),
+    round_wait: float = typer.Option(
+        12.0, min=0, help="Seconds between rounds: one rollup interval plus 2 s"
+    ),
+    workers: int = typer.Option(4, min=1, max=16, help="Sessions run at once within a round"),
+    out: str = typer.Option("", help="Directory for sim-<seed>-<ts>.json (default lab/data)"),
 ) -> None:
     """Run synthetic personas against the real API with a click model."""
-    _not_yet("simulate")
+    import subprocess
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    from soundcheck_lab.seed.api import Api
+    from soundcheck_lab.seed.personas import check_password_for
+    from soundcheck_lab.sim import check, world
+    from soundcheck_lab.sim import personas as sim_personas
+    from soundcheck_lab.sim import run as sim
+
+    check_password_for(api_url)
+    lab_root = Path(__file__).resolve().parents[2]
+    the_world = world.load(db, seed)
+    people = sim_personas.make(the_world, seed, personas, sessions, days, datetime.now(UTC))
+    settings = sim.Settings(personas, sessions, days, seed, api_url, round_wait, workers)
+    client = Api(api_url, auth_spacing_s=0.5)  # the local profile allows 120 auth calls a minute
+    try:
+        result = sim.run(settings, client, the_world, people, typer.echo)
+    except sim.WorldMismatchError as mismatch:
+        typer.echo(f"simulate: {mismatch}", err=True)
+        raise typer.Exit(1) from mismatch
+    finally:
+        client.close()
+    feed_sessions = {f for s in result.sessions for f in s.feed_sessions}
+    result.check = check.run(
+        db, result.started_at, feed_sessions, the_world, people, result.user_ids
+    )
+    typer.echo(f"served_outcome: {result.check}")
+    sha = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=False
+    ).stdout.strip()
+    path = sim.write(result, Path(out) if out else lab_root / "data", sha or None)
+    typer.echo(f"wrote {path} (SYNTHETIC: {sim.HONESTY})")
 
 
 @app.command()
