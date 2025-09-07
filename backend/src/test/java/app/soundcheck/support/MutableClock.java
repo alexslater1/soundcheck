@@ -14,18 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class MutableClock extends Clock {
 
-    private final AtomicReference<Duration> offset;
-    private final ZoneId zone;
-
-    public MutableClock() {
-        this(new AtomicReference<>(Duration.ZERO), ZoneOffset.UTC);
-    }
-
-    /** The same offset seen in another zone (what {@link #withZone} returns). */
-    private MutableClock(AtomicReference<Duration> offset, ZoneId zone) {
-        this.offset = offset;
-        this.zone = zone;
-    }
+    private final AtomicReference<Duration> offset = new AtomicReference<>(Duration.ZERO);
 
     public void advance(Duration by) {
         offset.updateAndGet(current -> current.plus(by));
@@ -42,16 +31,43 @@ public final class MutableClock extends Clock {
 
     @Override
     public ZoneId getZone() {
-        return zone;
+        return ZoneOffset.UTC;
     }
 
     /**
-     * The same moving instant in {@code zone}. (Returning {@code this} made {@code LocalDate.now(clock.withZone(UK))}
-     * the UTC date, so between midnight and 1 am in British Summer Time a gig on today's UK date read as
-     * tomorrow's and PostWentIT failed.)
+     * A view of this clock in {@code zone}: the same moving instant, read in that zone. Returning
+     * {@code this} (UTC) made {@code LocalDate.now(clock.withZone(UK))} the UTC date, so in the hour after
+     * UK midnight in summer (23:00–00:00 UTC) a gig "on today" was refused as tomorrow's (PostWentIT, found
+     * at 23:53 UTC). Production's {@code Clock.systemUTC().withZone(...)} never did that.
      */
     @Override
     public Clock withZone(ZoneId zone) {
-        return zone.equals(this.zone) ? this : new MutableClock(offset, zone);
+        return zone.equals(getZone()) ? this : new Zoned(this, zone);
+    }
+
+    private static final class Zoned extends Clock {
+
+        private final MutableClock source;
+        private final ZoneId zone;
+
+        private Zoned(MutableClock source, ZoneId zone) {
+            this.source = source;
+            this.zone = zone;
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return zone;
+        }
+
+        @Override
+        public Clock withZone(ZoneId other) {
+            return source.withZone(other);
+        }
+
+        @Override
+        public Instant instant() {
+            return source.instant();
+        }
     }
 }

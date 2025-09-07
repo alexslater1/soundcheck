@@ -3,25 +3,42 @@ package app.soundcheck.support;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import org.junit.jupiter.api.Test;
 
+/** The test clock reads the same instant in any zone, as production's system clock does. */
 class MutableClockTest {
 
-    private static final ZoneId UK = ZoneId.of("Europe/London");
+    static final ZoneId UK = ZoneId.of("Europe/London");
 
     @Test
-    void aZonedViewKeepsItsZoneAndFollowsTheOffset() {
+    void inTheHourAfterUkMidnightInSummerTheUkDateIsAlreadyTomorrow() {
         MutableClock clock = new MutableClock();
-        var uk = clock.withZone(UK);
+        // 23:30 UTC on 1 July is 00:30 BST on 2 July.
+        Instant target = Instant.parse("2031-07-01T23:30:00Z");
+        clock.advance(Duration.between(Instant.now(), target));
 
-        assertThat(uk.getZone()).isEqualTo(UK);
-        assertThat(LocalDate.now(uk)).isEqualTo(LocalDate.now(UK));
+        assertThat(LocalDate.now(clock.withZone(UK))).isEqualTo(LocalDate.parse("2031-07-02"));
+        assertThat(LocalDate.now(clock)).isEqualTo(LocalDate.parse("2031-07-01"));
+        assertThat(clock.withZone(UK).instant()).isCloseTo(target, within());
+        assertThat(clock.withZone(UK).withZone(UK).getZone()).isEqualTo(UK);
+    }
+
+    @Test
+    void theZonedViewFollowsTheOffset() {
+        MutableClock clock = new MutableClock();
+        java.time.Clock uk = clock.withZone(UK);
+        Instant before = uk.instant();
 
         clock.advance(Duration.ofDays(3));
-        assertThat(LocalDate.now(uk)).isEqualTo(LocalDate.now(UK).plusDays(3));
-        clock.reset();
-        assertThat(LocalDate.now(uk)).isEqualTo(LocalDate.now(UK));
+
+        assertThat(Duration.between(before, uk.instant())).isGreaterThanOrEqualTo(Duration.ofDays(3));
+    }
+
+    private static org.assertj.core.data.TemporalUnitOffset within() {
+        return new org.assertj.core.data.TemporalUnitWithinOffset(5, ChronoUnit.SECONDS);
     }
 }
