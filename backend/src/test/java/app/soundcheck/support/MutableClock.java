@@ -14,7 +14,18 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public final class MutableClock extends Clock {
 
-    private final AtomicReference<Duration> offset = new AtomicReference<>(Duration.ZERO);
+    private final AtomicReference<Duration> offset;
+    private final ZoneId zone;
+
+    public MutableClock() {
+        this(new AtomicReference<>(Duration.ZERO), ZoneOffset.UTC);
+    }
+
+    /** The same offset seen in another zone (what {@link #withZone} returns). */
+    private MutableClock(AtomicReference<Duration> offset, ZoneId zone) {
+        this.offset = offset;
+        this.zone = zone;
+    }
 
     public void advance(Duration by) {
         offset.updateAndGet(current -> current.plus(by));
@@ -31,11 +42,16 @@ public final class MutableClock extends Clock {
 
     @Override
     public ZoneId getZone() {
-        return ZoneOffset.UTC;
+        return zone;
     }
 
+    /**
+     * The same moving instant in {@code zone}. (Returning {@code this} made {@code LocalDate.now(clock.withZone(UK))}
+     * the UTC date, so between midnight and 1 am in British Summer Time a gig on today's UK date read as
+     * tomorrow's and PostWentIT failed.)
+     */
     @Override
     public Clock withZone(ZoneId zone) {
-        return this;
+        return zone.equals(this.zone) ? this : new MutableClock(offset, zone);
     }
 }
