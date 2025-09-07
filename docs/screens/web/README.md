@@ -38,3 +38,11 @@ Data is synthetic only: the Ticketmaster-shaped fixtures (`make ingest INGESTION
 | `18-offline-banner.png` | Gigs with the network cut (`context.setOffline`): "No connection. You are seeing what was already loaded." It goes again when the network is back (the test waits for that) |
 
 The Android counterparts of `10`–`15` are in `docs/screens/android/` (2025-08-30, a Pixel).
+
+## Console
+
+| File | Shows |
+|---|---|
+| `console-overview.png` | The console's Overview on the 7-day preset: the synthetic-share banner (73 %), the eight KPI tiles, the daily and For You charts, top artists and gigs, uploads by UK hour |
+
+Captured 2025-09-07 16:45:54 BST with headless Chromium (Playwright), 1440 px wide and as tall as the page, light mode, against its own API (the jar of `6dc8b3c`, port 8133) and `expo export -p web` of the overview code committed as `8010a80`, on a private PostGIS restored from `.localdata/backups/20250907T112613Z/db.dump` (never the shared database). The range is the 7 days to the capture, so the previous period is empty and the tiles show no deltas. The numbers are the demo's: mostly seed personas (synthetic, as the banner says), with gig, venue and act names from the Ticketmaster listings; no clip or photo is shown.
