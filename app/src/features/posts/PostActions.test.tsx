@@ -134,7 +134,13 @@ describe('PostActions', () => {
     );
     await fireEvent.press(screen.getByLabelText('More'));
     await fireEvent.press(screen.getByText('Report'));
-    await waitFor(() => expect(mockReport).toHaveBeenCalledWith('post-1', { reason: 'OTHER' }));
+    // The reason picker opens; nothing is sent until a reason is chosen and Report pressed.
+    expect(screen.getByTestId('report-sheet')).toBeOnTheScreen();
+    expect(mockReport).not.toHaveBeenCalled();
+    await fireEvent.press(screen.getByText('Copyright'));
+    await fireEvent.press(screen.getByTestId('report-send'));
+    await waitFor(() => expect(mockReport).toHaveBeenCalledWith('post-1', { reason: 'COPYRIGHT' }));
+    expect(await screen.findByTestId('report-done')).toBeOnTheScreen();
 
     const types = (telemetry.track as jest.Mock).mock.calls.map((call) => call[0].type);
     expect(types).toEqual(['SHARE', 'REPORT']);

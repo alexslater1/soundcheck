@@ -84,8 +84,31 @@ describe('GigComments: the thread under a gig', () => {
     });
     expect(await screen.findByText('Who else?')).toBeTruthy();
     expect(screen.getByTestId('comment-private')).toHaveTextContent(/A private profile commented/);
-    expect(screen.queryByLabelText('More for the comment by @maya')).toBeNull();
-    expect(screen.getByLabelText('More for the comment by @me')).toBeTruthy();
+    // Someone else's comment can be reported, not deleted.
+    await fireEvent.press(screen.getByLabelText('More for the comment by @maya'));
+    expect(screen.queryByText('Delete comment')).toBeNull();
+    expect(screen.getByText('Report comment')).toBeTruthy();
+    await fireEvent.press(screen.getByTestId('sheet-backdrop', { includeHiddenElements: true }));
+    await fireEvent.press(screen.getByLabelText('More for the comment by @me'));
+    expect(screen.getByText('Delete comment')).toBeTruthy();
+    expect(screen.queryByText('Report comment')).toBeNull();
+  });
+
+  it('reports a gig comment with its reason', async () => {
+    await render(<GigComments gigId="g1" startsAt="2025-03-01T19:30:00Z" />, {
+      wrapper: Providers,
+    });
+    await screen.findByText('Who else?');
+    await fireEvent.press(screen.getByLabelText('More for the comment by @maya'));
+    await fireEvent.press(screen.getByText('Report comment'));
+    await fireEvent.press(screen.getByText('Abuse'));
+    await fireEvent.press(screen.getByTestId('report-send'));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/report'))).toBe(true),
+    );
+    const [url, init] = fetchMock.mock.calls.find(([u]) => String(u).includes('/report'))!;
+    expect(String(url)).toMatch(/\/api\/v1\/gig-comments\/[^/]+\/report$/);
+    expect(JSON.parse(String(init?.body))).toEqual({ reason: 'ABUSE' });
   });
 
   it('posts a comment to the gig with an idempotency key', async () => {

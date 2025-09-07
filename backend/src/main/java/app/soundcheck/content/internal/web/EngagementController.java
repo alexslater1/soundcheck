@@ -109,6 +109,14 @@ public class EngagementController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/comments/{id}/report")
+    @Operation(operationId = "reportComment", summary = "Report a post comment to the moderators")
+    public ResponseEntity<Void> reportComment(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody ReportRequest body) {
+        engagement.reportComment(userId(jwt), id, body.reason(), body.details());
+        return ResponseEntity.noContent().build();
+    }
+
     static UUID userId(Jwt jwt) {
         return UUID.fromString(jwt.getSubject());
     }

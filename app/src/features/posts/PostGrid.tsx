@@ -16,7 +16,8 @@ export function badgeFor(status: Post['status']): string | null {
     case 'FAILED':
       return 'Failed';
     case 'HIDDEN':
-      return 'Hidden';
+      // Only its author sees it: a moderator hid it after reports.
+      return 'Hidden by moderators';
     default:
       return null;
   }

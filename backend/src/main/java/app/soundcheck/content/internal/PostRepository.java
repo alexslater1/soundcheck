@@ -167,6 +167,39 @@ public class PostRepository {
                 == 1;
     }
 
+    /**
+     * PUBLISHED → HIDDEN by a moderator, only if it is still published.
+     *
+     * @return true when this call hid it
+     */
+    public boolean hide(UUID postId, Instant now) {
+        return dsl.update(POST)
+                        .set(POST.STATUS, "HIDDEN")
+                        .set(POST.UPDATED_AT, at(now))
+                        .where(POST.ID.eq(postId))
+                        .and(POST.STATUS.eq("PUBLISHED"))
+                        .execute()
+                == 1;
+    }
+
+    /**
+     * HIDDEN → PUBLISHED (a moderator's restore), keeping its first {@code published_at} so it goes back
+     * to its place in every list. The partial unique index post_author_gig_day refuses it if the author
+     * has posted again from the same gig and day meanwhile; the caller checks first and translates a
+     * refusal that slipped past the check.
+     *
+     * @return true when this call restored it
+     */
+    public boolean unhide(UUID postId, Instant now) {
+        return dsl.update(POST)
+                        .set(POST.STATUS, "PUBLISHED")
+                        .set(POST.UPDATED_AT, at(now))
+                        .where(POST.ID.eq(postId))
+                        .and(POST.STATUS.eq("HIDDEN"))
+                        .execute()
+                == 1;
+    }
+
     /** Soft delete; false when it was already deleted. */
     public boolean markDeleted(UUID postId, Instant now) {
         return dsl.update(POST)

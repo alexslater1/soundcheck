@@ -12,6 +12,7 @@ import { ActionSheet, Sheet, type SheetAction } from '@/components/ui/Sheet';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
 import { refreshPosts } from '@/features/editPost/refreshPosts';
+import { ReportSheet } from '@/features/moderation/ReportSheet';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { forgetPost } from '@/features/upload/uploadRunner';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -41,8 +42,8 @@ const LIGHT = '#FFFFFF';
 
 /**
  * What can be done with a post: like, comment, share, and a ⋯ menu in a sheet (delete, after a
- * confirm, for its author; "show me less", report and "Why this post?" for everyone else). Each action
- * is also reported as telemetry.
+ * confirm, for its author; "show me less", report with a reason and "Why this post?" for
+ * everyone else). Each action is also reported as telemetry.
  */
 export function PostActions({
   post,
@@ -58,6 +59,7 @@ export function PostActions({
   const myId = useAuthStore((state) => state.me?.id);
   const [menuOpen, setMenuOpen] = useState(false);
   const [whyOpen, setWhyOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const mine = post.author.id === myId;
   const ink = onDark ? LIGHT : colors.text;
@@ -182,12 +184,8 @@ export function PostActions({
           key: 'report',
           label: 'Report',
           icon: 'flag-outline',
-          onPress: () =>
-            void act(
-              () => reportPost(post.id, { reason: 'OTHER' }).then(() => track('REPORT', post.id)),
-              'Reported. Thank you.',
-              false,
-            ),
+          // The reason picker; the sheet thanks the reporter itself.
+          onPress: () => setReportOpen(true),
         },
       ];
 
@@ -215,6 +213,17 @@ export function PostActions({
       </View>
     </Sheet>
   ) : null;
+
+  // Reported once the server has the report, as HIDE is.
+  const report = mine ? null : (
+    <ReportSheet
+      visible={reportOpen}
+      what="post"
+      onClose={() => setReportOpen(false)}
+      onSubmit={(body) => reportPost(post.id, body)}
+      onReported={() => track('REPORT', post.id)}
+    />
+  );
 
   const more = (
     <Pressable
@@ -300,6 +309,7 @@ export function PostActions({
       {column ? null : note}
       {menu}
       {why}
+      {report}
     </View>
   );
 }

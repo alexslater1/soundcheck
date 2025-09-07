@@ -53,7 +53,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
     href: '/console/moderation',
     label: 'Moderation',
     blurb: 'Reports, hidden posts and restores',
-    built: false,
+    built: true,
   },
   {
     key: 'catalog',

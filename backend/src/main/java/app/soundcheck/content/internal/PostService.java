@@ -6,6 +6,7 @@ import app.soundcheck.content.Post;
 import app.soundcheck.content.PostDeleted;
 import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostFeed;
+import app.soundcheck.content.PostHidden;
 import app.soundcheck.identity.Users;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.idempotency.IdempotencyKeys;
@@ -421,6 +422,57 @@ public class PostService implements PostFeed {
             rules.clipsGone(clips.of(row.id()).stream().map(ClipRow::ownerId).toList(), row.gigId());
             events.publishEvent(new PostDeleted(row.id(), row.authorId()));
         }
+    }
+
+    // ── moderation ─────────────────────────────────────────────────────────────
+
+    /**
+     * A moderator hides the post: PUBLISHED → HIDDEN, and {@link PostHidden} is published. Every list and
+     * the feed show only PUBLISHED posts, so it is gone for everyone except its author at once; its Went
+     * stays (a hidden post still exists). A post that is no longer published (hidden already,
+     * or deleted by its author meanwhile) is left as it is.
+     *
+     * @return true when this call hid it
+     */
+    public boolean hide(UUID postId) {
+        PostRow post = posts.lock(postId).orElseThrow(PostService::notFound);
+        Instant now = Instant.now(clock);
+        if (!posts.hide(post.id(), now)) {
+            return false;
+        }
+        events.publishEvent(new PostHidden(post.id(), post.authorId(), now));
+        return true;
+    }
+
+    /**
+     * A moderator undoes a hide: HIDDEN → PUBLISHED, back in its old place in every list. Refused
+     * with 409 POST_REPLACED when the author has posted again from the same gig and day while it was
+     * hidden: a fan has one open post per gig and day (the index post_author_gig_day), and the
+     * new one is the one they chose to keep.
+     */
+    public void restore(UUID postId) {
+        PostRow post =
+                posts.lock(postId).filter(p -> !p.status().equals("DELETED")).orElseThrow(PostService::notFound);
+        if (!post.status().equals("HIDDEN")) {
+            throw ApiException.conflict("POST_NOT_HIDDEN", "Only a hidden post can be restored");
+        }
+        Optional<PostRow> replacement = openPost(post.authorId(), post.gigId(), post.day());
+        if (replacement.isPresent()) {
+            throw replaced().with("postId", replacement.get().id());
+        }
+        try {
+            posts.unhide(post.id(), Instant.now(clock));
+        } catch (DataIntegrityViolationException e) {
+            // The author's new post was created between the check and the update: the index decided.
+            if (String.valueOf(e.getMostSpecificCause().getMessage()).contains("post_author_gig_day")) {
+                throw replaced();
+            }
+            throw e;
+        }
+    }
+
+    private static ApiException replaced() {
+        return ApiException.conflict("POST_REPLACED", "The author has posted again for this gig");
     }
 
     Post view(UUID viewerId, PostRow row) {

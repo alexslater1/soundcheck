@@ -1,15 +1,20 @@
 package app.soundcheck.shared.web;
 
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.springframework.http.HttpStatus;
 
 /**
  * An error that maps to an RFC 9457 Problem Details response. {@code code} is the stable
  * machine code (e.g. {@code HANDLE_TAKEN}); {@link ProblemHandler} derives {@code type} from it.
+ * {@link #with} adds a property the client can act on (the post that replaced a hidden one).
  */
 public class ApiException extends RuntimeException {
 
     private final HttpStatus status;
     private final String code;
+    private final Map<String, Object> properties = new LinkedHashMap<>();
 
     public ApiException(HttpStatus status, String code, String detail) {
         super(detail);
@@ -44,6 +49,16 @@ public class ApiException extends RuntimeException {
 
     public static ApiException gone(String code, String detail) {
         return new ApiException(HttpStatus.GONE, code, detail);
+    }
+
+    /** Adds a property to the problem the client receives; never a token, a password or a presigned URL. */
+    public ApiException with(String name, Object value) {
+        properties.put(name, value);
+        return this;
+    }
+
+    public Map<String, Object> properties() {
+        return Collections.unmodifiableMap(properties);
     }
 
     public HttpStatus status() {

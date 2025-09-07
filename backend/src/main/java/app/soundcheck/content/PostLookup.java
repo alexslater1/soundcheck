@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 /** Content's read API for modules that only need to point at a post (notifications). */
 public interface PostLookup {
 
-    /** Briefs of the posts that still exist (deleted ones are absent). */
+    /** Briefs of the posts that still exist (deleted ones, and ones hidden by a moderator, are absent). */
     Map<UUID, PostBrief> briefs(Collection<UUID> postIds);
 
     /** Enough of a post to show a notification about it. */

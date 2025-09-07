@@ -6,8 +6,10 @@ import { useGetPost } from '@/api/generated/posts/posts';
 import { Screen } from '@/components/ui/Screen';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
+import { Text } from '@/components/ui/Text';
 import { nextPollDelay } from '@/features/player/mediaPolling';
-import { spacing } from '@/theme/tokens';
+import { useTheme } from '@/theme/ThemeProvider';
+import { radius, spacing } from '@/theme/tokens';
 
 import { CommentBox, CommentList } from './Comments';
 import { PostCard } from './PostCard';
@@ -29,6 +31,7 @@ export function PostScreen({
   startAtMs?: number;
 }) {
   const router = useRouter();
+  const { colors } = useTheme();
   const scroll = useRef<ScrollView>(null);
   const commentsAt = useRef(0);
   const commentInput = useRef<TextInput>(null);
@@ -78,6 +81,23 @@ export function PostScreen({
         keyboardShouldPersistTaps="handled"
         testID="post-scroll"
       >
+        {post.data.status === 'HIDDEN' ? (
+          // Only the author can open a hidden post: say why nobody else sees it.
+          <View
+            style={[
+              styles.banner,
+              { backgroundColor: colors.surfaceRaised, borderColor: colors.warning },
+            ]}
+            accessibilityRole="alert"
+            testID="post-hidden-banner"
+          >
+            <Text style={styles.bannerTitle}>Hidden by moderators</Text>
+            <Text variant="caption" muted>
+              After reports, a moderator took this post out of every feed and list. Only you can see
+              it.
+            </Text>
+          </View>
+        ) : null}
         <PostCard
           post={post.data}
           active
@@ -110,4 +130,6 @@ export function PostScreen({
 const styles = StyleSheet.create({
   flush: { paddingTop: 0 },
   content: { gap: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.lg },
+  banner: { borderWidth: 1, borderRadius: radius.md, padding: spacing.md, gap: spacing.xs },
+  bannerTitle: { fontWeight: '700' },
 });

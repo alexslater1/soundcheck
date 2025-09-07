@@ -5,6 +5,7 @@ import {
   addGigComment,
   deleteGigComment,
   getListGigCommentsQueryKey,
+  reportGigComment,
   useListGigComments,
 } from '@/api/generated/engagement/engagement';
 import { useAuthStore } from '@/features/auth/store';
@@ -16,7 +17,7 @@ import { dayHasCome } from './attendance';
 /**
  * The comment thread at the foot of a gig page, the post comments' list and box reused.
  * Before the gig's day it asks "Who's going?", from its day on "How was it?". Anyone can comment; only
- * the writer can delete their comment; nobody is notified.
+ * the writer can delete their comment; anyone can report someone else's; nobody is notified.
  */
 export function GigComments({ gigId, startsAt }: { gigId: string; startsAt: string }) {
   const client = useQueryClient();
@@ -35,6 +36,7 @@ export function GigComments({ gigId, startsAt }: { gigId: string; startsAt: stri
           await deleteGigComment(commentId);
           await refresh();
         }}
+        onReport={(commentId, body) => reportGigComment(commentId, body)}
         empty={happened ? 'No comments yet. Were you there?' : 'No comments yet. Going?'}
       />
       <CommentComposer
