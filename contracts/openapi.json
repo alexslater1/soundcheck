@@ -787,6 +787,39 @@
         "required" : [ "id" ],
         "type" : "object"
       },
+      "CommentPreview" : {
+        "properties" : {
+          "author" : {
+            "$ref" : "#/components/schemas/UserSummary",
+            "description" : "Null when the account is gone",
+            "type" : "null"
+          },
+          "body" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "deleted" : {
+            "type" : "boolean"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigRef",
+            "type" : "null"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/PostRef",
+            "type" : "null"
+          }
+        },
+        "required" : [ "body", "createdAt", "deleted", "id" ],
+        "type" : "object"
+      },
       "CommentRequest" : {
         "properties" : {
           "body" : {
@@ -1539,6 +1572,23 @@
         "required" : [ "alerts" ],
         "type" : "object"
       },
+      "GigRef" : {
+        "properties" : {
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "startsAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "startsAt", "title" ],
+        "type" : "object"
+      },
       "GigStats" : {
         "properties" : {
           "acts" : {
@@ -2083,6 +2133,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "PageReportItem" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/ReportItem"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PageServedSession" : {
         "properties" : {
           "items" : {
@@ -2391,6 +2456,58 @@
           }
         },
         "required" : [ "id", "owner", "playback", "position", "status" ],
+        "type" : "object"
+      },
+      "PostPreview" : {
+        "properties" : {
+          "author" : {
+            "$ref" : "#/components/schemas/UserSummary",
+            "description" : "Null when the account is gone",
+            "type" : "null"
+          },
+          "caption" : {
+            "type" : [ "string", "null" ]
+          },
+          "clipCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigRef",
+            "type" : "null"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "playback" : {
+            "$ref" : "#/components/schemas/Playback",
+            "description" : "The first clip that has one",
+            "type" : "null"
+          },
+          "status" : {
+            "enum" : [ "PENDING_MEDIA", "PUBLISHED", "FAILED", "HIDDEN", "DELETED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "clipCount", "id", "status" ],
+        "type" : "object"
+      },
+      "PostRef" : {
+        "properties" : {
+          "caption" : {
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "PENDING_MEDIA", "PUBLISHED", "FAILED", "HIDDEN", "DELETED" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "id", "status" ],
         "type" : "object"
       },
       "ProfileResponse" : {
@@ -2890,6 +3007,64 @@
         "required" : [ "items", "position", "positives" ],
         "type" : "object"
       },
+      "ReportItem" : {
+        "properties" : {
+          "comment" : {
+            "$ref" : "#/components/schemas/CommentPreview",
+            "type" : "null"
+          },
+          "firstReportedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "POST", "COMMENT", "GIG_COMMENT" ],
+            "type" : "string"
+          },
+          "lastReportedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "latestDetails" : {
+            "description" : "Up to three report texts, newest first",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "post" : {
+            "$ref" : "#/components/schemas/PostPreview",
+            "type" : "null"
+          },
+          "reasons" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "description" : "Reason → how many reports gave it",
+            "type" : "object"
+          },
+          "reportCount" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reportId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "resolution" : {
+            "$ref" : "#/components/schemas/Resolution",
+            "description" : "Present on the Resolved tab",
+            "type" : "null"
+          }
+        },
+        "required" : [ "firstReportedAt", "id", "kind", "lastReportedAt", "latestDetails", "reasons", "reportCount", "reportId" ],
+        "type" : "object"
+      },
       "ReportRequest" : {
         "properties" : {
           "details" : {
@@ -2905,6 +3080,62 @@
           }
         },
         "required" : [ "reason" ],
+        "type" : "object"
+      },
+      "Resolution" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "HIDE_POST", "DELETE_COMMENT", "DISMISS" ],
+            "type" : "string"
+          },
+          "resolvedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "resolvedBy" : {
+            "description" : "The moderator's handle",
+            "type" : [ "string", "null" ]
+          },
+          "targetStatus" : {
+            "description" : "A post's status now, or VISIBLE / DELETED for a comment",
+            "enum" : [ "PENDING_MEDIA", "PUBLISHED", "FAILED", "HIDDEN", "DELETED", "VISIBLE", "GONE" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "action", "resolvedAt", "targetStatus" ],
+        "type" : "object"
+      },
+      "ResolveRequest" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "HIDE_POST", "DELETE_COMMENT", "DISMISS" ],
+            "minLength" : 1,
+            "type" : "string"
+          }
+        },
+        "required" : [ "action" ],
+        "type" : "object"
+      },
+      "Resolved" : {
+        "properties" : {
+          "action" : {
+            "enum" : [ "HIDE_POST", "DELETE_COMMENT", "DISMISS" ],
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "enum" : [ "POST", "COMMENT", "GIG_COMMENT" ],
+            "type" : "string"
+          },
+          "resolvedReports" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "action", "id", "kind", "resolvedReports" ],
         "type" : "object"
       },
       "SaveGigFilterRequest" : {
@@ -3699,6 +3930,27 @@
         "tags" : [ "admin-feed" ]
       }
     },
+    "/api/v1/admin/posts/{id}/restore" : {
+      "post" : {
+        "operationId" : "adminRestorePost",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Undo a hide: the post is published again (409 POST_REPLACED when its author has posted again for the same gig and day)",
+        "tags" : [ "admin-moderation" ]
+      }
+    },
     "/api/v1/admin/ranking/configs" : {
       "get" : {
         "operationId" : "adminListRankingConfigs",
@@ -3896,6 +4148,91 @@
         },
         "summary" : "Re-score what was served in a window (at most 14 days) with a config: AUC, log-loss, NDCG@10, engagement by position. Biased towards the config that served it. 422 FEATURE_SCHEMA_MISMATCH",
         "tags" : [ "admin-ranking" ]
+      }
+    },
+    "/api/v1/admin/reports" : {
+      "get" : {
+        "operationId" : "adminListReports",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "default" : "OPEN",
+            "enum" : [ "OPEN", "RESOLVED" ],
+            "pattern" : "OPEN|RESOLVED",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageReportItem"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Reports grouped by what they report: OPEN (oldest first) or RESOLVED (latest decision first)",
+        "tags" : [ "admin-moderation" ]
+      }
+    },
+    "/api/v1/admin/reports/{id}/resolve" : {
+      "post" : {
+        "operationId" : "adminResolveReport",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ResolveRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/Resolved"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Resolve every OPEN report on this report's target: hide the post, delete the comment, or dismiss",
+        "tags" : [ "admin-moderation" ]
       }
     },
     "/api/v1/admin/users" : {
@@ -4506,6 +4843,37 @@
         "tags" : [ "engagement" ]
       }
     },
+    "/api/v1/comments/{id}/report" : {
+      "post" : {
+        "operationId" : "reportComment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Report a post comment to the moderators",
+        "tags" : [ "engagement" ]
+      }
+    },
     "/api/v1/events" : {
       "post" : {
         "operationId" : "recordEvents",
@@ -4659,6 +5027,37 @@
           }
         },
         "summary" : "Delete a gig comment (its author or an admin)",
+        "tags" : [ "engagement" ]
+      }
+    },
+    "/api/v1/gig-comments/{id}/report" : {
+      "post" : {
+        "operationId" : "reportGigComment",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/ReportRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Report a gig comment to the moderators",
         "tags" : [ "engagement" ]
       }
     },
@@ -7562,6 +7961,9 @@
   }, {
     "description" : "Register, login, refresh, logout",
     "name" : "auth"
+  }, {
+    "description" : "Console: reports, hidden posts and restores (operators only)",
+    "name" : "admin-moderation"
   }, {
     "description" : "Own account, onboarding, profiles",
     "name" : "me"

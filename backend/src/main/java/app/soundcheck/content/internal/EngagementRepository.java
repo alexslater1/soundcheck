@@ -4,7 +4,6 @@ import static app.soundcheck.shared.jooq.content.Tables.COMMENT;
 import static app.soundcheck.shared.jooq.content.Tables.POST;
 import static app.soundcheck.shared.jooq.content.Tables.POST_HIDE;
 import static app.soundcheck.shared.jooq.content.Tables.POST_LIKE;
-import static app.soundcheck.shared.jooq.content.Tables.REPORT;
 
 import app.soundcheck.shared.web.Cursor;
 import java.time.Instant;
@@ -21,7 +20,7 @@ import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
 
-/** jOOQ access to likes, comments, hides and reports ({@code content.*}). */
+/** jOOQ access to likes, comments and hides ({@code content.*}); reports are in {@link ReportRepository}. */
 @Repository
 public class EngagementRepository {
 
@@ -154,7 +153,7 @@ public class EngagementRepository {
         return true;
     }
 
-    // ── hide and report ──────────────────────────────────────────────────────────────────────────
+    // ── hide ──────────────────────────────────────────────────────────────────────────
 
     public void hide(UUID postId, UUID userId, Instant now) {
         dsl.insertInto(POST_HIDE)
@@ -173,20 +172,6 @@ public class EngagementRepository {
                 .orderBy(POST_HIDE.CREATED_AT.desc())
                 .limit(limit)
                 .fetch(POST_HIDE.POST_ID));
-    }
-
-    /** One report per user and post: a repeat changes nothing. */
-    public void reportPost(
-            UUID id, UUID postId, UUID reporterId, String reason, @Nullable String details, Instant now) {
-        dsl.insertInto(REPORT)
-                .set(REPORT.ID, id)
-                .set(REPORT.POST_ID, postId)
-                .set(REPORT.REPORTER_ID, reporterId)
-                .set(REPORT.REASON, reason)
-                .set(REPORT.DETAILS, details)
-                .set(REPORT.CREATED_AT, at(now))
-                .onConflictDoNothing()
-                .execute();
     }
 
     private static OffsetDateTime at(Instant instant) {

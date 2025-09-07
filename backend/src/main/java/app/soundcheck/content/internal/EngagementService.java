@@ -4,6 +4,8 @@ import app.soundcheck.content.CommentAdded;
 import app.soundcheck.content.PostHides;
 import app.soundcheck.content.PostLiked;
 import app.soundcheck.content.internal.EngagementRepository.CommentRow;
+import app.soundcheck.content.internal.ReportRepository.Kind;
+import app.soundcheck.content.internal.ReportRepository.Target;
 import app.soundcheck.identity.UserSummary;
 import app.soundcheck.identity.Users;
 import app.soundcheck.shared.Ids;
@@ -49,6 +51,7 @@ public class EngagementService implements PostHides {
     public record CommentView(UUID id, UUID postId, UserSummary author, String body, Instant createdAt) {}
 
     private final EngagementRepository engagement;
+    private final ReportRepository reports;
     private final PostRepository posts;
     private final Users users;
     private final SocialGraph social;
@@ -60,6 +63,7 @@ public class EngagementService implements PostHides {
 
     EngagementService(
             EngagementRepository engagement,
+            ReportRepository reports,
             PostRepository posts,
             Users users,
             SocialGraph social,
@@ -69,6 +73,7 @@ public class EngagementService implements PostHides {
             JsonMapper json,
             Clock clock) {
         this.engagement = engagement;
+        this.reports = reports;
         this.posts = posts;
         this.users = users;
         this.social = social;
@@ -209,14 +214,36 @@ public class EngagementService implements PostHides {
         return true;
     }
 
+    /** A report on a post the reporter can see; one per user and post, a repeat changes nothing. */
     public void report(UUID userId, UUID postId, String reason, @Nullable String details) {
         visible(userId, postId);
+        file(userId, new Target(Kind.POST, postId), reason, details);
+    }
+
+    /**
+     * A report on a post comment: the comment must be there for the reporter, which means not
+     * deleted, written by a live account with no block either way, under a post they can see. Anything
+     * else is 404, as reading it would be. One per user and comment; a repeat changes nothing.
+     */
+    public void reportComment(UUID userId, UUID commentId, String reason, @Nullable String details) {
+        CommentRow comment = engagement
+                .comment(commentId)
+                .filter(c -> c.deletedAt() == null)
+                .filter(c -> c.authorId().equals(userId)
+                        || (users.exists(c.authorId()) && !social.blockBetween(userId, c.authorId())))
+                .filter(c -> findVisible(userId, c.postId()).isPresent())
+                .orElseThrow(EngagementService::commentNotFound);
+        file(userId, new Target(Kind.COMMENT, comment.id()), reason, details);
+    }
+
+    /** Files the report (gig comments too, from {@link GigCommentService}); the reason is checked here. */
+    void file(UUID userId, Target target, String reason, @Nullable String details) {
         if (!REPORT_REASONS.contains(reason)) {
             throw ApiException.badRequest("REPORT_REASON_INVALID", "reason must be one of " + REPORT_REASONS);
         }
-        engagement.reportPost(
+        reports.insert(
                 Ids.newId(),
-                postId,
+                target,
                 userId,
                 reason,
                 details == null || details.isBlank() ? null : details.strip(),

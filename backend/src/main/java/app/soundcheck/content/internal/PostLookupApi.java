@@ -59,8 +59,9 @@ class PostLookupApi implements PostLookup {
 
     @Override
     public Map<UUID, PostBrief> briefs(Collection<UUID> postIds) {
+        // A post hidden by a moderator is gone from inboxes too, as a deleted one is.
         List<PostRow> rows = posts.findAll(postIds).stream()
-                .filter(row -> !row.status().equals("DELETED"))
+                .filter(row -> !row.status().equals("DELETED") && !row.status().equals("HIDDEN"))
                 .toList();
         Map<UUID, List<ClipRow>> clipsOf =
                 clips.of(rows.stream().map(PostRow::id).toList());

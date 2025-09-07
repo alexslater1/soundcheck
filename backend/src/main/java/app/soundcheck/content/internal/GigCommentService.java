@@ -62,6 +62,7 @@ public class GigCommentService {
             UUID id, UUID gigId, UUID authorId, String body, Instant createdAt, @Nullable Instant deletedAt) {}
 
     private final DSLContext dsl;
+    private final EngagementService engagement;
     private final Catalog catalog;
     private final Users users;
     private final SocialGraph social;
@@ -72,6 +73,7 @@ public class GigCommentService {
 
     GigCommentService(
             DSLContext dsl,
+            EngagementService engagement,
             Catalog catalog,
             Users users,
             SocialGraph social,
@@ -80,6 +82,7 @@ public class GigCommentService {
             JsonMapper json,
             Clock clock) {
         this.dsl = dsl;
+        this.engagement = engagement;
         this.catalog = catalog;
         this.users = users;
         this.social = social;
@@ -197,6 +200,21 @@ public class GigCommentService {
                 .where(GIG_COMMENT.ID.eq(commentId))
                 .and(GIG_COMMENT.DELETED_AT.isNull())
                 .execute();
+    }
+
+    /**
+     * A report on a gig comment: the comment must be there for the reporter (not deleted, by a
+     * live account, no block either way); anything else is 404, as reading it would be. One per user and
+     * comment; a repeat changes nothing.
+     */
+    public void report(UUID userId, UUID commentId, String reason, @Nullable String details) {
+        Row comment = find(commentId)
+                .filter(c -> c.deletedAt() == null)
+                .filter(c -> c.authorId().equals(userId)
+                        || (users.exists(c.authorId()) && !social.blockBetween(userId, c.authorId())))
+                .orElseThrow(GigCommentService::commentNotFound);
+        engagement.file(
+                userId, new ReportRepository.Target(ReportRepository.Kind.GIG_COMMENT, comment.id()), reason, details);
     }
 
     private Optional<Row> find(UUID id) {
