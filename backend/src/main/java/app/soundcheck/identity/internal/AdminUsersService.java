@@ -3,6 +3,7 @@ package app.soundcheck.identity.internal;
 import app.soundcheck.identity.ProfileFacts;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
+import app.soundcheck.shared.config.SyntheticAccounts;
 import app.soundcheck.shared.web.Cursor;
 import app.soundcheck.shared.web.Page;
 import java.time.Instant;
@@ -16,8 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * The console's user picker: a read-only list of live accounts, newest first, that tags
- * the synthetic ones (seed and simulator personas, by email domain) so nobody mistakes them for real
- * people. No suspend or ban this phase. API role only, like {@link AdminBootstrap} whose
+ * the synthetic ones (seed and simulator personas, by email domain: {@link SyntheticAccounts}) so nobody
+ * mistakes them for real people. No suspend or ban yet. API role only, like {@link AdminBootstrap} whose
  * properties it reads: a worker or cli process has no console to serve.
  */
 @Service
@@ -38,12 +39,12 @@ public class AdminUsersService {
 
     private final UserRepository users;
     private final ProfileFacts facts;
-    private final List<String> syntheticDomains;
+    private final SyntheticAccounts synthetic;
 
-    public AdminUsersService(UserRepository users, ProfileFacts facts, AdminBootstrap.AdminProperties properties) {
+    public AdminUsersService(UserRepository users, ProfileFacts facts, SyntheticAccounts synthetic) {
         this.users = users;
         this.facts = facts;
-        this.syntheticDomains = properties.syntheticEmailDomains();
+        this.synthetic = synthetic;
     }
 
     /**
@@ -53,7 +54,8 @@ public class AdminUsersService {
     public Page<AdminUser> page(
             @Nullable String q, @Nullable Boolean synthetic, @Nullable String cursor, @Nullable Integer limit) {
         int size = Cursor.limit(limit);
-        List<UserRecord> rows = users.adminPage(text(q), synthetic, syntheticDomains, Cursor.decode(cursor), size + 1);
+        List<UserRecord> rows =
+                users.adminPage(text(q), synthetic, this.synthetic.domains(), Cursor.decode(cursor), size + 1);
         boolean more = rows.size() > size;
         List<UserRecord> page = more ? rows.subList(0, size) : rows;
         Map<UUID, Long> posts =
@@ -66,17 +68,12 @@ public class AdminUsersService {
                         u.email(),
                         u.role(),
                         u.createdAt(),
-                        isSynthetic(u.email()),
+                        this.synthetic.isSynthetic(u.email()),
                         posts.getOrDefault(u.id(), 0L)))
                 .toList();
         String next =
                 more ? new Cursor(page.getLast().createdAt(), page.getLast().id()).encode() : null;
         return new Page<>(items, next);
-    }
-
-    boolean isSynthetic(String email) {
-        int at = email.lastIndexOf('@');
-        return at >= 0 && syntheticDomains.contains(email.substring(at + 1).toLowerCase(Locale.ROOT));
     }
 
     private static @Nullable String text(@Nullable String q) {

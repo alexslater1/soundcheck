@@ -7,7 +7,6 @@ import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import java.time.Clock;
 import java.time.Instant;
-import java.util.List;
 import java.util.Locale;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,20 +28,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class AdminBootstrap {
 
     @ConfigurationProperties(prefix = "soundcheck.admin")
-    public record AdminProperties(String email, String password, List<String> syntheticEmailDomains) {
-
-        /**
-         * {@code synthetic-email-domains}: accounts whose email is at one of these domains are synthetic
-         * (seed and simulator personas); the console tags them and analytics reports their share.
-         */
-        public AdminProperties {
-            syntheticEmailDomains = syntheticEmailDomains == null
-                    ? List.of()
-                    : syntheticEmailDomains.stream()
-                            .map(d -> d.strip().toLowerCase(Locale.ROOT))
-                            .filter(d -> !d.isEmpty())
-                            .toList();
-        }
+    /**
+     * {@code soundcheck.admin.*}. The same prefix's {@code synthetic-email-domains} is read by
+     * {@link app.soundcheck.shared.config.SyntheticAccounts}, the one definition of a synthetic account.
+     */
+    public record AdminProperties(String email, String password) {
 
         /** Never prints the password. */
         @Override
