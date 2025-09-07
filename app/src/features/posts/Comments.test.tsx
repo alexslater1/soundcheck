@@ -101,14 +101,41 @@ describe('CommentList', () => {
     expect(mockPush).toHaveBeenCalledWith({ pathname: '/u/[handle]', params: { handle: 'maya' } });
   });
 
-  it("offers ⋯ only on one's own comments on someone else's post (H11)", async () => {
+  it("on someone else's post, offers Delete on one's own comments and Report on others'", async () => {
+    respond();
+    await render(<CommentList postId="p1" postAuthorId="author-id" />, { wrapper: Providers });
+    await comments();
+    expect(screen.queryByText('Delete')).toBeNull(); // no big button any more
+
+    await fireEvent.press(screen.getByLabelText('More for the comment by @maya'));
+    expect(screen.queryByText('Delete comment')).toBeNull();
+    expect(screen.getByText('Report comment')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('sheet-backdrop', { includeHiddenElements: true }));
+
+    await fireEvent.press(screen.getByLabelText('More for the comment by @me'));
+    expect(screen.getByText('Delete comment')).toBeOnTheScreen();
+    expect(screen.queryByText('Report comment')).toBeNull();
+  });
+
+  it('reports a comment with the reason chosen in the sheet', async () => {
     respond();
     await render(<CommentList postId="p1" postAuthorId="author-id" />, { wrapper: Providers });
     await comments();
 
-    expect(screen.queryByLabelText('More for the comment by @maya')).toBeNull();
-    expect(screen.getByLabelText('More for the comment by @me')).toBeOnTheScreen();
-    expect(screen.queryByText('Delete')).toBeNull(); // no big button any more
+    await fireEvent.press(screen.getByLabelText('More for the comment by @maya'));
+    await fireEvent.press(screen.getByText('Report comment'));
+    await fireEvent.press(screen.getByText('Spam'));
+    await fireEvent.press(screen.getByTestId('report-send'));
+
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).endsWith('/comments/c1/report')),
+      ).toBe(true),
+    );
+    const [, init] = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/report'))!;
+    expect(init?.method).toBe('POST');
+    expect(JSON.parse(String(init?.body))).toEqual({ reason: 'SPAM' });
+    expect(await screen.findByTestId('report-done')).toBeOnTheScreen();
   });
 
   it("offers ⋯ on every comment of one's own post, and deletes after a confirm", async () => {

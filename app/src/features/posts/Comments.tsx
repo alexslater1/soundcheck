@@ -8,17 +8,19 @@ import {
   addComment,
   deleteComment,
   getListCommentsQueryKey,
+  reportComment,
   useListComments,
 } from '@/api/generated/engagement/engagement';
-import type { UserSummary } from '@/api/generated/model';
+import type { ReportRequest, UserSummary } from '@/api/generated/model';
 import { getGetPostQueryKey } from '@/api/generated/posts/posts';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
-import { ActionSheet } from '@/components/ui/Sheet';
+import { ActionSheet, type SheetAction } from '@/components/ui/Sheet';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useAuthStore } from '@/features/auth/store';
+import { ReportSheet } from '@/features/moderation/ReportSheet';
 import { useTrack } from '@/features/telemetry/TelemetryScope';
 import { newUuid } from '@/features/upload/uuid';
 import { relativeTime, relativeTimeLabel, useNow } from '@/lib/relativeTime';
@@ -48,13 +50,15 @@ export type ThreadComment = {
 /**
  * A thread of comments, oldest first, shared by posts and gigs. Each shows who wrote it (avatar and
  * name open their profile) and how long ago; a small ⋯ offers Delete where `canDelete` allows, and
- * (H11). A private profile's comment the viewer may not read shows as "A private profile commented".
+ * Report on other people's comments when `onReport` is given. A private profile's comment the
+ * viewer may not read shows as "A private profile commented".
  */
 export function CommentThread({
   title,
   comments,
   canDelete,
   onDelete,
+  onReport,
   empty,
   testID,
 }: {
@@ -67,14 +71,20 @@ export function CommentThread({
   canDelete: (comment: ThreadComment) => boolean;
   /** Deletes the comment and refreshes the thread; a rejection shows a message. */
   onDelete: (commentId: string) => Promise<unknown>;
+  /** Sends a report on someone else's comment (the sheet asks for the reason). */
+  onReport?: (commentId: string, body: ReportRequest) => Promise<unknown>;
   empty: string;
   testID?: string;
 }) {
   const { colors } = useTheme();
   const router = useRouter();
   const now = useNow();
+  const myId = useAuthStore((state) => state.me?.id);
   const [menuFor, setMenuFor] = useState<ThreadComment | null>(null);
+  const [reportFor, setReportFor] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const canReport = (comment: ThreadComment) =>
+    onReport !== undefined && !!comment.author && comment.author.id !== myId;
 
   const openProfile = (handle: string) =>
     router.push({ pathname: '/u/[handle]', params: { handle } });
@@ -159,7 +169,7 @@ export function CommentThread({
                 </View>
                 <Text>{comment.body}</Text>
               </View>
-              {canDelete(comment) ? (
+              {canDelete(comment) || canReport(comment) ? (
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={`More for the comment by @${author.handle}`}
@@ -178,8 +188,8 @@ export function CommentThread({
         visible={menuFor !== null}
         onClose={() => setMenuFor(null)}
         testID="comment-menu"
-        actions={
-          menuFor
+        actions={[
+          ...(menuFor && canDelete(menuFor)
             ? [
                 {
                   key: 'delete',
@@ -188,18 +198,36 @@ export function CommentThread({
                   destructive: true,
                   confirm: { title: 'Delete this comment?', confirmLabel: 'Delete' },
                   onPress: () => void remove(menuFor.id),
-                },
+                } satisfies SheetAction,
               ]
-            : []
-        }
+            : []),
+          ...(menuFor && canReport(menuFor)
+            ? [
+                {
+                  key: 'report',
+                  label: 'Report comment',
+                  icon: 'flag-outline',
+                  onPress: () => setReportFor(menuFor.id),
+                } satisfies SheetAction,
+              ]
+            : []),
+        ]}
       />
+      {onReport ? (
+        <ReportSheet
+          visible={reportFor !== null}
+          what="comment"
+          onClose={() => setReportFor(null)}
+          onSubmit={(body) => onReport(reportFor ?? '', body)}
+        />
+      ) : null}
     </View>
   );
 }
 
 /**
- * A post's comments (H11-H13): the comment's author and the post's author can delete one. The box to
- * add one is {@link CommentBox}, pinned under the screen.
+ * A post's comments: the comment's author and the post's author can delete one, and anyone can
+ * report someone else's. The box to add one is {@link CommentBox}, pinned under the screen.
  */
 export function CommentList({ postId, postAuthorId }: { postId: string; postAuthorId: string }) {
   const myId = useAuthStore((state) => state.me?.id);
@@ -214,6 +242,7 @@ export function CommentList({ postId, postAuthorId }: { postId: string; postAuth
         await deleteComment(commentId);
         await refresh();
       }}
+      onReport={(commentId, body) => reportComment(commentId, body)}
       empty="No comments yet."
     />
   );

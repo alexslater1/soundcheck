@@ -18,10 +18,44 @@ export const deleteCommentParams = zod.object({
 })
 
 /**
+ * @summary Report a post comment to the moderators
+ */
+export const reportCommentParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const reportCommentBodyDetailsMin = 0;
+
+export const reportCommentBodyDetailsMax = 500;
+
+
+export const reportCommentBody = zod.object({
+  "details": zod.string().min(reportCommentBodyDetailsMin).max(reportCommentBodyDetailsMax).nullish(),
+  "reason": zod.enum(['SPAM', 'ABUSE', 'NUDITY', 'VIOLENCE', 'COPYRIGHT', 'OTHER'])
+})
+
+/**
  * @summary Delete a gig comment (its author or an admin)
  */
 export const deleteGigCommentParams = zod.object({
   "id": zod.string().uuid()
+})
+
+/**
+ * @summary Report a gig comment to the moderators
+ */
+export const reportGigCommentParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const reportGigCommentBodyDetailsMin = 0;
+
+export const reportGigCommentBodyDetailsMax = 500;
+
+
+export const reportGigCommentBody = zod.object({
+  "details": zod.string().min(reportGigCommentBodyDetailsMin).max(reportGigCommentBodyDetailsMax).nullish(),
+  "reason": zod.enum(['SPAM', 'ABUSE', 'NUDITY', 'VIOLENCE', 'COPYRIGHT', 'OTHER'])
 })
 
 /**

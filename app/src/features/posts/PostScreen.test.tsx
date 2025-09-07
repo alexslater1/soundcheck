@@ -33,8 +33,9 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({ push: jest.fn(), back: jest.fn(), canGoBack: () => true }),
   Link: ({ children }: { children: unknown }) => children,
 }));
+const mockGetPost = jest.fn(() => ({ isPending: false, data: post }));
 jest.mock('@/api/generated/posts/posts', () => ({
-  useGetPost: () => ({ isPending: false, data: post }),
+  useGetPost: () => mockGetPost(),
   getGetPostQueryKey: (id: string) => [`/api/v1/posts/${id}`],
   deletePost: jest.fn(),
 }));
@@ -98,5 +99,28 @@ describe('PostScreen', () => {
 
     expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ animated: true }));
     expect(focus).toHaveBeenCalled();
+  });
+
+  it('tells the author their post was hidden by moderators, with no comments', async () => {
+    const hidden = { ...post, status: 'HIDDEN' } as Post;
+    mockGetPost.mockReturnValue({ isPending: false, data: hidden });
+    await render(
+      <ThemeProvider>
+        <PostScreen id="post-1" />
+      </ThemeProvider>,
+    );
+    expect(screen.getByTestId('post-hidden-banner')).toBeOnTheScreen();
+    expect(screen.getByText('Hidden by moderators')).toBeOnTheScreen();
+    expect(screen.queryByTestId('comment-button')).toBeNull();
+    mockGetPost.mockReturnValue({ isPending: false, data: post });
+  });
+
+  it('shows no banner on a published post', async () => {
+    await render(
+      <ThemeProvider>
+        <PostScreen id="post-1" />
+      </ThemeProvider>,
+    );
+    expect(screen.queryByTestId('post-hidden-banner')).toBeNull();
   });
 });

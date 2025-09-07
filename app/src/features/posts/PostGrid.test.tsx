@@ -23,6 +23,19 @@ const post = (id: string, clipCount: number): Post =>
   }) as unknown as Post;
 
 describe('PostGrid', () => {
+  it("marks the author's posts that are processing, failed or hidden by moderators", async () => {
+    const as = (status: string) => ({ ...post(status, 1), status }) as unknown as Post;
+    await render(
+      <ThemeProvider>
+        <PostGrid posts={[as('PENDING_MEDIA'), as('FAILED'), as('HIDDEN'), as('PUBLISHED')]} />
+      </ThemeProvider>,
+    );
+    expect(screen.getByText('Processing…')).toBeOnTheScreen();
+    expect(screen.getByText('Failed')).toBeOnTheScreen();
+    expect(screen.getByText('Hidden by moderators')).toBeOnTheScreen();
+    expect(screen.getAllByTestId('post-tile')).toHaveLength(4);
+  });
+
   it('shows one tile per post, with the number of clips only when there are several', async () => {
     await render(
       <ThemeProvider>

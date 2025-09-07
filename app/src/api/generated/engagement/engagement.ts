@@ -114,6 +114,78 @@ export const useDeleteComment = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
+ * @summary Report a post comment to the moderators
+ */
+export const getReportCommentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/comments/${id}/report`
+}
+
+export const reportComment = async (id: string,
+    reportRequest: ReportRequest, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getReportCommentUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reportRequest,)
+  }
+);}
+
+
+
+
+export const getReportCommentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportComment>>, TError,{id: string;data: ReportRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportComment>>, TError,{id: string;data: ReportRequest}, TContext> => {
+
+const mutationKey = ['reportComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportComment>>, {id: string;data: ReportRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reportComment(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportCommentMutationResult = NonNullable<Awaited<ReturnType<typeof reportComment>>>
+    export type ReportCommentMutationBody = ReportRequest
+    export type ReportCommentMutationError = unknown
+
+    /**
+ * @summary Report a post comment to the moderators
+ */
+export const useReportComment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportComment>>, TError,{id: string;data: ReportRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reportComment>>,
+        TError,
+        {id: string;data: ReportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getReportCommentMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Delete a gig comment (its author or an admin)
  */
 export const getDeleteGigCommentUrl = (id: string,) => {
@@ -180,6 +252,78 @@ export const useDeleteGigComment = <TError = unknown,
       > => {
 
       const mutationOptions = getDeleteGigCommentMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Report a gig comment to the moderators
+ */
+export const getReportGigCommentUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/gig-comments/${id}/report`
+}
+
+export const reportGigComment = async (id: string,
+    reportRequest: ReportRequest, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getReportGigCommentUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      reportRequest,)
+  }
+);}
+
+
+
+
+export const getReportGigCommentMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportGigComment>>, TError,{id: string;data: ReportRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof reportGigComment>>, TError,{id: string;data: ReportRequest}, TContext> => {
+
+const mutationKey = ['reportGigComment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof reportGigComment>>, {id: string;data: ReportRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  reportGigComment(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReportGigCommentMutationResult = NonNullable<Awaited<ReturnType<typeof reportGigComment>>>
+    export type ReportGigCommentMutationBody = ReportRequest
+    export type ReportGigCommentMutationError = unknown
+
+    /**
+ * @summary Report a gig comment to the moderators
+ */
+export const useReportGigComment = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof reportGigComment>>, TError,{id: string;data: ReportRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof reportGigComment>>,
+        TError,
+        {id: string;data: ReportRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getReportGigCommentMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }
