@@ -18,7 +18,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
     href: '/console',
     label: 'Overview',
     blurb: 'Activity, uploads and feed engagement at a glance',
-    built: false,
+    built: true,
   },
   {
     key: 'ranking',

@@ -1,11 +1,11 @@
-import { LazyPlaceholderPage } from '@/features/console/lazy';
+import { LazyOverviewPage } from '@/features/console/lazy';
 import { PageSuspense } from '@/features/console/PageSuspense';
 
-// Placeholder until the page is built (features/console/nav.ts says which).
+// The console's landing page: KPIs, the synthetic share and the feed charts.
 export default function ConsoleIndex() {
   return (
     <PageSuspense>
-      <LazyPlaceholderPage page="index" />
+      <LazyOverviewPage />
     </PageSuspense>
   );
 }
