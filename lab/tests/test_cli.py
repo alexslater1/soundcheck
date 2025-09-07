@@ -1,8 +1,15 @@
+import re
+
 from typer.testing import CliRunner
 
 from soundcheck_lab.cli import app
 
 runner = CliRunner()
+
+
+def plain(text: str) -> str:
+    """Without ANSI styling: CI forces colour, and rich's escape codes split option names."""
+    return re.sub(r"\x1b\[[0-9;]*m", "", text)
 
 
 def test_help_lists_commands() -> None:
@@ -29,7 +36,7 @@ def test_simulate_has_no_default_api_or_database() -> None:
     """Never the dev stack by accident: --api and --db must be given."""
     result = runner.invoke(app, ["simulate"])
     assert result.exit_code == 2
-    assert "--api" in result.output
+    assert "--api" in plain(result.output)
     result = runner.invoke(app, ["simulate", "--api", "http://localhost:8140"])
     assert result.exit_code == 2
-    assert "--db" in result.output
+    assert "--db" in plain(result.output)
