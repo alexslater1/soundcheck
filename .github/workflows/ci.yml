@@ -150,7 +150,10 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
+      # pytest includes the parity cases and the metric cases (contracts/ranking/)
       - run: uv run pytest -q
+      - name: Parity with the Java scorer
+        run: uv run soundcheck-lab parity
 
   infra:
     needs: changes

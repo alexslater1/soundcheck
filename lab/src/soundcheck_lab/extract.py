@@ -26,7 +26,8 @@ from soundcheck_lab.schema import DEFAULT_SCHEMA_PATH, FeatureSchema
 
 EXTRACT_SQL_PATH = DEFAULT_SCHEMA_PATH.with_name("extract.sql")
 
-# Synthetic accounts by email domain (`soundcheck.admin.synthetic-email-domains`).
+# Synthetic accounts by email domain: the same list as `soundcheck.admin.synthetic-email-domains`
+# (Java: shared.config.SyntheticAccounts).
 SYNTHETIC_DOMAINS = ("seed.soundcheck.test", "sim.soundcheck.test")
 
 ID_COLUMNS = ("session_id", "user_id", "post_id", "config_id")
