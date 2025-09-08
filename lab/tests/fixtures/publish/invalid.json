@@ -1,0 +1,22 @@
+{
+ "detail": "The ranking config breaks 3 rule(s)",
+ "instance": "/api/v1/admin/ranking/configs",
+ "status": 400,
+ "title": "Bad Request",
+ "type": "https://soundcheck.app/problems/ranking-config-invalid",
+ "code": "RANKING_CONFIG_INVALID",
+ "errors": [
+  {
+   "field": "config",
+   "message": "weights must name exactly the bias and the schema's features (missing [artist_affinity, author_affinity, engagement_quality, follows_artist, follows_author, genre_similarity, gig_relation, position_prior, proximity, recency, seen, social_proof], unknown [])"
+  },
+  {
+   "field": "config",
+   "message": "weight bias must be a finite number between -10 and 10"
+  },
+  {
+   "field": "config",
+   "message": "halfLifeHours must be above 0 and at most 720"
+  }
+ ]
+}

@@ -126,6 +126,17 @@ describe('the config list', () => {
     ).toBe('auc 0.712 · lab/reports/r1.html');
     expect(labSummary(config({ source: 'MANUAL', metrics: { auc: 0.7 } }))).toBeNull();
   });
+
+  it('says a lab draft was trained on simulated data', () => {
+    expect(
+      labSummary(
+        config({
+          source: 'LAB',
+          metrics: { data: 'simulated', auc: 0.7, ndcg10: 0.61234, report: 'lab/reports/x' },
+        }),
+      ),
+    ).toBe('Trained on simulated data · auc 0.7 · ndcg10 0.612 · lab/reports/x');
+  });
 });
 
 describe('replayWindow', () => {

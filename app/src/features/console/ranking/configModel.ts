@@ -150,7 +150,9 @@ export function labSummary(config: RankingConfigView): string | null {
   if (config.source !== 'LAB' || !config.metrics) return null;
   const m = config.metrics;
   const parts: string[] = [];
-  for (const key of ['auc', 'logLoss', 'ndcgAt10']) {
+  // The lab says what it trained on: simulated data is always called simulated.
+  if (m.data === 'simulated') parts.push('Trained on simulated data');
+  for (const key of ['auc', 'logLoss', 'ndcg10', 'ndcgAt10']) {
     const v = m[key];
     if (typeof v === 'number') parts.push(`${key} ${snap(v, 0.001)}`);
   }

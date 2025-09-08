@@ -1,4 +1,6 @@
+import json
 import re
+from pathlib import Path
 
 from typer.testing import CliRunner
 
@@ -27,9 +29,68 @@ def test_schema_command_prints_all_features() -> None:
 
 
 def test_unimplemented_commands_exit_1() -> None:
-    result = runner.invoke(app, ["train"])
+    result = runner.invoke(app, ["seed-scale"])
     assert result.exit_code == 1
     assert "not yet implemented" in result.output
+
+
+NO_LAB_ENV = {"LAB_DATABASE_URL": None, "LAB_API": None}
+
+
+def test_the_loop_commands_have_no_default_database_or_api() -> None:
+    """Never the dev stack by accident: --db and --api must be given (or LAB_* set)."""
+    for args, option in (
+        (["extract"], "--db"),
+        (["evaluate", "--configs", "active"], "--db"),
+        (["publish", "lab/reports/x"], "--api"),
+        (["loop", "--db", "postgresql://x"], "--api"),
+        (["loop", "--api", "http://localhost:8141"], "--db"),
+    ):
+        # typer's invoke types env as str-only; click's runner, which receives it, unsets a
+        # variable given None.
+        result = runner.invoke(app, args, env=NO_LAB_ENV)  # type: ignore[arg-type]
+        assert result.exit_code == 2, args
+        assert option in plain(result.output), args
+
+
+def test_train_refuses_a_model_it_cannot_serve() -> None:
+    result = runner.invoke(app, ["train", "--model", "gbt"])
+    assert result.exit_code == 2
+    assert "only logistic" in plain(result.output)
+
+
+def test_train_then_evaluate_offline(tmp_path: Path) -> None:
+    """Both commands end to end on a synthetic extract (no database: "active" is not asked for)."""
+    from soundcheck_lab import extract as ex
+    from test_train import frame
+
+    data = tmp_path / "extract-x.parquet"
+    f = frame(rounds=5, sessions_per_round=6, items=8)
+    f.write_parquet(data)
+    data.with_suffix(".json").write_text(
+        json.dumps({"rows": f.height, "sessions": 30, "positives": 1, "syntheticShare": 1.0}),
+        encoding="utf-8",
+    )
+    trained = runner.invoke(app, ["train", "--data", str(data), "--out", str(tmp_path)])
+    assert trained.exit_code == 0, trained.output
+    report = next(p for p in tmp_path.iterdir() if p.is_dir())
+    model = json.loads((report / "model.json").read_text(encoding="utf-8"))
+    assert model["weights"]["position_prior"] == 0.0
+    evaluated = runner.invoke(
+        app,
+        ["evaluate", "--configs", str(report / "model.json"), "--db", "postgresql://unused"],
+    )
+    assert evaluated.exit_code == 0, evaluated.output
+    text = (report / "report.md").read_text(encoding="utf-8")
+    assert "**simulated**" in text
+    metrics = json.loads((report / "metrics.json").read_text(encoding="utf-8"))
+    assert metrics["publish"]["data"] == "simulated"
+    assert {"auc", "logLoss", "ndcg10", "ndcg10ExplorationOnly", "rows", "sessions"} <= set(
+        metrics["publish"]
+    )
+    for png in ("calibration.png", "ndcg.png", "weights.png", "position.png"):
+        assert (report / png).exists()
+    assert ex.RAW_SCHEMA  # the extract module imports without a database
 
 
 def test_simulate_has_no_default_api_or_database() -> None:

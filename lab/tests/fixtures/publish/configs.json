@@ -1,0 +1,112 @@
+[
+ {
+  "id": "01a10998-256c-71d6-86de-f0fe510517a0",
+  "version": 2,
+  "status": "DRAFT",
+  "source": "LAB",
+  "featureSchemaVersion": 1,
+  "weights": {
+   "bias": -3.1883087533075343,
+   "seen": -0.43122832071984113,
+   "recency": 0.22262470360554493,
+   "proximity": 0.05842781549250722,
+   "gig_relation": 0.27891508724256153,
+   "social_proof": -1.0415931371886715,
+   "follows_artist": 0.3539178351272462,
+   "follows_author": 0.41397821811265445,
+   "position_prior": 0.0,
+   "artist_affinity": 2.284236040760276,
+   "author_affinity": 0.5649888589192343,
+   "genre_similarity": 1.3360212419091095,
+   "engagement_quality": 2.016563377631634
+  },
+  "params": {
+   "halfLifeHours": 24.0,
+   "priorStrength": 20.0,
+   "diversityLambda": 0.8,
+   "explorationRate": 0.1,
+   "sessionSize": 200,
+   "pageSize": 10,
+   "candidateCaps": {
+    "FOLLOWING": 300,
+    "GIG": 200,
+    "FRESH": 100,
+    "LOCAL": 200,
+    "ARTIST": 300,
+    "TASTE": 300,
+    "TRENDING": 200
+   },
+   "localRadiusKm": 50.0,
+   "seenWindowDays": 3,
+   "authorCapPerSession": 5
+  },
+  "metrics": {
+   "auc": 0.7654433798555694,
+   "data": "simulated",
+   "rows": 4804,
+   "ndcg10": 0.6469465924528911,
+   "report": "lab/reports/20250908T213423Z",
+   "logLoss": 0.4359709225082817,
+   "sessions": 205,
+   "activeNdcg10": 0.5736983683284956,
+   "ndcg10ExplorationOnly": 0.8541327286014534
+  },
+  "notes": "Lab draft (simulated data). Report: lab/reports/20250908T213423Z. Held-out NDCG@10 0.6469 vs active 0.5737; exploration-only 0.8541; 4804 test rows, 205 sessions.",
+  "createdBy": "01a0f95c-73a9-7752-abe5-b17eb2e4fd40",
+  "createdByHandle": "admin",
+  "createdAt": "2025-09-08T21:36:28.429813Z",
+  "activatedAt": null,
+  "activatedBy": null,
+  "activatedByHandle": null
+ },
+ {
+  "id": "00000000-0000-7000-8000-000000000001",
+  "version": 1,
+  "status": "ACTIVE",
+  "source": "SEED",
+  "featureSchemaVersion": 1,
+  "weights": {
+   "bias": -2.0,
+   "seen": -2.5,
+   "recency": 1.5,
+   "proximity": 0.6,
+   "gig_relation": 1.4,
+   "social_proof": 0.7,
+   "follows_artist": 1.2,
+   "follows_author": 1.6,
+   "position_prior": 0.0,
+   "artist_affinity": 1.0,
+   "author_affinity": 0.8,
+   "genre_similarity": 1.0,
+   "engagement_quality": 1.8
+  },
+  "params": {
+   "halfLifeHours": 24.0,
+   "priorStrength": 20.0,
+   "diversityLambda": 0.8,
+   "explorationRate": 0.1,
+   "sessionSize": 200,
+   "pageSize": 10,
+   "candidateCaps": {
+    "FOLLOWING": 300,
+    "GIG": 200,
+    "FRESH": 100,
+    "LOCAL": 200,
+    "ARTIST": 300,
+    "TASTE": 300,
+    "TRENDING": 200
+   },
+   "localRadiusKm": 50.0,
+   "seenWindowDays": 3,
+   "authorCapPerSession": 5
+  },
+  "metrics": null,
+  "notes": "Hand-tuned starting weights.",
+  "createdBy": null,
+  "createdByHandle": null,
+  "createdAt": "2025-09-08T20:38:34.218084Z",
+  "activatedAt": "2025-09-08T20:38:34.218084Z",
+  "activatedBy": null,
+  "activatedByHandle": null
+ }
+]

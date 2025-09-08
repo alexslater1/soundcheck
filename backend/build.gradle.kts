@@ -120,7 +120,7 @@ tasks.named<ProcessResources>("processResources") {
         into("geo")
     }
     // The ranking contract shared with the Python lab: packaged as ranking/feature-schema.json,
-    // ranking/parity-cases.json, so Java reads the same file Python does.
+    // ranking/parity-cases.json and ranking/extract.sql, so Java reads the same file Python does.
     from(layout.projectDirectory.dir("../contracts/ranking")) {
         into("ranking")
     }

@@ -49,3 +49,8 @@ plugins = ["pydantic.mypy"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[[tool.mypy.overrides]]
+# scikit-learn ships no type hints (train.py); its calls are typed at our boundary instead.
+module = ["sklearn", "sklearn.*"]
+ignore_missing_imports = true

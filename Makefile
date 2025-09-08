@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
-	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-extract lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
 	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
 
@@ -290,17 +290,27 @@ simulate: ## Synthetic personas on the simulator's OWN stack: make simulate SIM_
 	[ -n "$(SIM_API)" ] && [ -n "$(SIM_DB)" ] || { echo "simulate: set SIM_API and SIM_DB to the simulator's own API and database (never the dev stack)"; exit 1; }
 	$(UV_LAB) run soundcheck-lab simulate --api "$(SIM_API)" --db "$(SIM_DB)" --seed $(or $(SEED),7) --personas $(or $(PERSONAS),200) --sessions $(or $(SESSIONS),5) --days $(or $(DAYS),14)
 
-lab-train: ## Train ranking weights from served-item logs
-	$(call not_yet,lab-train)
+# The loop's targets reach a database and an API only through LAB_DATABASE_URL and LAB_API, which have no
+# defaults: never the dev stack. E.g. LAB_API=http://localhost:8141
+# LAB_DATABASE_URL=postgresql://soundcheck:soundcheck@localhost:55481/soundcheck
+lab-extract: ## Training table from served items (LAB_DATABASE_URL=… [SINCE=14d SIM=lab/data/sim-….json])
+	[ -n "$${LAB_DATABASE_URL:-}" ] || { echo "lab-extract: set LAB_DATABASE_URL to the lab's own database (never the dev stack's)"; exit 1; }
+	$(UV_LAB) run soundcheck-lab extract --since $(or $(SINCE),14d) $(if $(SIM),--sim "$(abspath $(SIM))")
 
-lab-eval: ## Evaluate a trained config against the active one
-	$(call not_yet,lab-eval)
+lab-train: ## Train ranking weights on the earlier rounds ([DATA=lab/data/extract-….parquet], default the newest)
+	$(UV_LAB) run soundcheck-lab train $(if $(DATA),--data "$(abspath $(DATA))")
 
-lab-publish: ## Publish a trained config as a DRAFT via the API
-	$(call not_yet,lab-publish)
+lab-eval: ## Held-out metrics, active config vs a trained one (LAB_DATABASE_URL=… REPORT=lab/reports/<ts>)
+	[ -n "$${LAB_DATABASE_URL:-}" ] && [ -n "$(REPORT)" ] || { echo "lab-eval: set LAB_DATABASE_URL (the lab's own database) and REPORT=lab/reports/<ts>"; exit 1; }
+	$(UV_LAB) run soundcheck-lab evaluate --configs "active,$(abspath $(REPORT))/model.json"
 
-lab-loop: ## extract → train → evaluate → publish in one go
-	$(call not_yet,lab-loop)
+lab-publish: ## Publish a trained config as a LAB DRAFT via the API (LAB_API=… REPORT=lab/reports/<ts>)
+	[ -n "$${LAB_API:-}" ] && [ -n "$(REPORT)" ] || { echo "lab-publish: set LAB_API (the lab's own API) and REPORT=lab/reports/<ts>"; exit 1; }
+	$(UV_LAB) run soundcheck-lab publish "$(abspath $(REPORT))"
+
+lab-loop: ## simulate (40 × 3 × 6) → extract → train → evaluate → publish, on the lab's OWN stack (LAB_API=… LAB_DATABASE_URL=…)
+	[ -n "$${LAB_API:-}" ] && [ -n "$${LAB_DATABASE_URL:-}" ] || { echo "lab-loop: set LAB_API and LAB_DATABASE_URL to the lab's own stack (never the dev stack)"; exit 1; }
+	$(UV_LAB) run soundcheck-lab loop
 
 # ── Performance and operations ───────────────────────────────────────────────
 load: ## Run a k6 scenario (SCENARIO=feed|gigs|events|upload|mixed, PROFILE=medium)
