@@ -39,6 +39,10 @@ soundcheck:
   # (the Makefile exports .env into `make test` / `make verify`). The live clients are tested with WireMock.
   ingestion:
     mode: fixtures
+    # The "Run now" poller stays off: the queue tests call IngestionQueue.runNext() themselves, and a
+    # queued run must not start behind a test's back.
+    queue:
+      enabled: false
     fixtures-dir: ../fixtures
     # The fixture's own dates (3–9 Oct 2026): tests that move the clock or run across midnight must not
     # see every fixture gig "change" because the shift moved by a day.

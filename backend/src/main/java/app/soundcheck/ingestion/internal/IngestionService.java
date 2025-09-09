@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -60,6 +61,7 @@ public class IngestionService {
     private final ArtistEnricher enricher;
     private final VenueGeocoder geocoder;
     private final CatalogIngest catalog;
+    private final IngestionGuard guard;
     private final IngestionProperties properties;
     private final MeterRegistry meters;
     private final Clock clock;
@@ -71,11 +73,13 @@ public class IngestionService {
             ArtistEnricher enricher,
             VenueGeocoder geocoder,
             CatalogIngest catalog,
+            IngestionGuard guard,
             IngestionProperties properties,
             MeterRegistry meters,
             Clock clock) {
         this.sources = sources;
         this.runs = runs;
+        this.guard = guard;
         this.resolver = resolver;
         this.enricher = enricher;
         this.geocoder = geocoder;
@@ -91,16 +95,65 @@ public class IngestionService {
     }
 
     /**
+     * Runs a source now, in this thread. The callers (schedule, CLI) ask {@link IngestionGuard} first.
+     *
      * @param trigger {@code SCHEDULE}, {@code CONSOLE}, {@code CLI} or {@code TEST}
      * @throws ApiException 404 {@code SOURCE_UNKNOWN}; 409 {@code INGESTION_ALREADY_RUNNING}
      */
     public RunResult run(String sourceName, String trigger) {
-        GigSource source = sources.stream()
-                .filter(s -> s.name().equals(sourceName))
-                .findFirst()
+        GigSource source = find(sourceName)
                 .orElseThrow(() -> ApiException.notFound("SOURCE_UNKNOWN", "No gig source named " + sourceName));
         Instant startedAt = Instant.now(clock);
         UUID runId = runs.start(sourceName, trigger, startedAt);
+        return execute(source, runId, startedAt);
+    }
+
+    /**
+     * Runs a run that "Run now" queued, in a scheduler process. It claims the QUEUED row
+     * (QUEUED → RUNNING, only if it is still QUEUED) instead of opening a new one, asks the same guard as
+     * the schedule, then does what {@link #run} does. A source this process doesn't have, or one the guard
+     * refuses, closes the run as FAILED with the reason, so it never stays queued.
+     *
+     * @return empty when the run was no longer QUEUED (another poller claimed it first)
+     */
+    public Optional<RunResult> runQueued(UUID runId) {
+        Instant startedAt = Instant.now(clock);
+        Optional<String> claimed = runs.claim(runId, startedAt);
+        if (claimed.isEmpty()) {
+            return Optional.empty();
+        }
+        String sourceName = claimed.get();
+        Optional<GigSource> source = find(sourceName);
+        String refusal = source.isEmpty()
+                ? "SOURCE_UNKNOWN: this scheduler process has no gig source named " + sourceName
+                : guardRefusal(source.get());
+        if (refusal == null) {
+            return Optional.of(execute(source.orElseThrow(), runId, startedAt));
+        }
+        runs.finish(runId, sourceName, "FAILED", new RunStats(), refusal, Instant.now(clock));
+        meters.counter("soundcheck.ingestion.runs", "source", sourceName, "status", "FAILED")
+                .increment();
+        log.warn("Queued ingestion run {} for {} refused: {}", runId, sourceName, refusal);
+        return Optional.of(new RunResult(runId, sourceName, "FAILED", new RunStats().toMap()));
+    }
+
+    /** Why {@link IngestionGuard} refuses to run this source, or null when it may run. */
+    private @Nullable String guardRefusal(GigSource source) {
+        try {
+            guard.check(source);
+            return null;
+        } catch (IllegalStateException e) {
+            return e.getMessage();
+        }
+    }
+
+    private Optional<GigSource> find(String sourceName) {
+        return sources.stream().filter(s -> s.name().equals(sourceName)).findFirst();
+    }
+
+    /** The body of a run whose row is already RUNNING: fetch, resolve, enrich, flag, close the row. */
+    private RunResult execute(GigSource source, UUID runId, Instant startedAt) {
+        String sourceName = source.name();
         RunStats stats = new RunStats();
         CallBudget budget = new CallBudget(properties.callBudget());
         Heartbeat heartbeat = new Heartbeat(runId);

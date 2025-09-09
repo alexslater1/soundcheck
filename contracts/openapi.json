@@ -1771,6 +1771,143 @@
         "required" : [ "items", "unreadCount" ],
         "type" : "object"
       },
+      "IngestionIssue" : {
+        "properties" : {
+          "detail" : {
+            "type" : [ "string", "null" ]
+          },
+          "externalId" : {
+            "type" : [ "string", "null" ]
+          },
+          "kind" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "kind" ],
+        "type" : "object"
+      },
+      "IngestionRun" : {
+        "properties" : {
+          "apiCalls" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "created" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "errors" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "fetched" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "finishedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "issueCounts" : {
+            "additionalProperties" : {
+              "format" : "int32",
+              "type" : "integer"
+            },
+            "type" : "object"
+          },
+          "merged" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "queuedAt" : {
+            "description" : "When \"Run now\" queued it; null for runs that started at once",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "requestedBy" : {
+            "description" : "Who pressed \"Run now\"",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "skipped" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "startedAt" : {
+            "description" : "When it started; for a QUEUED run, when it was queued",
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED" ],
+            "type" : "string"
+          },
+          "trigger" : {
+            "enum" : [ "SCHEDULE", "CONSOLE", "CLI", "TEST" ],
+            "type" : "string"
+          },
+          "unchanged" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "updated" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "apiCalls", "created", "errors", "fetched", "id", "issueCounts", "merged", "skipped", "source", "startedAt", "status", "trigger", "unchanged", "updated" ],
+        "type" : "object"
+      },
+      "IngestionRunDetail" : {
+        "properties" : {
+          "issues" : {
+            "items" : {
+              "$ref" : "#/components/schemas/IngestionIssue"
+            },
+            "type" : "array"
+          },
+          "run" : {
+            "$ref" : "#/components/schemas/IngestionRun"
+          },
+          "stats" : {
+            "additionalProperties" : { },
+            "type" : "object"
+          }
+        },
+        "required" : [ "issues", "run", "stats" ],
+        "type" : "object"
+      },
+      "IngestionSource" : {
+        "properties" : {
+          "enabled" : {
+            "type" : "boolean"
+          },
+          "lastRun" : {
+            "$ref" : "#/components/schemas/IngestionRun",
+            "description" : "The source's latest run, whatever its status",
+            "type" : "null"
+          },
+          "mode" : {
+            "description" : "fixtures (recorded, invented gigs) or live (real APIs)",
+            "type" : "string"
+          },
+          "name" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "enabled", "mode", "name" ],
+        "type" : "object"
+      },
       "LikeState" : {
         "properties" : {
           "likeCount" : {
@@ -2108,6 +2245,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/GigSummary"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageIngestionRun" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/IngestionRun"
             },
             "type" : "array"
           },
@@ -2868,6 +3020,27 @@
           }
         },
         "required" : [ "platform", "token" ],
+        "type" : "object"
+      },
+      "QueueIngestionRunRequest" : {
+        "properties" : {
+          "source" : {
+            "maxLength" : 40,
+            "minLength" : 0,
+            "type" : "string"
+          }
+        },
+        "required" : [ "source" ],
+        "type" : "object"
+      },
+      "QueuedIngestionRun" : {
+        "properties" : {
+          "runId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "runId" ],
         "type" : "object"
       },
       "RankingConfigRef" : {
@@ -4216,6 +4389,133 @@
         },
         "summary" : "A user's recent feed sessions, newest first, each item with its outcome (positive, negative, furthest watch)",
         "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/ingestion/runs" : {
+      "get" : {
+        "operationId" : "adminListIngestionRuns",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "source",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageIngestionRun"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Ingestion runs, newest first, with their main counters and issues counted by kind",
+        "tags" : [ "admin-ingestion" ]
+      },
+      "post" : {
+        "operationId" : "adminQueueIngestionRun",
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/QueueIngestionRunRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "202" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/QueuedIngestionRun"
+                }
+              }
+            },
+            "description" : "Accepted"
+          }
+        },
+        "summary" : "\"Run now\": queue a run of a source; a scheduler process claims and runs it within seconds. 400 SOURCE_NOT_ENABLED; 409 INGESTION_ALREADY_RUNNING while the source has a queued or running run",
+        "tags" : [ "admin-ingestion" ]
+      }
+    },
+    "/api/v1/admin/ingestion/runs/{id}" : {
+      "get" : {
+        "operationId" : "adminGetIngestionRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IngestionRunDetail"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "One run with every stat and every stored issue (at most 200). 404 RUN_NOT_FOUND",
+        "tags" : [ "admin-ingestion" ]
+      }
+    },
+    "/api/v1/admin/ingestion/sources" : {
+      "get" : {
+        "operationId" : "adminListIngestionSources",
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/IngestionSource"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Every gig source, whether this deployment runs it, the mode, and its latest run",
+        "tags" : [ "admin-ingestion" ]
       }
     },
     "/api/v1/admin/pipeline" : {
@@ -8350,6 +8650,9 @@
   }, {
     "description" : "Posts and lists of posts",
     "name" : "posts"
+  }, {
+    "description" : "Console: gig-source runs, their issues and \"Run now\" (operators only)",
+    "name" : "admin-ingestion"
   }, {
     "description" : "Service health",
     "name" : "health"
