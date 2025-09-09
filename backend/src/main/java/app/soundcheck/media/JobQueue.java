@@ -3,6 +3,7 @@ package app.soundcheck.media;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Job queue port: the outbox relay sends transcode jobs; workers long-poll, process
@@ -21,8 +22,17 @@ public interface JobQueue {
     /** Makes a message visible again after {@code timeout} (zero = immediately). */
     void changeVisibility(String receiptHandle, Duration timeout);
 
-    /** Approximate counts for monitoring and autoscaling. */
+    /**
+     * Approximate counts for monitoring and autoscaling. Answers within a few seconds or throws: the
+     * console calls it on every refresh and must not hang on an unreachable queue.
+     */
     QueueAttributes attributes();
+
+    /**
+     * The same counts for the dead-letter queue, or empty when none is configured. The DLQ is
+     * watched, never read from: a message left there is harmless because the claim is idempotent.
+     */
+    Optional<QueueAttributes> deadLetterAttributes();
 
     /** A received message; {@code receiveCount} starts at 1 and drives the DLQ redrive. */
     record QueueMessage(

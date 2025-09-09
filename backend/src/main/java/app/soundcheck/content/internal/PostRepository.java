@@ -168,6 +168,35 @@ public class PostRepository {
     }
 
     /**
+     * FAILED → PENDING_MEDIA, when an operator sent the post's clip back to the queue.
+     * Only a FAILED post (a deleted or hidden one keeps its status), and only while the author has no
+     * other open post from the same gig and day: that one took this one's place, and the unique index
+     * post_author_gig_day allows one. Expected index: post_author_gig_day for the check.
+     *
+     * @return true when this call reopened it
+     */
+    public boolean reopen(PostRow post, Instant now) {
+        var other = POST.as("other");
+        Condition noOpenTwin = post.gigId() == null || post.day() == null
+                ? DSL.noCondition()
+                : DSL.notExists(DSL.selectOne()
+                        .from(other)
+                        .where(other.AUTHOR_ID.eq(post.authorId()))
+                        .and(other.GIG_ID.eq(post.gigId()))
+                        .and(other.DAY.eq(post.day()))
+                        .and(other.STATUS.in("PUBLISHED", "PENDING_MEDIA"))
+                        .and(other.ID.ne(post.id())));
+        return dsl.update(POST)
+                        .set(POST.STATUS, "PENDING_MEDIA")
+                        .set(POST.UPDATED_AT, at(now))
+                        .where(POST.ID.eq(post.id()))
+                        .and(POST.STATUS.eq("FAILED"))
+                        .and(noOpenTwin)
+                        .execute()
+                == 1;
+    }
+
+    /**
      * PUBLISHED → HIDDEN by a moderator, only if it is still published.
      *
      * @return true when this call hid it
