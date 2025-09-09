@@ -4,6 +4,7 @@ import app.soundcheck.media.JobQueue;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 import software.amazon.awssdk.services.sqs.SqsClient;
@@ -21,12 +22,20 @@ import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
 @Component
 class SqsJobQueue implements JobQueue {
 
+    /**
+     * The counts are read on every console refresh: an unreachable queue must answer quickly with an
+     * error instead of holding a request thread for the client's 30 s call timeout.
+     */
+    static final Duration ATTRIBUTES_TIMEOUT = Duration.ofSeconds(3);
+
     private final SqsClient sqs;
     private final String queueUrl;
+    private final Optional<String> deadLetterUrl;
 
     SqsJobQueue(SqsClient sqs, QueueProperties properties) {
         this.sqs = sqs;
         this.queueUrl = properties.url();
+        this.deadLetterUrl = properties.deadLetterUrl();
     }
 
     @Override
@@ -79,8 +88,18 @@ class SqsJobQueue implements JobQueue {
 
     @Override
     public QueueAttributes attributes() {
+        return attributesOf(queueUrl);
+    }
+
+    @Override
+    public Optional<QueueAttributes> deadLetterAttributes() {
+        return deadLetterUrl.map(this::attributesOf);
+    }
+
+    private QueueAttributes attributesOf(String url) {
         Map<QueueAttributeName, String> attrs = sqs.getQueueAttributes(GetQueueAttributesRequest.builder()
-                        .queueUrl(queueUrl)
+                        .queueUrl(url)
+                        .overrideConfiguration(o -> o.apiCallTimeout(ATTRIBUTES_TIMEOUT))
                         .attributeNames(
                                 QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES,
                                 QueueAttributeName.APPROXIMATE_NUMBER_OF_MESSAGES_NOT_VISIBLE,

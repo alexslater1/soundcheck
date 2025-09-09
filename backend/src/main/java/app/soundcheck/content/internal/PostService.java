@@ -242,6 +242,32 @@ public class PostService implements PostFeed {
     }
 
     /**
+     * An operator sent the clip back to the queue: a post that FAILED because of it
+     * waits for it again (PENDING_MEDIA), and the next {@code MediaReady} publishes it as usual.
+     *
+     * <p>Only a FAILED post: one that was deleted or hidden keeps its status. A FAILED post that still
+     * holds the clip failed because of its media: the other way a post fails (its slots expired with
+     * nothing uploaded) leaves it without clips, so {@code findByMedia} doesn't reach it. A post whose
+     * place was taken by a newer open post from the same gig and day stays FAILED. The post is settled
+     * straight away, in case the clip became READY before this event arrived. Safe to repeat.
+     *
+     * @return true when a post was reopened by this call
+     */
+    public boolean mediaRequeued(UUID mediaId) {
+        Instant now = Instant.now(clock);
+        return clips.findByMedia(mediaId)
+                .flatMap(clip -> posts.lock(clip.postId()))
+                .filter(post -> post.status().equals("FAILED"))
+                .filter(post -> posts.reopen(post, now))
+                .flatMap(post -> posts.lock(post.id()))
+                .map(post -> {
+                    rules.settle(post, true);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /**
      * Catches up posts whose media event was missed (a crash between the worker's commit and the
      * listener, or a clip attached in the instant it became READY), and drops slots whose clip never
      * arrived within {@link #SLOT_EXPIRY} (the upload was given up), settling their posts.

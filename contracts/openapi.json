@@ -2286,6 +2286,294 @@
         "required" : [ "profileVisibility", "user" ],
         "type" : "object"
       },
+      "PipelineAction" : {
+        "properties" : {
+          "mediaId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "previousStatus" : {
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "mediaId", "previousStatus", "status" ],
+        "type" : "object"
+      },
+      "PipelineAsset" : {
+        "properties" : {
+          "attempts" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "kind" : {
+            "type" : "string"
+          },
+          "ownerId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : [ "string", "null" ]
+          },
+          "since" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "stranded" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "attempts", "id", "kind", "ownerId", "since", "status", "stranded" ],
+        "type" : "object"
+      },
+      "PipelineDay" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "day" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "p50Ms" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "p95Ms" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "count", "day", "p50Ms", "p95Ms" ],
+        "type" : "object"
+      },
+      "PipelineDlqDepth" : {
+        "properties" : {
+          "visible" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "visible" ],
+        "type" : "object"
+      },
+      "PipelineFailureReason" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "reason" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "reason" ],
+        "type" : "object"
+      },
+      "PipelineJob" : {
+        "properties" : {
+          "attempt" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "downloadMs" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "error" : {
+            "type" : [ "string", "null" ]
+          },
+          "finishedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "mediaId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "probeMs" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "queueWaitMs" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "startedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "status" : {
+            "type" : "string"
+          },
+          "totalMs" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "transcodeMs" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "uploadMs" : {
+            "format" : "int32",
+            "type" : [ "integer", "null" ]
+          },
+          "workerId" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "attempt", "id", "mediaId", "startedAt", "status", "workerId" ],
+        "type" : "object"
+      },
+      "PipelineOverview" : {
+        "properties" : {
+          "attention" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PipelineAsset"
+            },
+            "type" : "array"
+          },
+          "dailyTranscode" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PipelineDay"
+            },
+            "type" : "array"
+          },
+          "dlq" : {
+            "$ref" : "#/components/schemas/PipelineDlqDepth",
+            "type" : "null"
+          },
+          "failuresByReason" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PipelineFailureReason"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "generatedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "queue" : {
+            "$ref" : "#/components/schemas/PipelineQueueDepth",
+            "type" : "null"
+          },
+          "queueError" : {
+            "type" : [ "string", "null" ]
+          },
+          "recentJobs" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PipelineJob"
+            },
+            "type" : "array"
+          },
+          "stages" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PipelineStage"
+            },
+            "type" : "array"
+          },
+          "statuses" : {
+            "items" : {
+              "$ref" : "#/components/schemas/PipelineStatusCount"
+            },
+            "type" : "array"
+          },
+          "strandedRule" : {
+            "$ref" : "#/components/schemas/PipelineStrandedRule"
+          },
+          "to" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        },
+        "required" : [ "attention", "dailyTranscode", "failuresByReason", "from", "generatedAt", "recentJobs", "stages", "statuses", "strandedRule", "to" ],
+        "type" : "object"
+      },
+      "PipelineQueueDepth" : {
+        "properties" : {
+          "delayed" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "inFlight" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "visible" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "delayed", "inFlight", "visible" ],
+        "type" : "object"
+      },
+      "PipelineStage" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "p50Ms" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "p95Ms" : {
+            "format" : "double",
+            "type" : [ "number", "null" ]
+          },
+          "stage" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "stage" ],
+        "type" : "object"
+      },
+      "PipelineStatusCount" : {
+        "properties" : {
+          "count" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "status" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "status" ],
+        "type" : "object"
+      },
+      "PipelineStrandedRule" : {
+        "properties" : {
+          "leaseMinutes" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "uploadedMinutes" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        },
+        "required" : [ "leaseMinutes", "uploadedMinutes" ],
+        "type" : "object"
+      },
       "Place" : {
         "properties" : {
           "cityId" : {
@@ -3928,6 +4216,98 @@
         },
         "summary" : "A user's recent feed sessions, newest first, each item with its outcome (positive, negative, furthest watch)",
         "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/pipeline" : {
+      "get" : {
+        "operationId" : "adminPipeline",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "from",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "to",
+          "required" : false,
+          "schema" : {
+            "format" : "date-time",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PipelineOverview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Queue and DLQ depth, assets by status, stranded and failed clips, recent attempts, and stage percentiles, failures and daily transcode times over [from, to) (default: 7 days)",
+        "tags" : [ "admin-pipeline" ]
+      }
+    },
+    "/api/v1/admin/pipeline/media/{id}/fail" : {
+      "post" : {
+        "operationId" : "adminPipelineFail",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PipelineAction"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Give up on a stranded clip: FAILED (reason OPERATOR), and its post fails (409 MEDIA_NOT_STRANDED)",
+        "tags" : [ "admin-pipeline" ]
+      }
+    },
+    "/api/v1/admin/pipeline/media/{id}/retry" : {
+      "post" : {
+        "operationId" : "adminPipelineRetry",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PipelineAction"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Send a failed or stranded clip back to the queue with fresh attempts; its failed post waits for it again (409 MEDIA_REJECTED, MEDIA_NOT_RETRYABLE)",
+        "tags" : [ "admin-pipeline" ]
       }
     },
     "/api/v1/admin/posts/{id}/restore" : {
@@ -8003,6 +8383,9 @@
   }, {
     "description" : "Console: activity, uploads and feed engagement (operators only)",
     "name" : "admin-analytics"
+  }, {
+    "description" : "Console: the media pipeline, its failures and retries (operators only)",
+    "name" : "admin-pipeline"
   }, {
     "description" : "Gig stats on profiles",
     "name" : "stats"

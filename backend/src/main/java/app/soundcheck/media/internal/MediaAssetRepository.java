@@ -1,6 +1,7 @@
 package app.soundcheck.media.internal;
 
 import static app.soundcheck.shared.jooq.media.Tables.MEDIA_ASSET;
+import static app.soundcheck.shared.jooq.media.Tables.TRANSCODE_JOB;
 
 import app.soundcheck.shared.config.JsonMappers;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -146,6 +147,48 @@ public class MediaAssetRepository {
                 .set(MEDIA_ASSET.UPDATED_AT, at(now))
                 .where(MEDIA_ASSET.ID.eq(id))
                 .and(MEDIA_ASSET.STATUS.eq(fromStatus))
+                .execute();
+    }
+
+    /**
+     * An operator's Retry: back to UPLOADED with a fresh set of attempts, the failure
+     * and any lease cleared. The caller holds the row lock and has checked the asset may be retried.
+     */
+    public void requeue(UUID id, Instant now) {
+        dsl.update(MEDIA_ASSET)
+                .set(MEDIA_ASSET.STATUS, "UPLOADED")
+                .set(MEDIA_ASSET.ATTEMPTS, 0)
+                .setNull(MEDIA_ASSET.FAILURE_REASON)
+                .setNull(MEDIA_ASSET.CLAIMED_BY)
+                .setNull(MEDIA_ASSET.CLAIMED_AT)
+                .set(MEDIA_ASSET.UPDATED_AT, at(now))
+                .where(MEDIA_ASSET.ID.eq(id))
+                .execute();
+    }
+
+    /** An operator's Fail of a stranded asset: FAILED with {@code reason}, lease cleared. */
+    public void failByOperator(UUID id, String reason, Instant now) {
+        dsl.update(MEDIA_ASSET)
+                .set(MEDIA_ASSET.STATUS, "FAILED")
+                .set(MEDIA_ASSET.FAILURE_REASON, reason)
+                .setNull(MEDIA_ASSET.CLAIMED_BY)
+                .setNull(MEDIA_ASSET.CLAIMED_AT)
+                .set(MEDIA_ASSET.UPDATED_AT, at(now))
+                .where(MEDIA_ASSET.ID.eq(id))
+                .execute();
+    }
+
+    /**
+     * Closes an attempt still marked RUNNING whose worker is gone, so the job history shows how it ended.
+     * Expected index: transcode_job_media (media_id, attempt).
+     */
+    public int closeRunningJobs(UUID mediaId, String error, Instant now) {
+        return dsl.update(TRANSCODE_JOB)
+                .set(TRANSCODE_JOB.STATUS, "FAILED")
+                .set(TRANSCODE_JOB.ERROR, error)
+                .set(TRANSCODE_JOB.FINISHED_AT, at(now))
+                .where(TRANSCODE_JOB.MEDIA_ID.eq(mediaId))
+                .and(TRANSCODE_JOB.STATUS.eq("RUNNING"))
                 .execute();
     }
 
