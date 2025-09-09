@@ -62,7 +62,11 @@ export const ATTEMPT_HINT =
 export default function PipelinePage() {
   const { colors } = useTheme();
   const [range] = useConsoleRange();
-  const params = { from: range.from.toISOString(), to: range.to.toISOString() };
+  // A preset ("last 7 days") sends no `to`: the server's now ends it, so each 5-second poll includes
+  // the attempts made since the page opened. A custom range is fixed.
+  const params = range.preset
+    ? { from: range.from.toISOString() }
+    : { from: range.from.toISOString(), to: range.to.toISOString() };
   const query = useQuery({
     queryKey: getAdminPipelineQueryKey(params),
     queryFn: ({ signal }) => adminPipeline(params, { signal }),
@@ -89,6 +93,7 @@ export default function PipelinePage() {
       ) : (
         <>
           <Tiles data={data} />
+          <StatusLine data={data} />
           {data?.queueError ? (
             <View
               testID="pipeline-queue-error"
@@ -177,12 +182,6 @@ function Tiles({ data }: { data: PipelineOverview | undefined }) {
         loading={loading}
         testID="tile-dlq"
       />
-      <KpiTile
-        label="Processing"
-        value={String(count('PROCESSING'))}
-        loading={loading}
-        testID="tile-processing"
-      />
       <KpiTile label="Stranded" value={String(stranded)} loading={loading} testID="tile-stranded" />
       <KpiTile
         label="Failed"
@@ -191,6 +190,28 @@ function Tiles({ data }: { data: PipelineOverview | undefined }) {
         testID="tile-failed"
       />
     </View>
+  );
+}
+
+/** Every asset status with its count, in pipeline order: "counts by status" in one line. */
+export const STATUS_ORDER = [
+  'AWAITING_UPLOAD',
+  'UPLOADED',
+  'PROCESSING',
+  'READY',
+  'REJECTED',
+  'FAILED',
+  'DELETED',
+];
+
+function StatusLine({ data }: { data: PipelineOverview | undefined }) {
+  if (!data) return null;
+  const counts = new Map(data.statuses.map((s) => [s.status, s.count]));
+  return (
+    <Text variant="caption" muted testID="pipeline-statuses">
+      {'Assets by status: '}
+      {STATUS_ORDER.map((status) => `${status} ${counts.get(status) ?? 0}`).join(' · ')}
+    </Text>
   );
 }
 

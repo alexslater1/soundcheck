@@ -73,11 +73,15 @@ describe('PipelinePage', () => {
     expect(await screen.findByTestId('bar-job-1')).toBeOnTheScreen();
     expect(within(screen.getByTestId('tile-queued')).getByText('4')).toBeOnTheScreen();
     expect(within(screen.getByTestId('tile-dlq')).getByText('2')).toBeOnTheScreen();
-    expect(within(screen.getByTestId('tile-processing')).getByText('2')).toBeOnTheScreen();
+    expect(screen.getByTestId('pipeline-statuses')).toHaveTextContent(
+      'Assets by status: AWAITING_UPLOAD 0 · UPLOADED 0 · PROCESSING 2 · READY 40 · REJECTED 0 · FAILED 1 · DELETED 0',
+    );
     expect(within(screen.getByTestId('tile-stranded')).getByText('1')).toBeOnTheScreen();
     expect(screen.getByTestId('pipeline-updated')).toHaveTextContent('updated just now');
     expect(mockCalls).toHaveLength(1);
     expect(mockCalls[0]?.from).toMatch(/Z$/);
+    // The default preset sends no "to": each poll runs up to the server's now.
+    expect(mockCalls[0]?.to).toBeUndefined();
 
     await act(async () => {
       jest.advanceTimersByTime(3000);
