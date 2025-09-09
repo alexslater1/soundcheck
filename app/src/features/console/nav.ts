@@ -39,7 +39,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
     href: '/console/pipeline',
     label: 'Media pipeline',
     blurb: 'Transcode queue, stage times, failures and retries',
-    built: false,
+    built: true,
   },
   {
     key: 'ingestion',
