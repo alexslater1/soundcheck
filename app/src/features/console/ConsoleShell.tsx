@@ -11,6 +11,7 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { presetRange, RANGE_PRESETS } from './dateRange';
 import { environmentLabel } from './environment';
+import { useIngestionAlert } from './ingestion/useIngestionAlert';
 import { CONSOLE_NAV } from './nav';
 import { useConsoleRange } from './useConsoleRange';
 
@@ -28,6 +29,7 @@ export function ConsoleShell({ children }: PropsWithChildren) {
   const handle = useAuthStore((s) => s.me?.handle);
   const onboarded = useAuthStore((s) => s.me?.onboarded === true);
   const signOut = useAuthStore((s) => s.signOut);
+  const ingestionAlert = useIngestionAlert();
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View
@@ -63,6 +65,13 @@ export function ConsoleShell({ children }: PropsWithChildren) {
                 >
                   {item.label}
                 </Text>
+                {item.key === 'ingestion' && ingestionAlert ? (
+                  <View
+                    accessibilityLabel="A venue site may have changed"
+                    testID="console-nav-ingestion-alert"
+                    style={[styles.dot, { backgroundColor: colors.danger }]}
+                  />
+                ) : null}
               </Pressable>
             </Link>
           );
@@ -158,7 +167,15 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
   },
   brand: { gap: spacing.xs, marginBottom: spacing.lg },
-  navItem: { paddingVertical: spacing.sm, paddingHorizontal: spacing.sm, borderRadius: radius.sm },
+  navItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.sm,
+    borderRadius: radius.sm,
+  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   navFooter: { marginTop: 'auto', paddingTop: spacing.lg, gap: spacing.xs },
   main: { flex: 1, minWidth: 0 },
   topBar: {

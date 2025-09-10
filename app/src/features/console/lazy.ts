@@ -14,4 +14,5 @@ export const LazyRankingPage = lazy(() => import('./ranking/RankingPage'));
 export const LazyInspectorPage = lazy(() => import('./ranking/InspectorPage'));
 export const LazyPipelinePage = lazy(() => import('./pipeline/PipelinePage'));
 export const LazyOverviewPage = lazy(() => import('./overview/OverviewPage'));
+export const LazyIngestionPage = lazy(() => import('./ingestion/IngestionPage'));
 export const LazyModerationPage = lazy(() => import('./moderation/ModerationPage'));

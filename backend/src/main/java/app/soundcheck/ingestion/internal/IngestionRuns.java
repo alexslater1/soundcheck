@@ -54,12 +54,87 @@ public class IngestionRuns {
     }
 
     /**
-     * Opens a run. The partial unique index {@code ingestion_run_one_running} allows one RUNNING row per
-     * source, so a concurrent trigger fails here instead of ingesting the same pages twice.
+     * A QUEUED row no scheduler process claimed within this long is closed as FAILED by the next trigger
+     * of its source, so a stack without a scheduler can't block "Run now" for good. Two hours is
+     * the poller's {@code lockAtMostFor}: a scheduler that is alive claims a queued run within seconds.
+     */
+    static final Duration UNCLAIMED_AFTER = Duration.ofHours(2);
+
+    /**
+     * Opens a run. The partial unique index {@code ingestion_run_one_active} (V144) allows one QUEUED or
+     * RUNNING row per source, so a concurrent trigger fails here instead of ingesting the same pages twice.
      *
      * @throws ApiException 409 {@code INGESTION_ALREADY_RUNNING}
      */
     public UUID start(String source, String trigger, Instant now) {
+        closeAbandoned(source, now);
+        UUID id = Ids.newId();
+        insertOrConflict(source, () -> dsl.insertInto(INGESTION_RUN)
+                .set(INGESTION_RUN.ID, id)
+                .set(INGESTION_RUN.SOURCE, source)
+                .set(INGESTION_RUN.TRIGGER, trigger)
+                .set(INGESTION_RUN.STATUS, "RUNNING")
+                .set(INGESTION_RUN.STARTED_AT, at(now))
+                .set(INGESTION_RUN.HEARTBEAT_AT, at(now))
+                .execute());
+        return id;
+    }
+
+    /**
+     * "Run now": records a QUEUED run for a scheduler process to claim. The same index as
+     * {@link #start} refuses it while the source has a queued or running run.
+     *
+     * @throws ApiException 409 {@code INGESTION_ALREADY_RUNNING}
+     */
+    public UUID enqueue(String source, String trigger, UUID requestedBy, Instant now) {
+        closeAbandoned(source, now);
+        UUID id = Ids.newId();
+        insertOrConflict(source, () -> dsl.insertInto(INGESTION_RUN)
+                .set(INGESTION_RUN.ID, id)
+                .set(INGESTION_RUN.SOURCE, source)
+                .set(INGESTION_RUN.TRIGGER, trigger)
+                .set(INGESTION_RUN.STATUS, "QUEUED")
+                .set(INGESTION_RUN.QUEUED_AT, at(now))
+                .set(INGESTION_RUN.STARTED_AT, at(now)) // the real start is set by the claim
+                .set(INGESTION_RUN.REQUESTED_BY, requestedBy)
+                .execute());
+        return id;
+    }
+
+    /**
+     * Claims a QUEUED run: QUEUED → RUNNING, conditionally, so of two pollers that read the same queued
+     * row only one gets it (the other updates nothing and returns empty).
+     *
+     * @return the run's source, or empty when the run is no longer QUEUED
+     */
+    public Optional<String> claim(UUID runId, Instant now) {
+        return dsl.update(INGESTION_RUN)
+                .set(INGESTION_RUN.STATUS, "RUNNING")
+                .set(INGESTION_RUN.STARTED_AT, at(now))
+                .set(INGESTION_RUN.HEARTBEAT_AT, at(now))
+                .where(INGESTION_RUN.ID.eq(runId))
+                .and(INGESTION_RUN.STATUS.eq("QUEUED"))
+                .returning(INGESTION_RUN.SOURCE)
+                .fetchOptional(INGESTION_RUN.SOURCE);
+    }
+
+    /** The run queued first, if any. A handful of rows; ingestion_run_one_active holds every QUEUED one. */
+    @Transactional(readOnly = true)
+    public Optional<UUID> oldestQueued() {
+        return dsl.select(INGESTION_RUN.ID)
+                .from(INGESTION_RUN)
+                .where(INGESTION_RUN.STATUS.eq("QUEUED"))
+                .orderBy(INGESTION_RUN.STARTED_AT, INGESTION_RUN.ID)
+                .limit(1)
+                .fetchOptional(INGESTION_RUN.ID);
+    }
+
+    /**
+     * Before a new run of {@code source}: a RUNNING row whose heartbeat went silent belongs to a process
+     * that died, and a QUEUED row nobody claimed for {@link #UNCLAIMED_AFTER} has no scheduler to run it.
+     * Both are closed as FAILED, so neither blocks the source.
+     */
+    private void closeAbandoned(String source, Instant now) {
         dsl.update(INGESTION_RUN)
                 .set(INGESTION_RUN.STATUS, "FAILED")
                 .set(INGESTION_RUN.FINISHED_AT, at(now))
@@ -69,21 +144,23 @@ public class IngestionRuns {
                 .and(DSL.coalesce(INGESTION_RUN.HEARTBEAT_AT, INGESTION_RUN.STARTED_AT)
                         .lt(at(now.minus(ABANDONED_AFTER))))
                 .execute();
-        UUID id = Ids.newId();
+        dsl.update(INGESTION_RUN)
+                .set(INGESTION_RUN.STATUS, "FAILED")
+                .set(INGESTION_RUN.FINISHED_AT, at(now))
+                .set(INGESTION_RUN.ERROR, "never claimed: still QUEUED after " + UNCLAIMED_AFTER)
+                .where(INGESTION_RUN.SOURCE.eq(source))
+                .and(INGESTION_RUN.STATUS.eq("QUEUED"))
+                .and(INGESTION_RUN.STARTED_AT.lt(at(now.minus(UNCLAIMED_AFTER))))
+                .execute();
+    }
+
+    private static void insertOrConflict(String source, Runnable insert) {
         try {
-            dsl.insertInto(INGESTION_RUN)
-                    .set(INGESTION_RUN.ID, id)
-                    .set(INGESTION_RUN.SOURCE, source)
-                    .set(INGESTION_RUN.TRIGGER, trigger)
-                    .set(INGESTION_RUN.STATUS, "RUNNING")
-                    .set(INGESTION_RUN.STARTED_AT, at(now))
-                    .set(INGESTION_RUN.HEARTBEAT_AT, at(now))
-                    .execute();
+            insert.run();
         } catch (DuplicateKeyException e) {
             throw ApiException.conflict(
-                    "INGESTION_ALREADY_RUNNING", "An ingestion run for " + source + " is in progress");
+                    "INGESTION_ALREADY_RUNNING", "An ingestion run for " + source + " is queued or in progress");
         }
-        return id;
     }
 
     /** "Still alive": see {@link #ABANDONED_AFTER}. */

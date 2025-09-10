@@ -1,5 +1,12 @@
-import { useMemo, useState, type ReactNode } from 'react';
-import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Fragment, useMemo, useState, type ReactNode } from 'react';
+import {
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -78,6 +85,8 @@ export function DataTable<T>({
   hasMore = false,
   loadingMore = false,
   onLoadMore,
+  renderBelow,
+  rowStyle,
   testID,
 }: {
   columns: readonly Column<T>[];
@@ -90,6 +99,10 @@ export function DataTable<T>({
   hasMore?: boolean;
   loadingMore?: boolean;
   onLoadMore?: () => void;
+  /** Full-width content under a row (an expanded row), when it returns something. */
+  renderBelow?: (row: T) => ReactNode;
+  /** Extra style for a row, e.g. a tint that draws attention to it. */
+  rowStyle?: (row: T) => StyleProp<ViewStyle>;
   testID?: string;
 }) {
   const { colors } = useTheme();
@@ -157,26 +170,38 @@ export function DataTable<T>({
           detail={emptyDetail}
         />
       ) : (
-        sorted.map((row) => (
-          <View
-            key={rowKey(row)}
-            testID={testID ? `${testID}-row` : undefined}
-            style={[styles.row, { borderBottomColor: colors.border }]}
-          >
-            {columns.map((c) => (
+        sorted.map((row) => {
+          const below = renderBelow?.(row);
+          return (
+            <Fragment key={rowKey(row)}>
               <View
-                key={c.key}
-                style={[
-                  styles.cell,
-                  { flex: c.flex ?? 1 },
-                  c.align === 'right' ? styles.rightCell : null,
-                ]}
+                testID={testID ? `${testID}-row` : undefined}
+                style={[styles.row, { borderBottomColor: colors.border }, rowStyle?.(row)]}
               >
-                {c.render(row)}
+                {columns.map((c) => (
+                  <View
+                    key={c.key}
+                    style={[
+                      styles.cell,
+                      { flex: c.flex ?? 1 },
+                      c.align === 'right' ? styles.rightCell : null,
+                    ]}
+                  >
+                    {c.render(row)}
+                  </View>
+                ))}
               </View>
-            ))}
-          </View>
-        ))
+              {below ? (
+                <View
+                  testID={testID ? `${testID}-below` : undefined}
+                  style={[styles.below, { borderBottomColor: colors.border }]}
+                >
+                  {below}
+                </View>
+              ) : null}
+            </Fragment>
+          );
+        })
       )}
       {status === 'success' && hasMore && onLoadMore ? (
         <View style={styles.more}>
@@ -206,6 +231,7 @@ const styles = StyleSheet.create({
   cell: { minWidth: 0 },
   right: { textAlign: 'right' },
   rightCell: { alignItems: 'flex-end' },
+  below: { borderBottomWidth: StyleSheet.hairlineWidth, paddingVertical: spacing.sm },
   skeletons: { gap: spacing.sm, paddingVertical: spacing.sm },
   more: { paddingVertical: spacing.md, alignItems: 'flex-start' },
 });

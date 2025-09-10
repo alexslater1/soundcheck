@@ -68,6 +68,9 @@ class IngestionRunIT extends IntegrationTest {
     CatalogIngest catalog;
 
     @Autowired
+    IngestionGuard guard;
+
+    @Autowired
     IngestionProperties properties;
 
     @Autowired
@@ -203,7 +206,7 @@ class IngestionRunIT extends IntegrationTest {
             }
         };
         return new IngestionService(
-                List.of(stub), runs, resolver, enricher, geocoder, catalog, properties, meters, clock);
+                List.of(stub), runs, resolver, enricher, geocoder, catalog, guard, properties, meters, clock);
     }
 
     private SourcePage page(String source, String key, SourceGig... gigs) {

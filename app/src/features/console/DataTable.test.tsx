@@ -159,4 +159,17 @@ describe('DataTable', () => {
     );
     expect(screen.queryByTestId('t-more')).toBeNull();
   });
+
+  it('shows content under the rows that ask for it, and styles the rows it is told to', async () => {
+    await renderTable({
+      renderBelow: (r) => (r.synthetic ? <Text>{`details of ${r.name}`}</Text> : null),
+      rowStyle: (r) => (r.name === 'cal' ? { backgroundColor: '#ff0000' } : undefined),
+    });
+    expect(screen.getAllByTestId('t-below')).toHaveLength(2);
+    expect(screen.getByText('details of abe')).toBeOnTheScreen();
+    const tinted = screen
+      .getAllByTestId('t-row')
+      .filter((r) => JSON.stringify(r.props.style).includes('#ff0000'));
+    expect(tinted).toHaveLength(1);
+  });
 });
