@@ -60,7 +60,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
     href: '/console/catalog',
     label: 'Catalog',
     blurb: 'Merge duplicate gigs, review fan edits and matches',
-    built: false,
+    built: true,
   },
   {
     key: 'users',

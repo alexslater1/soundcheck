@@ -1,11 +1,11 @@
-import { LazyPlaceholderPage } from '@/features/console/lazy';
+import { LazyCatalogPage } from '@/features/console/lazy';
 import { PageSuspense } from '@/features/console/PageSuspense';
 
-// Placeholder until the page is built (features/console/nav.ts says which).
+// The console's catalog: fan-added gigs and gig merges.
 export default function ConsoleCatalog() {
   return (
     <PageSuspense>
-      <LazyPlaceholderPage page="catalog" />
+      <LazyCatalogPage />
     </PageSuspense>
   );
 }
