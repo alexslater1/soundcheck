@@ -46,7 +46,7 @@ export const CONSOLE_NAV: readonly ConsoleNavItem[] = [
     href: '/console/ingestion',
     label: 'Ingestion',
     blurb: 'Gig source runs, issues and "Run now"',
-    built: false,
+    built: true,
   },
   {
     key: 'moderation',
