@@ -4,7 +4,7 @@
 -- Expected after the move: one row per night; Liam Gallagher, Pulp and Wolf Alice at "The O2" (London),
 -- Fontaines D.C. and Kasabian at "Finsbury Park", Victorious Festival 2025 at "Southsea Common".
 -- Two rows for one night: a seed run after the move added the gig again at the old venue (fixed by
--- 42fd928); merge the copy with ops/scripts/merge-duplicate-gig.sql.
+-- 42fd928); merge the copy in the console (/console/catalog, Merge tab).
 -- One row, still at an O2 Academy: the move itself is gone (a restore from an older backup?).
 select a.name as act,
        g.starts_at::date as night,
