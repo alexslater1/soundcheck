@@ -17,6 +17,7 @@ export const createUploadHeader = zod.object({
   "Idempotency-Key": zod.string().optional()
 })
 
+export const createUploadBodyContentHashRegExp = new RegExp('^(md5:[0-9a-f]{32}|sha256:[0-9a-f]{64})$');
 export const createUploadBodyContentTypeMin = 0;
 
 export const createUploadBodyContentTypeMax = 100;
@@ -26,6 +27,7 @@ export const createUploadBodyDurationMsMin = 0;
 export const createUploadBody = zod.object({
   "bytes": zod.number().min(1),
   "clientMeta": zod.record(zod.string(), zod.any()).nullish(),
+  "contentHash": zod.string().regex(createUploadBodyContentHashRegExp).nullish().describe('The file\'s hash, so a clip already posted is refused with 409 DUPLICATE_UPLOAD: md5:<32 hex> from the phone, sha256:<64 hex> from the browser. Guards against accidental re-posts; not a security control.'),
   "contentType": zod.string().min(createUploadBodyContentTypeMin).max(createUploadBodyContentTypeMax),
   "durationMs": zod.number().min(createUploadBodyDurationMsMin).nullish(),
   "height": zod.number().min(1).nullish(),

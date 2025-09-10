@@ -31,7 +31,8 @@ public class MediaAssetRepository {
         this.dsl = dsl;
     }
 
-    public void insert(MediaAsset asset, String clientMetaJson) {
+    /** {@code contentHash}: the client's hash of the file, or null when it sent none. */
+    public void insert(MediaAsset asset, String clientMetaJson, @Nullable String contentHash) {
         dsl.insertInto(MEDIA_ASSET)
                 .set(MEDIA_ASSET.ID, asset.id())
                 .set(MEDIA_ASSET.OWNER_ID, asset.ownerId())
@@ -44,6 +45,7 @@ public class MediaAssetRepository {
                 .set(MEDIA_ASSET.MULTIPART_UPLOAD_ID, asset.multipartUploadId())
                 .set(MEDIA_ASSET.PART_SIZE, asset.partSize())
                 .set(MEDIA_ASSET.CLIENT_META, JSONB.valueOf(clientMetaJson))
+                .set(MEDIA_ASSET.CONTENT_HASH, contentHash)
                 .set(MEDIA_ASSET.DURATION_MS, asset.durationMs())
                 .set(MEDIA_ASSET.WIDTH, asset.width())
                 .set(MEDIA_ASSET.HEIGHT, asset.height())
@@ -62,6 +64,67 @@ public class MediaAssetRepository {
             return List.of();
         }
         return dsl.selectFrom(MEDIA_ASSET).where(MEDIA_ASSET.ID.in(ids)).fetch(MediaAssetRepository::toAsset);
+    }
+
+    /**
+     * The owner's assets with this content hash that still exist (not DELETED, FAILED or REJECTED), newest
+     * first: the candidates for the duplicate guard. Expected index: media_asset_owner_hash
+     * (V146), whose predicate this query repeats.
+     */
+    public List<UUID> idsWithHash(UUID ownerId, String contentHash, int limit) {
+        return dsl.select(MEDIA_ASSET.ID)
+                .from(MEDIA_ASSET)
+                .where(MEDIA_ASSET.OWNER_ID.eq(ownerId))
+                .and(MEDIA_ASSET.CONTENT_HASH.eq(contentHash))
+                .and(MEDIA_ASSET.STATUS.notIn("DELETED", "FAILED", "REJECTED"))
+                .orderBy(MEDIA_ASSET.CREATED_AT.desc())
+                .limit(limit)
+                .fetch(MEDIA_ASSET.ID);
+    }
+
+    /**
+     * Any status but DELETED → DELETED, with {@code deleted_at} (a deleted post's media). The
+     * files stay until {@link #purgeable} picks the asset up a week later. Expected index: the primary key.
+     *
+     * @return how many assets changed
+     */
+    public int release(Collection<UUID> ids, Instant now) {
+        if (ids.isEmpty()) {
+            return 0;
+        }
+        return dsl.update(MEDIA_ASSET)
+                .set(MEDIA_ASSET.STATUS, "DELETED")
+                .set(MEDIA_ASSET.DELETED_AT, at(now))
+                .set(MEDIA_ASSET.UPDATED_AT, at(now))
+                .where(MEDIA_ASSET.ID.in(ids))
+                .and(MEDIA_ASSET.STATUS.ne("DELETED"))
+                .execute();
+    }
+
+    /** A DELETED asset whose files are still in storage: where they are. */
+    public record Purgeable(UUID id, UUID ownerId) {}
+
+    /**
+     * DELETED assets released before {@code cutoff} whose files have not been removed yet, oldest first.
+     * Expected index: media_asset_deleted (V147), partial on exactly this predicate.
+     */
+    public List<Purgeable> purgeable(Instant cutoff, int limit) {
+        return dsl.select(MEDIA_ASSET.ID, MEDIA_ASSET.OWNER_ID)
+                .from(MEDIA_ASSET)
+                .where(MEDIA_ASSET.STATUS.eq("DELETED"))
+                .and(MEDIA_ASSET.OBJECTS_PURGED_AT.isNull())
+                .and(MEDIA_ASSET.DELETED_AT.lt(at(cutoff)))
+                .orderBy(MEDIA_ASSET.DELETED_AT, MEDIA_ASSET.ID)
+                .limit(limit)
+                .fetch(r -> new Purgeable(r.get(MEDIA_ASSET.ID), r.get(MEDIA_ASSET.OWNER_ID)));
+    }
+
+    /** Records that the asset's files are gone; the row stays (content's clips still reference it). */
+    public void markObjectsPurged(UUID id, Instant now) {
+        dsl.update(MEDIA_ASSET)
+                .set(MEDIA_ASSET.OBJECTS_PURGED_AT, at(now))
+                .where(MEDIA_ASSET.ID.eq(id))
+                .execute();
     }
 
     /** Every asset id of an owner, whatever its status. Expected index: media_asset_owner. */
@@ -139,11 +202,15 @@ public class MediaAssetRepository {
         update.where(MEDIA_ASSET.ID.eq(id)).execute();
     }
 
-    /** Terminal state from the upload side: REJECTED (with why) or DELETED. */
+    /**
+     * Terminal state from the upload side: REJECTED (with why) or DELETED (an aborted upload, dated so
+     * that MediaObjectPurge takes it too).
+     */
     public int close(UUID id, String fromStatus, String status, @Nullable String reason, Instant now) {
         return dsl.update(MEDIA_ASSET)
                 .set(MEDIA_ASSET.STATUS, status)
                 .set(MEDIA_ASSET.FAILURE_REASON, reason)
+                .set(MEDIA_ASSET.DELETED_AT, status.equals("DELETED") ? at(now) : null)
                 .set(MEDIA_ASSET.UPDATED_AT, at(now))
                 .where(MEDIA_ASSET.ID.eq(id))
                 .and(MEDIA_ASSET.STATUS.eq(fromStatus))

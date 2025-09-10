@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.Map;
@@ -69,7 +70,8 @@ public class MediaController {
                         body.durationMs(),
                         body.width(),
                         body.height(),
-                        body.clientMeta()),
+                        body.clientMeta(),
+                        body.contentHash()),
                 idempotencyKey);
         return ResponseEntity.status(HttpStatus.CREATED).body(ticket);
     }
@@ -108,7 +110,18 @@ public class MediaController {
             @Schema(nullable = true) @Min(0) Integer durationMs,
             @Schema(nullable = true) @Min(1) Integer width,
             @Schema(nullable = true) @Min(1) Integer height,
-            @Schema(nullable = true) @Size(max = 20) Map<String, Object> clientMeta) {}
+            @Schema(nullable = true) @Size(max = 20) Map<String, Object> clientMeta,
+            @Schema(
+                            nullable = true,
+                            description =
+                                    "The file's hash, so a clip already posted is refused with 409 DUPLICATE_UPLOAD"
+                                            + ": md5:<32 hex> from the phone, sha256:<64 hex> from the browser."
+                                            + " Guards against accidental re-posts; not a security control.")
+                    @Pattern(regexp = CONTENT_HASH)
+                    String contentHash) {}
+
+    /** {@code md5:} or {@code sha256:} and the digest in lower-case hex; the prefix keeps the algorithms apart. */
+    static final String CONTENT_HASH = "^(md5:[0-9a-f]{32}|sha256:[0-9a-f]{64})$";
 
     public record PartRequest(@NotNull @Min(1) Integer partNumber, @NotBlank @Size(min = 1, max = 128) String etag) {}
 

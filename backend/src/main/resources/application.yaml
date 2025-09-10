@@ -70,6 +70,9 @@ soundcheck:
   media:
     # Where /media/* is served from: the Caddy edge locally, CloudFront on AWS.
     public-base-url: ${PUBLIC_BASE_URL:http://localhost:8088}
+    # MediaObjectPurge, scheduler role: removes from storage the files of media DELETED more than
+    # 7 days ago (deleted posts' clips, aborted uploads). Daily, UK time.
+    purge-cron: ${MEDIA_PURGE_CRON:0 50 3 * * *}
   auth:
     jwt:
       # PEM with PRIVATE KEY + PUBLIC KEY blocks (`make keys` → .secrets/jwt-es256.pem). Either wins over an ephemeral key.

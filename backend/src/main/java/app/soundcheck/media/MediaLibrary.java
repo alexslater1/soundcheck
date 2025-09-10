@@ -20,6 +20,17 @@ public interface MediaLibrary {
     Map<UUID, Playback> playbacks(Collection<UUID> mediaIds);
 
     /**
+     * Lets go of assets nothing will show again (a deleted post's clips and preview frames): they
+     * become DELETED with {@code deleted_at} set, in the caller's transaction, so they go if and only if
+     * the delete commits. Their files stay in storage for 7 days, then {@code MediaObjectPurge} removes
+     * them; the rows stay, because the post's clips still reference them. Assets already DELETED, and
+     * unknown ids, are left alone, so a repeat changes nothing.
+     *
+     * @return how many assets were released by this call
+     */
+    int release(Collection<UUID> mediaIds);
+
+    /**
      * Removes everything a user ever uploaded, for good: the originals, everything served for them, and
      * the rows (account purge). The caller must have removed whatever refers to these assets first.
      * Safe to repeat.

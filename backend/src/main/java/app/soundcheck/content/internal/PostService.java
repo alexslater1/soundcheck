@@ -8,6 +8,7 @@ import app.soundcheck.content.PostFailed;
 import app.soundcheck.content.PostFeed;
 import app.soundcheck.content.PostHidden;
 import app.soundcheck.identity.Users;
+import app.soundcheck.media.MediaLibrary;
 import app.soundcheck.shared.Ids;
 import app.soundcheck.shared.idempotency.IdempotencyKeys;
 import app.soundcheck.shared.web.ApiException;
@@ -77,6 +78,7 @@ public class PostService implements PostFeed {
     private final SocialGraph social;
     private final AuthorVisibility visibility;
     private final IdempotencyKeys idempotency;
+    private final MediaLibrary media;
     private final ApplicationEventPublisher events;
     private final JsonMapper json;
     private final Clock clock;
@@ -93,6 +95,7 @@ public class PostService implements PostFeed {
             SocialGraph social,
             AuthorVisibility visibility,
             IdempotencyKeys idempotency,
+            MediaLibrary media,
             ApplicationEventPublisher events,
             JsonMapper json,
             Clock clock) {
@@ -107,6 +110,7 @@ public class PostService implements PostFeed {
         this.social = social;
         this.visibility = visibility;
         this.idempotency = idempotency;
+        this.media = media;
         this.events = events;
         this.json = json;
         this.clock = clock;
@@ -438,16 +442,37 @@ public class PostService implements PostFeed {
 
     // ── delete ───────────────────────────────────────────────────────────────────────────────────
 
-    /** Soft delete by the author or an admin; anyone else is told the post does not exist. */
+    /**
+     * Soft delete by the author or an admin; anyone else is told the post does not exist.
+     * The post's media is released in the same transaction: every clip's video or photo
+     * and every preview frame becomes DELETED, and its files leave storage a week later. A hidden post is
+     * never deleted this way by moderation, so it keeps its media and can be restored.
+     */
     public void delete(UUID actorId, boolean admin, UUID postId) {
         PostRow row = posts.find(postId)
                 .filter(p -> !p.status().equals("DELETED"))
                 .filter(p -> admin || p.authorId().equals(actorId))
                 .orElseThrow(PostService::notFound);
         if (posts.markDeleted(row.id(), Instant.now(clock))) {
-            rules.clipsGone(clips.of(row.id()).stream().map(ClipRow::ownerId).toList(), row.gigId());
+            List<ClipRow> gone = clips.of(row.id());
+            rules.clipsGone(gone.stream().map(ClipRow::ownerId).toList(), row.gigId());
+            media.release(mediaOf(gone));
             events.publishEvent(new PostDeleted(row.id(), row.authorId()));
         }
+    }
+
+    /** Every asset the clips hold: their videos or photos and their preview frames. */
+    static List<UUID> mediaOf(List<ClipRow> clips) {
+        List<UUID> ids = new ArrayList<>();
+        for (ClipRow clip : clips) {
+            if (clip.mediaId() != null) {
+                ids.add(clip.mediaId());
+            }
+            if (clip.previewMediaId() != null) {
+                ids.add(clip.previewMediaId());
+            }
+        }
+        return ids;
     }
 
     // ── moderation ─────────────────────────────────────────────────────────────

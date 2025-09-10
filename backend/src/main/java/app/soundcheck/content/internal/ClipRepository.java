@@ -1,5 +1,6 @@
 package app.soundcheck.content.internal;
 
+import static app.soundcheck.shared.jooq.content.Tables.POST;
 import static app.soundcheck.shared.jooq.content.Tables.POST_CLIP;
 
 import java.time.Instant;
@@ -49,6 +50,20 @@ public class ClipRepository {
     /** Expected index: the unique constraint on media_id. */
     public Optional<ClipRow> findByMedia(UUID mediaId) {
         return dsl.selectFrom(POST_CLIP).where(POST_CLIP.MEDIA_ID.eq(mediaId)).fetchOptional(ClipRepository::toRow);
+    }
+
+    /**
+     * The post the asset is a clip of, if that post is live: PUBLISHED, PENDING_MEDIA or HIDDEN (the
+     * duplicate guard). Expected index: the unique constraint on post_clip.media_id, then post's primary key.
+     */
+    public Optional<UUID> livePostOf(UUID mediaId) {
+        return dsl.select(POST_CLIP.POST_ID)
+                .from(POST_CLIP)
+                .join(POST)
+                .on(POST.ID.eq(POST_CLIP.POST_ID))
+                .where(POST_CLIP.MEDIA_ID.eq(mediaId))
+                .and(POST.STATUS.in("PUBLISHED", "PENDING_MEDIA", "HIDDEN"))
+                .fetchOptional(POST_CLIP.POST_ID);
     }
 
     /** A post's clips in position order. Expected index: post_clip_post (post_id, position). */

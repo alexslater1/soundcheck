@@ -1007,6 +1007,11 @@
             "additionalProperties" : { },
             "type" : [ "object", "null" ]
           },
+          "contentHash" : {
+            "description" : "The file's hash, so a clip already posted is refused with 409 DUPLICATE_UPLOAD: md5:<32 hex> from the phone, sha256:<64 hex> from the browser. Guards against accidental re-posts; not a security control.",
+            "pattern" : "^(md5:[0-9a-f]{32}|sha256:[0-9a-f]{64})$",
+            "type" : [ "string", "null" ]
+          },
           "contentType" : {
             "maxLength" : 100,
             "minLength" : 0,

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import app.soundcheck.media.MediaUsage;
 import app.soundcheck.media.ObjectStorage;
 import app.soundcheck.shared.config.JsonMappers;
 import app.soundcheck.shared.idempotency.IdempotencyKeys;
@@ -123,6 +124,7 @@ class UploadServiceImageOrderTest {
                 JsonMappers.builder().build(),
                 mock(Traceparent.class),
                 new TransactionTemplate(transactions),
+                mock(MediaUsage.class),
                 Clock.fixed(Instant.parse("2026-10-03T00:00:00Z"), ZoneOffset.UTC));
     }
 

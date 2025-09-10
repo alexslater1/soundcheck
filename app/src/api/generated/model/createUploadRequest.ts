@@ -6,6 +6,7 @@
  * OpenAPI spec version: v1
  */
 import type { CreateUploadRequestClientMeta } from './createUploadRequestClientMeta';
+import type { CreateUploadRequestContentHash } from './createUploadRequestContentHash';
 import type { CreateUploadRequestDurationMs } from './createUploadRequestDurationMs';
 import type { CreateUploadRequestHeight } from './createUploadRequestHeight';
 import type { CreateUploadRequestKind } from './createUploadRequestKind';
@@ -15,6 +16,11 @@ export interface CreateUploadRequest {
   /** @minimum 1 */
   bytes: number;
   clientMeta?: CreateUploadRequestClientMeta;
+  /**
+   * The file's hash, so a clip already posted is refused with 409 DUPLICATE_UPLOAD: md5:<32 hex> from the phone, sha256:<64 hex> from the browser. Guards against accidental re-posts; not a security control.
+   * @pattern ^(md5:[0-9a-f]{32}|sha256:[0-9a-f]{64})$
+   */
+  contentHash?: CreateUploadRequestContentHash;
   /**
    * @minLength 0
    * @maxLength 100
