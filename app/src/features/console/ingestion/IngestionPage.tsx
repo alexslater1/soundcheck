@@ -44,6 +44,7 @@ const ISSUES_PER_KIND = 5;
  * page polls the run until it ends. A VENUE run that met an empty or unreadable site is highlighted.
  */
 export default function IngestionPage() {
+  const { colors } = useTheme();
   const queryClient = useQueryClient();
   const [source, setSource] = useState<string | undefined>(undefined);
   const [status, setStatus] = useState<AdminListIngestionRunsStatus | undefined>(undefined);
@@ -126,6 +127,9 @@ export default function IngestionPage() {
         hasMore={runs.hasNextPage}
         loadingMore={runs.isFetchingNextPage}
         onLoadMore={() => void runs.fetchNextPage()}
+        renderBelow={(r) => (expanded.has(r.id) ? <RunIssues runId={r.id} /> : null)}
+        // A venue site that may have broken: the row is tinted (plus a marker in its first cell).
+        rowStyle={(r) => (isBreakage(r) ? { backgroundColor: `${colors.danger}1A` } : undefined)}
       />
     </View>
   );
@@ -436,7 +440,6 @@ function IssuesCell({
           {counts.length > 3 ? ` · +${counts.length - 3} more kinds` : ''}
         </Text>
       </Pressable>
-      {open ? <RunIssues runId={run.id} /> : null}
     </View>
   );
 }
@@ -563,6 +566,6 @@ const styles = StyleSheet.create({
   marker: { width: 4, borderRadius: 2 },
   sourceText: { flexShrink: 1 },
   issuesCell: { gap: spacing.sm },
-  groups: { gap: spacing.sm },
+  groups: { gap: spacing.sm, paddingLeft: spacing.md },
   group: { borderLeftWidth: 2, paddingLeft: spacing.sm, gap: 2 },
 });
