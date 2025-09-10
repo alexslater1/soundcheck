@@ -1662,7 +1662,7 @@
             "$ref" : "#/components/schemas/GigMergeSide"
           },
           "moving" : {
-            "description" : "What moves to the survivor: the duplicate's rows, by kind",
+            "description" : "What moves to the survivor: the duplicate's rows, by kind (acts: only those not already on the survivor's bill)",
             "items" : {
               "$ref" : "#/components/schemas/GigMergeCount"
             },

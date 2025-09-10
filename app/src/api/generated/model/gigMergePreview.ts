@@ -13,7 +13,7 @@ export interface GigMergePreview {
   conflicts: string[];
   from: GigMergeSide;
   into: GigMergeSide;
-  /** What moves to the survivor: the duplicate's rows, by kind */
+  /** What moves to the survivor: the duplicate's rows, by kind (acts: only those not already on the survivor's bill) */
   moving: GigMergeCount[];
   /** Both start on the same UK calendar day */
   sameDay: boolean;

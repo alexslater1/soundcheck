@@ -255,7 +255,7 @@ export const adminPreviewGigMergeResponse = zod.object({
   "moving": zod.array(zod.object({
   "count": zod.number(),
   "what": zod.string().describe('attendance, acts, listings, edits (catalog); posts, gigComments (content); alertsSent (social); matchReviews (ingestion)')
-})).describe('What moves to the survivor: the duplicate\'s rows, by kind'),
+})).describe('What moves to the survivor: the duplicate\'s rows, by kind (acts: only those not already on the survivor\'s bill)'),
   "sameDay": zod.boolean().describe('Both start on the same UK calendar day'),
   "sameVenue": zod.boolean()
 })

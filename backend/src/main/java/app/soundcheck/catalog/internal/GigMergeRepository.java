@@ -67,6 +67,20 @@ class GigMergeRepository {
         return counts;
     }
 
+    /** Acts on {@code from}'s bill that {@code into}'s lacks. Expected index: the gig_artist primary key. */
+    long actsOnlyAt(UUID from, UUID into) {
+        var t = GIG_ARTIST.as("t");
+        return dsl.fetchCount(
+                GIG_ARTIST,
+                GIG_ARTIST
+                        .GIG_ID
+                        .eq(from)
+                        .andNotExists(DSL.selectOne()
+                                .from(t)
+                                .where(t.GIG_ID.eq(into))
+                                .and(t.ARTIST_ID.eq(GIG_ARTIST.ARTIST_ID))));
+    }
+
     /**
      * Copies each fan's mark from {@code from} to {@code into}. Where they marked both, the stronger
      * status stays (WENT &gt; GOING &gt; INTERESTED) and a USER source beats POST: the fan said so

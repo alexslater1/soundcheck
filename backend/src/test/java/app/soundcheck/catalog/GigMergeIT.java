@@ -339,7 +339,7 @@ class GigMergeIT extends IntegrationTest {
                         moving.put(m.path("what").asText(""), m.path("count").asLong()));
         assertThat(moving)
                 .containsEntry("attendance", 1L)
-                .containsEntry("acts", 2L)
+                .containsEntry("acts", 1L) // the support; the headliner is on both bills
                 .containsEntry("listings", 1L)
                 .containsEntry("posts", 0L)
                 .containsEntry("gigComments", 0L)

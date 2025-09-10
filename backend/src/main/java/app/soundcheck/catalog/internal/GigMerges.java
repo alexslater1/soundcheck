@@ -57,7 +57,11 @@ public class GigMerges {
             Side into,
             @Schema(description = "Both start on the same UK calendar day") boolean sameDay,
             boolean sameVenue,
-            @Schema(description = "What moves to the survivor: the duplicate's rows, by kind") List<MoveCount> moving,
+            @Schema(
+                            description =
+                                    "What moves to the survivor: the duplicate's rows, by kind (acts: only those not"
+                                            + " already on the survivor's bill)")
+                    List<MoveCount> moving,
             @Schema(description = "Why the merge would be refused, one sentence each; empty: it can go ahead")
                     List<String> conflicts) {}
 
@@ -100,7 +104,7 @@ public class GigMerges {
                 intoSide,
                 ukDay(fromSide.gig().startsAt()).equals(ukDay(intoSide.gig().startsAt())),
                 fromSide.gig().venue().id().equals(intoSide.gig().venue().id()),
-                fromSide.counts(),
+                moving(from, into),
                 conflicts(from, into));
     }
 
@@ -120,7 +124,7 @@ public class GigMerges {
         if (!conflicts.isEmpty()) {
             throw ApiException.conflict("MERGE_CONFLICT", "The merge would break: " + String.join("; ", conflicts));
         }
-        List<MoveCount> moved = counts(from);
+        List<MoveCount> moved = moving(from, into);
         Instant now = clock.instant();
 
         repository.mergeAttendance(from, into, now);
@@ -151,6 +155,14 @@ public class GigMerges {
                 .sorted(Map.Entry.comparingByKey())
                 .forEach(e -> counts.add(new MoveCount(e.getKey(), e.getValue()))));
         return counts;
+    }
+
+    /** The duplicate's rows, except that only acts not already on the survivor's bill count as moving. */
+    private List<MoveCount> moving(UUID from, UUID into) {
+        long newActs = repository.actsOnlyAt(from, into);
+        return counts(from).stream()
+                .map(c -> c.what().equals("acts") ? new MoveCount("acts", newActs) : c)
+                .toList();
     }
 
     private Side side(GigSummary gig) {
