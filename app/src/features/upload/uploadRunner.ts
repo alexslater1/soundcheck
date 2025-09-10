@@ -13,6 +13,8 @@ import { ApiError } from '@/api/http';
 
 import { compressVideo, discardFile } from './compress';
 import { currentConnection } from './connection';
+import { contentHash } from './contentHash';
+import { useDuplicateNotices } from './duplicates';
 import { serialiser, syncGroup } from './postDraft';
 import { previewFrame } from './previewFrame';
 import { prepareClip } from './prepareClip';
@@ -102,11 +104,36 @@ export async function startUpload(localId: string): Promise<void> {
       random: Math.random,
       onAccepted: () => syncPostOf(localId),
       oneAtATime: sendOneAtATime,
+      // The file as picked, not the compressed copy: compressing the same clip twice need not give the
+      // same bytes, and on Wi-Fi the original is sent as it is.
+      contentHash: () => contentHash(current().previewUri),
+      onDuplicate: (postId) => alreadyPosted(localId, postId),
     });
   } finally {
     running.delete(localId);
   }
   discardWhenDone(localId);
+}
+
+/**
+ * The server says this clip is already in one of the user's posts: it leaves the Create list
+ * (out of the post being written too, if Post was already pressed) and the Create tab says so, with a
+ * link to the post it is in.
+ */
+async function alreadyPosted(localId: string, postId: string): Promise<void> {
+  const entry = useUploadQueue.getState().entries.find((e) => e.localId === localId);
+  if (!entry) {
+    return;
+  }
+  useDuplicateNotices
+    .getState()
+    .add({ localId, ownerId: entry.ownerId, fileName: entry.fileName, postId });
+  try {
+    await removeUpload(localId);
+  } catch {
+    // The new post's slot could not be removed now (offline): it expires on its own after a day.
+    forget(localId);
+  }
 }
 
 /** One request at a time per post: an upload completing and a preview being made never overlap. */

@@ -1,6 +1,7 @@
 package app.soundcheck.media.internal;
 
 import app.soundcheck.media.MediaUploaded;
+import app.soundcheck.media.MediaUsage;
 import app.soundcheck.media.ObjectStorage;
 import app.soundcheck.media.Playback;
 import app.soundcheck.shared.Ids;
@@ -51,7 +52,13 @@ public class UploadService {
     static final Map<String, String> IMAGE_TYPES =
             Map.of("image/jpeg", "jpg", "image/png", "png", "image/webp", "webp");
 
-    /** {@code POST /media/uploads} body. */
+    /** How many earlier assets with the same hash the duplicate guard asks content about. */
+    static final int DUPLICATE_CANDIDATES = 20;
+
+    /**
+     * {@code POST /media/uploads} body. {@code contentHash} is the client's hash of the file
+     * ({@code md5:…} or {@code sha256:…}), or null.
+     */
     public record CreateUpload(
             String kind,
             String contentType,
@@ -59,7 +66,8 @@ public class UploadService {
             @Nullable Integer durationMs,
             @Nullable Integer width,
             @Nullable Integer height,
-            @Nullable Map<String, Object> clientMeta) {}
+            @Nullable Map<String, Object> clientMeta,
+            @Nullable String contentHash) {}
 
     public record PartUrl(int partNumber, String url) {}
 
@@ -84,6 +92,7 @@ public class UploadService {
     private final JsonMapper json;
     private final Traceparent traceparent;
     private final TransactionTemplate tx;
+    private final MediaUsage usage;
     private final Clock clock;
 
     public UploadService(
@@ -96,8 +105,10 @@ public class UploadService {
             JsonMapper json,
             Traceparent traceparent,
             TransactionTemplate tx,
+            MediaUsage usage,
             Clock clock) {
         this.assets = assets;
+        this.usage = usage;
         this.traceparent = traceparent;
         this.storage = storage;
         this.idempotency = idempotency;
@@ -111,11 +122,13 @@ public class UploadService {
 
     /**
      * Opens an upload. With an {@code Idempotency-Key}, a retry of the same request returns the same
-     * asset (with freshly signed URLs; URLs are never stored) instead of creating a second one.
+     * asset (with freshly signed URLs; URLs are never stored) instead of creating a second one. A file
+     * the owner has already posted is refused first ({@link #refuseDuplicate}).
      */
     @Transactional
     public UploadTicket create(UUID ownerId, CreateUpload request, @Nullable String idempotencyKey) {
         validate(request);
+        refuseDuplicate(ownerId, request.contentHash());
         if (idempotencyKey != null) {
             Optional<String> remembered =
                     idempotency.begin(ownerId, idempotencyKey, "POST /media/uploads " + toJson(request));
@@ -169,11 +182,35 @@ public class UploadService {
                 0,
                 null,
                 Instant.now(clock));
-        assets.insert(asset, clientMeta);
+        assets.insert(asset, clientMeta, request.contentHash());
         if (idempotencyKey != null) {
             idempotency.complete(ownerId, idempotencyKey, 201, toJson(Map.of("mediaId", id.toString())));
         }
         return ticket(asset);
+    }
+
+    /**
+     * The duplicate guard: the owner picked a file they have already posted. Their
+     * earlier assets with the same hash are the candidates, and content says whether one is in a live
+     * post ({@link MediaUsage}); if so, 409 {@code DUPLICATE_UPLOAD} names that post, so the app can link
+     * to it. A match in no live post (an abandoned upload, a deleted post) is no reason to refuse. Another
+     * user's identical file is never a match: the lookup is per owner.
+     *
+     * <p>This guards against accidental re-posts. It is <em>not</em> a security control: the hash comes
+     * from the client, which can send any hash or none, and the phone's MD5 never matches the browser's
+     * SHA-256 of the same file.
+     */
+    private void refuseDuplicate(UUID ownerId, @Nullable String contentHash) {
+        if (contentHash == null) {
+            return;
+        }
+        for (UUID earlier : assets.idsWithHash(ownerId, contentHash, DUPLICATE_CANDIDATES)) {
+            Optional<UUID> post = usage.livePostOf(earlier);
+            if (post.isPresent()) {
+                throw ApiException.conflict("DUPLICATE_UPLOAD", "You've posted this clip already")
+                        .with("postId", post.get());
+            }
+        }
     }
 
     /**

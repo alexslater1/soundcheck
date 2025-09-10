@@ -104,6 +104,7 @@ export * from './createRankingConfigRequestWeights';
 export * from './createUploadRequest';
 export * from './createUploadRequestClientMeta';
 export * from './createUploadRequestClientMetaAnyOf';
+export * from './createUploadRequestContentHash';
 export * from './createUploadRequestDurationMs';
 export * from './createUploadRequestHeight';
 export * from './createUploadRequestKind';

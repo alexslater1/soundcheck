@@ -302,7 +302,7 @@ class PipelineAdminIT extends IntegrationTest {
     }
 
     @Test
-    void aDeletedPostStaysDeletedWhenItsClipIsRetried() {
+    void aDeletedPostsClipIsReleasedSoItCannotBeRetried() {
         UUID mediaId = data.video(fan.id(), "UPLOADED");
         String postId = post(mediaId, null);
         data.workerGivesUp(mediaId, fan.id(), false);
@@ -310,11 +310,14 @@ class PipelineAdminIT extends IntegrationTest {
         assertThat(api.delete("/api/v1/posts/" + postId, fan).getStatusCode().is2xxSuccessful())
                 .isTrue();
 
-        assertThat(api.post("/api/v1/admin/pipeline/media/" + mediaId + "/retry", null, admin)
-                        .getStatusCode())
-                .isEqualTo(HttpStatus.OK);
-        await().during(Duration.ofSeconds(2)).atMost(Duration.ofSeconds(3)).until(() -> postStatus(postId)
-                .equals("DELETED"));
+        // Deleting the post released its clip: there is nothing left to retry, and a retry must
+        // not bring a released asset back to life.
+        ResponseEntity<JsonNode> retried = api.post("/api/v1/admin/pipeline/media/" + mediaId + "/retry", null, admin);
+        assertThat(retried.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(retried.getBody().path("code").asText("")).isEqualTo("MEDIA_NOT_RETRYABLE");
+        assertThat(dsl.fetchValue("select status from media.media_asset where id = ?", mediaId))
+                .isEqualTo("DELETED");
+        assertThat(postStatus(postId)).isEqualTo("DELETED");
         assertThat(posts.mediaRequeued(mediaId)).isFalse();
         // Even when the clip then becomes READY, the deleted post is not published.
         data.workerFinishes(mediaId, fan.id());

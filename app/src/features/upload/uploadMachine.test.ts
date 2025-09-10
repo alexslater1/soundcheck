@@ -1,4 +1,5 @@
 import type { Playback, UploadTicket } from '@/api/generated/model';
+import { ApiError } from '@/api/http';
 
 import type { UploadEntry, UploadTransport } from './types';
 import { PARALLEL_PARTS, runUpload, type UploadDeps } from './uploadMachine';
@@ -431,6 +432,49 @@ describe('runUpload', () => {
     expect(calls).toBe(94); // the whole schedule: 1, 2, 4, 8 s, then every 10 s
     expect(h.sleeps.reduce((a, b) => a + b, 0)).toBeGreaterThanOrEqual(15 * 60 * 1000);
     expect(h.entry()).toMatchObject({ state: 'PROCESSING', error: null });
+  });
+
+  it('sends the file’s hash with the ticket request, and none when it cannot be made', async () => {
+    const h = harness({ start: entry({ bytes: 3 * MIB }), ticket: singleTicket });
+    const withHash = { ...h.deps, contentHash: jest.fn(async () => 'md5:' + 'a'.repeat(32)) };
+
+    await runUpload(withHash);
+
+    expect(h.deps.api.createUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ contentHash: 'md5:' + 'a'.repeat(32) }),
+      'key-1',
+    );
+
+    const failing = harness({ start: entry({ bytes: 3 * MIB }), ticket: singleTicket });
+    await runUpload({
+      ...failing.deps,
+      contentHash: jest.fn(async () => {
+        throw new Error('unreadable');
+      }),
+    });
+    expect(failing.deps.api.createUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ contentHash: null }),
+      'key-1',
+    );
+    expect(failing.entry().state).toBe('READY');
+  });
+
+  it('hands a 409 DUPLICATE_UPLOAD to onDuplicate with the post it names, and does not fail', async () => {
+    const h = harness({ ticket: singleTicket });
+    h.deps.api.createUpload.mockRejectedValue(
+      new ApiError(409, 'DUPLICATE_UPLOAD', 'You’ve posted this clip already', {
+        status: 409,
+        code: 'DUPLICATE_UPLOAD',
+        postId: 'post-7',
+      } as ConstructorParameters<typeof ApiError>[3]),
+    );
+    const onDuplicate = jest.fn(async () => undefined);
+
+    await runUpload({ ...h.deps, onDuplicate });
+
+    expect(onDuplicate).toHaveBeenCalledWith('post-7');
+    expect(h.deps.transport.putWhole).not.toHaveBeenCalled();
+    expect(h.entry().state).not.toBe('FAILED');
   });
 
   it('fails with the server message when the ticket is refused', async () => {

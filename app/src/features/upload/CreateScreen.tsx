@@ -39,6 +39,7 @@ import type { TaggedArtist } from './composeDraft';
 import { ClipPreview } from './ClipPreview';
 import { ComposeForm, type ComposeResult } from './ComposeForm';
 import { billOf } from './composeDraft';
+import { DuplicateNotices } from './DuplicateNotices';
 import { GigPicker } from './GigPicker';
 import { stateLabel } from './labels';
 import { PendingGigs, useMarkPendingGigsSeen } from './PendingGigs';
@@ -313,6 +314,7 @@ export function CreateScreen() {
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text variant="title">{joining ? 'Add clips' : 'Share clips'}</Text>
         <UploadProblems ownerId={ownerId} />
+        <DuplicateNotices ownerId={ownerId} />
         {!joining && lastGig && composingEntries.length === 0 && !gigChosen ? (
           <Button
             title={`Add more clips from ${lastGig.title}`}
