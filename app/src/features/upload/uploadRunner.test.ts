@@ -1,3 +1,6 @@
+import { ApiError } from '@/api/http';
+
+import { useDuplicateNotices } from './duplicates';
 import type { PickedVideo } from './types';
 import { useUploadQueue } from './uploadQueue';
 import {
@@ -24,6 +27,7 @@ const mockFillPostClip = jest.fn();
 const mockRemovePostClip = jest.fn();
 const mockPreviewFrame = jest.fn();
 const mockUploadImage = jest.fn();
+const mockContentHash = jest.fn();
 
 jest.mock('@/api/generated/media/media', () => ({
   createUpload: (...args: unknown[]) => mockCreateUpload(...args),
@@ -47,6 +51,9 @@ jest.mock('@/api/generated/posts/posts', () => ({
 }));
 jest.mock('./previewFrame', () => ({
   previewFrame: (...args: unknown[]) => mockPreviewFrame(...args),
+}));
+jest.mock('./contentHash', () => ({
+  contentHash: (...args: unknown[]) => mockContentHash(...args),
 }));
 jest.mock('./uploadImage', () => ({
   uploadImage: (...args: unknown[]) => mockUploadImage(...args),
@@ -102,6 +109,61 @@ describe('upload runner', () => {
     mockPutWhole.mockResolvedValue(undefined);
     mockCreatePost.mockResolvedValue(postWith('slot-1'));
     mockFillPostClip.mockResolvedValue(postWith('slot-1'));
+    mockContentHash.mockResolvedValue(null);
+    useDuplicateNotices.setState({ notices: [] });
+  });
+
+  it('sends the hash of the file as picked, not of the compressed copy', async () => {
+    mockContentHash.mockResolvedValue('md5:' + 'b'.repeat(32));
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    useUploadQueue
+      .getState()
+      .patch(id, { fileUri: 'file:///cache/compressed-copy.mp4', temporary: true });
+
+    await startUpload(id);
+
+    expect(mockContentHash).toHaveBeenCalledWith(video.uri);
+    expect(mockCreateUpload).toHaveBeenCalledWith(
+      expect.objectContaining({ contentHash: 'md5:' + 'b'.repeat(32) }),
+      expect.anything(),
+    );
+  });
+
+  it('a clip already posted leaves the list, and the Create tab links to the post it is in', async () => {
+    mockCreateUpload.mockRejectedValue(
+      new ApiError(409, 'DUPLICATE_UPLOAD', 'You’ve posted this clip already', {
+        status: 409,
+        code: 'DUPLICATE_UPLOAD',
+        postId: 'post-earlier',
+      } as ConstructorParameters<typeof ApiError>[3]),
+    );
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+
+    await startUpload(id);
+
+    expect(useUploadQueue.getState().entries).toEqual([]);
+    expect(useDuplicateNotices.getState().notices).toEqual([
+      { localId: id, ownerId: 'user-1', fileName: 'clip.mp4', postId: 'post-earlier' },
+    ]);
+    expect(mockPutWhole).not.toHaveBeenCalled();
+  });
+
+  it('a clip found to be posted already after Post was pressed also leaves the new post', async () => {
+    mockCreateUpload.mockRejectedValue(
+      new ApiError(409, 'DUPLICATE_UPLOAD', 'You’ve posted this clip already', {
+        status: 409,
+        code: 'DUPLICATE_UPLOAD',
+        postId: 'post-earlier',
+      } as ConstructorParameters<typeof ApiError>[3]),
+    );
+    mockRemovePostClip.mockResolvedValue(undefined);
+    const id = useUploadQueue.getState().enqueue('user-1', video, { platform: 'android' });
+    useUploadQueue.getState().patch(id, { postId: 'post-new', clipId: 'slot-9' });
+
+    await startUpload(id);
+
+    expect(mockRemovePostClip).toHaveBeenCalledWith('post-new', 'slot-9');
+    expect(useUploadQueue.getState().entries).toEqual([]);
   });
 
   it('makes the post when Post is pressed, and puts the clip in its slot once the upload completes', async () => {

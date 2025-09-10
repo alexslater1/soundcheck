@@ -4,7 +4,9 @@ import type {
   Playback,
   UploadTicket,
 } from '@/api/generated/model';
+import { ApiError } from '@/api/http';
 import { nextPollDelay } from '@/features/player/mediaPolling';
+import { z } from 'zod';
 
 import { withRetries } from './retry';
 import type { UploadEntry, UploadTransport } from './types';
@@ -45,7 +47,30 @@ export type UploadDeps = {
    * PREPARING step and the wait for the worker are outside it. Without one, the step just runs.
    */
   oneAtATime?: <T>(step: () => Promise<T>) => Promise<T>;
+  /**
+   * The file's hash for the duplicate guard: `md5:…` on the phone, `sha256:…` in the browser,
+   * null when it cannot be made. Asked for just before the ticket; without it the ticket has no hash.
+   */
+  contentHash?: () => Promise<string | null>;
+  /**
+   * The server refused the ticket because this file is already in one of the user's live posts
+   * (409 DUPLICATE_UPLOAD): the entry is not FAILED (there is nothing to retry); the runner takes it off
+   * the list and says so, with a link to that post.
+   */
+  onDuplicate?: (postId: string) => Promise<void>;
 };
+
+/** The extension field of a 409 DUPLICATE_UPLOAD problem. */
+const duplicateProblem = z.object({ postId: z.string() });
+
+/** The post a refused ticket names, when the refusal was 409 DUPLICATE_UPLOAD. */
+export function duplicateOf(error: unknown): string | null {
+  if (!(error instanceof ApiError) || error.status !== 409 || error.code !== 'DUPLICATE_UPLOAD') {
+    return null;
+  }
+  const parsed = duplicateProblem.safeParse(error.problem);
+  return parsed.success ? parsed.data.postId : null;
+}
 
 /**
  * Takes one queue entry from wherever it is to a settled state:
@@ -68,6 +93,11 @@ export async function runUpload(deps: UploadDeps): Promise<void> {
     await deps.onAccepted?.();
     await pollUntilSettled(mediaId, deps);
   } catch (error) {
+    const postId = duplicateOf(error);
+    if (postId !== null && deps.onDuplicate) {
+      await deps.onDuplicate(postId);
+      return;
+    }
     deps.update({ state: 'FAILED', error: describe(error) });
   }
 }
@@ -93,6 +123,7 @@ async function upload(deps: UploadDeps): Promise<string> {
   // A photo is an IMAGE upload: the server checks and cleans it on "complete" and it is READY at
   // once, so the poll below ends at its first answer.
   const photo = isPhoto(entry);
+  const contentHash = deps.contentHash ? await deps.contentHash().catch(() => null) : null;
   const ticket = await deps.api.createUpload(
     {
       kind: photo ? 'IMAGE' : 'VIDEO',
@@ -102,6 +133,7 @@ async function upload(deps: UploadDeps): Promise<string> {
       width: entry.width,
       height: entry.height,
       clientMeta: entry.clientMeta,
+      contentHash,
     },
     entry.idempotencyKey,
   );
