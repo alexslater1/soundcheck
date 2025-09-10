@@ -22,6 +22,8 @@ import type {
 
 import type {
   AdminListUsersParams,
+  AdminUser,
+  AdminUsersByIdsParams,
   PageAdminUser
 } from '.././model';
 
@@ -124,6 +126,112 @@ export function useAdminListUsers<TData = Awaited<ReturnType<typeof adminListUse
  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
 
   const queryOptions = getAdminListUsersQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Accounts by id, in the order asked (at most 100); unknown ids are left out
+ */
+export const getAdminUsersByIdsUrl = (params: AdminUsersByIdsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    const explodeParameters = ["ids"];
+
+    if (value instanceof Array && explodeParameters.includes(key)) {
+      value.forEach((v) => normalizedParams.append(key, v === null ? 'null' : v.toString()));
+      return;
+    }
+      
+    
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/users/by-ids?${stringifiedParams}` : `/api/v1/admin/users/by-ids`
+}
+
+export const adminUsersByIds = async (params: AdminUsersByIdsParams, options?: RequestInit): Promise<AdminUser[]> => {
+  
+  return customFetch<AdminUser[]>(getAdminUsersByIdsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getAdminUsersByIdsQueryKey = (params: AdminUsersByIdsParams,) => {
+    return [`/api/v1/admin/users/by-ids`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getAdminUsersByIdsQueryOptions = <TData = Awaited<ReturnType<typeof adminUsersByIds>>, TError = unknown>(params: AdminUsersByIdsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminUsersByIds>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminUsersByIdsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminUsersByIds>>> = ({ signal }) => adminUsersByIds(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminUsersByIds>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminUsersByIdsQueryResult = NonNullable<Awaited<ReturnType<typeof adminUsersByIds>>>
+export type AdminUsersByIdsQueryError = unknown
+
+
+export function useAdminUsersByIds<TData = Awaited<ReturnType<typeof adminUsersByIds>>, TError = unknown>(
+ params: AdminUsersByIdsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminUsersByIds>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminUsersByIds>>,
+          TError,
+          Awaited<ReturnType<typeof adminUsersByIds>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminUsersByIds<TData = Awaited<ReturnType<typeof adminUsersByIds>>, TError = unknown>(
+ params: AdminUsersByIdsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminUsersByIds>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminUsersByIds>>,
+          TError,
+          Awaited<ReturnType<typeof adminUsersByIds>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminUsersByIds<TData = Awaited<ReturnType<typeof adminUsersByIds>>, TError = unknown>(
+ params: AdminUsersByIdsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminUsersByIds>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Accounts by id, in the order asked (at most 100); unknown ids are left out
+ */
+
+export function useAdminUsersByIds<TData = Awaited<ReturnType<typeof adminUsersByIds>>, TError = unknown>(
+ params: AdminUsersByIdsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminUsersByIds>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminUsersByIdsQueryOptions(params,options)
 
   const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
 

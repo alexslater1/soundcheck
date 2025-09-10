@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,20 +61,38 @@ public class AdminUsersService {
         List<UserRecord> page = more ? rows.subList(0, size) : rows;
         Map<UUID, Long> posts =
                 facts.postCounts(page.stream().map(UserRecord::id).toList());
-        List<AdminUser> items = page.stream()
-                .map(u -> new AdminUser(
-                        u.id(),
-                        u.handle(),
-                        u.displayName(),
-                        u.email(),
-                        u.role(),
-                        u.createdAt(),
-                        this.synthetic.isSynthetic(u.email()),
-                        posts.getOrDefault(u.id(), 0L)))
-                .toList();
+        List<AdminUser> items =
+                page.stream().map(u -> view(u, posts.getOrDefault(u.id(), 0L))).toList();
         String next =
                 more ? new Cursor(page.getLast().createdAt(), page.getLast().id()).encode() : null;
         return new Page<>(items, next);
+    }
+
+    /**
+     * The accounts with these ids, in the order asked, for the console to name who added or merged a
+     * gig. Ids with no account are left out.
+     */
+    public List<AdminUser> byIds(List<UUID> ids) {
+        List<UUID> distinct = ids.stream().distinct().toList();
+        Map<UUID, UserRecord> found = users.byIds(distinct).stream().collect(Collectors.toMap(UserRecord::id, u -> u));
+        Map<UUID, Long> posts = facts.postCounts(List.copyOf(found.keySet()));
+        return distinct.stream()
+                .map(found::get)
+                .filter(u -> u != null)
+                .map(u -> view(u, posts.getOrDefault(u.id(), 0L)))
+                .toList();
+    }
+
+    private AdminUser view(UserRecord u, long posts) {
+        return new AdminUser(
+                u.id(),
+                u.handle(),
+                u.displayName(),
+                u.email(),
+                u.role(),
+                u.createdAt(),
+                synthetic.isSynthetic(u.email()),
+                posts);
     }
 
     private static @Nullable String text(@Nullable String q) {

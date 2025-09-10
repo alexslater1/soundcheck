@@ -129,6 +129,30 @@ class AdminUsersIT extends IntegrationTest {
     }
 
     @Test
+    void byIdsNamesTheAccountsInTheOrderAskedAndSkipsUnknownIds() {
+        TestApi.User first = api.register("byid");
+        TestApi.User second = api.register("byid", "sim.soundcheck.test");
+
+        JsonNode found = ok(api.get(
+                "/api/v1/admin/users/by-ids?ids=" + second.id() + "," + UUID.randomUUID() + "," + first.id() + ","
+                        + second.id(),
+                api.admin()));
+
+        assertThat(handles(found)).containsExactly(second.handle(), first.handle());
+        assertThat(found.get(0).path("synthetic").asBoolean()).isTrue();
+        assertThat(api.get("/api/v1/admin/users/by-ids?ids=" + first.id(), first)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.FORBIDDEN);
+        StringBuilder tooMany = new StringBuilder();
+        for (int i = 0; i < 101; i++) {
+            tooMany.append(i == 0 ? "" : ",").append(UUID.randomUUID());
+        }
+        assertThat(api.get("/api/v1/admin/users/by-ids?ids=" + tooMany, api.admin())
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void aUserCannotListAccounts() {
         TestApi.User user = api.register("nosy");
         assertThat(api.get("/api/v1/admin/users", user).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);

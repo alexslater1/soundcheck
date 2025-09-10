@@ -1206,6 +1206,48 @@
         "required" : [ "events" ],
         "type" : "object"
       },
+      "FanAddedGig" : {
+        "properties" : {
+          "addedAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "addedBy" : {
+            "description" : "The fan who added it; GET /admin/users/by-ids gives the handle",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "attendance" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigSummary"
+          },
+          "likelyDuplicates" : {
+            "description" : "Other gigs on the same UK day at the same venue or sharing an act: a hint from catalog's own rule, not ingestion's matcher",
+            "items" : {
+              "$ref" : "#/components/schemas/GigSummary"
+            },
+            "type" : "array"
+          },
+          "posts" : {
+            "description" : "Published posts (GigClips.countAt)",
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "reviewedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "reviewedBy" : {
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "addedAt", "addedBy", "attendance", "gig", "likelyDuplicates", "posts" ],
+        "type" : "object"
+      },
       "FeedAffinity" : {
         "properties" : {
           "followed" : {
@@ -1570,6 +1612,124 @@
           }
         },
         "required" : [ "alerts" ],
+        "type" : "object"
+      },
+      "GigMergeCount" : {
+        "properties" : {
+          "count" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "what" : {
+            "description" : "attendance, acts, listings, edits (catalog); posts, gigComments (content); alertsSent (social); matchReviews (ingestion)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "what" ],
+        "type" : "object"
+      },
+      "GigMergeListing" : {
+        "properties" : {
+          "externalId" : {
+            "type" : "string"
+          },
+          "primary" : {
+            "type" : "boolean"
+          },
+          "source" : {
+            "type" : "string"
+          },
+          "url" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "externalId", "primary", "source" ],
+        "type" : "object"
+      },
+      "GigMergePreview" : {
+        "properties" : {
+          "conflicts" : {
+            "description" : "Why the merge would be refused, one sentence each; empty: it can go ahead",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/GigMergeSide"
+          },
+          "into" : {
+            "$ref" : "#/components/schemas/GigMergeSide"
+          },
+          "moving" : {
+            "description" : "What moves to the survivor: the duplicate's rows, by kind",
+            "items" : {
+              "$ref" : "#/components/schemas/GigMergeCount"
+            },
+            "type" : "array"
+          },
+          "sameDay" : {
+            "description" : "Both start on the same UK calendar day",
+            "type" : "boolean"
+          },
+          "sameVenue" : {
+            "type" : "boolean"
+          }
+        },
+        "required" : [ "conflicts", "from", "into", "moving", "sameDay", "sameVenue" ],
+        "type" : "object"
+      },
+      "GigMergeRequest" : {
+        "properties" : {
+          "into" : {
+            "description" : "The gig that stays",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "into" ],
+        "type" : "object"
+      },
+      "GigMergeResult" : {
+        "properties" : {
+          "into" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "moved" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigMergeCount"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "into", "moved" ],
+        "type" : "object"
+      },
+      "GigMergeSide" : {
+        "properties" : {
+          "addedBy" : {
+            "description" : "The fan who added it; null for a source's listing",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "counts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigMergeCount"
+            },
+            "type" : "array"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigSummary"
+          },
+          "listings" : {
+            "items" : {
+              "$ref" : "#/components/schemas/GigMergeListing"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "counts", "gig", "listings" ],
         "type" : "object"
       },
       "GigRef" : {
@@ -2185,6 +2345,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/CommentView"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageFanAddedGig" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/FanAddedGig"
             },
             "type" : "array"
           },
@@ -4318,6 +4493,169 @@
         "tags" : [ "admin-analytics" ]
       }
     },
+    "/api/v1/admin/catalog/gigs/fan-added" : {
+      "get" : {
+        "operationId" : "adminListFanAddedGigs",
+        "parameters" : [ {
+          "description" : "false (default): still to review; true: already reviewed",
+          "in" : "query",
+          "name" : "reviewed",
+          "required" : false,
+          "schema" : {
+            "default" : false,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageFanAddedGig"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Gigs fans added, newest first, with marks, posts and likely duplicates",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/gigs/{from}/merge" : {
+      "post" : {
+        "operationId" : "adminMergeGig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/GigMergeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigMergeResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Merge the gig into another in one transaction: everything moves, then it is deleted and its id redirects. 409 MERGE_CONFLICT, MERGE_SAME_GIG or GIG_ALREADY_MERGED",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/gigs/{from}/merge-preview" : {
+      "get" : {
+        "operationId" : "adminPreviewGigMerge",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "The gig that stays",
+          "in" : "query",
+          "name" : "into",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigMergePreview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Both gigs side by side, what would move, and the conflicts that would refuse the merge",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/gigs/{id}" : {
+      "delete" : {
+        "operationId" : "adminDeleteGig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Delete a gig with no posts and no comments; 409 GIG_HAS_POSTS or GIG_HAS_COMMENTS (merge it instead)",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/gigs/{id}/review" : {
+      "post" : {
+        "operationId" : "adminReviewFanAddedGig",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "Mark a fan-added gig reviewed (it leaves the queue); 409 GIG_NOT_FAN_ADDED",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
     "/api/v1/admin/feed/users/{id}/profile" : {
       "get" : {
         "operationId" : "adminFeedProfile",
@@ -4967,6 +5305,42 @@
           }
         },
         "summary" : "Live accounts, newest first; synthetic ones are tagged",
+        "tags" : [ "admin-users" ]
+      }
+    },
+    "/api/v1/admin/users/by-ids" : {
+      "get" : {
+        "operationId" : "adminUsersByIds",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "ids",
+          "required" : true,
+          "schema" : {
+            "items" : {
+              "format" : "uuid",
+              "type" : "string"
+            },
+            "maxItems" : 100,
+            "minItems" : 1,
+            "type" : "array"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/AdminUser"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Accounts by id, in the order asked (at most 100); unknown ids are left out",
         "tags" : [ "admin-users" ]
       }
     },
@@ -8644,6 +9018,9 @@
   }, {
     "description" : "Console: reports, hidden posts and restores (operators only)",
     "name" : "admin-moderation"
+  }, {
+    "description" : "Console: fan-added gigs and gig merges (operators only)",
+    "name" : "admin-catalog"
   }, {
     "description" : "Own account, onboarding, profiles",
     "name" : "me"

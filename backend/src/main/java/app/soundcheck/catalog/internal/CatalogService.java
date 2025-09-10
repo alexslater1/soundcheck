@@ -264,25 +264,29 @@ public class CatalogService {
 
     public GigDetail gig(UUID viewer, UUID gigId, @Nullable GeoPoint here) {
         GeoPoint origin = distancesFrom(viewer, here);
+        // A gig merged into another answers as the survivor: old links and notifications still
+        // open the right gig, with its posts.
         GigRow row = repository
                 .gig(gigId, origin)
+                .or(() -> repository.redirectOf(gigId).flatMap(into -> repository.gig(into, origin)))
                 .orElseThrow(() -> ApiException.notFound("GIG_NOT_FOUND", "No gig " + gigId));
+        UUID id = row.id();
         GigSummary summary = summaries(viewer, List.of(row)).getFirst();
         List<ArtistSummary> lineup = new ArrayList<>();
         lineup.add(summary.headliner());
         lineup.addAll(summary.support());
-        List<SourceLink> sources = repository.sources(gigId).stream()
+        List<SourceLink> sources = repository.sources(id).stream()
                 .map(s -> new SourceLink(s.source(), s.url()))
                 .toList();
         // postsCount is answered by the content module through GigClips (catalog cannot depend on content).
         return new GigDetail(
                 summary,
                 lineup,
-                counts(gigId),
-                clips.countAt(gigId),
-                clips.privateAt(viewer, gigId),
+                counts(id),
+                clips.countAt(id),
+                clips.privateAt(viewer, id),
                 sources,
-                repository.addedBy(gigId, viewer));
+                repository.addedBy(id, viewer));
     }
 
     /**

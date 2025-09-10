@@ -40,3 +40,25 @@ export const adminListUsersResponse = zod.object({
   "nextCursor": zod.string().nullish()
 })
 
+/**
+ * @summary Accounts by id, in the order asked (at most 100); unknown ids are left out
+ */
+export const adminUsersByIdsQueryIdsMax = 100;
+
+
+export const adminUsersByIdsQueryParams = zod.object({
+  "ids": zod.array(zod.string().uuid()).min(1).max(adminUsersByIdsQueryIdsMax)
+})
+
+export const adminUsersByIdsResponseItem = zod.object({
+  "createdAt": zod.string().datetime({}),
+  "displayName": zod.string(),
+  "email": zod.string(),
+  "handle": zod.string(),
+  "id": zod.string().uuid(),
+  "posts": zod.number(),
+  "role": zod.string(),
+  "synthetic": zod.boolean()
+})
+export const adminUsersByIdsResponse = zod.array(adminUsersByIdsResponseItem)
+

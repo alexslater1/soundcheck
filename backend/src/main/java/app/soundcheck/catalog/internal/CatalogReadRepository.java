@@ -7,6 +7,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE_MISSED;
+import static app.soundcheck.shared.jooq.catalog.Tables.GIG_REDIRECT;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
 
@@ -411,6 +412,17 @@ class CatalogReadRepository {
 
     boolean gigExists(UUID id) {
         return dsl.fetchExists(GIG, GIG.ID.eq(id));
+    }
+
+    /**
+     * Where a merged gig's id now leads, if it was merged away. Expected index: the
+     * gig_redirect primary key.
+     */
+    Optional<UUID> redirectOf(UUID gigId) {
+        return dsl.select(GIG_REDIRECT.INTO_GIG_ID)
+                .from(GIG_REDIRECT)
+                .where(GIG_REDIRECT.FROM_GIG_ID.eq(gigId))
+                .fetchOptional(GIG_REDIRECT.INTO_GIG_ID);
     }
 
     /** When a gig starts; empty if no such gig. Expected index: the gig primary key. */
