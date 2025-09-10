@@ -46,7 +46,10 @@ export function GigDetailScreen({ id }: { id: string }) {
   });
   const client = useQueryClient();
   const refreshControl = useRefreshControl(() =>
-    Promise.all([refetch(), client.invalidateQueries({ queryKey: getListGigPostsQueryKey(id) })]),
+    Promise.all([
+      refetch(),
+      client.invalidateQueries({ queryKey: getListGigPostsQueryKey(data?.gig.id ?? id) }),
+    ]),
   );
   const [actId, setActId] = useState<string | null>(null);
   // Whether the page has scrolled under the act bar (it then needs a background).
@@ -77,6 +80,7 @@ export function GigDetailScreen({ id }: { id: string }) {
     );
   }
 
+  // A merged gig's old id answers with the gig that stays: everything below uses its id.
   const { gig } = data;
   const status = statusLabel(gig.status);
   const price = formatPrice(gig.priceMin, gig.priceMax, gig.currency);
@@ -170,19 +174,24 @@ export function GigDetailScreen({ id }: { id: string }) {
             </Text>
             <ArtistRow artist={act} genreNames={genreNames} />
             <TimesSeen artistId={act.id} name={act.name} />
-            <GigSetlist gigId={id} startsAt={gig.startsAt} artistId={act.id} actName={act.name} />
+            <GigSetlist
+              gigId={gig.id}
+              startsAt={gig.startsAt}
+              artistId={act.id}
+              actName={act.name}
+            />
             {happened ? (
               <>
                 <Text variant="label" muted style={styles.heading}>
                   {`CLIPS OF ${act.name.toUpperCase()}`}
                 </Text>
-                <GigClips gigId={id} artistId={act.id} actName={act.name} />
+                <GigClips gigId={gig.id} artistId={act.id} actName={act.name} />
               </>
             ) : null}
           </>
         ) : (
           <>
-            <GigSetlist gigId={id} startsAt={gig.startsAt} />
+            <GigSetlist gigId={gig.id} startsAt={gig.startsAt} />
             <Text variant="label" muted style={styles.heading}>
               LINE-UP
             </Text>
@@ -195,7 +204,7 @@ export function GigDetailScreen({ id }: { id: string }) {
                 <Text variant="label" muted style={styles.heading}>
                   CLIPS FROM THIS GIG
                 </Text>
-                <GigClips gigId={id} privateCount={data.privatePostsCount} />
+                <GigClips gigId={gig.id} privateCount={data.privatePostsCount} />
               </>
             ) : gig.status === 'CANCELLED' ? null : (
               <Text muted testID="gig-not-yet">
@@ -206,7 +215,7 @@ export function GigDetailScreen({ id }: { id: string }) {
             )}
           </>
         )}
-        <GigComments gigId={id} startsAt={gig.startsAt} />
+        <GigComments gigId={gig.id} startsAt={gig.startsAt} />
       </ScrollView>
     </Screen>
   );

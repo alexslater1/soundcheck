@@ -15,4 +15,3 @@ Operational scripts, mostly run through `make` (the target in brackets).
 - `seed-acceptance.sh` — the demo seed's acceptance check from an empty stack, after a backup (`make seed-acceptance`).
 - `check-moved-gigs.sql` — read-only: every copy of the six seeded gigs that were moved to their correct venues, with venue, listings, marks and posts.
 - `check-venue-locations.sql` — read-only: venues still without coordinates (their gigs show no distance), Tramshed, and what the last runs geocoded.
-- `merge-duplicate-gig.sql` — merges one duplicate gig into another (same night, same headliner): marks and posts move, the copy is deleted (H3).

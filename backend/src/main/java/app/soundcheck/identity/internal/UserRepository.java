@@ -206,6 +206,14 @@ public class UserRepository {
                 .fetch(UserRepository::toRecord);
     }
 
+    /** Accounts by id, deleted ones included (the console names who did what). Index: the primary key. */
+    public List<UserRecord> byIds(Collection<UUID> ids) {
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        return dsl.selectFrom(APP_USER).where(APP_USER.ID.in(ids)).fetch(UserRepository::toRecord);
+    }
+
     public boolean emailExists(String email) {
         return dsl.fetchExists(APP_USER, APP_USER.EMAIL.eq(email));
     }

@@ -16,3 +16,4 @@ export const LazyPipelinePage = lazy(() => import('./pipeline/PipelinePage'));
 export const LazyOverviewPage = lazy(() => import('./overview/OverviewPage'));
 export const LazyIngestionPage = lazy(() => import('./ingestion/IngestionPage'));
 export const LazyModerationPage = lazy(() => import('./moderation/ModerationPage'));
+export const LazyCatalogPage = lazy(() => import('./catalog/CatalogPage'));

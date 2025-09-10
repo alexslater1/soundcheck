@@ -11,6 +11,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
+import java.util.List;
+import java.util.UUID;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,6 +33,14 @@ public class AdminUsersController {
 
     public AdminUsersController(AdminUsersService users) {
         this.users = users;
+    }
+
+    @GetMapping("/by-ids")
+    @Operation(
+            operationId = "adminUsersByIds",
+            summary = "Accounts by id, in the order asked (at most 100); unknown ids are left out")
+    public List<AdminUsersService.AdminUser> byIds(@RequestParam @Size(min = 1, max = 100) List<UUID> ids) {
+        return users.byIds(ids);
     }
 
     @GetMapping
