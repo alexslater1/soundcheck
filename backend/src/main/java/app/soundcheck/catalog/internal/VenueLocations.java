@@ -74,17 +74,21 @@ public class VenueLocations {
 
     /**
      * Suspect venues not yet fixed, newest first, keyset on (created_at, id). No index serves the whole
-     * condition: it scans catalog.venue (a few thousand rows), using venue_location_gix per town.
+     * condition: it scans catalog.venue (a few thousand rows); the town-centre test uses venue_location_gix.
      */
     @Transactional(readOnly = true)
     public Page<SuspectVenue> suspects(@Nullable String cursor, @Nullable Integer limit) {
         Cursor after = Cursor.decode(cursor);
         int size = Cursor.limit(limit);
         Field<Boolean> fanAdded = DSL.field(VENUE.CREATED_BY.isNotNull());
-        Field<Boolean> cityCentre = DSL.field(DSL.exists(DSL.selectOne()
+        // From the towns' side: for each of ~900 towns, venue_location_gix finds the venues near it (4 ms on
+        // the demo data). Asked per venue instead (exists … from city) it scanned every town: 0.8 s.
+        var near = VENUE.as("near");
+        Field<Boolean> cityCentre = DSL.field(VENUE.ID.in(DSL.select(near.ID)
                 .from(CITY)
-                .where(DSL.condition(
-                        "ST_DWithin({0}, {1}, {2})", CITY.LOCATION, VENUE.LOCATION, DSL.val(CITY_CENTRE_METRES)))));
+                .join(near)
+                .on(DSL.condition(
+                        "ST_DWithin({0}, {1}, {2})", near.LOCATION, CITY.LOCATION, DSL.val(CITY_CENTRE_METRES)))));
         Field<Boolean> noLocation = DSL.field(VENUE.LOCATION.isNull());
         Condition where = VENUE.LOCATION_FIXED_AT
                 .isNull()
