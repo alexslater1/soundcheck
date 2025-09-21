@@ -7,7 +7,7 @@ import {
   useAdminMergeVenue,
   useAdminPreviewVenueMerge,
 } from '@/api/generated/admin-catalog/admin-catalog';
-import { getGig, useSearchVenues } from '@/api/generated/catalog/catalog';
+import { getGig, useGetVenue, useSearchVenues } from '@/api/generated/catalog/catalog';
 import type {
   GigSummary,
   VenueHit,
@@ -26,6 +26,7 @@ import { radius, spacing } from '@/theme/tokens';
 
 import { ConfirmDialog } from '../ConfirmDialog';
 import { problemLines } from '../ranking/configModel';
+import { isGigId } from './mergeModel';
 import { useHandles, who } from './useHandles';
 import { venueCountLabel, venueMergeChanges, venueMergeWarnings } from './venueModel';
 
@@ -294,7 +295,7 @@ function SameNight({
   );
 }
 
-/** Picks one venue with the app's venue search (`GET /venues?q=`). */
+/** Picks one venue with the app's venue search (`GET /venues?q=`), or a pasted venue id. */
 function VenuePicker({
   label,
   value,
@@ -309,7 +310,12 @@ function VenuePicker({
   const { colors } = useTheme();
   const [text, setText] = useState('');
   const q = useDebounced(text.trim(), 300);
-  const found = useSearchVenues({ q }, { query: { enabled: q.length >= 2 && value === null } });
+  const byId = isGigId(q); // any UUID: a venue id pasted from the venue page or the suspect list
+  const found = useSearchVenues(
+    { q },
+    { query: { enabled: !byId && q.length >= 2 && value === null } },
+  );
+  const pasted = useGetVenue(q, { query: { enabled: byId && value === null } });
 
   if (value) {
     return (
@@ -331,7 +337,15 @@ function VenuePicker({
       </View>
     );
   }
-  const results: VenueHit[] = q.length >= 2 ? (found.data ?? []) : [];
+  const results: VenueHit[] = byId
+    ? pasted.data
+      ? [{ id: pasted.data.id, name: pasted.data.name, city: pasted.data.city }]
+      : []
+    : q.length >= 2
+      ? (found.data ?? [])
+      : [];
+  const loading = byId ? pasted.isFetching : q.length >= 2 && found.isFetching;
+  const failed = byId ? pasted.isError : q.length >= 2 && found.isError;
   return (
     <View style={styles.side} testID={testID}>
       <Text variant="label" muted>
@@ -339,7 +353,7 @@ function VenuePicker({
       </Text>
       <TextInput
         accessibilityLabel={label}
-        placeholder="Search venues by name"
+        placeholder="Search venues by name, or paste a venue id"
         placeholderTextColor={colors.textMuted}
         value={text}
         onChangeText={setText}
@@ -349,13 +363,13 @@ function VenuePicker({
           { color: colors.text, borderColor: colors.border, backgroundColor: colors.surface },
         ]}
       />
-      {q.length >= 2 && found.isFetching ? <Skeleton height={44} /> : null}
-      {q.length >= 2 && found.isError ? (
+      {loading ? <Skeleton height={44} /> : null}
+      {failed ? (
         <Text variant="caption" style={{ color: colors.danger }}>
-          The search didn&apos;t answer. Try again.
+          {byId ? 'No venue has that id.' : "The search didn't answer. Try again."}
         </Text>
       ) : null}
-      {q.length >= 2 && !found.isFetching && !found.isError && results.length === 0 ? (
+      {q.length >= 2 && !loading && !failed && results.length === 0 ? (
         <Text variant="caption" muted>
           No venue matches &quot;{q}&quot;.
         </Text>

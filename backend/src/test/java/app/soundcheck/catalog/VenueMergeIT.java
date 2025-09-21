@@ -278,6 +278,17 @@ class VenueMergeIT extends IntegrationTest {
                 .isEqualTo(HttpStatus.FORBIDDEN);
     }
 
+    @Test
+    void theVenueSearchPutsTheExactNameFirst() {
+        // Like "The O2" among the "O2 Academy …" venues: by name alone, "Mill … Annex" sorts first.
+        UUID exact = data.venue("The Mill " + tag, lat, lng);
+        UUID longer = data.venue("Mill " + tag + " Annex", lat, lng);
+        JsonNode hits = ok(api.get("/api/v1/venues?q=The Mill " + tag, api.register("vsearch")));
+
+        assertThat(hits.get(0).path("id").asText("")).isEqualTo(exact.toString());
+        assertThat(hits.get(1).path("id").asText("")).isEqualTo(longer.toString());
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private void follow(UUID user, UUID venue, OffsetDateTime at, String notify) {

@@ -81,6 +81,7 @@ jest.mock('@/api/generated/catalog/catalog', () => ({
     isFetching: false,
     isError: false,
   }),
+  useGetVenue: () => ({ data: undefined, isFetching: false, isError: false }),
   getGig: async (id: string) => ({
     gig: { ...jest.requireActual('./catalogTestData').gig(id, 'Keo') },
   }),

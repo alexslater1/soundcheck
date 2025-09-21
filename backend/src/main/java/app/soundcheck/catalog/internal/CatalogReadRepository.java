@@ -997,8 +997,9 @@ class CatalogReadRepository {
     record VenueHit(UUID id, String name, @Nullable String city, @Nullable Double lat, @Nullable Double lng) {}
 
     /**
-     * Venue name search for the "add a gig" picker: names starting with the query first, then names with
-     * a similar word (pg_trgm), nearest to {@code origin} first within each, then by name. Expected index:
+     * Venue name search for the "add a gig" picker and the console's venue merge: the exact name first, then
+     * names starting with the query, then names with a similar word (pg_trgm), nearest to {@code origin}
+     * first within each, then by name. Expected index:
      * venue_name_norm_trgm (prefix LIKE and the {@code <%} operator).
      */
     List<VenueHit> searchVenues(String query, @Nullable GeoPoint origin, int limit) {
@@ -1011,7 +1012,12 @@ class CatalogReadRepository {
         return dsl.select(VENUE.ID, VENUE.NAME, VENUE.CITY, VENUE_LAT, VENUE_LNG)
                 .from(VENUE)
                 .where(prefix.or(similar))
-                .orderBy(DSL.when(prefix, 0).otherwise(1), distance, VENUE.NAME, VENUE.ID)
+                // "The O2" before every "O2 Academy…" (else the venue merge's picker could not reach it)
+                .orderBy(
+                        DSL.when(VENUE.NAME_NORM.eq(norm), 0).when(prefix, 1).otherwise(2),
+                        distance,
+                        VENUE.NAME,
+                        VENUE.ID)
                 .limit(limit)
                 .fetch(r -> new VenueHit(r.value1(), r.value2(), r.value3(), r.value4(), r.value5()));
     }
