@@ -110,15 +110,57 @@ class SubmissionRepository {
 
     /** One line of a gig's edit history: who changed what, from what, to what. */
     void logEdit(UUID gigId, UUID userId, String field, @Nullable String oldValue, String newValue, Instant now) {
+        logEdit(gigId, userId, field, oldValue, newValue, now, null);
+    }
+
+    /**
+     * An edit, or an operator's undo of one ({@code undoesEditId}, V152). An undo of ACT_ADDED that
+     * takes the act off the bill has no new value.
+     */
+    UUID logEdit(
+            UUID gigId,
+            UUID userId,
+            String field,
+            @Nullable String oldValue,
+            @Nullable String newValue,
+            Instant now,
+            @Nullable UUID undoesEditId) {
+        UUID id = Ids.newId();
         dsl.insertInto(GIG_EDIT)
-                .set(GIG_EDIT.ID, Ids.newId())
+                .set(GIG_EDIT.ID, id)
                 .set(GIG_EDIT.GIG_ID, gigId)
                 .set(GIG_EDIT.USER_ID, userId)
                 .set(GIG_EDIT.FIELD, field)
                 .set(GIG_EDIT.OLD_VALUE, oldValue)
                 .set(GIG_EDIT.NEW_VALUE, newValue)
                 .set(GIG_EDIT.CREATED_AT, now.atOffset(ZoneOffset.UTC))
+                .set(GIG_EDIT.UNDOES_EDIT_ID, undoesEditId)
                 .execute();
+        return id;
+    }
+
+    /**
+     * Takes the act off the bill and closes the gap in the billing order; when it headlined, the
+     * next act headlines. Expected index: the gig_artist primary key (gig first).
+     */
+    boolean removeAct(UUID gigId, UUID artistId) {
+        int removed = dsl.deleteFrom(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                .and(GIG_ARTIST.ARTIST_ID.eq(artistId))
+                .execute();
+        List<UUID> rest = dsl.select(GIG_ARTIST.ARTIST_ID)
+                .from(GIG_ARTIST)
+                .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                .orderBy(GIG_ARTIST.BILLING_ORDER)
+                .fetch(GIG_ARTIST.ARTIST_ID);
+        for (short order = 0; order < rest.size(); order++) {
+            dsl.update(GIG_ARTIST)
+                    .set(GIG_ARTIST.BILLING_ORDER, order)
+                    .where(GIG_ARTIST.GIG_ID.eq(gigId))
+                    .and(GIG_ARTIST.ARTIST_ID.eq(rest.get(order)))
+                    .execute();
+        }
+        return removed > 0;
     }
 
     void markGigAddedBy(UUID gigId, UUID userId) {

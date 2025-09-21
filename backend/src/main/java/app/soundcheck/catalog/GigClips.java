@@ -21,6 +21,12 @@ public interface GigClips {
     long privateAt(UUID viewerId, UUID gigId);
 
     /**
+     * Clips at the gig, in posts of any status, whose act is this artist: an act on clips can't
+     * be taken off the bill by undoing the edit that added it.
+     */
+    long clipsOfActAt(UUID gigId, UUID artistId);
+
+    /**
      * Every gig with at least one published clip (the setlist.fm backfill looks up the past
      * gigs of the acts on these gigs' bills).
      */

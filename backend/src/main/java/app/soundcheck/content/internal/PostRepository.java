@@ -422,6 +422,19 @@ public class PostRepository {
         return dsl.fetchCount(POST, POST.GIG_ID.eq(gigId).and(POST.STATUS.eq("PUBLISHED")));
     }
 
+    /**
+     * Clips of the gig, in posts of any status, whose act is this artist (an act with clips stays on
+     * the bill). Expected index: post_gig (V150), then post_clip's post_id index.
+     */
+    public long countClipsOfActAt(UUID gigId, UUID artistId) {
+        return dsl.fetchCount(DSL.selectOne()
+                .from(POST_CLIP)
+                .join(POST)
+                .on(POST.ID.eq(POST_CLIP.POST_ID))
+                .where(POST.GIG_ID.eq(gigId))
+                .and(POST_CLIP.ARTIST_ID.eq(artistId)));
+    }
+
     /** A gig's published posts, counted per author. Expected index: post_gig_pub (partial, PUBLISHED). */
     public Map<UUID, Long> countPublishedAtByAuthor(UUID gigId) {
         return dsl.select(POST.AUTHOR_ID, DSL.count())

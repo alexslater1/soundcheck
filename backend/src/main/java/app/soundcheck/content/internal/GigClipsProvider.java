@@ -36,6 +36,11 @@ class GigClipsProvider implements GigClips {
     }
 
     @Override
+    public long clipsOfActAt(UUID gigId, UUID artistId) {
+        return posts.countClipsOfActAt(gigId, artistId);
+    }
+
+    @Override
     public Set<UUID> gigsWithClips() {
         return posts.gigsWithPublished();
     }
