@@ -220,13 +220,14 @@ public class GigEdits {
         };
     }
 
-    /** The venue the edit moved the gig from. */
+    /** The venue the edit moved the gig from, or the one it was merged into. */
     private UUID venueNow(String value) {
         UUID venue = UUID.fromString(value);
         if (reads.venueExists(venue)) {
             return venue;
         }
-        throw ApiException.conflict("EDIT_NOT_UNDOABLE", "The old venue no longer exists");
+        return reads.venueRedirectOf(venue)
+                .orElseThrow(() -> ApiException.conflict("EDIT_NOT_UNDOABLE", "The old venue no longer exists"));
     }
 
     private UUID liveGig(UUID requested) {

@@ -26,11 +26,20 @@ import type {
 
 import type {
   AdminListFanAddedGigsParams,
+  AdminListSuspectVenuesParams,
   AdminPreviewGigMergeParams,
+  AdminPreviewVenueMergeParams,
+  GigEdit,
   GigMergePreview,
   GigMergeRequest,
   GigMergeResult,
-  PageFanAddedGig
+  PageFanAddedGig,
+  PageSuspectVenue,
+  VenueLocationFixed,
+  VenueLocationRequest,
+  VenueMergePreview,
+  VenueMergeRequest,
+  VenueMergeResult
 } from '.././model';
 
 import { customFetch } from '../../http';
@@ -41,6 +50,76 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
+ * @summary Put the edit's old value back, logged as an edit that undoes it. 409 EDIT_SUPERSEDED, ACT_HAS_CLIPS, MERGE_NOT_UNDOABLE or EDIT_NOT_UNDOABLE
+ */
+export const getAdminUndoGigEditUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/admin/catalog/gig-edits/${id}/undo`
+}
+
+export const adminUndoGigEdit = async (id: string, options?: RequestInit): Promise<GigEdit> => {
+  
+  return customFetch<GigEdit>(getAdminUndoGigEditUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAdminUndoGigEditMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUndoGigEdit>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminUndoGigEdit>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['adminUndoGigEdit'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminUndoGigEdit>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminUndoGigEdit(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminUndoGigEditMutationResult = NonNullable<Awaited<ReturnType<typeof adminUndoGigEdit>>>
+    
+    export type AdminUndoGigEditMutationError = unknown
+
+    /**
+ * @summary Put the edit's old value back, logged as an edit that undoes it. 409 EDIT_SUPERSEDED, ACT_HAS_CLIPS, MERGE_NOT_UNDOABLE or EDIT_NOT_UNDOABLE
+ */
+export const useAdminUndoGigEdit = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminUndoGigEdit>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminUndoGigEdit>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getAdminUndoGigEditMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Gigs fans added, newest first, with marks, posts and likely duplicates
  */
 export const getAdminListFanAddedGigsUrl = (params?: AdminListFanAddedGigsParams,) => {
@@ -395,6 +474,101 @@ export const useAdminDeleteGig = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
+ * @summary The gig's edits, newest first: who, field, old and new value, when, and what undid it
+ */
+export const getAdminListGigEditsUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/admin/catalog/gigs/${id}/edits`
+}
+
+export const adminListGigEdits = async (id: string, options?: RequestInit): Promise<GigEdit[]> => {
+  
+  return customFetch<GigEdit[]>(getAdminListGigEditsUrl(id),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getAdminListGigEditsQueryKey = (id: string,) => {
+    return [`/api/v1/admin/catalog/gigs/${id}/edits`] as const;
+    }
+
+    
+export const getAdminListGigEditsQueryOptions = <TData = Awaited<ReturnType<typeof adminListGigEdits>>, TError = unknown>(id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListGigEdits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListGigEditsQueryKey(id);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListGigEdits>>> = ({ signal }) => adminListGigEdits(id, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListGigEdits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminListGigEditsQueryResult = NonNullable<Awaited<ReturnType<typeof adminListGigEdits>>>
+export type AdminListGigEditsQueryError = unknown
+
+
+export function useAdminListGigEdits<TData = Awaited<ReturnType<typeof adminListGigEdits>>, TError = unknown>(
+ id: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListGigEdits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListGigEdits>>,
+          TError,
+          Awaited<ReturnType<typeof adminListGigEdits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListGigEdits<TData = Awaited<ReturnType<typeof adminListGigEdits>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListGigEdits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListGigEdits>>,
+          TError,
+          Awaited<ReturnType<typeof adminListGigEdits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListGigEdits<TData = Awaited<ReturnType<typeof adminListGigEdits>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListGigEdits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary The gig's edits, newest first: who, field, old and new value, when, and what undid it
+ */
+
+export function useAdminListGigEdits<TData = Awaited<ReturnType<typeof adminListGigEdits>>, TError = unknown>(
+ id: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListGigEdits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminListGigEditsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
  * @summary Mark a fan-added gig reviewed (it leaves the queue); 409 GIG_NOT_FAN_ADDED
  */
 export const getAdminReviewFanAddedGigUrl = (id: string,) => {
@@ -461,6 +635,362 @@ export const useAdminReviewFanAddedGig = <TError = unknown,
       > => {
 
       const mutationOptions = getAdminReviewFanAddedGigMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Venues whose map position is probably wrong (fan-added, at a town's centre, or none), newest first; a fixed venue leaves the list
+ */
+export const getAdminListSuspectVenuesUrl = (params?: AdminListSuspectVenuesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/catalog/venues?${stringifiedParams}` : `/api/v1/admin/catalog/venues`
+}
+
+export const adminListSuspectVenues = async (params?: AdminListSuspectVenuesParams, options?: RequestInit): Promise<PageSuspectVenue> => {
+  
+  return customFetch<PageSuspectVenue>(getAdminListSuspectVenuesUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getAdminListSuspectVenuesQueryKey = (params?: AdminListSuspectVenuesParams,) => {
+    return [`/api/v1/admin/catalog/venues`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getAdminListSuspectVenuesQueryOptions = <TData = Awaited<ReturnType<typeof adminListSuspectVenues>>, TError = unknown>(params?: AdminListSuspectVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListSuspectVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListSuspectVenuesQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListSuspectVenues>>> = ({ signal }) => adminListSuspectVenues(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListSuspectVenues>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminListSuspectVenuesQueryResult = NonNullable<Awaited<ReturnType<typeof adminListSuspectVenues>>>
+export type AdminListSuspectVenuesQueryError = unknown
+
+
+export function useAdminListSuspectVenues<TData = Awaited<ReturnType<typeof adminListSuspectVenues>>, TError = unknown>(
+ params: undefined |  AdminListSuspectVenuesParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListSuspectVenues>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListSuspectVenues>>,
+          TError,
+          Awaited<ReturnType<typeof adminListSuspectVenues>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListSuspectVenues<TData = Awaited<ReturnType<typeof adminListSuspectVenues>>, TError = unknown>(
+ params?: AdminListSuspectVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListSuspectVenues>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListSuspectVenues>>,
+          TError,
+          Awaited<ReturnType<typeof adminListSuspectVenues>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListSuspectVenues<TData = Awaited<ReturnType<typeof adminListSuspectVenues>>, TError = unknown>(
+ params?: AdminListSuspectVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListSuspectVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Venues whose map position is probably wrong (fan-added, at a town's centre, or none), newest first; a fixed venue leaves the list
+ */
+
+export function useAdminListSuspectVenues<TData = Awaited<ReturnType<typeof adminListSuspectVenues>>, TError = unknown>(
+ params?: AdminListSuspectVenuesParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListSuspectVenues>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminListSuspectVenuesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Merge the venue into another in one transaction: gigs, sources' ids, siblings, saved searches and follows move; its id redirects and its name becomes an alias. 409 MERGE_CONFLICT, VENUE_MERGE_SAME or VENUE_ALREADY_MERGED
+ */
+export const getAdminMergeVenueUrl = (from: string,) => {
+
+
+  
+
+  return `/api/v1/admin/catalog/venues/${from}/merge`
+}
+
+export const adminMergeVenue = async (from: string,
+    venueMergeRequest: VenueMergeRequest, options?: RequestInit): Promise<VenueMergeResult> => {
+  
+  return customFetch<VenueMergeResult>(getAdminMergeVenueUrl(from),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      venueMergeRequest,)
+  }
+);}
+
+
+
+
+export const getAdminMergeVenueMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminMergeVenue>>, TError,{from: string;data: VenueMergeRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminMergeVenue>>, TError,{from: string;data: VenueMergeRequest}, TContext> => {
+
+const mutationKey = ['adminMergeVenue'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminMergeVenue>>, {from: string;data: VenueMergeRequest}> = (props) => {
+          const {from,data} = props ?? {};
+
+          return  adminMergeVenue(from,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminMergeVenueMutationResult = NonNullable<Awaited<ReturnType<typeof adminMergeVenue>>>
+    export type AdminMergeVenueMutationBody = VenueMergeRequest
+    export type AdminMergeVenueMutationError = unknown
+
+    /**
+ * @summary Merge the venue into another in one transaction: gigs, sources' ids, siblings, saved searches and follows move; its id redirects and its name becomes an alias. 409 MERGE_CONFLICT, VENUE_MERGE_SAME or VENUE_ALREADY_MERGED
+ */
+export const useAdminMergeVenue = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminMergeVenue>>, TError,{from: string;data: VenueMergeRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminMergeVenue>>,
+        TError,
+        {from: string;data: VenueMergeRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getAdminMergeVenueMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
+ * @summary Both venues side by side, what would move, and the gigs that would share a night
+ */
+export const getAdminPreviewVenueMergeUrl = (from: string,
+    params: AdminPreviewVenueMergeParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/catalog/venues/${from}/merge-preview?${stringifiedParams}` : `/api/v1/admin/catalog/venues/${from}/merge-preview`
+}
+
+export const adminPreviewVenueMerge = async (from: string,
+    params: AdminPreviewVenueMergeParams, options?: RequestInit): Promise<VenueMergePreview> => {
+  
+  return customFetch<VenueMergePreview>(getAdminPreviewVenueMergeUrl(from,params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getAdminPreviewVenueMergeQueryKey = (from: string,
+    params: AdminPreviewVenueMergeParams,) => {
+    return [`/api/v1/admin/catalog/venues/${from}/merge-preview`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getAdminPreviewVenueMergeQueryOptions = <TData = Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError = unknown>(from: string,
+    params: AdminPreviewVenueMergeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminPreviewVenueMergeQueryKey(from,params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminPreviewVenueMerge>>> = ({ signal }) => adminPreviewVenueMerge(from,params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, enabled: !!(from), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminPreviewVenueMergeQueryResult = NonNullable<Awaited<ReturnType<typeof adminPreviewVenueMerge>>>
+export type AdminPreviewVenueMergeQueryError = unknown
+
+
+export function useAdminPreviewVenueMerge<TData = Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError = unknown>(
+ from: string,
+    params: AdminPreviewVenueMergeParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminPreviewVenueMerge>>,
+          TError,
+          Awaited<ReturnType<typeof adminPreviewVenueMerge>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminPreviewVenueMerge<TData = Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError = unknown>(
+ from: string,
+    params: AdminPreviewVenueMergeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminPreviewVenueMerge>>,
+          TError,
+          Awaited<ReturnType<typeof adminPreviewVenueMerge>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminPreviewVenueMerge<TData = Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError = unknown>(
+ from: string,
+    params: AdminPreviewVenueMergeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Both venues side by side, what would move, and the gigs that would share a night
+ */
+
+export function useAdminPreviewVenueMerge<TData = Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError = unknown>(
+ from: string,
+    params: AdminPreviewVenueMergeParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminPreviewVenueMerge>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminPreviewVenueMergeQueryOptions(from,params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary Put the venue at a point and move its gigs with it. 400 LOCATION_OUTSIDE_UK
+ */
+export const getAdminFixVenueLocationUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/admin/catalog/venues/${id}`
+}
+
+export const adminFixVenueLocation = async (id: string,
+    venueLocationRequest: VenueLocationRequest, options?: RequestInit): Promise<VenueLocationFixed> => {
+  
+  return customFetch<VenueLocationFixed>(getAdminFixVenueLocationUrl(id),
+  {      
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      venueLocationRequest,)
+  }
+);}
+
+
+
+
+export const getAdminFixVenueLocationMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminFixVenueLocation>>, TError,{id: string;data: VenueLocationRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminFixVenueLocation>>, TError,{id: string;data: VenueLocationRequest}, TContext> => {
+
+const mutationKey = ['adminFixVenueLocation'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminFixVenueLocation>>, {id: string;data: VenueLocationRequest}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminFixVenueLocation(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminFixVenueLocationMutationResult = NonNullable<Awaited<ReturnType<typeof adminFixVenueLocation>>>
+    export type AdminFixVenueLocationMutationBody = VenueLocationRequest
+    export type AdminFixVenueLocationMutationError = unknown
+
+    /**
+ * @summary Put the venue at a point and move its gigs with it. 400 LOCATION_OUTSIDE_UK
+ */
+export const useAdminFixVenueLocation = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminFixVenueLocation>>, TError,{id: string;data: VenueLocationRequest}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminFixVenueLocation>>,
+        TError,
+        {id: string;data: VenueLocationRequest},
+        TContext
+      > => {
+
+      const mutationOptions = getAdminFixVenueLocationMutationOptions(options);
 
       return useMutation(mutationOptions , queryClient);
     }

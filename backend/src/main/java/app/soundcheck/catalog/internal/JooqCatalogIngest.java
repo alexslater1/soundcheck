@@ -8,6 +8,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GIG;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ARTIST;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_ALIAS;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_EXTERNAL_ID;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_SIBLING;
 
@@ -81,7 +82,13 @@ class JooqCatalogIngest implements CatalogIngest {
     @Override
     public Optional<UUID> venueNear(
             double lat, double lng, int metres, String name, double minSimilarity, String notKnownTo) {
-        Field<Double> similarity = similarity(VENUE.NAME_NORM, NameNormaliser.normalise(name));
+        String norm = NameNormaliser.normalise(name);
+        Optional<UUID> aliased = alias(
+                norm, DSL.condition("ST_DWithin({0}, {1}, {2})", VENUE.LOCATION, point(lat, lng), DSL.val(metres)));
+        if (aliased.isPresent()) {
+            return aliased;
+        }
+        Field<Double> similarity = similarity(VENUE.NAME_NORM, norm);
         // Expected index: venue_location_gix (GiST) for ST_DWithin; the handful of venues it returns are
         // then compared by name.
         return dsl.select(VENUE.ID)
@@ -96,7 +103,13 @@ class JooqCatalogIngest implements CatalogIngest {
 
     @Override
     public Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity, String notKnownTo) {
-        Field<Double> similarity = similarity(VENUE.NAME_NORM, NameNormaliser.normalise(name));
+        String norm = NameNormaliser.normalise(name);
+        Condition samePostcode = DSL.upper(DSL.replace(VENUE.POSTCODE, " ", "")).eq(compactPostcode(postcode));
+        Optional<UUID> aliased = alias(norm, samePostcode);
+        if (aliased.isPresent()) {
+            return aliased;
+        }
+        Field<Double> similarity = similarity(VENUE.NAME_NORM, norm);
         // No index: catalog.venue holds a few thousand rows; revisit if EXPLAIN says otherwise.
         return dsl.select(VENUE.ID)
                 .from(VENUE)
@@ -105,6 +118,23 @@ class JooqCatalogIngest implements CatalogIngest {
                 .and(notKnownTo(notKnownTo))
                 .orderBy(similarity.desc(), VENUE.ID)
                 .limit(1)
+                .fetchOptional(VENUE.ID);
+    }
+
+    /**
+     * A venue the operator merged away under this exact name, if the venue it was merged into is
+     * at the same place. The merge is the operator's word that the two are one venue, so it answers before
+     * the fuzzy rules and without their "not known to this source" check: a source that listed the same
+     * room twice under two ids (The O2) finds the survivor rather than creating a third copy. Expected
+     * index: the venue_alias primary key, then the venue primary key.
+     */
+    private Optional<UUID> alias(String nameNorm, Condition samePlace) {
+        return dsl.select(VENUE.ID)
+                .from(VENUE_ALIAS)
+                .join(VENUE)
+                .on(VENUE.ID.eq(VENUE_ALIAS.VENUE_ID))
+                .where(VENUE_ALIAS.NAME_NORM.eq(nameNorm))
+                .and(samePlace)
                 .fetchOptional(VENUE.ID);
     }
 

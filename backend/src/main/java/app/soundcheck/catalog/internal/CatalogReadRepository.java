@@ -10,6 +10,7 @@ import static app.soundcheck.shared.jooq.catalog.Tables.GIG_ATTENDANCE_MISSED;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_REDIRECT;
 import static app.soundcheck.shared.jooq.catalog.Tables.GIG_SOURCE;
 import static app.soundcheck.shared.jooq.catalog.Tables.VENUE;
+import static app.soundcheck.shared.jooq.catalog.Tables.VENUE_REDIRECT;
 
 import app.soundcheck.catalog.GeoPoint;
 import app.soundcheck.catalog.GigTime;
@@ -423,6 +424,17 @@ class CatalogReadRepository {
                 .from(GIG_REDIRECT)
                 .where(GIG_REDIRECT.FROM_GIG_ID.eq(gigId))
                 .fetchOptional(GIG_REDIRECT.INTO_GIG_ID);
+    }
+
+    /**
+     * Where a merged venue's id now leads, if it was merged away. Expected index: the
+     * venue_redirect primary key.
+     */
+    Optional<UUID> venueRedirectOf(UUID venueId) {
+        return dsl.select(VENUE_REDIRECT.INTO_VENUE_ID)
+                .from(VENUE_REDIRECT)
+                .where(VENUE_REDIRECT.FROM_VENUE_ID.eq(venueId))
+                .fetchOptional(VENUE_REDIRECT.INTO_VENUE_ID);
     }
 
     /** When a gig starts; empty if no such gig. Expected index: the gig primary key. */

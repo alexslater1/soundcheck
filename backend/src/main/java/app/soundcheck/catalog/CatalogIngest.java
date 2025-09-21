@@ -24,11 +24,16 @@ public interface CatalogIngest {
     /**
      * The most similarly named venue within {@code metres} of the point, if its similarity reaches the
      * minimum. Venues {@code notKnownTo} already knows under another id are skipped: a source's own ids
-     * are authoritative within that source (two rooms of one building are two venues to it).
+     * are authoritative within that source (two rooms of one building are two venues to it). First, a
+     * venue the operator merged away under exactly this name answers with its survivor, if that is within
+     * {@code metres} (an alias; no exclusion: the merge said they are one venue).
      */
     Optional<UUID> venueNear(double lat, double lng, int metres, String name, double minSimilarity, String notKnownTo);
 
-    /** The most similarly named venue with the same postcode, with the same exclusion as {@link #venueNear}. */
+    /**
+     * The most similarly named venue with the same postcode, with the same exclusion and the same alias
+     * first (the survivor at that postcode) as {@link #venueNear}.
+     */
     Optional<UUID> venueByPostcode(String postcode, String name, double minSimilarity, String notKnownTo);
 
     UUID createVenue(VenueDraft venue);

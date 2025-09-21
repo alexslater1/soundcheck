@@ -607,10 +607,12 @@ public class CatalogService {
     // ── venues ──────────────────────────────────────────────────────────────
 
     public VenueDetail venue(UUID viewer, UUID venueId) {
+        // A venue merged into another answers as the survivor, as a merged gig does.
         VenueRow v = repository
                 .venue(venueId)
+                .or(() -> repository.venueRedirectOf(venueId).flatMap(repository::venue))
                 .orElseThrow(() -> ApiException.notFound("VENUE_NOT_FOUND", "No venue " + venueId));
-        String notify = venueFollows.notifyLevel(viewer, venueId).orElse(null);
+        String notify = venueFollows.notifyLevel(viewer, v.id()).orElse(null);
         return new VenueDetail(
                 v.id(),
                 v.name(),
@@ -621,7 +623,7 @@ public class CatalogService {
                 v.timezone(),
                 v.coverageNote(),
                 notify != null,
-                venueFollows.followerCount(venueId),
+                venueFollows.followerCount(v.id()),
                 notify);
     }
 
@@ -654,10 +656,12 @@ public class CatalogService {
     }
 
     public Page<GigSummary> venueGigs(
-            UUID viewer, UUID venueId, @Nullable String cursor, @Nullable Integer limit, @Nullable GeoPoint here) {
-        if (!repository.venueExists(venueId)) {
-            throw ApiException.notFound("VENUE_NOT_FOUND", "No venue " + venueId);
-        }
+            UUID viewer, UUID requested, @Nullable String cursor, @Nullable Integer limit, @Nullable GeoPoint here) {
+        UUID venueId = repository.venueExists(requested)
+                ? requested
+                : repository
+                        .venueRedirectOf(requested)
+                        .orElseThrow(() -> ApiException.notFound("VENUE_NOT_FOUND", "No venue " + requested));
         GeoPoint origin = distancesFrom(viewer, here);
         return page(
                 viewer,

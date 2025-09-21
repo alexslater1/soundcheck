@@ -26,9 +26,12 @@ import type {
 
 import type {
   AdminListIngestionRunsParams,
+  AdminListMatchReviewsParams,
   IngestionRunDetail,
   IngestionSource,
+  MatchReviewDecision,
   PageIngestionRun,
+  PageMatchReview,
   QueueIngestionRunRequest,
   QueuedIngestionRun
 } from '.././model';
@@ -41,6 +44,180 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
+ * @summary Listings that almost matched an existing gig, newest first, with both gigs; reviews whose gig has gone are left out
+ */
+export const getAdminListMatchReviewsUrl = (params?: AdminListMatchReviewsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/ingestion/match-reviews?${stringifiedParams}` : `/api/v1/admin/ingestion/match-reviews`
+}
+
+export const adminListMatchReviews = async (params?: AdminListMatchReviewsParams, options?: RequestInit): Promise<PageMatchReview> => {
+  
+  return customFetch<PageMatchReview>(getAdminListMatchReviewsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getAdminListMatchReviewsQueryKey = (params?: AdminListMatchReviewsParams,) => {
+    return [`/api/v1/admin/ingestion/match-reviews`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getAdminListMatchReviewsQueryOptions = <TData = Awaited<ReturnType<typeof adminListMatchReviews>>, TError = unknown>(params?: AdminListMatchReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListMatchReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListMatchReviewsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListMatchReviews>>> = ({ signal }) => adminListMatchReviews(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListMatchReviews>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminListMatchReviewsQueryResult = NonNullable<Awaited<ReturnType<typeof adminListMatchReviews>>>
+export type AdminListMatchReviewsQueryError = unknown
+
+
+export function useAdminListMatchReviews<TData = Awaited<ReturnType<typeof adminListMatchReviews>>, TError = unknown>(
+ params: undefined |  AdminListMatchReviewsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListMatchReviews>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListMatchReviews>>,
+          TError,
+          Awaited<ReturnType<typeof adminListMatchReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListMatchReviews<TData = Awaited<ReturnType<typeof adminListMatchReviews>>, TError = unknown>(
+ params?: AdminListMatchReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListMatchReviews>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListMatchReviews>>,
+          TError,
+          Awaited<ReturnType<typeof adminListMatchReviews>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListMatchReviews<TData = Awaited<ReturnType<typeof adminListMatchReviews>>, TError = unknown>(
+ params?: AdminListMatchReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListMatchReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Listings that almost matched an existing gig, newest first, with both gigs; reviews whose gig has gone are left out
+ */
+
+export function useAdminListMatchReviews<TData = Awaited<ReturnType<typeof adminListMatchReviews>>, TError = unknown>(
+ params?: AdminListMatchReviewsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListMatchReviews>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminListMatchReviewsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
+
+
+
+/**
+ * @summary MERGE (the gig merge) or KEEP_APART. 409 REVIEW_DECIDED; a merge's 409 MERGE_CONFLICT leaves the review OPEN
+ */
+export const getAdminDecideMatchReviewUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/admin/ingestion/match-reviews/${id}/decide`
+}
+
+export const adminDecideMatchReview = async (id: string,
+    matchReviewDecision: MatchReviewDecision, options?: RequestInit): Promise<void> => {
+  
+  return customFetch<void>(getAdminDecideMatchReviewUrl(id),
+  {      
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      matchReviewDecision,)
+  }
+);}
+
+
+
+
+export const getAdminDecideMatchReviewMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDecideMatchReview>>, TError,{id: string;data: MatchReviewDecision}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminDecideMatchReview>>, TError,{id: string;data: MatchReviewDecision}, TContext> => {
+
+const mutationKey = ['adminDecideMatchReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminDecideMatchReview>>, {id: string;data: MatchReviewDecision}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  adminDecideMatchReview(id,data,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminDecideMatchReviewMutationResult = NonNullable<Awaited<ReturnType<typeof adminDecideMatchReview>>>
+    export type AdminDecideMatchReviewMutationBody = MatchReviewDecision
+    export type AdminDecideMatchReviewMutationError = unknown
+
+    /**
+ * @summary MERGE (the gig merge) or KEEP_APART. 409 REVIEW_DECIDED; a merge's 409 MERGE_CONFLICT leaves the review OPEN
+ */
+export const useAdminDecideMatchReview = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminDecideMatchReview>>, TError,{id: string;data: MatchReviewDecision}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminDecideMatchReview>>,
+        TError,
+        {id: string;data: MatchReviewDecision},
+        TContext
+      > => {
+
+      const mutationOptions = getAdminDecideMatchReviewMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Ingestion runs, newest first, with their main counters and issues counted by kind
  */
 export const getAdminListIngestionRunsUrl = (params?: AdminListIngestionRunsParams,) => {

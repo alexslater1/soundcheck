@@ -11,6 +11,28 @@ import {
 
 
 /**
+ * @summary Put the edit's old value back, logged as an edit that undoes it. 409 EDIT_SUPERSEDED, ACT_HAS_CLIPS, MERGE_NOT_UNDOABLE or EDIT_NOT_UNDOABLE
+ */
+export const adminUndoGigEditParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const adminUndoGigEditResponse = zod.object({
+  "createdAt": zod.string().datetime({}),
+  "field": zod.enum(['ACT_ADDED', 'STARTS_AT', 'DATE', 'VENUE', 'HEADLINER', 'TITLE', 'MERGE']),
+  "gigId": zod.string().uuid(),
+  "id": zod.string().uuid(),
+  "newLabel": zod.string().nullish(),
+  "newValue": zod.string().nullish().describe('Null only for an undo that took an act off the bill'),
+  "oldLabel": zod.string().nullish().describe('The act\'s or venue\'s name for an id value'),
+  "oldValue": zod.string().nullish(),
+  "undoable": zod.boolean().describe('False for a merge, which can\'t be undone'),
+  "undoesEditId": zod.string().uuid().nullish().describe('The edit this one undoes'),
+  "undoneByEditId": zod.string().uuid().nullish().describe('The latest edit that undid this one'),
+  "userId": zod.string().uuid().nullish().describe('Who made it; null once their account is purged')
+})
+
+/**
  * @summary Gigs fans added, newest first, with marks, posts and likely duplicates
  */
 export const adminListFanAddedGigsQueryReviewedDefault = false;export const adminListFanAddedGigsQueryLimitMax = 50;
@@ -268,9 +290,169 @@ export const adminDeleteGigParams = zod.object({
 })
 
 /**
+ * @summary The gig's edits, newest first: who, field, old and new value, when, and what undid it
+ */
+export const adminListGigEditsParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const adminListGigEditsResponseItem = zod.object({
+  "createdAt": zod.string().datetime({}),
+  "field": zod.enum(['ACT_ADDED', 'STARTS_AT', 'DATE', 'VENUE', 'HEADLINER', 'TITLE', 'MERGE']),
+  "gigId": zod.string().uuid(),
+  "id": zod.string().uuid(),
+  "newLabel": zod.string().nullish(),
+  "newValue": zod.string().nullish().describe('Null only for an undo that took an act off the bill'),
+  "oldLabel": zod.string().nullish().describe('The act\'s or venue\'s name for an id value'),
+  "oldValue": zod.string().nullish(),
+  "undoable": zod.boolean().describe('False for a merge, which can\'t be undone'),
+  "undoesEditId": zod.string().uuid().nullish().describe('The edit this one undoes'),
+  "undoneByEditId": zod.string().uuid().nullish().describe('The latest edit that undid this one'),
+  "userId": zod.string().uuid().nullish().describe('Who made it; null once their account is purged')
+})
+export const adminListGigEditsResponse = zod.array(adminListGigEditsResponseItem)
+
+/**
  * @summary Mark a fan-added gig reviewed (it leaves the queue); 409 GIG_NOT_FAN_ADDED
  */
 export const adminReviewFanAddedGigParams = zod.object({
   "id": zod.string().uuid()
+})
+
+/**
+ * @summary Venues whose map position is probably wrong (fan-added, at a town's centre, or none), newest first; a fixed venue leaves the list
+ */
+export const adminListSuspectVenuesQuerySuspectDefault = true;export const adminListSuspectVenuesQueryLimitMax = 50;
+
+
+export const adminListSuspectVenuesQueryParams = zod.object({
+  "suspect": zod.boolean().default(adminListSuspectVenuesQuerySuspectDefault).describe('Only true is supported: the suspect list'),
+  "cursor": zod.string().optional(),
+  "limit": zod.number().min(1).max(adminListSuspectVenuesQueryLimitMax).optional()
+})
+
+export const adminListSuspectVenuesResponse = zod.object({
+  "items": zod.array(zod.object({
+  "city": zod.string().nullish(),
+  "createdAt": zod.string().datetime({}),
+  "gigs": zod.number(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string(),
+  "osmUrl": zod.string().nullish().describe('The point on OpenStreetMap'),
+  "postcode": zod.string().nullish(),
+  "reasons": zod.array(zod.string()).describe('FAN_ADDED, CITY_CENTRE (within 250 m of a town\'s centre point), NO_LOCATION')
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
+ * @summary Merge the venue into another in one transaction: gigs, sources' ids, siblings, saved searches and follows move; its id redirects and its name becomes an alias. 409 MERGE_CONFLICT, VENUE_MERGE_SAME or VENUE_ALREADY_MERGED
+ */
+export const adminMergeVenueParams = zod.object({
+  "from": zod.string().uuid()
+})
+
+export const adminMergeVenueBody = zod.object({
+  "into": zod.string().uuid().describe('The venue that stays')
+})
+
+export const adminMergeVenueResponse = zod.object({
+  "into": zod.string().uuid(),
+  "moved": zod.array(zod.object({
+  "count": zod.number(),
+  "what": zod.string().describe('gigs, listings, siblings, savedSearches (catalog); followers (social)')
+})),
+  "sameNight": zod.array(zod.object({
+  "day": zod.string().date(),
+  "gigId": zod.string().uuid().describe('The survivor\'s gig that night'),
+  "movedGigId": zod.string().uuid().describe('The duplicate\'s gig, which moves'),
+  "movedTitle": zod.string(),
+  "title": zod.string()
+})).describe('Gigs now on the same night at the survivor; not merged')
+})
+
+/**
+ * @summary Both venues side by side, what would move, and the gigs that would share a night
+ */
+export const adminPreviewVenueMergeParams = zod.object({
+  "from": zod.string().uuid()
+})
+
+export const adminPreviewVenueMergeQueryParams = zod.object({
+  "into": zod.string().uuid().describe('The venue that stays')
+})
+
+export const adminPreviewVenueMergeResponse = zod.object({
+  "conflicts": zod.array(zod.string()).describe('Why the merge would be refused, one sentence each; empty: it can go ahead'),
+  "distanceMetres": zod.number().nullish().describe('How far apart the two points are; null when either has none'),
+  "from": zod.object({
+  "addedBy": zod.string().uuid().nullish().describe('The fan who added it; null for a source\'s venue'),
+  "city": zod.string().nullish(),
+  "counts": zod.array(zod.object({
+  "count": zod.number(),
+  "what": zod.string().describe('gigs, listings, siblings, savedSearches (catalog); followers (social)')
+})),
+  "externalIds": zod.array(zod.string()).describe('The sources\' ids for it, as SOURCE:id'),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string(),
+  "postcode": zod.string().nullish()
+}),
+  "into": zod.object({
+  "addedBy": zod.string().uuid().nullish().describe('The fan who added it; null for a source\'s venue'),
+  "city": zod.string().nullish(),
+  "counts": zod.array(zod.object({
+  "count": zod.number(),
+  "what": zod.string().describe('gigs, listings, siblings, savedSearches (catalog); followers (social)')
+})),
+  "externalIds": zod.array(zod.string()).describe('The sources\' ids for it, as SOURCE:id'),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string(),
+  "postcode": zod.string().nullish()
+}),
+  "moving": zod.array(zod.object({
+  "count": zod.number(),
+  "what": zod.string().describe('gigs, listings, siblings, savedSearches (catalog); followers (social)')
+})),
+  "sameNight": zod.array(zod.object({
+  "day": zod.string().date(),
+  "gigId": zod.string().uuid().describe('The survivor\'s gig that night'),
+  "movedGigId": zod.string().uuid().describe('The duplicate\'s gig, which moves'),
+  "movedTitle": zod.string(),
+  "title": zod.string()
+})).describe('Gigs that will share a night at the survivor; merge them on the Merge tab')
+})
+
+/**
+ * @summary Put the venue at a point and move its gigs with it. 400 LOCATION_OUTSIDE_UK
+ */
+export const adminFixVenueLocationParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const adminFixVenueLocationBody = zod.object({
+  "lat": zod.number().describe('Latitude, WGS84 (the UK is 49.8 to 60.9)'),
+  "lng": zod.number().describe('Longitude, WGS84 (the UK is -8.7 to 1.8)')
+})
+
+export const adminFixVenueLocationResponse = zod.object({
+  "gigsMoved": zod.number(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}),
+  "osmUrl": zod.string(),
+  "venueId": zod.string().uuid()
 })
 

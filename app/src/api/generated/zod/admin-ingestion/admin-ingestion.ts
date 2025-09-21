@@ -11,6 +11,123 @@ import {
 
 
 /**
+ * @summary Listings that almost matched an existing gig, newest first, with both gigs; reviews whose gig has gone are left out
+ */
+export const adminListMatchReviewsQueryParams = zod.object({
+  "status": zod.enum(['OPEN', 'MERGED', 'KEPT_APART']).optional(),
+  "cursor": zod.string().optional(),
+  "limit": zod.number().optional()
+})
+
+export const adminListMatchReviewsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "actSimilarity": zod.number(),
+  "candidate": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
+}),
+  "candidateTitle": zod.string(),
+  "createdAt": zod.string().datetime({}),
+  "decidedAt": zod.string().datetime({}).nullish(),
+  "externalId": zod.string(),
+  "gig": zod.object({
+  "currency": zod.string().nullish(),
+  "distanceKm": zod.number().nullish(),
+  "headliner": zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+}),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "myActsMissed": zod.array(zod.string().uuid()).describe('Acts on the bill the viewer marked as missed; empty: they saw the whole bill, or have no Went'),
+  "myAttendance": zod.enum(['INTERESTED', 'GOING', 'WENT']).nullish(),
+  "priceMax": zod.number().nullish(),
+  "priceMin": zod.number().nullish(),
+  "startsAt": zod.string().datetime({}),
+  "status": zod.enum(['SCHEDULED', 'POSTPONED', 'RESCHEDULED', 'CANCELLED', 'UNLISTED']).describe('UNLISTED: only a venue\'s own site listed it, and it has stopped'),
+  "support": zod.array(zod.object({
+  "genres": zod.array(zod.string()),
+  "id": zod.string().uuid(),
+  "imageUrl": zod.string().nullish(),
+  "isFollowing": zod.boolean(),
+  "name": zod.string()
+})),
+  "ticketUrl": zod.string().nullish(),
+  "title": zod.string(),
+  "userAdded": zod.boolean().describe('Added by a fan, not from a ticketing source'),
+  "venue": zod.object({
+  "city": zod.string().nullish(),
+  "coverageNote": zod.string().nullish(),
+  "id": zod.string().uuid(),
+  "location": zod.object({
+  "lat": zod.number(),
+  "lng": zod.number()
+}).optional(),
+  "name": zod.string()
+}),
+  "wentUnconfirmed": zod.boolean().describe('myAttendance reads WENT only because the viewer said Going and the gig\'s day is over: Pending asks \"Did you go?\"')
+}),
+  "id": zod.string().uuid(),
+  "reason": zod.string(),
+  "source": zod.string().describe('The incoming listing\'s source and id'),
+  "status": zod.enum(['OPEN', 'MERGED', 'KEPT_APART']),
+  "title": zod.string().describe('Titles as the resolver compared them'),
+  "titleSimilarity": zod.number()
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
+ * @summary MERGE (the gig merge) or KEEP_APART. 409 REVIEW_DECIDED; a merge's 409 MERGE_CONFLICT leaves the review OPEN
+ */
+export const adminDecideMatchReviewParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const adminDecideMatchReviewBody = zod.object({
+  "decision": zod.enum(['MERGE', 'KEEP_APART']).describe('MERGE: the listing\'s gig goes into the existing one; KEEP_APART: two gigs')
+})
+
+/**
  * @summary Ingestion runs, newest first, with their main counters and issues counted by kind
  */
 export const adminListIngestionRunsQueryParams = zod.object({
