@@ -1,6 +1,7 @@
 package app.soundcheck.catalog.internal;
 
 import app.soundcheck.catalog.GigMergeParticipant;
+import app.soundcheck.catalog.GigMerging;
 import app.soundcheck.catalog.GigSummary;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
@@ -26,7 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @ConditionalOnRole(Roles.API)
-public class GigMerges {
+public class GigMerges implements GigMerging {
 
     static final ZoneId UK = ZoneId.of("Europe/London");
 
@@ -139,6 +140,13 @@ public class GigMerges {
         repository.redirect(from, into, adminId, now);
         repository.deleteGig(from);
         return new Result(into, moved);
+    }
+
+    /** {@link GigMerging}: the same merge, for ingestion's match reviews. */
+    @Override
+    @Transactional
+    public void mergeDuplicate(UUID from, UUID into, UUID operatorId) {
+        merge(from, into, operatorId);
     }
 
     private List<String> conflicts(UUID from, UUID into) {

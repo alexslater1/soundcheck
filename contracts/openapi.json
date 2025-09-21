@@ -1610,6 +1610,61 @@
         "required" : [ "addedByMe", "attendanceCounts", "gig", "lineup", "postsCount", "privatePostsCount", "sources" ],
         "type" : "object"
       },
+      "GigEdit" : {
+        "properties" : {
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "field" : {
+            "enum" : [ "ACT_ADDED", "STARTS_AT", "DATE", "VENUE", "HEADLINER", "TITLE", "MERGE" ],
+            "type" : "string"
+          },
+          "gigId" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "newLabel" : {
+            "type" : [ "string", "null" ]
+          },
+          "newValue" : {
+            "description" : "Null only for an undo that took an act off the bill",
+            "type" : [ "string", "null" ]
+          },
+          "oldLabel" : {
+            "description" : "The act's or venue's name for an id value",
+            "type" : [ "string", "null" ]
+          },
+          "oldValue" : {
+            "type" : [ "string", "null" ]
+          },
+          "undoable" : {
+            "description" : "False for a merge, which can't be undone",
+            "type" : "boolean"
+          },
+          "undoesEditId" : {
+            "description" : "The edit this one undoes",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "undoneByEditId" : {
+            "description" : "The latest edit that undid this one",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "userId" : {
+            "description" : "Who made it; null once their account is purged",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "createdAt", "field", "gigId", "id", "undoable" ],
+        "type" : "object"
+      },
       "GigFilterAlertsRequest" : {
         "properties" : {
           "alerts" : {
@@ -2103,6 +2158,72 @@
         "required" : [ "email", "password" ],
         "type" : "object"
       },
+      "MatchReview" : {
+        "properties" : {
+          "actSimilarity" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "candidate" : {
+            "$ref" : "#/components/schemas/GigSummary",
+            "description" : "The existing gig it almost matched (a MERGE keeps this one)"
+          },
+          "candidateTitle" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "externalId" : {
+            "type" : "string"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigSummary",
+            "description" : "The gig the listing became"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "source" : {
+            "description" : "The incoming listing's source and id",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "OPEN", "MERGED", "KEPT_APART" ],
+            "type" : "string"
+          },
+          "title" : {
+            "description" : "Titles as the resolver compared them",
+            "type" : "string"
+          },
+          "titleSimilarity" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "actSimilarity", "candidate", "candidateTitle", "createdAt", "externalId", "gig", "id", "reason", "source", "status", "title", "titleSimilarity" ],
+        "type" : "object"
+      },
+      "MatchReviewDecision" : {
+        "properties" : {
+          "decision" : {
+            "description" : "MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs",
+            "enum" : [ "MERGE", "KEEP_APART" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "decision" ],
+        "type" : "object"
+      },
       "MeResponse" : {
         "properties" : {
           "avatarUrl" : {
@@ -2450,6 +2571,21 @@
         "required" : [ "items" ],
         "type" : "object"
       },
+      "PageMatchReview" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MatchReview"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
       "PagePost" : {
         "properties" : {
           "items" : {
@@ -2485,6 +2621,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/ServedSession"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageSuspectVenue" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/SuspectVenue"
             },
             "type" : "array"
           },
@@ -4173,6 +4324,48 @@
         "required" : [ "id", "kind", "name", "upcomingGigs" ],
         "type" : "object"
       },
+      "SuspectVenue" : {
+        "properties" : {
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "gigs" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint",
+            "type" : "null"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "osmUrl" : {
+            "description" : "The point on OpenStreetMap",
+            "type" : [ "string", "null" ]
+          },
+          "postcode" : {
+            "type" : [ "string", "null" ]
+          },
+          "reasons" : {
+            "description" : "FAN_ADDED, CITY_CENTRE (within 250 m of a town's centre point), NO_LOCATION",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "createdAt", "gigs", "id", "name", "reasons" ],
+        "type" : "object"
+      },
       "UnreadResponse" : {
         "properties" : {
           "unreadCount" : {
@@ -4358,6 +4551,194 @@
         "required" : [ "id", "name" ],
         "type" : "object"
       },
+      "VenueLocationFixed" : {
+        "properties" : {
+          "gigsMoved" : {
+            "format" : "int32",
+            "type" : "integer"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint"
+          },
+          "osmUrl" : {
+            "type" : "string"
+          },
+          "venueId" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "gigsMoved", "location", "osmUrl", "venueId" ],
+        "type" : "object"
+      },
+      "VenueLocationRequest" : {
+        "properties" : {
+          "lat" : {
+            "description" : "Latitude, WGS84 (the UK is 49.8 to 60.9)",
+            "format" : "double",
+            "type" : "number"
+          },
+          "lng" : {
+            "description" : "Longitude, WGS84 (the UK is -8.7 to 1.8)",
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "lat", "lng" ],
+        "type" : "object"
+      },
+      "VenueMergeCount" : {
+        "properties" : {
+          "count" : {
+            "format" : "int64",
+            "type" : "integer"
+          },
+          "what" : {
+            "description" : "gigs, listings, siblings, savedSearches (catalog); followers (social)",
+            "type" : "string"
+          }
+        },
+        "required" : [ "count", "what" ],
+        "type" : "object"
+      },
+      "VenueMergePreview" : {
+        "properties" : {
+          "conflicts" : {
+            "description" : "Why the merge would be refused, one sentence each; empty: it can go ahead",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "distanceMetres" : {
+            "description" : "How far apart the two points are; null when either has none",
+            "format" : "int64",
+            "type" : [ "integer", "null" ]
+          },
+          "from" : {
+            "$ref" : "#/components/schemas/VenueMergeSide"
+          },
+          "into" : {
+            "$ref" : "#/components/schemas/VenueMergeSide"
+          },
+          "moving" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VenueMergeCount"
+            },
+            "type" : "array"
+          },
+          "sameNight" : {
+            "description" : "Gigs that will share a night at the survivor; merge them on the Merge tab",
+            "items" : {
+              "$ref" : "#/components/schemas/VenueMergeSameNight"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "conflicts", "from", "into", "moving", "sameNight" ],
+        "type" : "object"
+      },
+      "VenueMergeRequest" : {
+        "properties" : {
+          "into" : {
+            "description" : "The venue that stays",
+            "format" : "uuid",
+            "type" : "string"
+          }
+        },
+        "required" : [ "into" ],
+        "type" : "object"
+      },
+      "VenueMergeResult" : {
+        "properties" : {
+          "into" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "moved" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VenueMergeCount"
+            },
+            "type" : "array"
+          },
+          "sameNight" : {
+            "description" : "Gigs now on the same night at the survivor; not merged",
+            "items" : {
+              "$ref" : "#/components/schemas/VenueMergeSameNight"
+            },
+            "type" : "array"
+          }
+        },
+        "required" : [ "into", "moved", "sameNight" ],
+        "type" : "object"
+      },
+      "VenueMergeSameNight" : {
+        "properties" : {
+          "day" : {
+            "format" : "date",
+            "type" : "string"
+          },
+          "gigId" : {
+            "description" : "The survivor's gig that night",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "movedGigId" : {
+            "description" : "The duplicate's gig, which moves",
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "movedTitle" : {
+            "type" : "string"
+          },
+          "title" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "day", "gigId", "movedGigId", "movedTitle", "title" ],
+        "type" : "object"
+      },
+      "VenueMergeSide" : {
+        "properties" : {
+          "addedBy" : {
+            "description" : "The fan who added it; null for a source's venue",
+            "format" : "uuid",
+            "type" : [ "string", "null" ]
+          },
+          "city" : {
+            "type" : [ "string", "null" ]
+          },
+          "counts" : {
+            "items" : {
+              "$ref" : "#/components/schemas/VenueMergeCount"
+            },
+            "type" : "array"
+          },
+          "externalIds" : {
+            "description" : "The sources' ids for it, as SOURCE:id",
+            "items" : {
+              "type" : "string"
+            },
+            "type" : "array"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "location" : {
+            "$ref" : "#/components/schemas/GeoPoint",
+            "type" : "null"
+          },
+          "name" : {
+            "type" : "string"
+          },
+          "postcode" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "counts", "externalIds", "id", "name" ],
+        "type" : "object"
+      },
       "VenueSummary" : {
         "properties" : {
           "city" : {
@@ -4496,6 +4877,34 @@
         },
         "summary" : "KPIs against the previous period, a series per UK day, and the share of the activity that synthetic accounts produced. 400 ANALYTICS_RANGE_INVALID unless from < to ≤ from + 90 days",
         "tags" : [ "admin-analytics" ]
+      }
+    },
+    "/api/v1/admin/catalog/gig-edits/{id}/undo" : {
+      "post" : {
+        "operationId" : "adminUndoGigEdit",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/GigEdit"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Put the edit's old value back, logged as an edit that undoes it. 409 EDIT_SUPERSEDED, ACT_HAS_CLIPS, MERGE_NOT_UNDOABLE or EDIT_NOT_UNDOABLE",
+        "tags" : [ "admin-catalog" ]
       }
     },
     "/api/v1/admin/catalog/gigs/fan-added" : {
@@ -4640,6 +5049,37 @@
         "tags" : [ "admin-catalog" ]
       }
     },
+    "/api/v1/admin/catalog/gigs/{id}/edits" : {
+      "get" : {
+        "operationId" : "adminListGigEdits",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "items" : {
+                    "$ref" : "#/components/schemas/GigEdit"
+                  },
+                  "type" : "array"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "The gig's edits, newest first: who, field, old and new value, when, and what undid it",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
     "/api/v1/admin/catalog/gigs/{id}/review" : {
       "post" : {
         "operationId" : "adminReviewFanAddedGig",
@@ -4658,6 +5098,165 @@
           }
         },
         "summary" : "Mark a fan-added gig reviewed (it leaves the queue); 409 GIG_NOT_FAN_ADDED",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/venues" : {
+      "get" : {
+        "operationId" : "adminListSuspectVenues",
+        "parameters" : [ {
+          "description" : "Only true is supported: the suspect list",
+          "in" : "query",
+          "name" : "suspect",
+          "required" : false,
+          "schema" : {
+            "default" : true,
+            "type" : "boolean"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageSuspectVenue"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Venues whose map position is probably wrong (fan-added, at a town's centre, or none), newest first; a fixed venue leaves the list",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/venues/{from}/merge" : {
+      "post" : {
+        "operationId" : "adminMergeVenue",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VenueMergeRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VenueMergeResult"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Merge the venue into another in one transaction: gigs, sources' ids, siblings, saved searches and follows move; its id redirects and its name becomes an alias. 409 MERGE_CONFLICT, VENUE_MERGE_SAME or VENUE_ALREADY_MERGED",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/venues/{from}/merge-preview" : {
+      "get" : {
+        "operationId" : "adminPreviewVenueMerge",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "from",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        }, {
+          "description" : "The venue that stays",
+          "in" : "query",
+          "name" : "into",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VenueMergePreview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Both venues side by side, what would move, and the gigs that would share a night",
+        "tags" : [ "admin-catalog" ]
+      }
+    },
+    "/api/v1/admin/catalog/venues/{id}" : {
+      "patch" : {
+        "operationId" : "adminFixVenueLocation",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/VenueLocationRequest"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/VenueLocationFixed"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Put the venue at a point and move its gigs with it. 400 LOCATION_OUTSIDE_UK",
         "tags" : [ "admin-catalog" ]
       }
     },
@@ -4732,6 +5331,80 @@
         },
         "summary" : "A user's recent feed sessions, newest first, each item with its outcome (positive, negative, furthest watch)",
         "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/ingestion/match-reviews" : {
+      "get" : {
+        "operationId" : "adminListMatchReviews",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "OPEN", "MERGED", "KEPT_APART" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageMatchReview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Listings that almost matched an existing gig, newest first, with both gigs; reviews whose gig has gone are left out",
+        "tags" : [ "admin-ingestion" ]
+      }
+    },
+    "/api/v1/admin/ingestion/match-reviews/{id}/decide" : {
+      "post" : {
+        "operationId" : "adminDecideMatchReview",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MatchReviewDecision"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "MERGE (the gig merge) or KEEP_APART. 409 REVIEW_DECIDED; a merge's 409 MERGE_CONFLICT leaves the review OPEN",
+        "tags" : [ "admin-ingestion" ]
       }
     },
     "/api/v1/admin/ingestion/runs" : {
@@ -9021,11 +9694,11 @@
     "description" : "Register, login, refresh, logout",
     "name" : "auth"
   }, {
+    "description" : "Console: fan-added gigs, gig and venue merges, edit undo, venue locations (operators only)",
+    "name" : "admin-catalog"
+  }, {
     "description" : "Console: reports, hidden posts and restores (operators only)",
     "name" : "admin-moderation"
-  }, {
-    "description" : "Console: fan-added gigs and gig merges (operators only)",
-    "name" : "admin-catalog"
   }, {
     "description" : "Own account, onboarding, profiles",
     "name" : "me"

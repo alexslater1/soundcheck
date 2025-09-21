@@ -10,9 +10,9 @@ import { CATALOG_TABS, FAN_GIGS } from './tabs';
 import type { MergePair } from './tabTypes';
 
 /**
- * The console's Catalog page: a tab per curation job. Fan gigs (the queue of
- * gigs fans added) and Merge (two gigs side by side, then one transaction) are built; Matches, Venues and
- * Edit history are added in `tabs.ts`.
+ * The console's Catalog page: a tab per curation job, listed in `tabs.ts`: Fan gigs (the queue
+ * of gigs fans added), Merge (two gigs side by side, then one transaction), Matches, Venues and
+ * Edit history.
  */
 export default function CatalogPage() {
   const { colors } = useTheme();

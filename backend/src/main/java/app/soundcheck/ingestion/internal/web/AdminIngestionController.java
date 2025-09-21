@@ -4,6 +4,9 @@ import app.soundcheck.ingestion.internal.AdminIngestion;
 import app.soundcheck.ingestion.internal.AdminIngestion.RunDetail;
 import app.soundcheck.ingestion.internal.AdminIngestion.RunSummary;
 import app.soundcheck.ingestion.internal.AdminIngestion.SourceView;
+import app.soundcheck.ingestion.internal.AdminMatchReviews;
+import app.soundcheck.ingestion.internal.AdminMatchReviews.Decision;
+import app.soundcheck.ingestion.internal.AdminMatchReviews.ReviewView;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Actors;
@@ -14,10 +17,12 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -33,7 +38,8 @@ import org.springframework.web.bind.annotation.RestController;
 
 /**
  * The console's ingestion page: the sources, the run history with stats and issues, and "Run
- * now", which queues a run for a scheduler process instead of running it here. Operators only.
+ * now", which queues a run for a scheduler process instead of running it here; and the match
+ * reviews, listings that almost matched an existing gig. Operators only.
  */
 @ConditionalOnRole(Roles.API)
 @RestController
@@ -49,10 +55,17 @@ public class AdminIngestionController {
     @Schema(name = "QueuedIngestionRun")
     public record QueuedRun(UUID runId) {}
 
-    private final AdminIngestion admin;
+    @Schema(name = "MatchReviewDecision")
+    public record DecideRequest(
+            @NotNull @Schema(description = "MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs")
+                    Decision decision) {}
 
-    public AdminIngestionController(AdminIngestion admin) {
+    private final AdminIngestion admin;
+    private final AdminMatchReviews reviews;
+
+    public AdminIngestionController(AdminIngestion admin, AdminMatchReviews reviews) {
         this.admin = admin;
+        this.reviews = reviews;
     }
 
     @GetMapping("/sources")
@@ -96,5 +109,32 @@ public class AdminIngestionController {
         UUID runId = admin.queue(request.source(), UUID.fromString(jwt.getSubject()));
         Actors.audit(jwt, "ingestion.run.queue", request.source() + " " + runId);
         return new QueuedRun(runId);
+    }
+
+    @GetMapping("/match-reviews")
+    @Operation(
+            operationId = "adminListMatchReviews",
+            summary = "Listings that almost matched an existing gig, newest first, with both gigs; reviews whose"
+                    + " gig has gone are left out")
+    public Page<ReviewView> matchReviews(
+            @AuthenticationPrincipal Jwt jwt,
+            @Parameter(schema = @Schema(allowableValues = {"OPEN", "MERGED", "KEPT_APART"}))
+                    @RequestParam(defaultValue = "OPEN")
+                    String status,
+            @RequestParam(required = false) String cursor,
+            @RequestParam(required = false) Integer limit) {
+        return reviews.list(UUID.fromString(jwt.getSubject()), status, cursor, limit);
+    }
+
+    @PostMapping("/match-reviews/{id}/decide")
+    @Operation(
+            operationId = "adminDecideMatchReview",
+            summary = "MERGE (the gig merge) or KEEP_APART. 409 REVIEW_DECIDED; a merge's 409"
+                    + " MERGE_CONFLICT leaves the review OPEN")
+    public ResponseEntity<Void> decide(
+            @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody DecideRequest request) {
+        reviews.decide(id, request.decision(), UUID.fromString(jwt.getSubject()));
+        Actors.audit(jwt, "ingestion.match-review." + request.decision().name().toLowerCase(java.util.Locale.ROOT), id);
+        return ResponseEntity.noContent().build();
     }
 }
