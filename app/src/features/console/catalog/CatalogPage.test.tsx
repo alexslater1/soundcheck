@@ -46,6 +46,16 @@ jest.mock('@/api/generated/admin-catalog/admin-catalog', () => ({
     isError: false,
   }),
 }));
+jest.mock('@/api/generated/admin-ingestion/admin-ingestion', () => ({
+  getAdminListMatchReviewsQueryKey: () => ['/api/v1/admin/ingestion/match-reviews'],
+  adminListMatchReviews: async () => ({ items: [], nextCursor: null }),
+  useAdminDecideMatchReview: () => ({
+    mutate: jest.fn(),
+    reset: jest.fn(),
+    isPending: false,
+    isError: false,
+  }),
+}));
 jest.mock('@/api/generated/admin-users/admin-users', () => ({
   useAdminUsersByIds: () => ({ data: [{ id: 'user-1', handle: 'sam' }] }),
 }));
@@ -122,10 +132,11 @@ describe('CatalogPage', () => {
     expect(screen.getByTestId('merge-preview')).toBeOnTheScreen();
   });
 
-  it("says which session builds the tabs that aren't built yet", async () => {
+  it('opens the match reviews on their own tab', async () => {
     mockAnswer = async () => ({ items: [], nextCursor: null });
     await renderPage();
     await fireEvent.press(screen.getByTestId('catalog-tab-matches'));
-    expect(screen.getByText('Not built yet')).toBeOnTheScreen();
+    expect(screen.getByTestId('catalog-matches')).toBeOnTheScreen();
+    expect(await screen.findByText('No listings to decide')).toBeOnTheScreen();
   });
 });
