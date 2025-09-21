@@ -2103,6 +2103,72 @@
         "required" : [ "email", "password" ],
         "type" : "object"
       },
+      "MatchReview" : {
+        "properties" : {
+          "actSimilarity" : {
+            "format" : "double",
+            "type" : "number"
+          },
+          "candidate" : {
+            "$ref" : "#/components/schemas/GigSummary",
+            "description" : "The existing gig it almost matched (a MERGE keeps this one)"
+          },
+          "candidateTitle" : {
+            "type" : "string"
+          },
+          "createdAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "decidedAt" : {
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
+          },
+          "externalId" : {
+            "type" : "string"
+          },
+          "gig" : {
+            "$ref" : "#/components/schemas/GigSummary",
+            "description" : "The gig the listing became"
+          },
+          "id" : {
+            "format" : "uuid",
+            "type" : "string"
+          },
+          "reason" : {
+            "type" : "string"
+          },
+          "source" : {
+            "description" : "The incoming listing's source and id",
+            "type" : "string"
+          },
+          "status" : {
+            "enum" : [ "OPEN", "MERGED", "KEPT_APART" ],
+            "type" : "string"
+          },
+          "title" : {
+            "description" : "Titles as the resolver compared them",
+            "type" : "string"
+          },
+          "titleSimilarity" : {
+            "format" : "double",
+            "type" : "number"
+          }
+        },
+        "required" : [ "actSimilarity", "candidate", "candidateTitle", "createdAt", "externalId", "gig", "id", "reason", "source", "status", "title", "titleSimilarity" ],
+        "type" : "object"
+      },
+      "MatchReviewDecision" : {
+        "properties" : {
+          "decision" : {
+            "description" : "MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs",
+            "enum" : [ "MERGE", "KEEP_APART" ],
+            "type" : "string"
+          }
+        },
+        "required" : [ "decision" ],
+        "type" : "object"
+      },
       "MeResponse" : {
         "properties" : {
           "avatarUrl" : {
@@ -2440,6 +2506,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/IngestionRun"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageMatchReview" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/MatchReview"
             },
             "type" : "array"
           },
@@ -4732,6 +4813,80 @@
         },
         "summary" : "A user's recent feed sessions, newest first, each item with its outcome (positive, negative, furthest watch)",
         "tags" : [ "admin-feed" ]
+      }
+    },
+    "/api/v1/admin/ingestion/match-reviews" : {
+      "get" : {
+        "operationId" : "adminListMatchReviews",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "status",
+          "required" : false,
+          "schema" : {
+            "enum" : [ "OPEN", "MERGED", "KEPT_APART" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageMatchReview"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Listings that almost matched an existing gig, newest first, with both gigs; reviews whose gig has gone are left out",
+        "tags" : [ "admin-ingestion" ]
+      }
+    },
+    "/api/v1/admin/ingestion/match-reviews/{id}/decide" : {
+      "post" : {
+        "operationId" : "adminDecideMatchReview",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "requestBody" : {
+          "content" : {
+            "application/json" : {
+              "schema" : {
+                "$ref" : "#/components/schemas/MatchReviewDecision"
+              }
+            }
+          },
+          "required" : true
+        },
+        "responses" : {
+          "200" : {
+            "description" : "OK"
+          }
+        },
+        "summary" : "MERGE (the gig merge) or KEEP_APART. 409 REVIEW_DECIDED; a merge's 409 MERGE_CONFLICT leaves the review OPEN",
+        "tags" : [ "admin-ingestion" ]
       }
     },
     "/api/v1/admin/ingestion/runs" : {
