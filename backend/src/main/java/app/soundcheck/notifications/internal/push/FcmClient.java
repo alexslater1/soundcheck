@@ -12,7 +12,6 @@ import com.nimbusds.jwt.SignedJWT;
 import java.io.UncheckedIOException;
 import java.net.http.HttpClient;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -54,7 +53,7 @@ class FcmClient implements PushGateway {
 
     @Autowired
     FcmClient(PushProperties properties, JsonMapper json, Clock clock) {
-        this(properties, FcmCredentials.read(Path.of(properties.credentialsFile()), json), json, clock);
+        this(properties, FcmCredentials.from(properties, json), json, clock);
     }
 
     /** Tests: a key made on the spot instead of a file. */

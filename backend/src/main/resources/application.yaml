@@ -90,6 +90,8 @@ soundcheck:
     # PUSH_ENABLED=true and its service account key (`docs/SETUP.md`, gitignored under .secrets/).
     enabled: ${PUSH_ENABLED:false}
     credentials-file: ${PUSH_CREDENTIALS_FILE:../.secrets/fcm-service-account.json}
+    # The same key's JSON as text (ECS injects secrets as environment variables). Wins over the file when set.
+    credentials-json: ${PUSH_CREDENTIALS_JSON:}
   rate-limit:
     # Auth limits (Bucket4j, per API instance).
     auth:

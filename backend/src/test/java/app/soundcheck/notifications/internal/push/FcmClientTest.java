@@ -63,7 +63,7 @@ class FcmClientTest {
         @Bean
         FcmClient fcmClient() {
             JsonMapper json = JsonMappers.builder().build();
-            PushProperties properties = new PushProperties(true, "", google.baseUrl(), google.baseUrl() + "/token");
+            PushProperties properties = new PushProperties(true, "", "", google.baseUrl(), google.baseUrl() + "/token");
             FcmCredentials credentials = new FcmCredentials(
                     "soundcheck-test",
                     "push@soundcheck-test.iam.gserviceaccount.com",
