@@ -177,10 +177,10 @@ jobs:
         env:
           CI: '1'
       - name: Synth offline (placeholder account, cdk-nag as validation plugin)
-        run: npx cdk synth --quiet
+        run: npx cdk synth --quiet -c imageTag=ci
         env:
           CDK_DEFAULT_ACCOUNT: '000000000000'
-          CDK_DEFAULT_REGION: eu-west-2
+          CDK_DEFAULT_REGION: eu-north-1
 
   # Web E2E: the Playwright journeys in app/e2e against the whole local stack on the
   # runner: PostGIS, LocalStack (S3 + SQS), the API and the transcode worker from the built jar, and the

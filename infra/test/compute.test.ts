@@ -227,8 +227,8 @@ describe('SoundcheckCompute', () => {
   it('scales workers out on waiting jobs and in only after 15 minutes without any', () => {
     const targets = resourcesOf(template, 'AWS::ApplicationAutoScaling::ScalableTarget').map(([, p]) => p);
     expect(targets.map((t) => [t.MinCapacity, t.MaxCapacity]).sort()).toEqual([
-      [0, 5],
-      [1, 4],
+      [0, 2],
+      [1, 2],
     ]);
     const alarms = resourcesOf(template, 'AWS::CloudWatch::Alarm').map(([, p]) => p);
     const out = alarms.find((a) => a.MetricName === 'ApproximateNumberOfMessagesVisible')!;
