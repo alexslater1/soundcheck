@@ -5,13 +5,6 @@ import { requireImageTag } from './config';
 
 // Placeholders, replaced one by one.
 
-/** RDS PostgreSQL, SQS transcode queue + DLQ, ECR. */
-export class DataStack extends SoundcheckStack {
-  constructor(scope: Construct, id: string, props: SoundcheckStackProps) {
-    super(scope, id, props);
-  }
-}
-
 /** ECS cluster, API service behind the internal ALB, queue-scaled worker service (Spot), job task. */
 export class ComputeStack extends SoundcheckStack {
   constructor(scope: Construct, id: string, props: SoundcheckStackProps) {
