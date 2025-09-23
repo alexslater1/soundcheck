@@ -2,6 +2,7 @@ package app.soundcheck.identity.internal.auth;
 
 import app.soundcheck.identity.internal.UserRecord;
 import app.soundcheck.identity.internal.UserRepository;
+import app.soundcheck.shared.config.Roles;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.Curve;
 import com.nimbusds.jose.jwk.ECKey;
@@ -60,19 +61,28 @@ class JwtConfig {
         if (jwt.privateKeyPem() != null && !jwt.privateKeyPem().isBlank()) {
             return JwtKeys.fromPem(jwt.privateKeyPem());
         }
-        boolean production = Arrays.asList(environment.getActiveProfiles()).contains("aws");
-        if (jwt.privateKeyPath() != null && !jwt.privateKeyPath().isBlank()) {
+        boolean aws = Arrays.asList(environment.getActiveProfiles()).contains("aws");
+        // Only the api role issues and accepts user tokens. A worker or job task still builds the security
+        // chain, and so a decoder, but no token ever reaches it: on AWS it runs without the key.
+        boolean required =
+                aws && Roles.parse(environment.getProperty(Roles.PROPERTY)).contains(Roles.API);
+        boolean hasPath = jwt.privateKeyPath() != null && !jwt.privateKeyPath().isBlank();
+        if (hasPath) {
             Path path = Path.of(jwt.privateKeyPath());
             if (path.toFile().isFile()) {
                 return JwtKeys.fromFile(path);
             }
-            if (production) {
+            if (required) {
                 throw new IllegalStateException(
                         "JWT key file " + path + " not found (JWT_PRIVATE_KEY_PEM/PATH required on AWS)");
             }
-            log.warn("JWT key file {} not found — using an ephemeral key pair (run `make keys`)", path);
-        } else if (production) {
+        } else if (required) {
             throw new IllegalStateException("JWT_PRIVATE_KEY_PEM or JWT_PRIVATE_KEY_PATH is required on AWS");
+        }
+        if (aws) {
+            log.info("No JWT key and no api role: an ephemeral key pair (this process issues and accepts no tokens)");
+        } else if (hasPath) {
+            log.warn("JWT key file {} not found — using an ephemeral key pair (run `make keys`)", jwt.privateKeyPath());
         } else {
             log.warn("No JWT key configured — using an ephemeral key pair (tokens die with this process)");
         }
