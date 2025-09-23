@@ -6,7 +6,8 @@ import { DataStack } from './data-stack';
 import { EdgeStack } from './edge-stack';
 import { SoundcheckNagChecks } from './nag';
 import { NetworkStack } from './network-stack';
-import { ObservabilityStack } from './stacks';
+import { ObservabilityStack } from './observability-stack';
+import { WebStack } from './web-stack';
 
 /** Stack ids, in deploy order (scripts address stacks by these names). */
 export const STACK_NAMES = [
@@ -16,6 +17,9 @@ export const STACK_NAMES = [
   'SoundcheckCompute',
   'SoundcheckObservability',
 ] as const;
+
+/** The optional sixth stack, deployed last, present only when `webDist` is given. */
+export const WEB_STACK_NAME = 'SoundcheckWeb';
 
 export interface SoundcheckAppOptions {
   /** AWS account id; `000000000000` offline (tests, CI). */
@@ -53,12 +57,32 @@ export function createSoundcheckApp(options: SoundcheckAppOptions): App {
     listener: edge.listener,
     publicBaseUrl: edge.publicBaseUrl,
   });
-  const observability = new ObservabilityStack(app, 'SoundcheckObservability', props);
+  const observability = new ObservabilityStack(app, 'SoundcheckObservability', {
+    ...props,
+    apiTargetGroup: compute.apiTargetGroup,
+    cluster: compute.cluster,
+    apiService: compute.apiService,
+    workerService: compute.workerService,
+    db: data.db,
+    queue: data.queue,
+    dlq: data.dlq,
+  });
 
   data.addDependency(network);
   edge.addDependency(data);
   compute.addDependency(edge);
   observability.addDependency(compute);
+
+  // Only with -c webDist=<dir>: tests and CI synthesise without a web build.
+  if (config.webDist !== undefined) {
+    const web = new WebStack(app, WEB_STACK_NAME, {
+      ...props,
+      webDist: config.webDist,
+      webBucket: edge.webBucket,
+      distribution: edge.distribution,
+    });
+    web.addDependency(observability);
+  }
 
   app.policyValidationBeta1.push(new SoundcheckNagChecks(app, { verbose: true }));
   return app;

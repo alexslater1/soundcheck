@@ -1,6 +1,7 @@
 import * as path from 'node:path';
 
 import {
+  CfnResource,
   IPolicyValidationContextBeta1,
   IPolicyValidationPluginBeta1,
   PolicyValidationPluginReportBeta1,
@@ -8,7 +9,7 @@ import {
   Stack,
   Stage,
 } from 'aws-cdk-lib';
-import { AwsSolutionsChecks, IApplyRule, NagMessageLevel, NagPackProps, NagRuleCompliance } from 'cdk-nag';
+import { AwsSolutionsChecks, IApplyRule, NagMessageLevel, NagPackProps, NagRuleCompliance, rules } from 'cdk-nag';
 // cdk-nag's own formatter for the text of a finding, so the ids built below match its findings exactly.
 import { flattenCfnReference } from 'cdk-nag/lib/utils/flatten-cfn-reference';
 import type { IConstruct } from 'constructs';
@@ -75,10 +76,22 @@ export function suppressWildcardResources(scope: IConstruct, resources: string[]
   pendingWildcards.set(scope, [...(pendingWildcards.get(scope) ?? []), { resources, reason }]);
 }
 
+/** Constructs whose every IAM5 finding is acknowledged (`suppressAllWildcards`). */
+const allWildcards = new WeakMap<IConstruct, string>();
+
+/**
+ * Acknowledges every IAM5 finding under a construct. Only for code we don't write (CDK's own Lambdas),
+ * whose policies we can't change: our own policies name each wildcard (`suppressWildcardResources`).
+ */
+export function suppressAllWildcards(scope: IConstruct, reason: string): void {
+  requireReason(scope, 'IAM5', reason);
+  allWildcards.set(scope, reason);
+}
+
 /**
  * cdk-nag's AwsSolutions rules as a CDK policy-validation plugin: CDK runs it once the templates are
  * synthesised (cross-stack references resolved), and every finding (error or warning level) that is not
- * acknowledged is a violation, which fails the synth. It first acknowledges the wildcard resources
+ * acknowledged is a violation, which fails the synth. It first acknowledges the wildcard findings
  * recorded above. `validateScope` runs the same checks directly (tests).
  */
 export class SoundcheckNagChecks extends AwsSolutionsChecks implements IPolicyValidationPluginBeta1 {
@@ -110,6 +123,18 @@ export class SoundcheckNagChecks extends AwsSolutionsChecks implements IPolicyVa
         }
       }
       pendingWildcards.delete(construct);
+
+      const reason = allWildcards.get(construct);
+      if (reason !== undefined) {
+        for (const resource of construct.node.findAll()) {
+          if (!CfnResource.isCfnResource(resource)) continue;
+          const findings: unknown = rules.iam.IAMNoWildcardPermissions(resource);
+          for (const finding of Array.isArray(findings) ? (findings as string[]) : []) {
+            acknowledge(resource, `AwsSolutions-IAM5[${finding}]`, reason);
+          }
+        }
+        allWildcards.delete(construct);
+      }
     }
 
     this.violations = [];
