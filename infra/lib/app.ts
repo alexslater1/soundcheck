@@ -1,11 +1,12 @@
 import { App } from 'aws-cdk-lib';
 
+import { ComputeStack } from './compute-stack';
 import { readConfig, REGION } from './config';
 import { DataStack } from './data-stack';
 import { EdgeStack } from './edge-stack';
 import { SoundcheckNagChecks } from './nag';
 import { NetworkStack } from './network-stack';
-import { ComputeStack, ObservabilityStack } from './stacks';
+import { ObservabilityStack } from './stacks';
 
 /** Stack ids, in deploy order (scripts address stacks by these names). */
 export const STACK_NAMES = [
@@ -37,7 +38,21 @@ export function createSoundcheckApp(options: SoundcheckAppOptions): App {
   const network = new NetworkStack(app, 'SoundcheckNetwork', props);
   const data = new DataStack(app, 'SoundcheckData', { ...props, vpc: network.vpc, dbSg: network.dbSg });
   const edge = new EdgeStack(app, 'SoundcheckEdge', { ...props, vpc: network.vpc, albSg: network.albSg });
-  const compute = new ComputeStack(app, 'SoundcheckCompute', props);
+  const compute = new ComputeStack(app, 'SoundcheckCompute', {
+    ...props,
+    vpc: network.vpc,
+    apiTaskSg: network.apiTaskSg,
+    workerTaskSg: network.workerTaskSg,
+    jobTaskSg: network.jobTaskSg,
+    db: data.db,
+    queue: data.queue,
+    dlq: data.dlq,
+    apiRepository: data.apiRepository,
+    workerRepository: data.workerRepository,
+    mediaBucket: edge.mediaBucket,
+    listener: edge.listener,
+    publicBaseUrl: edge.publicBaseUrl,
+  });
   const observability = new ObservabilityStack(app, 'SoundcheckObservability', props);
 
   data.addDependency(network);

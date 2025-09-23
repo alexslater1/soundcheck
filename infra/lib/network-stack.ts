@@ -2,7 +2,6 @@ import { aws_ec2 as ec2 } from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import { SoundcheckStack, SoundcheckStackProps } from './base';
-import { AVAILABILITY_ZONES } from './config';
 import { suppress } from './nag';
 
 /** PostgreSQL's port; the database keeps the default (cdk-nag RDS11 is suppressed in the Data stack). */
@@ -34,7 +33,7 @@ export class NetworkStack extends SoundcheckStack {
 
     this.vpc = new ec2.Vpc(this, 'Vpc', {
       ipAddresses: ec2.IpAddresses.cidr('10.0.0.0/16'),
-      availabilityZones: AVAILABILITY_ZONES,
+      maxAzs: 2, // eu-north-1a and b (SoundcheckStack.availabilityZones)
       natGateways: 0,
       subnetConfiguration: [
         // Tasks get a public IP only because their service asks for one (assignPublicIp).

@@ -17,6 +17,10 @@ describe('Soundcheck CDK app', () => {
     }
   });
 
+  it('needs no AWS lookups, so synth works without credentials (CI has none)', () => {
+    expect(assembly.manifest.missing ?? []).toEqual([]);
+  });
+
   it('tags every stack with the project and environment', () => {
     for (const stackName of STACK_NAMES) {
       const stack = app.node.findChild(stackName) as Stack;

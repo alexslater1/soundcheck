@@ -9,6 +9,8 @@ import {
   Stage,
 } from 'aws-cdk-lib';
 import { AwsSolutionsChecks, IApplyRule, NagMessageLevel, NagPackProps, NagRuleCompliance } from 'cdk-nag';
+// cdk-nag's own formatter for the text of a finding, so the ids built below match its findings exactly.
+import { flattenCfnReference } from 'cdk-nag/lib/utils/flatten-cfn-reference';
 import type { IConstruct } from 'constructs';
 
 /** Construct metadata type under which every acknowledgement is recorded, as `{ [ruleId]: reason }`. */
@@ -21,6 +23,12 @@ export const ACKNOWLEDGED_RULES_METADATA_KEY = 'soundcheck:acknowledged-rules';
 export interface NagSuppression {
   readonly rule: string;
   readonly reason: string;
+}
+
+function requireReason(scope: IConstruct, rule: string, reason: string): void {
+  if (reason.trim().length < 10) {
+    throw new Error(`cdk-nag suppression ${rule} on ${scope.node.path} needs a real reason`);
+  }
 }
 
 /** Records an acknowledgement on a construct; it covers the construct and everything under it. */
@@ -47,17 +55,31 @@ function isAcknowledged(resource: IConstruct, ruleId: string): boolean {
  */
 export function suppress(scope: IConstruct, ...suppressions: NagSuppression[]): void {
   for (const { rule, reason } of suppressions) {
-    if (reason.trim().length < 10) {
-      throw new Error(`cdk-nag suppression ${rule} on ${scope.node.path} needs a real reason`);
-    }
+    requireReason(scope, rule, reason);
     acknowledge(scope, `AwsSolutions-${rule}`, reason);
   }
+}
+
+/** Wildcard resources recorded by `suppressWildcardResources`, per construct, until validation. */
+const pendingWildcards = new WeakMap<IConstruct, { resources: string[]; reason: string }[]>();
+
+/**
+ * Acknowledges IAM5 ("wildcard permissions") for specific wildcard resources, such as an object prefix
+ * `arn:…:<bucket>/uploads/*`. cdk-nag names each finding by the resource's text, and when the bucket is
+ * in another stack that text (an `Fn::ImportValue` export name) exists only once CDK has resolved the
+ * cross-stack references, late in the synth. So the resource is recorded here, and `SoundcheckNagChecks`
+ * acknowledges it just before checking, when its text is known.
+ */
+export function suppressWildcardResources(scope: IConstruct, resources: string[], reason: string): void {
+  requireReason(scope, 'IAM5', reason);
+  pendingWildcards.set(scope, [...(pendingWildcards.get(scope) ?? []), { resources, reason }]);
 }
 
 /**
  * cdk-nag's AwsSolutions rules as a CDK policy-validation plugin: CDK runs it once the templates are
  * synthesised (cross-stack references resolved), and every finding (error or warning level) that is not
- * acknowledged is a violation, which fails the synth. `validateScope` runs the same checks directly (tests).
+ * acknowledged is a violation, which fails the synth. It first acknowledges the wildcard resources
+ * recorded above. `validateScope` runs the same checks directly (tests).
  */
 export class SoundcheckNagChecks extends AwsSolutionsChecks implements IPolicyValidationPluginBeta1 {
   readonly name = 'AwsSolutions';
@@ -80,6 +102,16 @@ export class SoundcheckNagChecks extends AwsSolutionsChecks implements IPolicyVa
   }
 
   validateScope(scope: IConstruct): PolicyValidationPluginReportBeta1 {
+    for (const construct of scope.node.findAll()) {
+      for (const { resources, reason } of pendingWildcards.get(construct) ?? []) {
+        for (const resource of resources) {
+          const text = flattenCfnReference(Stack.of(construct).resolve(resource));
+          acknowledge(construct, `AwsSolutions-IAM5[Resource::${text}]`, reason);
+        }
+      }
+      pendingWildcards.delete(construct);
+    }
+
     this.violations = [];
     for (const construct of scope.node.findAll()) {
       this.visit(construct);

@@ -10,7 +10,7 @@ import type { Node } from 'constructs';
  */
 export const REGION = 'eu-north-1';
 
-/** The two availability zones the VPC uses. Given explicitly so synth never needs an AWS lookup. */
+/** The availability zones the stacks may use (the VPC takes both). Fixed so synth never looks them up. */
 export const AVAILABILITY_ZONES = [`${REGION}a`, `${REGION}b`];
 
 /**
