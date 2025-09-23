@@ -13,13 +13,6 @@ export class ComputeStack extends SoundcheckStack {
   }
 }
 
-/** CloudFront, the internal ALB and both buckets. */
-export class EdgeStack extends SoundcheckStack {
-  constructor(scope: Construct, id: string, props: SoundcheckStackProps) {
-    super(scope, id, props);
-  }
-}
-
 /** SNS topic, CloudWatch alarms and dashboard. */
 export class ObservabilityStack extends SoundcheckStack {
   constructor(scope: Construct, id: string, props: SoundcheckStackProps) {

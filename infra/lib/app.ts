@@ -2,9 +2,10 @@ import { App } from 'aws-cdk-lib';
 
 import { readConfig, REGION } from './config';
 import { DataStack } from './data-stack';
+import { EdgeStack } from './edge-stack';
 import { SoundcheckNagChecks } from './nag';
 import { NetworkStack } from './network-stack';
-import { ComputeStack, EdgeStack, ObservabilityStack } from './stacks';
+import { ComputeStack, ObservabilityStack } from './stacks';
 
 /** Stack ids, in deploy order (scripts address stacks by these names). */
 export const STACK_NAMES = [
@@ -35,7 +36,7 @@ export function createSoundcheckApp(options: SoundcheckAppOptions): App {
 
   const network = new NetworkStack(app, 'SoundcheckNetwork', props);
   const data = new DataStack(app, 'SoundcheckData', { ...props, vpc: network.vpc, dbSg: network.dbSg });
-  const edge = new EdgeStack(app, 'SoundcheckEdge', props);
+  const edge = new EdgeStack(app, 'SoundcheckEdge', { ...props, vpc: network.vpc, albSg: network.albSg });
   const compute = new ComputeStack(app, 'SoundcheckCompute', props);
   const observability = new ObservabilityStack(app, 'SoundcheckObservability', props);
 

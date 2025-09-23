@@ -6,6 +6,7 @@
   },
   "context": {
     "@aws-cdk/core:newStyleStackSynthesis": true,
+    "@aws-cdk/core:defaultCrossStackReferences": "strong",
     "env": "demo",
     "cloudFrontPrefixListId": "pl-fab65393",
     "apiCpu": 512,
