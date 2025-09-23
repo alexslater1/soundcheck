@@ -5,8 +5,8 @@
   "description": "AWS CDK stacks for Soundcheck",
   "scripts": {
     "build": "tsc --noEmit",
-    "test": "jest --ci",
-    "synth": "cdk synth --quiet",
+    "test": "jest --ci --maxWorkers=2",
+    "synth": "env -u AWS_PROFILE -u AWS_ACCESS_KEY_ID -u AWS_SECRET_ACCESS_KEY -u AWS_SESSION_TOKEN AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null AWS_EC2_METADATA_DISABLED=true CDK_DEFAULT_ACCOUNT=000000000000 cdk synth --quiet --no-notices -c imageTag=ci",
     "cdk": "cdk"
   },
   "devDependencies": {

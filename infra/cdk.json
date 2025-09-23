@@ -5,6 +5,19 @@
     "exclude": ["README.md", "cdk*.json", "**/*.d.ts", "**/*.js", "tsconfig.json", "package*.json", "node_modules", "test"]
   },
   "context": {
-    "@aws-cdk/core:newStyleStackSynthesis": true
+    "@aws-cdk/core:newStyleStackSynthesis": true,
+    "@aws-cdk/core:defaultCrossStackReferences": "strong",
+    "env": "demo",
+    "cloudFrontPrefixListId": "pl-fab65393",
+    "apiCpu": 512,
+    "apiMemoryMiB": 1024,
+    "apiMinTasks": 1,
+    "apiMaxTasks": 2,
+    "workerMinTasks": 0,
+    "workerMaxTasks": 2,
+    "pushEnabled": false,
+    "otlpEnabled": false,
+    "ingestionMode": "live",
+    "setlistBackfill": true
   }
 }
