@@ -1,12 +1,7 @@
 #!/usr/bin/env node
 import { createSoundcheckApp } from '../lib/app';
 
-// Synth works without credentials: account/region come from the CDK CLI environment when deploying
-// and from these placeholders otherwise (eu-west-2). Deploying needs the owner's go-ahead.
-createSoundcheckApp({
-  env: {
-    account: process.env.CDK_DEFAULT_ACCOUNT ?? '000000000000',
-    region: process.env.CDK_DEFAULT_REGION ?? 'eu-west-2',
-  },
-  environmentName: process.env.SOUNDCHECK_ENV ?? 'demo',
-});
+// Synth works offline: the account comes from the CDK CLI when deploying and is a placeholder otherwise.
+// The region is fixed (eu-north-1, `lib/config.ts`). Context (cdk.json defaults, `-c` overrides) is read
+// by the App itself.
+createSoundcheckApp({ account: process.env.CDK_DEFAULT_ACCOUNT ?? '000000000000' });

@@ -1,50 +1,48 @@
-import { App, AppProps, Aspects, Environment } from 'aws-cdk-lib';
-import { AwsSolutionsChecks } from 'cdk-nag';
+import { App } from 'aws-cdk-lib';
 
-import {
-  CiStack,
-  ComputeStack,
-  DataStack,
-  EdgeStack,
-  NetworkStack,
-  ObservabilityStack,
-} from './stacks';
+import { readConfig, REGION } from './config';
+import { SoundcheckNagChecks } from './nag';
+import { NetworkStack } from './network-stack';
+import { ComputeStack, DataStack, EdgeStack, ObservabilityStack } from './stacks';
 
+/** Stack ids, in deploy order (scripts address stacks by these names). */
 export const STACK_NAMES = [
   'SoundcheckNetwork',
   'SoundcheckData',
-  'SoundcheckCompute',
   'SoundcheckEdge',
+  'SoundcheckCompute',
   'SoundcheckObservability',
-  'SoundcheckCi',
 ] as const;
 
-export interface SoundcheckAppOptions extends AppProps {
-  readonly env: Environment;
-  readonly environmentName?: string;
+export interface SoundcheckAppOptions {
+  /** AWS account id; `000000000000` offline (tests, CI). */
+  readonly account: string;
+  /** CDK context; the CLI passes cdk.json and `-c` values itself, tests pass them here. */
+  readonly context?: Record<string, unknown>;
+  readonly outdir?: string;
 }
 
 /**
  * Builds the whole app so `bin/soundcheck.ts` and the tests construct exactly the same stacks.
- * cdk-nag's AwsSolutions checks run as an aspect: their findings are errors on the construct tree, which
- * fail the CLI's synth; suppressions must carry a reason.
+ * cdk-nag's AwsSolutions checks run as a CDK policy-validation plugin: an unacknowledged finding fails
+ * the synth, and every acknowledgement carries a reason (`lib/nag.ts`).
  */
 export function createSoundcheckApp(options: SoundcheckAppOptions): App {
-  const app = new App(options);
-  const props = { env: options.env, environmentName: options.environmentName ?? 'demo' };
+  const app = new App({ context: options.context, outdir: options.outdir });
+  const config = readConfig(app.node);
+  const props = { env: { account: options.account, region: REGION }, config };
 
-  const network = new NetworkStack(app, STACK_NAMES[0], props);
-  const data = new DataStack(app, STACK_NAMES[1], props);
-  const compute = new ComputeStack(app, STACK_NAMES[2], props);
-  const edge = new EdgeStack(app, STACK_NAMES[3], props);
-  const observability = new ObservabilityStack(app, STACK_NAMES[4], props);
-  new CiStack(app, STACK_NAMES[5], props);
+  const network = new NetworkStack(app, 'SoundcheckNetwork', props);
+  const data = new DataStack(app, 'SoundcheckData', props);
+  const edge = new EdgeStack(app, 'SoundcheckEdge', props);
+  const compute = new ComputeStack(app, 'SoundcheckCompute', props);
+  const observability = new ObservabilityStack(app, 'SoundcheckObservability', props);
 
   data.addDependency(network);
-  compute.addDependency(data);
-  edge.addDependency(compute);
+  edge.addDependency(data);
+  compute.addDependency(edge);
   observability.addDependency(compute);
 
-  Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }));
+  app.policyValidationBeta1.push(new SoundcheckNagChecks(app, { verbose: true }));
   return app;
 }
