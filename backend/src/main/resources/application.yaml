@@ -154,13 +154,20 @@ management:
       service.name: soundcheck
       deployment.environment: ${SOUNDCHECK_ENV:local}
   otlp:
+    # OTLP_ENABLED switches all three exports (traces here, logs and metrics below) together. On by
+    # default: the local lgtm container collects them. Off on AWS unless a collector is configured.
     tracing:
+      export:
+        enabled: ${OTLP_ENABLED:true}
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
     # Log events, bridged from Logback by OpenTelemetryLogAppender: to Loki locally.
     logging:
+      export:
+        enabled: ${OTLP_ENABLED:true}
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/logs
     metrics:
       export:
+        enabled: ${OTLP_ENABLED:true}
         url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
         step: 15s
 

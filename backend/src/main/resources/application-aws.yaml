@@ -1,4 +1,9 @@
 # Profile `aws`: ECS Fargate tasks. Values come from task environment and Secrets Manager.
+spring:
+  datasource:
+    # No default: a task without DB_URL stops at startup with "Could not resolve placeholder 'DB_URL'"
+    # instead of trying the local database. The same for the bucket, queue and public URL below.
+    url: ${DB_URL}
 soundcheck:
   cors:
     allowed-origins: ""   # same origin behind CloudFront: no CORS at all
@@ -6,6 +11,15 @@ soundcheck:
     endpoint: ""          # real S3 (task role, virtual-host style) — never the LocalStack default
     access-key: ""
     secret-key: ""
+    bucket: ${S3_BUCKET}
+  queue:
+    url: ${SQS_QUEUE_URL}
+  media:
+    public-base-url: ${PUBLIC_BASE_URL}
+  edge:
+    # CloudFront → internal ALB: the hop Tomcat sees is a CloudFront edge, so the viewer's address comes
+    # from this header, which CloudFront sets itself (ViewerAddressFilter).
+    viewer-address-header: CloudFront-Viewer-Address
 management:
   endpoint:
     health:
@@ -13,6 +27,24 @@ management:
   tracing:
     sampling:
       probability: ${TRACING_SAMPLE_PROBABILITY:0.1}
+  otlp:
+    # Telemetry export is off on AWS unless the task sets OTLP_ENABLED=true (with the Grafana Cloud
+    # endpoint and its Authorization header from the app secret).
+    tracing:
+      export:
+        enabled: ${OTLP_ENABLED:false}
+      headers:
+        "[Authorization]": ${OTLP_AUTHORIZATION:}
+    logging:
+      export:
+        enabled: ${OTLP_ENABLED:false}
+      headers:
+        "[Authorization]": ${OTLP_AUTHORIZATION:}
+    metrics:
+      export:
+        enabled: ${OTLP_ENABLED:false}
+        headers:
+          "[Authorization]": ${OTLP_AUTHORIZATION:}
 springdoc:
   swagger-ui:
     enabled: false
