@@ -51,8 +51,10 @@ say() { echo "$*" >&2; }
 dry() { [[ ${DRY_RUN:-} == 1 ]]; }
 offline() { [[ -n ${AWS_OUTPUTS_FILE:-} ]]; }
 
-if offline && ! dry; then
-  die "AWS_OUTPUTS_FILE is for dry runs only: set DRY_RUN=1 too"
+if offline; then
+  dry || die "AWS_OUTPUTS_FILE is for dry runs only: set DRY_RUN=1 too"
+  AWS_OUTPUTS_FILE=$(realpath "$AWS_OUTPUTS_FILE") # scripts may cd (infra/, lab/)
+  export AWS_OUTPUTS_FILE
 fi
 
 # The command as one readable line: plain words as they are, anything else in single quotes.
