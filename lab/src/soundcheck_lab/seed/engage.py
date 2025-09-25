@@ -10,10 +10,11 @@ whether they went to that gig."""
 from __future__ import annotations
 
 import os
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
+from urllib.parse import urlparse
 
 from soundcheck_lab import events as ev
 from soundcheck_lab.seed.api import Api
@@ -82,11 +83,13 @@ def engage(api: Api, people: Sequence[Persona], log: Log, sessions: int = 2, pag
 @dataclass(frozen=True)
 class Report:
     feed_sizes: dict[str, int]
-    posts: int
-    posts_with_stats: int
+    posts: int | None  # None: the database wasn't reachable (a remote API)
+    posts_with_stats: int | None
 
     @property
-    def stats_share(self) -> float:
+    def stats_share(self) -> float | None:
+        if self.posts is None or self.posts_with_stats is None:
+            return None
         return self.posts_with_stats / self.posts if self.posts else 0.0
 
 
@@ -127,14 +130,34 @@ def post_stats_share() -> tuple[int, int]:
     return (int(row[0]), int(row[1])) if row else (0, 0)
 
 
-def report(api: Api, people: Sequence[Persona], log: Log) -> Report:
+LOCAL_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def database_reachable(api_url: str, environ: Mapping[str, str] = os.environ) -> bool:
+    """The post_stats figure is read from the database itself: there on the local stack, or
+    wherever DB_HOST points. A remote API's database (on AWS, in a private subnet) is not."""
+    host = urlparse(api_url).hostname or ""
+    return bool(environ.get("DB_HOST")) or host in LOCAL_HOSTS
+
+
+def report(
+    api: Api,
+    people: Sequence[Persona],
+    log: Log,
+    api_url: str = "http://localhost:8088",
+    stats: Callable[[], tuple[int, int]] = post_stats_share,
+    environ: Mapping[str, str] = os.environ,
+) -> Report:
     sizes = {p.handle: feed_size(api, p) for p in people}
-    posts, with_stats = post_stats_share()
     short = [h for h, n in sizes.items() if n < 30]
     log(
         f"For You: {sum(n >= 30 for n in sizes.values())}/{len(sizes)} personas have ≥ 30 items"
         + (f" (short: {', '.join(f'{h} {sizes[h]}' for h in short)})" if short else "")
     )
+    if not database_reachable(api_url, environ):
+        log("post_stats: n/a (remote)")
+        return Report(sizes, None, None)
+    posts, with_stats = stats()
     log(
         f"post_stats: {with_stats}/{posts} published posts have engagement "
         f"({100 * with_stats / posts if posts else 0:.0f} %; the target is ≥ 70 %)"
