@@ -30,6 +30,7 @@ app/.expo/
 app/dist/
 app/web-build/
 app/android/
+app/build/
 app/ios/
 app/coverage/
 app/test-results/
