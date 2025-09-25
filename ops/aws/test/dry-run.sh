@@ -45,7 +45,10 @@ done
 touch "$tmp/called"
 
 # ── a full set of settings, every secret a recognisable sentinel ─────────────────────────────────
-export PATH="$tmp/bin:$PATH"
+# Even with a live sign-in on this machine, nothing here can reach AWS: the tools are stubs, and the
+# AWS CLI and SDK configuration is hidden as well, in case a real one were ever found on PATH.
+export PATH="$tmp/bin:$PATH" AWS_CONFIG_FILE=/dev/null AWS_SHARED_CREDENTIALS_FILE=/dev/null AWS_EC2_METADATA_DISABLED=true
+unset AWS_PROFILE
 export SECRETS_DIR="$tmp/secrets" AWS_LOCAL="$tmp/local" SOUNDCHECK_ENV=demo
 export TICKETMASTER_API_KEY=tm-SENTINEL-1111 LASTFM_API_KEY=lfm-SENTINEL-2222 SETLISTFM_API_KEY=sfm-SENTINEL-3333
 export SOUNDCHECK_ADMIN_EMAIL=admin@local.test SOUNDCHECK_ADMIN_PASSWORD=local-SENTINEL-4444
@@ -280,9 +283,14 @@ pass "aws-secrets: the JSON holds the expected keys, the AWS-only admin password
 YES=1 PATH="$stub:$PATH" "$SCRIPTS/secrets.sh" >"$tmp/secret2.out" 2>&1 || fail "secrets rerun"
 contains "$tmp/secret2.out" "unchanged: nothing written" "secret unchanged"
 ! grep -q put-secret-value "$tmp/aws-args" || fail "an unchanged secret was written"
-LASTFM_API_KEY=lfm-SENTINEL-changed YES=1 PATH="$stub:$PATH" "$SCRIPTS/secrets.sh" >"$tmp/secret3.out" 2>&1 || fail "secrets change"
+# A changed key, and the Grafana header as .env usually has it: unquoted, with a space ("Basic <base64>"),
+# exported whole by make's include (a shell `source .env` would cut it at the space).
+LASTFM_API_KEY=lfm-SENTINEL-changed GRAFANA_OTLP_AUTHORIZATION='Basic U0VOVElORUwtOTk5OQ==' YES=1 PATH="$stub:$PATH" \
+  "$SCRIPTS/secrets.sh" >"$tmp/secret3.out" 2>&1 || fail "secrets change"
 grep -q 'put-secret-value .*--secret-string file:///dev/stdin' "$tmp/aws-args" || fail "a changed secret must be put"
 [[ $(jq -r .LASTFM_API_KEY "$json") == lfm-SENTINEL-changed ]] || fail "the changed value"
-pass "aws-secrets: unchanged content is not written again; a change is put as a new version"
+[[ $(jq -r .OTLP_AUTHORIZATION "$json") == 'Basic U0VOVElORUwtOTk5OQ==' ]] || fail "a value with a space must survive whole"
+lacks "$tmp/secret3.out" "U0VOVElORUwtOTk5OQ" "the OTLP header in the output"
+pass "aws-secrets: unchanged content is not written again; a change is put as a new version; a value with a space stays whole"
 
 echo "dry-run test: $passed checks passed"
