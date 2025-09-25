@@ -28,6 +28,9 @@ fi
 
 confirm "Deploy Soundcheck '$SOUNDCHECK_ENV' at commit $TAG to account ${account:-<account>} ($AWS_REGION).
 Billable: about \$60 a month while it runs (list prices, README \"Running on AWS\"); make aws-pause stops most of it."
+# One question per command: the steps below (the secret's first creation) don't ask again. CDK still
+# asks before widening access unless YES=1 was given on the command line (APPROVAL, above).
+export YES=1
 
 # cdk deploy of exactly these stacks, with the context of this deploy; their outputs are merged into
 # .localdata/aws/outputs.json (the same format as ops/aws/test/outputs.json).
