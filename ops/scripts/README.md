@@ -6,7 +6,7 @@ Operational scripts, mostly run through `make` (the target in brackets).
 - `check-fixture-secrets.sh` — fails if a secret value from `.env` appears in `fixtures/` (or the given paths); prints only names.
 - `purge-synthetic.sql` — removes the synthetic fixture gigs, venues and artists from the local database (`make purge-fixtures`).
 - `make_clips.py` — synthetic test clips with FFmpeg (`make clips`; `--demo` writes the 150-clip demo set to `fixtures/clips/demo/`).
-- `check-media-delivery.sh` — checks a READY clip is served through the local edge the way CloudFront will serve it.
+- `check-media-delivery.sh` — checks a READY clip is served through the local edge the way CloudFront will serve it; `make aws-smoke` runs it through CloudFront too, where writes get 403 instead of 405.
 - `prune-local.sh` — marks as deleted the posts whose clip files LocalStack lost (`make prune-local`).
 - `prune-test-posts.sh` — soft-deletes the posts of `@example.com` test accounts, which the e2e journeys leave in the shared database (dry run; `--apply`; `make prune-test-posts`, and run by `make e2e` afterwards).
 - `make_icons.py` — draws the app icon, Android adaptive layers, favicon, splash images and the in-app mark from the mic-check mark (plain Python, signed-distance shapes); `--candidates DIR` draws every candidate mark (`docs/screens/logo/`).
