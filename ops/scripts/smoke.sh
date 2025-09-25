@@ -94,9 +94,13 @@ problem() {
   jq -r '[.code // empty, .detail // .title // empty] | join(": ")' "$WORK/body" 2>/dev/null | head -c 200 || true
 }
 
+# expect "<codes>" <got>: <codes> is one status or several separated by spaces.
 expect() {
-  local want="$1" got="$2"
-  [ "$got" = "$want" ] || fail "HTTP $got (expected $want) $(problem)"
+  local want="$1" got="$2" code
+  for code in $want; do
+    [ "$got" != "$code" ] || return 0
+  done
+  fail "HTTP $got (expected $want) $(problem)"
 }
 
 # S3 answers errors as XML; only its <Code>, since the rest can echo the signature and credential.
@@ -133,7 +137,9 @@ HANDLE="smoke_${EPOCH}"
 PASSWORD="$(openssl rand -hex 16)"
 code="$(api POST /api/v1/auth/register "$(jq -cn --arg e "$EMAIL" --arg h "$HANDLE" --arg p "$PASSWORD" \
   '{email: $e, handle: $h, displayName: "Smoke test", password: $p}')")"
-expect 200 "$code"
+# The controllers answer 201 here, 202 for complete and delete; contracts/openapi.json lists 200 for all
+# four (springdoc doesn't see a ResponseEntity's status), so both are accepted.
+expect "200 201" "$code"
 TOKEN="$(jq -r .accessToken "$WORK/body")"
 ACCOUNT_LIVE=1
 ok "$EMAIL"
@@ -167,7 +173,7 @@ ok "$BYTES bytes"
 begin upload
 code="$(api POST /api/v1/media/uploads "$(jq -cn --argjson b "$BYTES" --argjson d "$((CLIP_SECONDS * 1000))" \
   '{kind: "VIDEO", contentType: "video/mp4", bytes: $b, durationMs: $d, width: 1280, height: 720}')")"
-expect 200 "$code"
+expect "200 201" "$code"
 cp "$WORK/body" "$WORK/ticket.json"
 MEDIA_ID="$(jq -r .mediaId "$WORK/ticket.json")"
 STRATEGY="$(jq -r .strategy "$WORK/ticket.json")"
@@ -194,7 +200,7 @@ else
   complete="$(jq -cn --argjson p "$parts" '{parts: $p}')"
 fi
 code="$(api POST "/api/v1/media/uploads/$MEDIA_ID/complete" "$complete")"
-expect 200 "$code"
+expect "200 202" "$code"
 ok "$STRATEGY, media $MEDIA_ID"
 
 # 7 ── wait for the worker ───────────────────────────────────────────────────────────────────────────
@@ -227,7 +233,7 @@ if [ "$EXPECT_SIGNED" = 1 ]; then
   begin signed-headers
   code="$(api POST /api/v1/media/uploads "$(jq -cn --argjson b "$BYTES" \
     '{kind: "VIDEO", contentType: "video/mp4", bytes: $b, durationMs: 3000, width: 1280, height: 720}')")"
-  expect 200 "$code"
+  expect "200 201" "$code"
   cp "$WORK/body" "$WORK/ticket2.json"
   [ "$(jq -r .strategy "$WORK/ticket2.json")" = SINGLE ] || fail "expected a single-PUT ticket"
   put="$(curl -sS -o "$WORK/put-body" -w '%{http_code}' --max-time 120 -H 'Expect:' \
@@ -244,10 +250,8 @@ fi
 # 10 ── delete the account ───────────────────────────────────────────────────────────────────────────
 begin delete-account
 code="$(api DELETE /api/v1/me "$(jq -cn --arg p "$PASSWORD" '{password: $p}')")"
-case "$code" in
-  200 | 204) ACCOUNT_LIVE=0 ;;
-  *) fail "HTTP $code $(problem)" ;;
-esac
+expect "200 202" "$code"
+ACCOUNT_LIVE=0
 ok
 
 echo "smoke: passed in $(($(now_ms) - RUN_START)) ms"

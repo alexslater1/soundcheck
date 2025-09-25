@@ -62,6 +62,13 @@ teardown() {
   exit "$status"
 }
 
+# The worker's job lines (structured JSON logs), with their UTC times.
+worker_events() {
+  "${COMPOSE[@]}" logs --no-color --no-log-prefix worker 2>/dev/null |
+    jq -Rr 'fromjson? | select(.message | test("^transcode (started|released|ready|failed|rejected)"))
+      | "\(.["@timestamp"][11:23])Z  worker: \(.message)"'
+}
+
 # Seconds until URL answers 200, or fail after LIMIT seconds.
 wait_ready() {
   local url="$1" limit="$2" start
@@ -93,6 +100,7 @@ curl -sf -o /dev/null http://localhost:4566/_localstack/health || {
   exit 2
 }
 trap teardown EXIT
+trap 'exit 130' INT TERM # so a timeout or Ctrl-C still tears down
 
 # ── LocalStack: our own bucket and queues (settings as ops/localstack/init/ready.d/10-resources.sh) ──
 log "LocalStack: bucket $BUCKET, queues $QUEUE and $DLQ ($REGION)"
@@ -121,13 +129,13 @@ fi
 
 # ── Start: database, then the API (it migrates), then the worker (no Flyway) ─────────────────────
 log "starting db"
-"${COMPOSE[@]}" up -d --wait db >/dev/null
+"${COMPOSE[@]}" up -d --wait db >/dev/null 2>&1
 log "starting api (Flyway migrates the empty database)"
-"${COMPOSE[@]}" up -d --no-deps api >/dev/null
+"${COMPOSE[@]}" up -d --no-deps api >/dev/null 2>&1
 api_s="$(wait_ready "$API/actuator/health/readiness" 300)"
 log "api ready in ${api_s}s"
 log "starting worker"
-"${COMPOSE[@]}" up -d --no-deps worker >/dev/null
+"${COMPOSE[@]}" up -d --no-deps worker >/dev/null 2>&1
 worker_s="$(wait_ready "$WORKER/actuator/health/readiness" 180)"
 log "worker ready in ${worker_s}s"
 
@@ -148,6 +156,7 @@ log "both run as uid 10001 with a read-only root and a writable /tmp; worker: $f
 if [ "$RESTART" = 0 ]; then
   log "smoke"
   "$ROOT/ops/scripts/smoke.sh" "$API"
+  worker_events
 else
   log "smoke with a 30 s clip; the worker is restarted while it transcodes"
   SMOKE_CLIP_SECONDS=30 SMOKE_READY_TIMEOUT=300 "$ROOT/ops/scripts/smoke.sh" "$API" >"$WORK/smoke.out" 2>&1 &
@@ -160,15 +169,14 @@ else
   done
   log "the worker started the job; restarting the worker container"
   restart_start="$(date +%s)"
-  "${COMPOSE[@]}" restart --timeout 120 worker >/dev/null
+  "${COMPOSE[@]}" restart --timeout 120 worker >/dev/null 2>&1
   log "worker stopped and started again in $(($(date +%s) - restart_start))s"
   wait_ready "$WORKER/actuator/health/readiness" 180 >/dev/null
   smoke_status=0
   wait "$smoke_pid" || smoke_status=$?
   cat "$WORK/smoke.out"
-  "${COMPOSE[@]}" logs --no-color worker 2>/dev/null |
-    grep -oE 'transcode (started|released on shutdown|ready)[^"]*' || true
-  "${COMPOSE[@]}" logs --no-color worker 2>/dev/null | grep -q 'transcode released on shutdown' || {
+  worker_events
+  worker_events | grep -q 'transcode released on shutdown' || {
     log "FAIL: the worker did not release the job on shutdown"
     exit 1
   }
