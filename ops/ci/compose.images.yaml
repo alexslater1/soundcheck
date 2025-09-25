@@ -90,6 +90,10 @@ services:
   worker:
     <<: *task
     image: soundcheck-worker:local
+    # Two cores, as the Fargate worker's 2 vCPU. x264 starts threads per core it sees: with all 20 of the
+    # laptop's, one 30 s 720p transcode peaked at 628 MB on its own (2 cores: 310 MB), and with the JVM
+    # the 1 GB limit killed FFmpeg (exit 137, 2025-09-25).
+    cpuset: "0-1"
     environment:
       <<: *task-env
       SOUNDCHECK_ROLES: worker
