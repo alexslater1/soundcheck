@@ -214,7 +214,12 @@ contains "$tmp/no.out" "stopped" "a refused confirm"
 printf 'demo\n' | DRY_RUN=1 AWS_OUTPUTS_FILE="$HERE/outputs.json" "$SCRIPTS/pause.sh" >"$tmp/yes.out" 2>&1 ||
   fail "pause stopped although the env name was typed"
 contains "$tmp/yes.out" "+ aws rds stop-db-instance" "a confirmed pause"
-pass "confirm: goes ahead only when the env name is typed"
+printf 'demo\n' | DRY_RUN=1 AWS_OUTPUTS_FILE="$HERE/outputs.json" "$SCRIPTS/deploy.sh" >"$tmp/asked.out" 2>&1 ||
+  fail "deploy stopped although the env name was typed"
+[[ $(grep -c "Type 'demo'" "$tmp/asked.out") == 1 ]] || fail "aws-deploy must ask exactly once"
+[[ $(grep -c '^+ npx cdk deploy .*--require-approval broadening' "$tmp/asked.out") == 2 ]] ||
+  fail "without YES=1, CDK must still ask before widening access"
+pass "confirm: goes ahead only when the env name is typed; aws-deploy asks once and CDK still asks before widening access"
 if printf 'demo\ndemo\n' | DRY_RUN=1 AWS_OUTPUTS_FILE="$HERE/outputs.json" "$SCRIPTS/destroy.sh" >"$tmp/d2.out" 2>&1; then
   fail "destroy went ahead on the second question without 'destroy demo'"
 fi
