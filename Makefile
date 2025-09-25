@@ -316,8 +316,24 @@ lab-loop: ## simulate (40 × 3 × 6) → extract → train → evaluate → publ
 load: ## Run a k6 scenario (SCENARIO=feed|gigs|events|upload|mixed, PROFILE=medium)
 	$(call not_yet,load)
 
-images: ## Build the api, worker and lab container images
-	$(call not_yet,images)
+# Container images. The jar is built here on the host, not inside `docker build`: compiling needs
+# Docker itself (jOOQ's code generation starts PostGIS with Testcontainers). The api and worker images only
+# layer that jar (context backend/build/docker: the jar alone); the lab image builds from the repository root
+# (.dockerignore lets in lab/ and contracts/ranking/ only). Tags: <12-char commit> and `local`. A tree with
+# uncommitted changes gets <commit>-dirty, so such an image is never mistaken for the commit (and never pushed).
+IMAGE_TAG = $(shell git -C $(CURDIR) rev-parse --short=12 HEAD)$(shell git -C $(CURDIR) diff --quiet HEAD -- 2>/dev/null && test -z "$$(git -C $(CURDIR) ls-files --others --exclude-standard)" || echo -dirty)
+images: ## Build the api, worker and lab container images (linux/amd64), tagged <commit> and local
+	$(GRADLE) --no-daemon "-Dorg.gradle.jvmargs=-Xmx1g" bootJar
+	jar=$$(ls $(CURDIR)/backend/build/libs/*.jar | grep -v -- '-plain\.jar$$')
+	mkdir -p $(CURDIR)/backend/build/docker
+	cp "$$jar" $(CURDIR)/backend/build/docker/app.jar
+	tag=$(IMAGE_TAG)
+	for image in api worker; do
+	  docker build --platform linux/amd64 -f $(CURDIR)/backend/Dockerfile.$$image \
+	    -t soundcheck-$$image:$$tag -t soundcheck-$$image:local $(CURDIR)/backend/build/docker
+	done
+	docker build --platform linux/amd64 -f $(CURDIR)/lab/Dockerfile -t soundcheck-lab:$$tag -t soundcheck-lab:local $(CURDIR)
+	docker image ls --format '{{.Repository}}:{{.Tag}}  {{.Size}}' | grep -E "^soundcheck-(api|worker|lab):$$tag "
 
 dlq-redrive: ## Move messages from the transcode DLQ back to the main queue
 	$(call not_yet,dlq-redrive)
