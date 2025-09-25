@@ -388,7 +388,7 @@ aws-backfill-past-gigs: ## The setlist.fm past-gigs backfill on AWS as a one-off
 aws-seed: ## seed-demo against the AWS site (SEED_ARGS="--no-real" for the from-empty run; asks)
 	$(MAKE) seed-demo TARGET=aws
 
-aws-pause: ## Cost brake: API and workers to 0, database stopped (about $$25 a month while paused; asks)
+aws-pause: ## Cost brake: API and workers to 0, database stopped (about $$22 a month while paused; asks)
 	$(CURDIR)/ops/aws/pause.sh
 
 aws-resume: ## Undo aws-pause: database, services, then aws-smoke (asks). Resume before any aws-deploy

@@ -124,7 +124,7 @@ in_order "$tmp/pause.out" "pause" \
   "--service SoundcheckCompute-WorkerService-Fixture --desired-count 0" \
   "+ aws ecs wait services-stable" \
   "+ aws rds stop-db-instance --db-instance-identifier soundcheck-demo-db" \
-  "about \$25 a month" \
+  "about \$22 a month" \
   "after 7 days"
 pass "aws-pause: scaling limits 0/0 and desired 0 for API and workers, wait, then the database stops"
 

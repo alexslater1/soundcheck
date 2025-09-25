@@ -15,7 +15,7 @@ worker_min=$(cdk_default workerMinTasks 0)
 worker_max=$(cdk_default workerMaxTasks 2)
 
 confirm "Resume Soundcheck '$SOUNDCHECK_ENV': start the database, API $api_min-$api_max tasks, workers $worker_min-$worker_max.
-Billable again: about \$60-70 a month while it runs (list prices)."
+Billable again: about \$60 a month while it runs (list prices)."
 
 status=$(ask aws rds describe-db-instances --db-instance-identifier "$db" \
   --query 'DBInstances[0].DBInstanceStatus' --output text) || status=""

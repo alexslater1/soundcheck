@@ -27,7 +27,7 @@ if stack_exists SoundcheckData && ! offline; then
 fi
 
 confirm "Deploy Soundcheck '$SOUNDCHECK_ENV' at commit $TAG to account ${account:-<account>} ($AWS_REGION).
-Billable: about \$60-70 a month while it runs (list prices, README \"Running on AWS\"); make aws-pause stops most of it."
+Billable: about \$60 a month while it runs (list prices, README \"Running on AWS\"); make aws-pause stops most of it."
 
 # cdk deploy of exactly these stacks, with the context of this deploy; their outputs are merged into
 # .localdata/aws/outputs.json (the same format as ops/aws/test/outputs.json).

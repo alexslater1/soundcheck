@@ -13,7 +13,7 @@ db=$(out SoundcheckData DbInstanceId)
 
 confirm "Pause Soundcheck '$SOUNDCHECK_ENV': API and workers to 0 tasks, then stop the database.
 The site answers 503 until make aws-resume. A transcode in progress is put back on the queue.
-While paused it still costs about \$25 a month (the ALB, storage, public IPv4 and secrets; list prices)."
+While paused it still costs about \$22 a month (the ALB, database storage, secrets and alarms; list prices)."
 
 for service in "$api" "$worker"; do
   run aws application-autoscaling register-scalable-target --service-namespace ecs \
@@ -34,6 +34,6 @@ else
 fi
 
 say ""
-say "Paused. Still billed while paused: about \$25 a month (list prices)."
+say "Paused. Still billed while paused: about \$22 a month (list prices)."
 say "AWS starts a stopped database again by itself after 7 days: run make aws-pause again then."
 say "Resume with make aws-resume, and resume before any make aws-deploy."
