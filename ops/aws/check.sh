@@ -36,7 +36,7 @@ fi
 if ((signed_in)); then
   say ""
   say "CDK bootstrap"
-  if status=$(try_aws aws cloudformation describe-stacks --stack-name CDKToolkit --query 'Stacks[0].StackStatus' --output text 2>/dev/null); then
+  if status=$(try_aws aws cloudformation describe-stacks --stack-name CDKToolkit --query 'Stacks[0].StackStatus' --output text); then
     say "  CDKToolkit: $status"
   else
     [[ $? == 2 ]] || problem "CDKToolkit missing in $AWS_REGION: run make aws-bootstrap once"
