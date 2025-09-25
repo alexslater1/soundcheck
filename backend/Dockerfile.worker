@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+# The transcode worker image: the API image's jar and layout, plus FFmpeg. It runs with
+# SOUNDCHECK_ROLES=worker, SPRING_FLYWAY_ENABLED=false and no JWT key. The build context is
+# backend/build/docker, which holds only app.jar (`make images`).
+
+FROM eclipse-temurin:21-jre AS layers
+WORKDIR /x
+COPY app.jar app.jar
+RUN java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
+
+FROM eclipse-temurin:21-jre
+# FFmpeg and ffprobe from Ubuntu's archive (FfmpegCommands runs them from PATH), installed as root
+# before the switch to the non-root user.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+# Per-attempt work directories go under /tmp/soundcheck (WORKER_WORK_DIR): writable over a read-only root.
+RUN groupadd --system --gid 10001 soundcheck \
+    && useradd --system --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin soundcheck \
+    && mkdir -p /tmp/soundcheck \
+    && chown -R 10001:10001 /tmp
+WORKDIR /app
+COPY --from=layers /x/extracted/dependencies/ ./
+COPY --from=layers /x/extracted/spring-boot-loader/ ./
+COPY --from=layers /x/extracted/snapshot-dependencies/ ./
+COPY --from=layers /x/extracted/application/ ./
+USER 10001
+VOLUME /tmp
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+EXPOSE 8080
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]

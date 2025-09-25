@@ -90,6 +90,8 @@ soundcheck:
     # PUSH_ENABLED=true and its service account key (`docs/SETUP.md`, gitignored under .secrets/).
     enabled: ${PUSH_ENABLED:false}
     credentials-file: ${PUSH_CREDENTIALS_FILE:../.secrets/fcm-service-account.json}
+    # The same key's JSON as text (ECS injects secrets as environment variables). Wins over the file when set.
+    credentials-json: ${PUSH_CREDENTIALS_JSON:}
   rate-limit:
     # Auth limits (Bucket4j, per API instance).
     auth:
@@ -152,13 +154,20 @@ management:
       service.name: soundcheck
       deployment.environment: ${SOUNDCHECK_ENV:local}
   otlp:
+    # OTLP_ENABLED switches all three exports (traces here, logs and metrics below) together. On by
+    # default: the local lgtm container collects them. Off on AWS unless a collector is configured.
     tracing:
+      export:
+        enabled: ${OTLP_ENABLED:true}
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/traces
     # Log events, bridged from Logback by OpenTelemetryLogAppender: to Loki locally.
     logging:
+      export:
+        enabled: ${OTLP_ENABLED:true}
       endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/logs
     metrics:
       export:
+        enabled: ${OTLP_ENABLED:true}
         url: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318}/v1/metrics
         step: 15s
 

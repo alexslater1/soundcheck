@@ -104,12 +104,19 @@ services:
       retries: 10
 
   # ── Optional: run the backend in containers too (`docker compose --profile full up`) ──
-  # Images are defined in backend/Dockerfile.api and Dockerfile.worker.
+  # The AWS images: `make images` first, which builds the jar the build context holds. Like on
+  # ECS they run as uid 10001 on a read-only root with /tmp writable. Not run day to day, and not checked:
+  # presigned URLs name http://localstack:4566, which only the containers resolve, so uploads from the app
+  # on the host don't work this way. The checked container run is ops/ci/images-check.sh.
   api:
     profiles: ["full"]
+    image: soundcheck-api:local
     build:
-      context: backend
-      dockerfile: Dockerfile.api
+      context: backend/build/docker
+      dockerfile: ../../Dockerfile.api
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
     environment:
       SOUNDCHECK_ROLES: api,scheduler
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-soundcheck}
@@ -134,11 +141,17 @@ services:
 
   worker:
     profiles: ["full"]
+    image: soundcheck-worker:local
     build:
-      context: backend
-      dockerfile: Dockerfile.worker
+      context: backend/build/docker
+      dockerfile: ../../Dockerfile.worker
+    read_only: true
+    tmpfs:
+      - /tmp:uid=10001,gid=10001,mode=1777
     environment:
       SOUNDCHECK_ROLES: worker
+      # The API migrates; the worker never runs Flyway (as on ECS).
+      SPRING_FLYWAY_ENABLED: "false"
       DB_URL: jdbc:postgresql://db:5432/${DB_NAME:-soundcheck}
       DB_USER: ${DB_USER:-soundcheck}
       DB_PASSWORD: ${DB_PASSWORD:-soundcheck}
@@ -155,6 +168,8 @@ services:
         condition: service_healthy
       localstack:
         condition: service_healthy
+      api:
+        condition: service_started
 
 volumes:
   db-data:

@@ -25,7 +25,8 @@ import org.springframework.util.unit.DataSize;
  */
 class ConfigurationNeverPrintsSecretsTest {
 
-    private static final Pattern SECRET_NAME = Pattern.compile("(?i).*(password|secret|apikey|token|pem|accesskey).*");
+    private static final Pattern SECRET_NAME =
+            Pattern.compile("(?i).*(password|secret|apikey|token|pem|accesskey|credentialsjson).*");
     private static final String MARKER = "SECRET-VALUE-";
 
     private final Set<String> secretComponents = new TreeSet<>();
@@ -54,6 +55,7 @@ class ConfigurationNeverPrintsSecretsTest {
                         "AdminProperties.password",
                         "Jwt.privateKeyPem",
                         "Lastfm.apiKey",
+                        "PushProperties.credentialsJson",
                         "Setlistfm.apiKey",
                         "Ticketmaster.apiKey",
                         "StorageProperties.secretKey");

@@ -22,10 +22,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * because the email is in the JSON body.
  */
 @Component
-@Order(Ordered.HIGHEST_PRECEDENCE) // before the Spring Security chain (order -100)
+// Before the Spring Security chain (order -100); after ViewerAddressFilter (AWS: the viewer's address)
+// and the observation filter (+1), so a 429 carries the trace id, like RequestBodyLimitFilter's 413.
+@Order(AuthRateLimitFilter.ORDER)
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class AuthRateLimitFilter extends OncePerRequestFilter {
 
+    static final int ORDER = Ordered.HIGHEST_PRECEDENCE + 2;
     static final String PATH_PREFIX = "/api/v1/auth/";
 
     private final RateLimiter rateLimiter;

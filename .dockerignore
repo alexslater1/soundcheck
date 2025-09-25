@@ -1,0 +1,11 @@
+# Only lab/Dockerfile builds from the repository root (`make images`); the api and worker images build
+# from backend/build/docker, which holds only the jar. An allow-list: everything is left out of the
+# build context except what lab/Dockerfile copies, so .env, .secrets/, .localdata/, fixtures/clips/,
+# app/, backend/build/ and every node_modules/ never reach the Docker daemon.
+**
+!lab/pyproject.toml
+!lab/uv.lock
+!lab/README.md
+!lab/src/
+!contracts/ranking/
+**/__pycache__/

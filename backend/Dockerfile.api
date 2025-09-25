@@ -1,0 +1,31 @@
+# syntax=docker/dockerfile:1
+# The API image: the same image runs the API service (SOUNDCHECK_ROLES=api,scheduler) and the
+# one-off job task (cli). `make images` builds it from the boot jar Gradle built on the host, because the
+# build itself needs Docker (jOOQ's code generation starts PostGIS with Testcontainers). The build context
+# is backend/build/docker, which holds only app.jar.
+
+# Stage 1: split the layered jar into its four layers.
+FROM eclipse-temurin:21-jre AS layers
+WORKDIR /x
+COPY app.jar app.jar
+RUN java -Djarmode=tools -jar app.jar extract --layers --launcher --destination extracted
+
+# Stage 2: the layers, least often changed first, so a code change rebuilds and pushes only the last one.
+FROM eclipse-temurin:21-jre
+# A fixed non-root user. /tmp must be writable: ECS mounts a volume there over a read-only root
+# filesystem, and a new volume takes the owner of the image's directory, so the image chowns it.
+RUN groupadd --system --gid 10001 soundcheck \
+    && useradd --system --uid 10001 --gid 10001 --no-create-home --shell /usr/sbin/nologin soundcheck \
+    && mkdir -p /tmp/soundcheck \
+    && chown -R 10001:10001 /tmp
+WORKDIR /app
+COPY --from=layers /x/extracted/dependencies/ ./
+COPY --from=layers /x/extracted/spring-boot-loader/ ./
+COPY --from=layers /x/extracted/snapshot-dependencies/ ./
+COPY --from=layers /x/extracted/application/ ./
+USER 10001
+VOLUME /tmp
+# Heap from the task's memory, not the host's; an OutOfMemoryError ends the task so ECS replaces it.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError"
+EXPOSE 8080
+ENTRYPOINT ["java", "org.springframework.boot.loader.launch.JarLauncher"]
