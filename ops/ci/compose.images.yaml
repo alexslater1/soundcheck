@@ -1,0 +1,105 @@
+# The api and worker images run the real pipeline, shaped like their ECS tasks:
+# the `aws` profile, the ECS task environment, a read-only root filesystem with a
+# /tmp tmpfs, the non-root user, 1 GB each. Only the endpoints, bucket, queue and database are local:
+#   - a throwaway PostGIS of its own on 127.0.0.1:55490 (in memory, gone at `down`);
+#   - the shared LocalStack on 127.0.0.1:4566, but only the bucket and queues with a -images suffix, which
+#     ops/ci/images-check.sh creates before and deletes after.
+# Host networking: LocalStack publishes on 127.0.0.1 only, and the presigned URLs the API hands out must
+# work both inside the containers and for the smoke test on the host, so all of them use localhost.
+#
+# Run it only through ops/ci/images-check.sh (it supplies the throwaway JWT key and admin password and
+# tears everything down). By hand, always with its own project name:
+#   docker compose -p soundcheck-images -f ops/ci/compose.images.yaml ...
+# Never as the default project, whose database is the local stack's.
+name: soundcheck-images
+
+x-task-env: &task-env
+  SPRING_PROFILES_ACTIVE: aws
+  SOUNDCHECK_ENV: images-local
+  DB_URL: jdbc:postgresql://127.0.0.1:55490/soundcheck
+  DB_USER: soundcheck
+  DB_PASSWORD: soundcheck-images
+  S3_BUCKET: soundcheck-media-images
+  AWS_REGION: eu-north-1
+  SQS_QUEUE_URL: http://localhost:4566/000000000000/soundcheck-transcode-images
+  # Media URLs: LocalStack's path-style bucket URL stands in for CloudFront's /media/*.
+  PUBLIC_BASE_URL: http://localhost:4566/soundcheck-media-images
+  PUSH_ENABLED: "false"
+  OTLP_ENABLED: "false"
+  # Local stand-ins, not set on ECS: LocalStack instead of real S3/SQS (the aws profile blanks
+  # the endpoint, so these name the properties directly), and loopback-only ports.
+  SOUNDCHECK_STORAGE_ENDPOINT: http://localhost:4566
+  SOUNDCHECK_STORAGE_ACCESS_KEY: test
+  SOUNDCHECK_STORAGE_SECRET_KEY: test
+  SERVER_ADDRESS: 127.0.0.1
+  # The image's options plus a fixed heap, so two JVMs fit the laptop's budget.
+  JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Xmx768m
+
+x-task: &task
+  network_mode: host
+  read_only: true
+  tmpfs:
+    - /tmp:uid=10001,gid=10001,mode=1777
+  mem_limit: 1g
+  # ECS gives the worker 120 s to stop (stopTimeout); the same here, so a stop releases a running job.
+  stop_grace_period: 120s
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    command: ["postgres", "-c", "shared_preload_libraries=pg_stat_statements"]
+    environment:
+      POSTGRES_DB: soundcheck
+      POSTGRES_USER: soundcheck
+      POSTGRES_PASSWORD: soundcheck-images
+    ports:
+      - "127.0.0.1:55490:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    mem_limit: 512m
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soundcheck -d soundcheck"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    <<: *task
+    image: soundcheck-api:local
+    environment:
+      <<: *task-env
+      SOUNDCHECK_ROLES: api,scheduler
+      DB_POOL_SIZE: "10"
+      SQS_DLQ_URL: http://localhost:4566/000000000000/soundcheck-transcode-images-dlq
+      INGESTION_MODE: live
+      INGESTION_SETLISTFM_BACKFILL: "true"
+      MUSICBRAINZ_USER_AGENT: Soundcheck/0.1 (container image check)
+      # Secrets on ECS; throwaway values from images-check.sh here. No ingestion keys: nothing ingests at
+      # startup (the daily run is at 05:10 Europe/London).
+      JWT_PRIVATE_KEY_PEM: ${IMAGES_JWT_PRIVATE_KEY_PEM:?run ops/ci/images-check.sh}
+      SOUNDCHECK_ADMIN_EMAIL: admin@images.soundcheck.test
+      SOUNDCHECK_ADMIN_PASSWORD: ${IMAGES_ADMIN_PASSWORD:?run ops/ci/images-check.sh}
+      TICKETMASTER_API_KEY: ""
+      LASTFM_API_KEY: ""
+      SETLISTFM_API_KEY: ""
+      SERVER_PORT: "8190"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    <<: *task
+    image: soundcheck-worker:local
+    environment:
+      <<: *task-env
+      SOUNDCHECK_ROLES: worker
+      DB_POOL_SIZE: "5"
+      SPRING_FLYWAY_ENABLED: "false"
+      SPRING_MODULITH_EVENTS_REPUBLISH_OUTSTANDING_EVENTS_ON_RESTART: "false"
+      # No JWT key: the worker issues and accepts no tokens. The restart check shortens the grace
+      # a running job gets on shutdown (90 s by default), so the release-and-retry path shows in seconds.
+      SOUNDCHECK_WORKER_SHUTDOWN_GRACE: ${IMAGES_WORKER_SHUTDOWN_GRACE:-90s}
+      SERVER_PORT: "8191"
+    depends_on:
+      db:
+        condition: service_healthy
