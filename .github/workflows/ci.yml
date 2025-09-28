@@ -50,6 +50,8 @@ jobs:
               - '.github/workflows/ci.yml'
             infra:
               - 'infra/**'
+              - 'ops/aws/**'
+              - 'ops/scripts/check-media-delivery.sh'
               - '.github/workflows/ci.yml'
             e2e:
               - 'backend/**'
@@ -174,6 +176,11 @@ jobs:
         working-directory: infra
     steps:
       - uses: actions/checkout@v4
+      # shellcheck and the dry run of the make aws-* scripts against recorded outputs.
+      # No credentials and no AWS calls; the runner has shellcheck and jq.
+      - name: Deploy scripts (shellcheck, offline dry run)
+        working-directory: .
+        run: ops/aws/test/run.sh
       - uses: actions/setup-node@v4
         with:
           node-version: '22'

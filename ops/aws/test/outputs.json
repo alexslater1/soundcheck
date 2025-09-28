@@ -1,0 +1,35 @@
+{
+  "SoundcheckNetwork": {},
+  "SoundcheckData": {
+    "DbInstanceId": "soundcheck-demo-db",
+    "DbEndpoint": "soundcheck-demo-db.abcdefghijkl.eu-north-1.rds.amazonaws.com",
+    "DbSecretArn": "arn:aws:secretsmanager:eu-north-1:111122223333:secret:SoundcheckDataDbSecret-AbCdEf",
+    "QueueUrl": "https://sqs.eu-north-1.amazonaws.com/111122223333/soundcheck-transcode",
+    "DlqUrl": "https://sqs.eu-north-1.amazonaws.com/111122223333/soundcheck-transcode-dlq",
+    "ApiRepositoryUri": "111122223333.dkr.ecr.eu-north-1.amazonaws.com/soundcheck-api",
+    "WorkerRepositoryUri": "111122223333.dkr.ecr.eu-north-1.amazonaws.com/soundcheck-worker",
+    "LabRepositoryUri": "111122223333.dkr.ecr.eu-north-1.amazonaws.com/soundcheck-lab"
+  },
+  "SoundcheckEdge": {
+    "PublicBaseUrl": "https://d1example2fixture.cloudfront.net",
+    "DistributionId": "E1EXAMPLEFIXTURE",
+    "MediaBucketName": "soundcheckedge-mediabucket-fixture",
+    "WebBucketName": "soundcheckedge-webbucket-fixture"
+  },
+  "SoundcheckCompute": {
+    "ClusterName": "SoundcheckCompute-Cluster-Fixture",
+    "ApiServiceName": "SoundcheckCompute-ApiService-Fixture",
+    "WorkerServiceName": "SoundcheckCompute-WorkerService-Fixture",
+    "JobTaskDefinitionArn": "arn:aws:ecs:eu-north-1:111122223333:task-definition/SoundcheckComputeJob:3",
+    "JobContainerName": "job",
+    "JobSecurityGroupId": "sg-0fixture0job0sg0",
+    "PublicSubnetIds": "subnet-0fixture0000000a,subnet-0fixture0000000b",
+    "ApiLogGroup": "/soundcheck/demo/api",
+    "WorkerLogGroup": "/soundcheck/demo/worker",
+    "JobLogGroup": "/soundcheck/demo/job"
+  },
+  "SoundcheckObservability": {
+    "AlarmTopicArn": "arn:aws:sns:eu-north-1:111122223333:SoundcheckObservability-Alarms-Fixture",
+    "DashboardName": "soundcheck-demo"
+  }
+}

@@ -150,7 +150,7 @@ TOKEN=""
 code="$(api POST /api/v1/auth/login "$(jq -cn --arg e "$EMAIL" --arg p "$PASSWORD" '{email: $e, password: $p}')")"
 expect 200 "$code"
 TOKEN="$(jq -r .accessToken "$WORK/body")"
-[ -n "$TOKEN" ] && [ "$TOKEN" != null ] || fail "no access token in the answer"
+if [ -z "$TOKEN" ] || [ "$TOKEN" = null ]; then fail "no access token in the answer"; fi
 ok
 
 # 4 ── gigs near London ───────────────────────────────────────────────────────────────────────────────

@@ -24,13 +24,19 @@ Do Part A (accounts) on day 1: some keys take time to arrive, and AWS setup is e
 5. Rebuild the app once: `make android` (dev build) and `make apk` (release); both pick up `google-services.json`. Cloud Messaging (the HTTP v1 API) is on by default for new projects.
 
 ### AWS account (do this early; takes ~30 min)
-1. Create the account at aws.amazon.com. When asked, choose the **Paid plan** — new accounts get sign-up credits on either plan, but the Free plan restricts some services and closes the account after 6 months. Credits still apply to the Paid plan.
-2. Sign in as root → enable **MFA** on root → never use root again.
-3. **IAM Identity Center** (region eu-west-2): enable → create user `alex` → permission set `AdministratorAccess` → assign to the account. Enable MFA for this user.
-4. **Billing → Budgets**: create a monthly cost budget of $50 with alerts at 20 % ($10), 50 % ($25), 100 % actual and 100 % forecast to your email. Enable **Cost Anomaly Detection**. In Billing preferences, enable free-tier/credit usage alerts.
-5. Install AWS CLI v2 (Part B), then `aws configure sso` (start URL from Identity Center, region `eu-west-2`, profile name `soundcheck`). Test: `aws sts get-caller-identity --profile soundcheck`.
-   Sign in with `aws sso login --profile soundcheck` (it opens the browser); run it again when the credentials have run out.
-6. Later: run `npx cdk bootstrap aws://<ACCOUNT_ID>/eu-west-2 --profile soundcheck` and create the GitHub OIDC deploy role.
+What the project account actually is:
+1. A **standard AWS account**, created with the e-mail sign-up. The root user gets MFA and is then locked away (billing and account settings only); day-to-day work goes through an **IAM Identity Center** user with MFA and a permission set on the account (e.g. `AdministratorAccess`). It is on the **Free plan**: AWS closes the account when the sign-up credits are used up or after six months (content kept 90 days). Upgrade to the Paid plan only if the AWS deploy needs a service the Free plan lacks.
+2. **Region eu-north-1** (Stockholm), by choice: the profile, the CDK stacks and the `make aws-*` scripts all pin it, so nothing is created anywhere else. Identity Center is enabled in the same region. Global services (IAM, CloudFront) work as usual.
+3. **Billing → Budgets**: a monthly cost budget of $50 with e-mail alerts at 20 % and 50 % actual, 100 % actual and 100 % forecast (`soundcheck-monthly-50`, done 2025-09-23). Cost Anomaly Detection and the billing-preference alerts aren't offered on the Free plan.
+4. Install AWS CLI v2 (Part B), then set up the SSO profile, sign in and pin the region:
+   ```bash
+   aws configure sso --profile soundcheck     # once: the Identity Center start URL, SSO region eu-north-1, the account and permission set
+   aws sso login --profile soundcheck         # opens the browser
+   aws configure set region eu-north-1 --profile soundcheck
+   aws sts get-caller-identity --profile soundcheck
+   ```
+   `make aws-check` prints how long the credentials have left; when they have run out, `aws sso login --profile soundcheck` again. Keep `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` out of `.env`: they would override the profile (the `make aws-*` scripts unset them anyway).
+5. `make aws-bootstrap` once (CDK's `CDKToolkit` stack in `aws://<ACCOUNT_ID>/eu-north-1`), then README "Running on AWS". Deploys run from the laptop: there is no GitHub OIDC role and no deploy workflow.
 
 ## Part B — Ubuntu toolchain
 

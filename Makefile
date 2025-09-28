@@ -29,7 +29,8 @@ endef
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
 	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-extract lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
-	aws-deploy aws-pause aws-resume aws-destroy aws-smoke aws-lab
+	aws-check aws-bootstrap aws-secrets aws-push aws-diff aws-deploy aws-smoke aws-status aws-logs aws-ingest \
+	aws-backfill-past-gigs aws-seed aws-pause aws-resume aws-destroy aws-lab aws-test
 
 help: ## List targets with one-line descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -148,20 +149,25 @@ android: phone ## Build and install the Android dev build on the connected phone
 # phones we test on (a Pixel), instead of all four ABIs a release build makes by default.
 # Install: see the README's quick start.
 APK := $(CURDIR)/app/android/app/build/outputs/apk/release/app-release.apk
-apk: ## Build a release APK (debug-signed, JS bundled, local edge) for rehearsal; install with adb install -r
+# TARGET=aws: the same build for the AWS address, HTTPS only, via ops/aws/apk.sh, which calls
+# this target back with APK_API_URL and APK_APP_ENV=production.
+APK_API_URL ?= http://localhost:8088
+apk: ## Build a release APK (debug-signed, JS bundled, local edge) for the phone; install with adb install -r. TARGET=aws: for the AWS address (app/build/soundcheck-aws.apk)
+	if [ "$(TARGET)" = aws ]; then exec $(CURDIR)/ops/aws/apk.sh; fi
 	if J17=$$(ls -d $$HOME/.sdkman/candidates/java/17* 2>/dev/null | head -1) && [ -n "$$J17" ]; then export JAVA_HOME="$$J17"; fi
+	app_env="$(if $(APK_APP_ENV),APP_ENV=$(APK_APP_ENV),-u APP_ENV)"
 	cd $(CURDIR)/app
 	# Always, not only when android/ is missing: a new native module or config plugin (expo-notifications and
 	# google-services.json) only reaches the native project through prebuild. In place, not --clean.
-	env -u APP_ENV npx expo prebuild --platform android --no-install
+	env $$app_env npx expo prebuild --platform android --no-install
 	cd android
-	env -u APP_ENV EXPO_PUBLIC_API_BASE_URL=http://localhost:8088 \
+	env $$app_env EXPO_PUBLIC_API_BASE_URL=$(APK_API_URL) \
 	  ./gradlew --no-daemon --max-workers=4 -Pkotlin.compiler.execution.strategy=in-process \
 	  "-Dorg.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=1g" -PreactNativeArchitectures=arm64-v8a assembleRelease
 	ls -lh $(APK)
 	echo "install: adb install -r $(APK)   (replaces the dev build; 'make android' puts it back)"
 
-web: ## Export the web build (expo export -p web)
+web: ## Export the web build (expo export -p web) to app/dist; EXPO_PUBLIC_API_BASE_URL= (empty) makes it talk to whichever origin serves it (AWS)
 	cd $(CURDIR)/app && npx expo export -p web
 
 # ── Quality ──────────────────────────────────────────────────────────────────
@@ -260,10 +266,11 @@ record-fixtures: ## Record external API responses into fixtures/ (live calls; ne
 backfill-setlists: ## The owner's gigs with their full bills from setlist.fm, into bills.json; other dates to .localdata/setlistfm/candidates.csv for review (live calls within a daily budget, resumable; options: ARTISTS="Keo,SPRINTS" FROM=2024-06 DRY_RUN=1)
 	$(UV_LAB) run soundcheck-lab backfill-setlists $(if $(ARTISTS),--artists "$(ARTISTS)") $(if $(FROM),--from $(FROM)) $(if $(DRY_RUN),--dry-run)
 
-seed-demo: ## Seed personas, the owner's real gigs and clips (if fixtures/clips/mine/ exists), likes and engagement through the API (idempotent; needs `make up`, `make api`, `make worker`; options: SEED_ARGS="--personas 3 --gigs 2")
-	@curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make up', 'make api' and 'make worker'"; exit 1; }
-	@test -n "$$(ls $(CURDIR)/fixtures/clips/demo/demo-*.mp4 2>/dev/null)" || python3 $(CURDIR)/ops/scripts/make_clips.py --demo
-	@n=$$($(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -Atc "select count(*) from catalog.gig where starts_at > now()"); \
+seed-demo: ## Seed personas, the owner's real gigs and clips (if fixtures/clips/mine/ exists), likes and engagement through the API (idempotent; needs `make up`, `make api`, `make worker`; options: SEED_ARGS="--personas 3 --gigs 2"; TARGET=aws seeds the AWS site)
+	@if [ "$(TARGET)" = aws ]; then exec $(CURDIR)/ops/aws/seed.sh $(SEED_ARGS); fi
+	curl -sf http://localhost:8088/api/v1/health >/dev/null || { echo "API not reachable via the edge — run 'make up', 'make api' and 'make worker'"; exit 1; }
+	test -n "$$(ls $(CURDIR)/fixtures/clips/demo/demo-*.mp4 2>/dev/null)" || python3 $(CURDIR)/ops/scripts/make_clips.py --demo
+	n=$$($(COMPOSE) exec -T db psql -U soundcheck -d soundcheck -Atc "select count(*) from catalog.gig where starts_at > now()"); \
 	  [ "$$n" -gt 0 ] || { echo "No upcoming gigs in the catalog: run 'make ingest' first"; exit 1; }
 	$(UV_LAB) run soundcheck-lab seed-demo $(SEED_ARGS)
 
@@ -342,20 +349,56 @@ demo-preflight: ## Check everything needed for a live demo is up and seeded
 	$(call not_yet,demo-preflight)
 
 # ── AWS (billable) ───────────────────────────────────────────────────────────
-aws-deploy: ## cdk deploy all stacks (billable)
-	$(call not_yet,aws-deploy)
+# Deployed and operated from the laptop: each target is one script in ops/aws/. Anything that
+# changes AWS asks first (type the env name; YES=1 skips). DRY_RUN=1 prints what would change and changes
+# nothing. Profile soundcheck, region eu-north-1 (fixed in ops/aws/lib.sh). README "Running on AWS".
+aws-check: ## Read-only: sign-in, CDK bootstrap, quotas, PG versions, prefix list, stacks, .env keys (names only)
+	$(CURDIR)/ops/aws/check.sh
 
-aws-pause: ## Scale services to 0 and stop RDS
-	$(call not_yet,aws-pause)
+aws-bootstrap: ## Once per account: CDK's own CDKToolkit stack (asks)
+	$(CURDIR)/ops/aws/bootstrap.sh
 
-aws-resume: ## Resume services and RDS
-	$(call not_yet,aws-resume)
+aws-secrets: ## Create or update the app secret soundcheck/<env>/app from .env and .secrets/aws/ (only when it changed; never printed)
+	$(CURDIR)/ops/aws/secrets.sh
 
-aws-destroy: ## Destroy all stacks except a final RDS snapshot (destructive)
-	$(call not_yet,aws-destroy)
+aws-push: ## Push soundcheck-{api,worker}:<commit> to ECR (builds with make images if needed; clean tree only; PUSH_LAB=1 adds the lab)
+	$(CURDIR)/ops/aws/push.sh
 
-aws-smoke: ## Smoke-test the deployed environment
-	$(call not_yet,aws-smoke)
+aws-diff: ## Read-only: cdk diff of every stack with the context aws-deploy would pass
+	$(CURDIR)/ops/aws/diff.sh
 
-aws-lab: ## Run the lab task on ECS
-	$(call not_yet,aws-lab)
+aws-deploy: ## Deploy everything in order (check, web, network/data/edge, secret, images, compute/observability/web, smoke; billable, asks)
+	$(CURDIR)/ops/aws/deploy.sh
+
+aws-smoke: ## Smoke-test the deployed site through CloudFront (upload → READY, media delivery, edge rules)
+	$(CURDIR)/ops/aws/smoke.sh
+
+aws-status: ## Read-only: services, database, queue and DLQ, the public address
+	$(CURDIR)/ops/aws/status.sh
+
+aws-logs: ## Read-only: follow the logs, SERVICE=api|worker|job
+	$(CURDIR)/ops/aws/logs.sh $(SERVICE)
+
+aws-ingest: ## One gig ingestion on AWS as a one-off Fargate task (asks; a few cents)
+	$(CURDIR)/ops/aws/ingest.sh
+
+aws-backfill-past-gigs: ## The setlist.fm past-gigs backfill on AWS as a one-off task (asks; a few cents)
+	$(CURDIR)/ops/aws/ingest.sh --backfill
+
+aws-seed: ## seed-demo against the AWS site (SEED_ARGS="--no-real" for the from-empty run; asks)
+	$(MAKE) seed-demo TARGET=aws
+
+aws-pause: ## Cost brake: API and workers to 0, database stopped (about $$22 a month while paused; asks)
+	$(CURDIR)/ops/aws/pause.sh
+
+aws-resume: ## Undo aws-pause: database, services, then aws-smoke (asks). Resume before any aws-deploy
+	$(CURDIR)/ops/aws/resume.sh
+
+aws-destroy: ## Destroy every stack (asks twice; the database leaves a final snapshot; clips kept unless a third answer)
+	$(CURDIR)/ops/aws/destroy.sh
+
+aws-lab: ## Cut: the lab runs locally
+	@echo "cut: the lab runs locally"
+
+aws-test: ## Offline, no AWS calls: shellcheck the deploy scripts and the dry-run test against recorded outputs
+	$(CURDIR)/ops/aws/test/run.sh

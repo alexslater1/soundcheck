@@ -1,0 +1,3 @@
+# shellcheck reads lib.sh from next to each script (`# shellcheck source=lib.sh`).
+source-path=SCRIPTDIR
+external-sources=true

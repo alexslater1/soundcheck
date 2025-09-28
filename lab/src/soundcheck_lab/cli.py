@@ -65,7 +65,8 @@ def seed_demo(
     real: bool = typer.Option(
         True,
         "--real/--no-real",
-        help="My real gigs and clips (fixtures/clips/mine/, local only)",
+        help="My real gigs and clips from fixtures/clips/mine/ on this machine, uploaded "
+        "through the API (local or remote)",
     ),
     gigs: int | None = typer.Option(None, help="Only the first N of my gigs (a small run)"),
     clips_per_gig: int = typer.Option(
@@ -129,7 +130,7 @@ def seed_demo(
     try:
         if engage:
             engagement.engage(api, people, log)
-        report = engagement.report(api, people, log)
+        report = engagement.report(api, people, log, api_url)
     finally:
         api.close()
     short = {h: n for h, n in report.feed_sizes.items() if n < require_feed}

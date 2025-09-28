@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Media delivery check: a READY clip is served through the local edge the way CloudFront will serve it.
 #   ops/scripts/check-media-delivery.sh <mediaId> [version]      (needs `make up`; no API needed)
+# On AWS, aws-smoke runs it through CloudFront with PUBLIC_BASE_URL=<PublicBaseUrl>. A write is
+# refused there with 403 (the behaviour allows only GET, HEAD and OPTIONS), locally with Caddy's 405.
 # Exits non-zero on the first thing that is wrong.
 set -euo pipefail
 ID=${1:?usage: check-media-delivery.sh <mediaId> [version]}
@@ -36,10 +38,10 @@ expect "$BASE/thumb.webp" image/webp
 range=$(curl -sS -o /dev/null -w '%{http_code}' -H 'Range: bytes=0-99' "$BASE/poster.jpg")
 [ "$range" = 206 ] || { echo "FAIL: range request answered $range"; exit 1; }
 write=$(curl -sS -o /dev/null -w '%{http_code}' -X PUT --data x "$BASE/should-not-exist.txt")
-[ "$write" = 405 ] || { echo "FAIL: PUT through the edge answered $write, expected 405"; exit 1; }
+[ "$write" = 405 ] || [ "$write" = 403 ] || { echo "FAIL: PUT through the edge answered $write, expected 405 (Caddy) or 403 (CloudFront)"; exit 1; }
 delete=$(curl -sS -o /dev/null -w '%{http_code}' -X DELETE "$BASE/master.m3u8")
-[ "$delete" = 405 ] || { echo "FAIL: DELETE through the edge answered $delete, expected 405"; exit 1; }
-echo "ok   range request 206; PUT and DELETE refused with 405"
+[ "$delete" = 405 ] || [ "$delete" = 403 ] || { echo "FAIL: DELETE through the edge answered $delete, expected 405 (Caddy) or 403 (CloudFront)"; exit 1; }
+echo "ok   range request 206; PUT ($write) and DELETE ($delete) refused"
 
 # Only media/ is served. The originals live under uploads/ in the same bucket: a path that climbs out
 # of /media/ (plain or percent-encoded) must not be answered by the bucket, and neither must a listing.
