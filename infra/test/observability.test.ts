@@ -7,15 +7,15 @@ describe('SoundcheckObservability', () => {
   const topicId = resourcesOf(template, 'AWS::SNS::Topic')[0]![0];
   const byName = (suffix: string) => alarms.find((a) => a.AlarmName === `soundcheck-test-${suffix}`)!;
 
-  it('has at least 7 alarms, each notifying the SNS topic', () => {
-    expect(alarms.length).toBeGreaterThanOrEqual(7);
+  it('has at least 8 alarms, each notifying the SNS topic', () => {
+    expect(alarms.length).toBeGreaterThanOrEqual(8);
     for (const alarm of alarms) {
       expect(alarm.AlarmActions).toEqual([{ Ref: topicId }]);
       expect(alarm.TreatMissingData).toBeDefined();
     }
   });
 
-  it('alarms on the 5xx rate, p95 latency and missing API tasks', () => {
+  it('alarms on the 5xx rate, p95 latency, unhealthy API tasks and the ALB answering for a missing API', () => {
     expect(byName('Api5xxRate')).toMatchObject({ Threshold: 2, EvaluationPeriods: 5, DatapointsToAlarm: 5 });
     expect(JSON.stringify(byName('Api5xxRate').Metrics)).toContain('HTTPCode_Target_5XX_Count');
     expect(byName('ApiLatencyP95')).toMatchObject({
@@ -24,8 +24,21 @@ describe('SoundcheckObservability', () => {
       Threshold: 1,
       EvaluationPeriods: 10,
     });
-    expect(byName('ApiTasksMissing')).toMatchObject({ Threshold: 0, EvaluationPeriods: 10 });
-    expect(JSON.stringify(byName('ApiTasksMissing').Metrics)).toContain('RunningTaskCount');
+    expect(byName('ApiUnhealthyTargets')).toMatchObject({
+      Namespace: 'AWS/ApplicationELB',
+      MetricName: 'UnHealthyHostCount',
+      Threshold: 0,
+      EvaluationPeriods: 10,
+      TreatMissingData: 'notBreaching',
+    });
+    expect(byName('ApiUnavailable')).toMatchObject({
+      Namespace: 'AWS/ApplicationELB',
+      MetricName: 'HTTPCode_ELB_5XX_Count',
+      Threshold: 0,
+      EvaluationPeriods: 5,
+    });
+    // No alarm depends on Container Insights, which is off (cost).
+    expect(JSON.stringify(alarms)).not.toContain('ContainerInsights');
   });
 
   it('alarms on the database, the stuck queue and dead letters', () => {

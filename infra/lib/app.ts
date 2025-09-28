@@ -59,8 +59,8 @@ export function createSoundcheckApp(options: SoundcheckAppOptions): App {
   });
   const observability = new ObservabilityStack(app, 'SoundcheckObservability', {
     ...props,
+    alb: edge.alb,
     apiTargetGroup: compute.apiTargetGroup,
-    cluster: compute.cluster,
     apiService: compute.apiService,
     workerService: compute.workerService,
     db: data.db,

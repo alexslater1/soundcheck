@@ -63,9 +63,14 @@ export class ComputeStack extends SoundcheckStack {
 
     this.cluster = new ecs.Cluster(this, 'Cluster', {
       vpc: props.vpc,
-      // The account default is off; the running-tasks alarm reads Container Insights' RunningTaskCount.
-      containerInsightsV2: ecs.ContainerInsights.ENABLED,
+      // Off: about $15–20 a month of the Free plan's credits for task-level metrics. The alarms read the
+      // ALB's, SQS's and RDS's own metrics, and ECS still publishes service CPU and memory for free.
+      containerInsightsV2: ecs.ContainerInsights.DISABLED,
       enableFargateCapacityProviders: true,
+    });
+    suppress(this.cluster, {
+      rule: 'ECS4',
+      reason: 'Container Insights off: about $15-20 a month of the Free plan credits; alarms use ALB, SQS and RDS metrics.',
     });
 
     const logGroups = Object.fromEntries(

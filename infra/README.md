@@ -15,7 +15,7 @@ unacknowledged finding fails it; every acknowledgement has a reason in the code 
 | `SoundcheckData` | RDS PostgreSQL 17.5 (t4g.micro, 20 GB gp3, single-AZ, encrypted, private), the transcode queue and its DLQ, ECR `soundcheck-api`/`-worker`/`-lab` | `lib/data-stack.ts` |
 | `SoundcheckEdge` | CloudFront (web bucket by default, `/api/*` through a VPC origin to the internal ALB, `/media/*` from the media bucket), the ALB and its listener, both buckets | `lib/edge-stack.ts`, `lib/functions/spa-rewrite.js` |
 | `SoundcheckCompute` | ECS cluster; the API service (`api,scheduler`) behind the ALB; workers on Spot scaled on the queue; the one-off job task (`cli`) | `lib/compute-stack.ts`, `lib/task-env.ts` |
-| `SoundcheckObservability` | SNS topic, seven alarms, dashboard | `lib/observability-stack.ts` |
+| `SoundcheckObservability` | SNS topic, eight alarms on AWS's own ALB, RDS and SQS metrics (Container Insights is off for cost), dashboard | `lib/observability-stack.ts` |
 | `SoundcheckWeb` (only with `-c webDist=…`) | Copies the web export into the web bucket and invalidates `index.html` | `lib/web-stack.ts` |
 
 `lib/app.ts` builds them (the CLI through `bin/soundcheck.ts`, and the tests), `lib/config.ts` reads the

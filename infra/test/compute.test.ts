@@ -276,9 +276,9 @@ describe('SoundcheckCompute', () => {
     );
   });
 
-  it('turns Container Insights on and keeps logs for 14 days', () => {
+  it('leaves Container Insights off (cost) and keeps logs for 14 days', () => {
     template.hasResourceProperties('AWS::ECS::Cluster', {
-      ClusterSettings: [{ Name: 'containerInsights', Value: 'enabled' }],
+      ClusterSettings: [{ Name: 'containerInsights', Value: 'disabled' }],
     });
     const groups = resourcesOf(template, 'AWS::Logs::LogGroup').map(([, p]) => p);
     expect(groups.map((g) => g.LogGroupName).sort()).toEqual(['/soundcheck/test/api', '/soundcheck/test/job', '/soundcheck/test/worker']);

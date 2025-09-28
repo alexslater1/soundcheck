@@ -16,8 +16,8 @@ import { SoundcheckStack, SoundcheckStackProps } from './base';
 import { suppress } from './nag';
 
 export interface ObservabilityStackProps extends SoundcheckStackProps {
+  readonly alb: elbv2.IApplicationLoadBalancer;
   readonly apiTargetGroup: elbv2.ApplicationTargetGroup;
-  readonly cluster: ecs.ICluster;
   readonly apiService: ecs.FargateService;
   readonly workerService: ecs.FargateService;
   readonly db: rds.DatabaseInstance;
@@ -80,30 +80,23 @@ export class ObservabilityStack extends SoundcheckStack {
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
 
-    // Running < desired, not < apiMinTasks: a paused stack (desired 0) must not alarm (Container Insights).
-    const tasks = (service: ecs.FargateService, metricName: string) =>
-      new cloudwatch.Metric({
-        namespace: 'ECS/ContainerInsights',
-        metricName,
-        dimensionsMap: { ClusterName: props.cluster.clusterName, ServiceName: service.serviceName },
-        period: MINUTE,
-        statistic: 'Minimum',
-      });
-    const apiMissingTasks = new cloudwatch.MathExpression({
-      label: 'API tasks missing (desired − running)',
-      expression: 'desired - running',
-      usingMetrics: {
-        desired: tasks(props.apiService, 'DesiredTaskCount'),
-        running: tasks(props.apiService, 'RunningTaskCount'),
-      },
-      period: MINUTE,
-    });
-    this.alarm('ApiTasksMissing', 'Fewer API tasks were running than desired for 10 minutes.', {
-      metric: apiMissingTasks,
+    // An API task that keeps failing its health check, without Container Insights' task counts (they cost
+    // about $15–20 a month of the credits). A paused stack has no targets, so it reports 0 unhealthy.
+    this.alarm('ApiUnhealthyTargets', 'An API task failed its health check for 10 minutes.', {
+      metric: tg.metrics.unhealthyHostCount({ period: MINUTE, statistic: 'Maximum' }),
       threshold: 0,
       comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
       evaluationPeriods: 10,
-      // Container Insights publishes nothing for a service with no tasks at all (paused).
+      treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
+    });
+    // No healthy API task at all (or one timing out): the ALB answers 502/503/504 itself, which the
+    // target 5xx rate above never sees. CloudFront sends only /api/* here, so these are API requests.
+    // It needs traffic: a dead API nobody calls stays quiet, and a visit while paused does alarm.
+    this.alarm('ApiUnavailable', 'The load balancer answered 5xx itself (no healthy API task) for 5 minutes.', {
+      metric: props.alb.metrics.httpCodeElb(elbv2.HttpCodeElb.ELB_5XX_COUNT, { period: MINUTE, statistic: 'Sum' }),
+      threshold: 0,
+      comparisonOperator: cloudwatch.ComparisonOperator.GREATER_THAN_THRESHOLD,
+      evaluationPeriods: 5,
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
 
@@ -143,7 +136,7 @@ export class ObservabilityStack extends SoundcheckStack {
       treatMissingData: cloudwatch.TreatMissingData.NOT_BREACHING,
     });
 
-    const dashboard = this.dashboard(props, { requests, errors5xx, p95, tasks });
+    const dashboard = this.dashboard(props, { requests, errors5xx, p95 });
     new CfnOutput(this, 'AlarmTopicArn', { value: this.topic.topicArn });
     new CfnOutput(this, 'DashboardName', { value: dashboard.dashboardName });
   }
@@ -166,7 +159,6 @@ export class ObservabilityStack extends SoundcheckStack {
       requests: cloudwatch.IMetric;
       errors5xx: cloudwatch.IMetric;
       p95: cloudwatch.IMetric;
-      tasks: (service: ecs.FargateService, metricName: string) => cloudwatch.IMetric;
     },
   ): cloudwatch.Dashboard {
     const graph = (title: string, left: cloudwatch.IMetric[], right?: cloudwatch.IMetric[]) =>
@@ -181,7 +173,10 @@ export class ObservabilityStack extends SoundcheckStack {
     dashboard.addWidgets(
       graph('API requests and 5xx (per minute)', [m.requests], [m.errors5xx]),
       graph('API p95 response time (s)', [m.p95]),
-      graph('Running tasks', [m.tasks(api, 'RunningTaskCount'), m.tasks(worker, 'RunningTaskCount')]),
+      graph('API targets (healthy, unhealthy)', [
+        labelled(props.apiTargetGroup.metrics.healthyHostCount(), 'Healthy'),
+        labelled(props.apiTargetGroup.metrics.unhealthyHostCount(), 'Unhealthy'),
+      ]),
     );
     dashboard.addWidgets(
       graph('CPU (%)', [labelled(api.metricCpuUtilization(), 'API'), labelled(worker.metricCpuUtilization(), 'Workers')]),

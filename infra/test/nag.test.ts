@@ -17,6 +17,7 @@ const ACCEPTED_RULES = [
   'CFR3', // no CloudFront access logs (cost)
   'CFR4', // default *.cloudfront.net certificate allows TLSv1
   'ECS2', // non-secret environment variables
+  'ECS4', // Container Insights off (cost)
   'ELB2', // no ALB access logs (cost)
   'IAM4', // CDK's BucketDeployment Lambda uses AWSLambdaBasicExecutionRole
   'IAM5', // object-prefix wildcards; ecr:GetAuthorizationToken; CDK's BucketDeployment Lambda
