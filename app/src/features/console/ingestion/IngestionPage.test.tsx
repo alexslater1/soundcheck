@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor, within } from '@testing-library/react-native';
 import { Text } from 'react-native';
 
 import type {
@@ -198,6 +198,39 @@ describe('IngestionPage', () => {
       jest.advanceTimersByTime(RUN_POLL_MS * 3);
     });
     expect(runIds.length).toBe(polls); // no polling once it has ended
+  });
+
+  it('shows the queued run in the history at once, without a refresh', async () => {
+    const queued = run({
+      id: 'queued-1',
+      trigger: 'CONSOLE',
+      status: 'QUEUED',
+      finishedAt: null,
+      fetched: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+    });
+    let pressed = false;
+    mockSources = async () => [
+      source('TICKETMASTER', pressed ? { lastRun: queued } : {}),
+      source('VENUE', { enabled: false }),
+      source('SETLISTFM', { enabled: false, lastRun: undefined }),
+    ];
+    mockRuns = async () => ({ items: pressed ? [queued, run()] : [run()], nextCursor: null });
+    mockRun = async (id) => detail({ ...queued, id });
+    mockQueue = async () => {
+      pressed = true;
+      return { runId: 'queued-1' };
+    };
+    await renderPage();
+    await fireEvent.press(await screen.findByTestId('ingestion-run-now-TICKETMASTER'));
+
+    // Before the fix nothing re-read the history until the run ended (or the page was refreshed).
+    const table = screen.getByTestId('ingestion-runs');
+    expect(await within(table).findByText('QUEUED')).toBeOnTheScreen();
+    // A run still going has no counts yet: they are written when it ends.
+    expect(within(table).getAllByText('—')).toHaveLength(2);
   });
 
   it('says it is waiting for the scheduler after 60 s still queued', async () => {

@@ -94,7 +94,7 @@ export default function IngestionPage() {
         Where gigs come from. &quot;Run now&quot; queues a run; the scheduler process picks it up
         within about 15 seconds.
       </Text>
-      <SourcePanel sources={sources} onRunEnded={refresh} />
+      <SourcePanel sources={sources} onRunChanged={refresh} />
       <View style={styles.filters}>
         <Chips
           label="Source"
@@ -137,14 +137,14 @@ export default function IngestionPage() {
 
 function SourcePanel({
   sources,
-  onRunEnded,
+  onRunChanged,
 }: {
   sources: {
     status: 'pending' | 'error' | 'success';
     data?: IngestionSource[];
     refetch: () => unknown;
   };
-  onRunEnded: () => void;
+  onRunChanged: () => void;
 }) {
   if (sources.status === 'pending') {
     return (
@@ -170,7 +170,7 @@ function SourcePanel({
   return (
     <View style={styles.cards}>
       {sources.data.map((s) => (
-        <SourceCard key={s.name} source={s} onRunEnded={onRunEnded} />
+        <SourceCard key={s.name} source={s} onRunChanged={onRunChanged} />
       ))}
     </View>
   );
@@ -197,18 +197,26 @@ function queueErrorMessage(e: unknown): string {
   return "Couldn't queue the run. Try again.";
 }
 
+/**
+ * One source with "Run now". `onRunChanged` re-reads the sources and the history when a run is queued and
+ * when the tracked run ends: the page polls only while the sources list shows an active run, so without
+ * the first call a new run stayed out of the history until it ended.
+ */
 export function SourceCard({
   source,
-  onRunEnded,
+  onRunChanged,
 }: {
   source: IngestionSource;
-  onRunEnded: () => void;
+  onRunChanged: () => void;
 }) {
   const { colors } = useTheme();
   const [tracked, setTracked] = useState<{ runId: string; pressedAt: number } | null>(null);
   const queue = useMutation({
     mutationFn: () => adminQueueIngestionRun({ source: source.name }),
-    onSuccess: (r) => setTracked({ runId: r.runId, pressedAt: Date.now() }),
+    onSuccess: (r) => {
+      setTracked({ runId: r.runId, pressedAt: Date.now() });
+      onRunChanged();
+    },
   });
   const run = useQuery({
     queryKey: getAdminGetIngestionRunQueryKey(tracked?.runId ?? ''),
@@ -219,7 +227,7 @@ export function SourceCard({
   const trackedStatus = tracked ? (run.data?.run.status ?? 'QUEUED') : undefined;
   const trackedEnded = tracked !== null && run.data !== undefined && !isActive(trackedStatus);
   useEffect(() => {
-    if (trackedEnded) onRunEnded();
+    if (trackedEnded) onRunChanged();
     // Once per run: when the tracked run's status turns final.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackedEnded, tracked?.runId]);
@@ -337,7 +345,8 @@ function runColumns(expanded: ReadonlySet<string>, toggle: (id: string) => void)
       title: 'Fetched',
       align: 'right',
       sortValue: (r) => r.fetched,
-      render: (r) => <Text>{r.fetched}</Text>,
+      // A run writes its counts when it ends, so a queued or running one has none yet.
+      render: (r) => <Text>{isActive(r.status) ? '—' : r.fetched}</Text>,
     },
     {
       key: 'changes',
@@ -345,7 +354,11 @@ function runColumns(expanded: ReadonlySet<string>, toggle: (id: string) => void)
       flex: 1.2,
       align: 'right',
       sortValue: (r) => r.created,
-      render: (r) => <Text variant="caption">{`${r.created} / ${r.updated} / ${r.skipped}`}</Text>,
+      render: (r) => (
+        <Text variant="caption">
+          {isActive(r.status) ? '—' : `${r.created} / ${r.updated} / ${r.skipped}`}
+        </Text>
+      ),
     },
     {
       key: 'issues',
