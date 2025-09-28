@@ -17,7 +17,7 @@ describe('SoundcheckData', () => {
       PubliclyAccessible: false,
       StorageEncrypted: true,
       MultiAZ: false,
-      BackupRetentionPeriod: 7,
+      BackupRetentionPeriod: 1,
       DeletionProtection: false,
       DBName: 'soundcheck',
     });

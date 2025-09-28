@@ -168,7 +168,9 @@ apk: ## Build a release APK (debug-signed, JS bundled, local edge) for the phone
 	echo "install: adb install -r $(APK)   (replaces the dev build; 'make android' puts it back)"
 
 web: ## Export the web build (expo export -p web) to app/dist; EXPO_PUBLIC_API_BASE_URL= (empty) makes it talk to whichever origin serves it (AWS)
-	cd $(CURDIR)/app && npx expo export -p web
+	# --max-workers 4: Metro otherwise starts one transform worker per core (20 here), and under a 4 GB
+	# cap the build was OOM-killed (first deploy, 2025-09-28); with 4 it takes ~15 s, 2.4 GB peak.
+	cd $(CURDIR)/app && npx expo export -p web --max-workers 4
 
 # ── Quality ──────────────────────────────────────────────────────────────────
 test: ## Run all unit and integration tests (backend, app, lab, infra)
