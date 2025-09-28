@@ -21,8 +21,8 @@ if identity=$(try_aws aws sts get-caller-identity --query '[Account, Arn]' --out
   # Only the Expiration field is read; the credentials themselves stay inside the pipe.
   if expiry=$(aws configure export-credentials --profile "$AWS_PROFILE" 2>/dev/null | jq -r '.Expiration // empty') && [[ -n $expiry ]]; then
     left=$((($(date -d "$expiry" +%s) - $(date +%s)) / 60))
-    say "  credentials expire at $expiry ($left min left)"
-    ((left >= 45)) || warning "under 45 minutes left: a deploy takes longer. Sign in again: aws sso login --profile soundcheck"
+    # These are the role credentials of the SSO profile; when they run out, aws sso login signs in again.
+    say "  current credentials expire at $expiry ($left min); then: aws sso login --profile soundcheck"
   else
     say "  credentials' expiry: not shown by this CLI"
   fi
