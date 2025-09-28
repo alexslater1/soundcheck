@@ -46,6 +46,22 @@ export const ISSUE_KINDS: Readonly<Record<string, string>> = {
   INGEST_ERROR: "One gig couldn't be stored (it rolled back alone); the rest of the run went on.",
 };
 
+/**
+ * Where an operator can act on an issue kind, for the few that have a place. The rest need nothing: a
+ * skipped non-music event, an act without genres, a site that failed are all retried by the next run.
+ */
+export const ISSUE_ACTIONS: Readonly<Record<string, { label: string; catalogTab: string }>> = {
+  MISSING_COORDINATES: {
+    label: 'Venues the geocoder could only place by town: Catalog → Venues → Suspect locations',
+    catalogTab: 'venues',
+  },
+};
+
+/** The run's near misses (listings almost matched to a gig) are decided in Catalog → Matches. */
+export function nearMissLine(flagged: number): string {
+  return `${flagged} near ${flagged === 1 ? 'miss' : 'misses'} to decide: Catalog → Matches`;
+}
+
 /** The explanation for a kind, or undefined for one this table doesn't know (shown raw). */
 export function explainIssue(kind: string): string | undefined {
   return Object.prototype.hasOwnProperty.call(ISSUE_KINDS, kind) ? ISSUE_KINDS[kind] : undefined;

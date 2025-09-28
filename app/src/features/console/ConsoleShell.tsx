@@ -198,5 +198,11 @@ const styles = StyleSheet.create({
   note: { flexShrink: 1 },
   badge: { borderRadius: radius.sm, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   // Pages are at most 1440 px wide and centred, so a wide screen doesn't leave its space all on the right.
-  content: { padding: spacing.lg, gap: spacing.lg, maxWidth: 1440, width: '100%', alignSelf: 'center' },
+  content: {
+    padding: spacing.lg,
+    gap: spacing.lg,
+    maxWidth: 1440,
+    width: '100%',
+    alignSelf: 'center',
+  },
 });

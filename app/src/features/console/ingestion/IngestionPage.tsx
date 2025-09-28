@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -29,7 +30,9 @@ import {
   groupIssues,
   isActive,
   isBreakage,
+  ISSUE_ACTIONS,
   issueCountList,
+  nearMissLine,
   RUN_POLL_MS,
   WAITING_NOTE_AFTER_MS,
 } from './issueKinds';
@@ -471,8 +474,16 @@ export function RunIssues({ runId }: { runId: string }) {
     );
   }
   const groups = groupIssues(detail.data.issues);
+  const flagged = detail.data.stats.flaggedForReview;
   return (
     <View style={styles.groups} testID={`ingestion-issues-${runId}`}>
+      {typeof flagged === 'number' && flagged > 0 ? (
+        <Link href={{ pathname: '/console/catalog', params: { tab: 'matches' } }}>
+          <Text variant="caption" style={{ color: colors.accent }} testID="issue-near-misses">
+            {nearMissLine(flagged)}
+          </Text>
+        </Link>
+      ) : null}
       {groups.map((g) => (
         <View
           key={g.kind}
@@ -492,6 +503,22 @@ export function RunIssues({ runId }: { runId: string }) {
             <Text variant="caption" muted>
               {`+${g.issues.length - ISSUES_PER_KIND} more`}
             </Text>
+          ) : null}
+          {ISSUE_ACTIONS[g.kind] ? (
+            <Link
+              href={{
+                pathname: '/console/catalog',
+                params: { tab: ISSUE_ACTIONS[g.kind].catalogTab },
+              }}
+            >
+              <Text
+                variant="caption"
+                style={{ color: colors.accent }}
+                testID={`issue-action-${g.kind}`}
+              >
+                {ISSUE_ACTIONS[g.kind].label}
+              </Text>
+            </Link>
           ) : null}
         </View>
       ))}

@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor, within } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 import { Text } from 'react-native';
 
 import type {
@@ -40,6 +41,10 @@ jest.mock('@/api/generated/admin-ingestion/admin-ingestion', () => ({
   },
 }));
 
+jest.mock('expo-router', () => ({
+  Link: ({ children }: { children: ReactNode }) => children,
+}));
+
 const run = (over: Partial<IngestionRun> = {}): IngestionRun => ({
   id: 'run-1',
   source: 'TICKETMASTER',
@@ -67,9 +72,13 @@ const source = (name: string, over: Partial<IngestionSource> = {}): IngestionSou
   ...over,
 });
 
-const detail = (r: IngestionRun, issues: IngestionIssue[] = []): IngestionRunDetail => ({
+const detail = (
+  r: IngestionRun,
+  issues: IngestionIssue[] = [],
+  stats: IngestionRunDetail['stats'] = {},
+): IngestionRunDetail => ({
   run: r,
-  stats: {},
+  stats,
   issues,
 });
 
@@ -140,6 +149,27 @@ describe('IngestionPage', () => {
 
     await fireEvent.press(screen.getByTestId('ingestion-issues-toggle-run-9'));
     expect(screen.queryByTestId('ingestion-issues-run-9')).toBeNull();
+  });
+
+  it('says where to act on an issue that has a place, and on the near misses', async () => {
+    const withIssues = run({ id: 'run-7', issueCounts: { MISSING_COORDINATES: 1, NO_ARTISTS: 1 } });
+    mockRuns = async () => ({ items: [withIssues], nextCursor: null });
+    mockRun = async () =>
+      detail(
+        withIssues,
+        [
+          { kind: 'MISSING_COORDINATES', externalId: 'e1', detail: 'New Venue' },
+          { kind: 'NO_ARTISTS', externalId: 'e2', detail: 'Quiz night' },
+        ],
+        { flaggedForReview: 2 },
+      );
+    await renderPage();
+    await fireEvent.press(await screen.findByTestId('ingestion-issues-toggle-run-7'));
+    expect(await screen.findByTestId('issue-near-misses')).toHaveTextContent(
+      '2 near misses to decide: Catalog → Matches',
+    );
+    expect(screen.getByTestId('issue-action-MISSING_COORDINATES')).toBeOnTheScreen();
+    expect(screen.queryByTestId('issue-action-NO_ARTISTS')).toBeNull();
   });
 
   it('offers Run now only for an enabled source without a queued or running run', async () => {

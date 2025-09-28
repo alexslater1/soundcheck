@@ -63,8 +63,10 @@ jest.mock('@/api/generated/catalog/catalog', () => ({
   useListGigs: () => ({ data: undefined, isFetching: false, isError: false }),
   useGetGig: () => ({ data: undefined, isFetching: false, isError: false }),
 }));
+let mockSearch: { tab?: string } = {};
 jest.mock('expo-router', () => ({
   Link: ({ children }: { children: ReactNode }) => children,
+  useLocalSearchParams: () => mockSearch,
 }));
 
 async function renderPage() {
@@ -86,6 +88,14 @@ describe('CatalogPage', () => {
     mockPreviewCalls.length = 0;
     mockReview.mockReset();
     mockDelete.mockReset();
+    mockSearch = {};
+  });
+
+  it('opens the tab named in the address (the Ingestion page links to Matches)', async () => {
+    mockAnswer = async () => ({ items: [], nextCursor: null });
+    mockSearch = { tab: 'matches' };
+    await renderPage();
+    expect(screen.getByTestId('catalog-matches')).toBeOnTheScreen();
   });
 
   it('lists fan-added gigs with who added them, their counts and likely duplicates', async () => {
