@@ -90,6 +90,27 @@ const rows: Row[] = [
   ['onboarded at the root', { status: 'signedIn', onboarded: true, group: undefined }, null],
   ['onboarded on settings', { status: 'signedIn', onboarded: true, group: 'settings' }, null],
   ['onboarded on console', { status: 'signedIn', onboarded: true, group: 'console' }, null],
+  // A console link to a gig: the bootstrap admin is never onboarded, and may still read the gig.
+  [
+    'not-onboarded admin on a gig page stays',
+    { status: 'signedIn', onboarded: false, group: 'gig', admin: true },
+    null,
+  ],
+  [
+    'not-onboarded admin on a venue page stays',
+    { status: 'signedIn', onboarded: false, group: 'venue', admin: true },
+    null,
+  ],
+  [
+    'not-onboarded admin on the tabs goes to onboarding',
+    { status: 'signedIn', onboarded: false, group: '(tabs)', admin: true },
+    '/onboarding',
+  ],
+  [
+    'not-onboarded fan on a gig page goes to onboarding',
+    { status: 'signedIn', onboarded: false, group: 'gig' },
+    '/onboarding',
+  ],
 
   // The console round trip: signed out on a console page → sign-in → back to that page.
   [

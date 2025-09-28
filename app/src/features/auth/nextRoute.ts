@@ -38,6 +38,12 @@ export function safeNext(next: string | undefined): `/console${string}` | null {
 }
 
 /**
+ * The read-only pages the console links to (a gig from the Catalog tabs, and what a gig page links on to).
+ * The bootstrap admin is never onboarded, so without this they would be sent to onboarding instead.
+ */
+const ADMIN_PAGES: ReadonlySet<string> = new Set(['gig', 'venue', 'artist', 'post', 'clip', 'u']);
+
+/**
  * The redirect rules of the root layout as a pure function, so they can be tested as a table:
  * signed out → the auth screens; signed in but not onboarded → onboarding; onboarded users are moved
  * out of the auth and onboarding screens. Everything else stays put.
@@ -57,9 +63,10 @@ export function nextRoute({ status, onboarded, group, path, next, admin }: Route
   // Someone who signs out of the console and back in as a fan goes home, not to "for operators".
   const back = admin ? safeNext(next) : null;
   // The console needs no city or genres: the bootstrap admin is never onboarded, so the console
-  // is exempt, and signing in for a console page goes straight there.
+  // and the pages it links to are exempt, and signing in for a console page goes straight there.
   if (!onboarded) {
     if (group === 'console') return null;
+    if (admin && group !== undefined && ADMIN_PAGES.has(group)) return null;
     if (inAuth && back) return back;
     return inOnboarding ? null : '/onboarding';
   }
