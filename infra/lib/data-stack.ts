@@ -65,7 +65,9 @@ export class DataStack extends SoundcheckStack {
       storageType: rds.StorageType.GP3,
       storageEncrypted: true,
       multiAz: false,
-      backupRetention: Duration.days(7),
+      // 1 day: the Free plan refuses more ("exceeds the maximum available to free tier customers", first
+      // deploy 2025-09-28; 1 day rather than the Paid plan). The data comes from a repeatable seed.
+      backupRetention: Duration.days(1),
       parameterGroup,
       deletionProtection: false,
       removalPolicy: RemovalPolicy.SNAPSHOT,
