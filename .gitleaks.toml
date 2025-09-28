@@ -13,10 +13,14 @@ useDefault = true
 #
 # FcmCredentialsTest builds a key file around an RSA key generated during the test, with PEM
 # framing as string literals; matched on that code expression, as for JwtKeys.
-description = "JwtKeys.toPem() string literal; the fake key literal in TicketmasterSourceTest; FcmCredentialsTest's generated key"
+#
+# ops/aws/test/dry-run.sh exports invented AWS credentials ("secret-SENTINEL-8888") so it can
+# prove no dry run ever prints them; only that exact literal is allowed.
+description = "JwtKeys.toPem() string literal; the fake key literal in TicketmasterSourceTest; FcmCredentialsTest's generated key; the dry-run test's sentinel AWS secret"
 regexTarget = "match"
 regexes = [
   '''encodeToString\(privateKey\.getEncoded\(\)\)''',
   '''test-key-that-must-never-leak-0123456789''',
   '''String\.join\("\\\\n", base64\.split''',
+  '''secret-SENTINEL-8888''',
 ]
