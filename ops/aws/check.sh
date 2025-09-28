@@ -61,17 +61,26 @@ if ((signed_in)); then
 
   say ""
   say "RDS PostgreSQL 17 on db.t4g.micro"
-  if versions=$(try_aws aws rds describe-orderable-db-instance-options --engine postgres --db-instance-class db.t4g.micro \
-    --query "OrderableDBInstanceOptions[?starts_with(EngineVersion, '18')].EngineVersion" --output text); then
-    versions=$(tr -s '\t ' '\n' <<<"$versions" | sort -uV | paste -sd' ')
-    say "  orderable: ${versions:-none}"
-    configured=$(infra_postgres_version)
-    if [[ -z $configured ]]; then
-      problem "can't find the PostgreSQL version infra pins (infra/lib/config.ts)"
-    elif [[ " $versions " == *" $configured "* ]]; then
-      say "  infra uses $configured: orderable"
-    else
-      problem "infra uses PostgreSQL $configured, not orderable here"
+  # Ask for exactly the pinned version on db.t4g.micro. The broad listing (every postgres option for the
+  # class, several pages) came back empty for minutes at a time on 2025-09-28 while this narrow query kept
+  # answering; an empty answer is still asked twice more before it counts as a problem.
+  configured=$(infra_postgres_version)
+  if [[ -z $configured ]]; then
+    problem "can't find the PostgreSQL version infra pins (infra/lib/config.ts)"
+  else
+    for attempt in 1 2 3; do
+      if ! count=$(try_aws aws rds describe-orderable-db-instance-options --engine postgres --engine-version "$configured" \
+        --db-instance-class db.t4g.micro --query 'length(OrderableDBInstanceOptions)' --output text); then
+        count=""
+        break
+      fi
+      [[ $count == 0 && $attempt -lt 3 ]] || break
+      sleep 5
+    done
+    if [[ -n $count && $count != 0 ]]; then
+      say "  infra uses $configured: orderable ($count storage options)"
+    elif [[ $count == 0 ]]; then
+      problem "infra uses PostgreSQL $configured, not orderable on db.t4g.micro here (asked 3 times)"
     fi
   fi
 
