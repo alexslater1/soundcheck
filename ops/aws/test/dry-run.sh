@@ -300,4 +300,14 @@ grep -q 'put-secret-value .*--secret-string file:///dev/stdin' "$tmp/aws-args" |
 lacks "$tmp/secret3.out" "U0VOVElORUwtOTk5OQ" "the OTLP header in the output"
 pass "aws-secrets: unchanged content is not written again; a change is put as a new version; a value with a space stays whole"
 
+# aws-check helpers that only run against real AWS (offline, try_aws prints the call instead).
+(
+  # shellcheck source=../lib.sh
+  source "$SCRIPTS/lib.sh"
+  [[ $(infra_postgres_version) == 17.5 ]] || fail "infra_postgres_version should read 17.5 from infra/lib/config.ts"
+  [[ $(explain_aws_error $'\naws: [ERROR]: Stack with id CDKToolkit does not exist') == 'aws: [ERROR]: Stack with id CDKToolkit does not exist' ]] \
+    || fail "explain_aws_error should skip the CLI's leading blank line"
+) || exit 1
+pass "aws-check: reads the pinned PostgreSQL version (PostgresEngineVersion.of); explains an error that starts with a blank line"
+
 echo "dry-run test: $passed checks passed"

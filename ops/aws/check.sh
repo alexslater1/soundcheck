@@ -65,9 +65,13 @@ if ((signed_in)); then
     --query "OrderableDBInstanceOptions[?starts_with(EngineVersion, '18')].EngineVersion" --output text); then
     versions=$(tr -s '\t ' '\n' <<<"$versions" | sort -uV | paste -sd' ')
     say "  orderable: ${versions:-none}"
-    configured=$(grep -rhoE 'VER_18_[0-9]+' "$ROOT/infra/lib" 2>/dev/null | head -1 | sed 's/VER_//; s/_/./')
-    if [[ -n $configured ]]; then
-      if [[ " $versions " == *" $configured "* ]]; then say "  infra uses $configured: orderable"; else problem "infra uses PostgreSQL $configured, not orderable here"; fi
+    configured=$(infra_postgres_version)
+    if [[ -z $configured ]]; then
+      problem "can't find the PostgreSQL version infra pins (infra/lib/config.ts)"
+    elif [[ " $versions " == *" $configured "* ]]; then
+      say "  infra uses $configured: orderable"
+    else
+      problem "infra uses PostgreSQL $configured, not orderable here"
     fi
   fi
 

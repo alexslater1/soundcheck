@@ -208,8 +208,17 @@ explain_aws_error() {
   elif grep -qiE 'expired|ExpiredToken|login|could not be found|Unable to locate credentials' <<<"$text"; then
     echo "no valid credentials: aws sso login --profile soundcheck"
   else
-    head -1 <<<"$text"
+    grep -m1 . <<<"$text" || true # the first non-empty line: the CLI's message starts with a blank one
   fi
+}
+
+# The PostgreSQL version the Data stack pins: PostgresEngineVersion.of('17.5', …) in infra/lib/config.ts,
+# or a named VER_17_n. Empty when neither is found.
+infra_postgres_version() {
+  {
+    grep -rhoE "PostgresEngineVersion\.of\('17\.[0-9]+'" "$ROOT/infra/lib" | grep -oE "17\.[0-9]+"
+    grep -rhoE 'VER_17_[0-9]+' "$ROOT/infra/lib" | sed 's/VER_//; s/_/./'
+  } 2>/dev/null | head -1 || true
 }
 
 # A read-only call for aws-check: prints its answer, or explains the failure and returns 1.
