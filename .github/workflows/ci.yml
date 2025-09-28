@@ -52,6 +52,9 @@ jobs:
               - 'infra/**'
               - 'ops/aws/**'
               - 'ops/scripts/check-media-delivery.sh'
+              - 'ops/scripts/smoke.sh'
+              # read by ops/aws/test/contract-check.sh
+              - 'backend/src/main/resources/application*.yaml'
               - '.github/workflows/ci.yml'
             e2e:
               - 'backend/**'
@@ -198,6 +201,10 @@ jobs:
         env:
           CDK_DEFAULT_ACCOUNT: '000000000000'
           CDK_DEFAULT_REGION: eu-north-1
+      # Every task definition's variables and secrets against what the backend reads.
+      - name: Task definitions match the backend's properties (contract check)
+        working-directory: .
+        run: ops/aws/test/contract-check.sh
 
   # Container images: the jar as `make images` builds it, then the three images, not pushed.
   # A broken Dockerfile shows up here rather than at a deploy. Each Java image must start as uid 10001 on

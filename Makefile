@@ -400,5 +400,6 @@ aws-destroy: ## Destroy every stack (asks twice; the database leaves a final sna
 aws-lab: ## Cut: the lab runs locally
 	@echo "cut: the lab runs locally"
 
-aws-test: ## Offline, no AWS calls: shellcheck the deploy scripts and the dry-run test against recorded outputs
+aws-test: ## Offline, no AWS calls: shellcheck the deploy scripts, the dry-run test against recorded outputs, and the task-definition contract check
 	$(CURDIR)/ops/aws/test/run.sh
+	$(CURDIR)/ops/aws/test/contract-check.sh
