@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
+import { useState } from 'react';
 
 import type {
   PageSuspectVenue,
@@ -10,7 +11,8 @@ import type {
 } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { gig } from './catalogTestData';
+import { gig, tabProps } from './catalogTestData';
+import type { VenueMergeDone } from './tabTypes';
 import { VenuesTab } from './VenuesTab';
 
 const mockMerge = jest.fn();
@@ -109,12 +111,22 @@ function suspect(id: string, overrides: Partial<SuspectVenue> = {}): SuspectVenu
 
 const mockOpenMerge = jest.fn();
 
-async function renderTab() {
+/** The tab with the Catalog page's state for it: the last venue merge lives there, not in the tab. */
+function Harness({ merged }: { merged: ReadonlySet<string> }) {
+  const [venueMerge, setVenueMerge] = useState<VenueMergeDone | null>(null);
+  return (
+    <VenuesTab
+      {...tabProps({ openMerge: mockOpenMerge, venueMerge, setVenueMerge, mergedGigIds: merged })}
+    />
+  );
+}
+
+async function renderTab(merged: ReadonlySet<string> = new Set()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <VenuesTab openMerge={mockOpenMerge} pair={null} />
+        <Harness merged={merged} />
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -172,6 +184,23 @@ describe('VenuesTab', () => {
     await fireEvent.press(screen.getByTestId('venue-merge-pair-g-a'));
     await screen.findByTestId('venue-merge-done');
     expect(mockOpenMerge).toHaveBeenCalledWith(gig('g-a', 'Keo'), gig('g-b', 'Keo'));
+  });
+
+  it('ticks a same-night pair that was merged since', async () => {
+    const result: VenueMergeResult = {
+      into: 'v-real',
+      moved: mockPreview.moving,
+      sameNight: mockPreview.sameNight,
+    };
+    mockMerge.mockImplementation((_vars, options: { onSuccess: (r: VenueMergeResult) => void }) =>
+      options.onSuccess(result),
+    );
+    await renderTab(new Set(['g-a']));
+    await pickBoth();
+    await fireEvent.press(screen.getByTestId('venue-merge-start'));
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+    expect(screen.getByTestId('venue-merge-pair-done-g-a')).toHaveTextContent('Merged ✓');
+    expect(screen.queryByTestId('venue-merge-pair-g-a')).toBeNull();
   });
 
   it('lists suspect venues and moves one to a checked point', async () => {

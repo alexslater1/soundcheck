@@ -1,5 +1,7 @@
 import type { FanAddedGig, GigMergePreview, GigMergeSide, GigSummary } from '@/api/generated/model';
 
+import type { CatalogTabProps } from './tabTypes';
+
 /** A gig as the API returns it, for the Catalog page's tests. */
 export function gig(id: string, title: string, startsAt = '2026-10-03T19:00:00Z'): GigSummary {
   return {
@@ -55,6 +57,20 @@ export function fanGig(id: string, overrides: Partial<FanAddedGig> = {}): FanAdd
     attendance: 2,
     posts: 1,
     likelyDuplicates: [gig('gig-real', 'Keo')],
+    ...overrides,
+  };
+}
+
+/** What the Catalog page gives a tab, with nothing handed over and no venue merge yet. */
+export function tabProps(overrides: Partial<CatalogTabProps> = {}): CatalogTabProps {
+  return {
+    openMerge: () => undefined,
+    pair: null,
+    openTab: () => undefined,
+    venueMerge: null,
+    setVenueMerge: () => undefined,
+    mergedGigIds: new Set(),
+    onGigMerged: () => undefined,
     ...overrides,
   };
 }

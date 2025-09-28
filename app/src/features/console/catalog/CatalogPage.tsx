@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -7,7 +8,7 @@ import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
 
 import { CATALOG_TABS, FAN_GIGS } from './tabs';
-import type { MergePair } from './tabTypes';
+import type { MergePair, VenueMergeDone } from './tabTypes';
 
 /**
  * The console's Catalog page: a tab per curation job, listed in `tabs.ts`: Fan gigs (the queue
@@ -16,14 +17,21 @@ import type { MergePair } from './tabTypes';
  */
 export default function CatalogPage() {
   const { colors } = useTheme();
-  const [active, setActive] = useState(FAN_GIGS.key);
+  // `?tab=matches` opens a tab directly (the Ingestion page links to Matches and Venues).
+  const { tab: asked } = useLocalSearchParams<{ tab?: string }>();
+  const [active, setActive] = useState(
+    CATALOG_TABS.find((t) => t.key === asked)?.key ?? FAN_GIGS.key,
+  );
   const [pair, setPair] = useState<MergePair | null>(null);
+  const [venueMerge, setVenueMerge] = useState<VenueMergeDone | null>(null);
+  const [mergedGigIds, setMergedGigIds] = useState<ReadonlySet<string>>(new Set());
   const tab = CATALOG_TABS.find((t) => t.key === active) ?? FAN_GIGS;
 
   const openMerge = (from: GigSummary, into: GigSummary) => {
     setPair((p) => ({ from, into, nonce: (p?.nonce ?? 0) + 1 }));
     setActive('merge');
   };
+  const onGigMerged = (fromId: string) => setMergedGigIds((prev) => new Set(prev).add(fromId));
 
   return (
     <View style={styles.page}>
@@ -55,6 +63,11 @@ export default function CatalogPage() {
         key={tab.key === 'merge' ? `merge-${pair?.nonce ?? 0}` : tab.key}
         openMerge={openMerge}
         pair={pair}
+        openTab={setActive}
+        venueMerge={venueMerge}
+        setVenueMerge={setVenueMerge}
+        mergedGigIds={mergedGigIds}
+        onGigMerged={onGigMerged}
       />
     </View>
   );

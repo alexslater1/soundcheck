@@ -5,8 +5,9 @@ import type { ReactNode } from 'react';
 import type { GigMergePreview } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { gig, preview } from './catalogTestData';
+import { gig, preview, tabProps } from './catalogTestData';
 import { MergeTab } from './MergeTab';
+import type { CatalogTabProps } from './tabTypes';
 
 type PreviewState = {
   data?: GigMergePreview;
@@ -49,12 +50,12 @@ jest.mock('expo-router', () => ({
 
 const pair = { from: gig('gig-from', 'Keo (fan copy)'), into: gig('gig-into', 'Keo'), nonce: 1 };
 
-async function renderTab(withPair = true) {
+async function renderTab(withPair = true, props: Partial<CatalogTabProps> = {}) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   await render(
     <QueryClientProvider client={client}>
       <ThemeProvider>
-        <MergeTab openMerge={jest.fn()} pair={withPair ? pair : null} />
+        <MergeTab {...tabProps({ pair: withPair ? pair : null, ...props })} />
       </ThemeProvider>
     </QueryClientProvider>,
   );
@@ -141,5 +142,41 @@ describe('MergeTab', () => {
       { from: 'gig-from', data: { into: 'gig-into' } },
       expect.anything(),
     );
+  });
+
+  it("after a merge from a venue merge's list, ticks the pair and offers the way back", async () => {
+    const onGigMerged = jest.fn();
+    const openTab = jest.fn();
+    mockMutate.mockImplementation(
+      (_vars, options: { onSuccess: (r: { into: string; moved: [] }) => void }) =>
+        options.onSuccess({ into: 'gig-into', moved: [] }),
+    );
+    await renderTab(true, {
+      onGigMerged,
+      openTab,
+      venueMerge: {
+        name: 'The O2',
+        result: {
+          into: 'v-real',
+          moved: [],
+          sameNight: [
+            {
+              movedGigId: 'gig-from',
+              movedTitle: 'Keo',
+              gigId: 'gig-into',
+              title: 'Keo',
+              day: '2026-10-03',
+            },
+            { movedGigId: 'g-c', movedTitle: 'Bea', gigId: 'g-d', title: 'Bea', day: '2026-11-18' },
+          ],
+        },
+      },
+      mergedGigIds: new Set(['gig-from']),
+    });
+    await fireEvent.press(screen.getByTestId('merge-start'));
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+    expect(onGigMerged).toHaveBeenCalledWith('gig-from');
+    await fireEvent.press(screen.getByText('Back to the same-night list (1 left)'));
+    expect(openTab).toHaveBeenCalledWith('venues');
   });
 });
