@@ -250,9 +250,11 @@ git -C "$repo" init -q && git -C "$repo" add -A && git -C "$repo" -c user.email=
 (source "$repo/ops/aws/lib.sh" && require_clean_tree) || fail "a clean tree was refused"
 echo new >"$repo/backend/Untracked.java"
 if (source "$repo/ops/aws/lib.sh" && require_clean_tree) 2>/dev/null; then fail "an untracked file in backend/ was accepted"; fi
-rm "$repo/backend/Untracked.java" && echo changed >>"$repo/README"
+rm "$repo/backend/Untracked.java" && echo note >"$repo/notes.txt"
+if (source "$repo/ops/aws/lib.sh" && require_clean_tree) 2>/dev/null; then fail "an untracked file outside backend/ was accepted (make images would tag it -dirty)"; fi
+rm "$repo/notes.txt" && echo changed >>"$repo/README"
 if (source "$repo/ops/aws/lib.sh" && require_clean_tree) 2>/dev/null; then fail "a changed tracked file was accepted"; fi
-pass "require_clean_tree: refuses changed tracked files and untracked files in backend/"
+pass "require_clean_tree: refuses changed tracked files and any untracked file (as IMAGE_TAG's -dirty)"
 
 # ── the app secret, written through a stub AWS CLI that keeps what it is sent ────────────────────
 stub="$tmp/stub-aws"

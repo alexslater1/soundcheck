@@ -147,8 +147,9 @@ confirm() {
 # tracked files, and no untracked files where the images are built from (backend/, contracts/).
 require_clean_tree() {
   local changes
-  changes=$(git -C "$ROOT" status --porcelain --untracked-files=no)
-  changes+=$(git -C "$ROOT" status --porcelain --untracked-files=all -- backend contracts | grep '^??' || true)
+  # Any change or untracked (not ignored) file, anywhere: `make images` tags such a tree <commit>-dirty
+  # (Makefile IMAGE_TAG), and the push would then find no <commit> image.
+  changes=$(git -C "$ROOT" status --porcelain --untracked-files=all)
   [[ -z $changes ]] && return 0
   if dry; then
     say "(dry run) the working tree has changes; a real run stops here:"
