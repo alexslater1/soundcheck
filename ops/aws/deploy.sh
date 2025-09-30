@@ -14,6 +14,11 @@ require_clean_tree
 TAG=$(sha)
 APPROVAL=broadening # CDK asks before anything that widens access (IAM, security groups)
 if [[ ${YES:-} == 1 ]]; then APPROVAL=never; fi
+# CDK asks that question on the terminal; through a pipe (`| tee log`) it can't, and stops mid-deploy.
+if [[ $APPROVAL == broadening ]] && ! dry && { [[ ! -t 0 ]] || [[ ! -t 1 ]]; }; then
+  die "no terminal (output piped?): CDK couldn't ask before widening access. Run it without the pipe,
+or read make aws-diff first and add YES=1"
+fi
 WEB_DIST=../app/dist # relative to infra/, where cdk runs
 mkdir -p "$AWS_LOCAL"
 
