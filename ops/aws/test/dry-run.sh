@@ -99,6 +99,20 @@ pass "aws-deploy: every cdk deploy has the same context (profile, approval, env,
 lacks "$out" "soundcheck-lab" "deploy without PUSH_LAB"
 pass "aws-deploy: the lab image is not pushed"
 
+# ── aws-deploy ONLY=…: one stack, nothing else ───────────────────────────────────────────────────
+ONLY=SoundcheckObservability dry only "$SCRIPTS/deploy.sh"
+out="$tmp/only.out"
+[[ $(grep -c '^+ npx cdk deploy' "$out") == 1 ]] || fail "ONLY: expected 1 cdk deploy, got $(grep -c '^+ npx cdk deploy' "$out")"
+grep '^+ npx cdk deploy' "$out" | grep -qF -- "deploy SoundcheckObservability --exclusively" || fail "ONLY: not Observability alone"
+grep '^+ npx cdk deploy' "$out" | grep -qF -- "imageTag=$TAG" || fail "ONLY: imageTag isn't the running tag"
+grep '^+ npx cdk deploy' "$out" | grep -qF -- "webOrigin=$URL" || fail "ONLY: webOrigin missing"
+for step in "aws-check" "make -C" "secretsmanager" "docker" "smoke"; do lacks "$out" "$step" "deploy ONLY"; done
+if DRY_RUN=1 YES=1 AWS_OUTPUTS_FILE="$HERE/outputs.json" ONLY=SoundcheckNope "$SCRIPTS/deploy.sh" >"$tmp/only-bad.out" 2>&1 </dev/null; then
+  fail "ONLY with an unknown stack must stop"
+fi
+grep -qF "no stack 'SoundcheckNope'" "$tmp/only-bad.out" || fail "ONLY: unknown stack not named"
+pass "aws-deploy ONLY=SoundcheckObservability: that stack alone, same context, the running tag; no check, web, secret, images or smoke; an unknown stack refused"
+
 # ── aws-deploy, first time: Edge twice ───────────────────────────────────────────────────────────
 echo '{}' >"$tmp/fresh.json"
 OUTPUTS="$tmp/fresh.json" dry fresh "$SCRIPTS/deploy.sh"

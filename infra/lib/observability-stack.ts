@@ -3,6 +3,7 @@ import {
   aws_cloudwatch_actions as cwActions,
   aws_ecs as ecs,
   aws_elasticloadbalancingv2 as elbv2,
+  aws_iam as iam,
   aws_rds as rds,
   aws_sns as sns,
   aws_sns_subscriptions as subscriptions,
@@ -47,6 +48,22 @@ export class ObservabilityStack extends SoundcheckStack {
       rule: 'SNS2',
       reason: 'No KMS key: alarm e-mails carry no secrets, and a key plus a CloudWatch key policy is cost for nothing.',
     });
+    // enforceSSL gives the topic a resource policy, and that policy replaces SNS's default one, which is
+    // what let the account's own CloudWatch alarms publish. Without this statement every alarm action
+    // failed with "CloudWatch Alarms is not authorized to perform: SNS:Publish" (seen on the first
+    // deploy's DLQ alarm test, 2025-09-30). Only this account's alarms in this region may publish.
+    this.topic.addToResourcePolicy(
+      new iam.PolicyStatement({
+        sid: 'CloudWatchAlarmsPublish',
+        principals: [new iam.ServicePrincipal('cloudwatch.amazonaws.com')],
+        actions: ['sns:Publish'],
+        resources: [this.topic.topicArn],
+        conditions: {
+          StringEquals: { 'aws:SourceAccount': this.account },
+          ArnLike: { 'aws:SourceArn': `arn:aws:cloudwatch:${this.region}:${this.account}:alarm:*` },
+        },
+      }),
+    );
     // Only from the command line (`aws-deploy` passes AWS_ALARM_EMAIL from .env), so it is never committed.
     if (this.config.alarmEmail !== undefined) {
       this.topic.addSubscription(new subscriptions.EmailSubscription(this.config.alarmEmail));

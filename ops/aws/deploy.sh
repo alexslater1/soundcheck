@@ -4,6 +4,9 @@
 #   5 images · 6 Compute, Observability, Web · 7 wait for the API · 8 aws-smoke
 # Safe to rerun: CloudFormation applies only what changed, an image tag already in ECR is skipped and
 # an unchanged secret isn't written. DRY_RUN=1 prints the plan without changing anything.
+# ONLY="<Stack> …" (e.g. ONLY=SoundcheckObservability): a configuration-only deploy of those stacks that
+# already exist, with the same context and the image tag that is running now; no web build, secret,
+# images or smoke. For an infra change that needs no new image (an alarm, a policy, a task setting).
 # shellcheck source=lib.sh
 source "$(dirname "$0")/lib.sh"
 
@@ -26,8 +29,31 @@ if stack_exists SoundcheckData && ! offline; then
   fi
 fi
 
-confirm "Deploy Soundcheck '$SOUNDCHECK_ENV' at commit $TAG to account ${account:-<account>} ($AWS_REGION).
+# The tag in the API's task definition now: what an ONLY deploy keeps (offline: the commit).
+running_image_tag() {
+  if offline; then sha; return; fi
+  local td
+  td=$(aws ecs describe-services --cluster "$(out SoundcheckCompute ClusterName)" \
+    --services "$(out SoundcheckCompute ApiServiceName)" --query 'services[0].taskDefinition' --output text)
+  aws ecs describe-task-definition --task-definition "$td" \
+    --query 'taskDefinition.containerDefinitions[0].image' --output text | sed 's/.*://'
+}
+
+only=()
+if [[ -n ${ONLY:-} ]]; then
+  read -ra only <<<"${ONLY//,/ }"
+  for stack in "${only[@]}"; do
+    [[ " ${STACKS[*]} " == *" $stack "* ]] || die "ONLY: no stack '$stack' (one of: ${STACKS[*]})"
+    stack_exists "$stack" || die "ONLY: $stack isn't deployed yet; the first deploy is a full make aws-deploy"
+  done
+  TAG=$(running_image_tag)
+  [[ -n $TAG ]] || die "ONLY: could not read the running image tag"
+  confirm "Deploy only ${only[*]} of Soundcheck '$SOUNDCHECK_ENV' (infra at commit $(sha), images stay $TAG)
+to account ${account:-<account>} ($AWS_REGION). No new image, web build or secret."
+else
+  confirm "Deploy Soundcheck '$SOUNDCHECK_ENV' at commit $TAG to account ${account:-<account>} ($AWS_REGION).
 Billable: about \$60 a month while it runs (list prices, README \"Running on AWS\"); make aws-pause stops most of it."
+fi
 # One question per command: the steps below (the secret's first creation) don't ask again. CDK still
 # asks before widening access unless YES=1 was given on the command line (APPROVAL, above).
 export YES=1
@@ -47,6 +73,20 @@ cdk_deploy() {
     fi
   fi
 }
+
+if ((${#only[@]})); then
+  web_dist=""
+  if [[ -s $ROOT/app/dist/index.html ]]; then web_dist=$WEB_DIST; fi
+  if [[ -z $web_dist && " ${only[*]} " == *" SoundcheckWeb "* ]]; then
+    die "ONLY: SoundcheckWeb needs app/dist (make web EXPO_PUBLIC_API_BASE_URL=)"
+  fi
+  step_start "only ${only[*]} (images $TAG)"
+  cdk_context "$TAG" "$(out SoundcheckEdge PublicBaseUrl)" "$web_dist"
+  cdk_deploy "${only[@]}"
+  step_end
+  timings
+  exit 0
+fi
 
 step_start "1/8 aws-check"
 "$AWS_DIR/check.sh"
