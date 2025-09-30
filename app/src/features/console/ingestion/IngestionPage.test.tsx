@@ -23,6 +23,8 @@ let mockSources: () => Promise<IngestionSource[]>;
 let mockRuns: (params: AdminListIngestionRunsParams) => Promise<PageIngestionRun>;
 let mockRun: (id: string) => Promise<IngestionRunDetail>;
 let mockQueue: (source: string) => Promise<{ runId: string }>;
+let mockStop: (id: string) => Promise<IngestionRun>;
+const mockStopped: string[] = [];
 const mockQueued: string[] = [];
 
 jest.mock('@/api/generated/admin-ingestion/admin-ingestion', () => ({
@@ -35,6 +37,10 @@ jest.mock('@/api/generated/admin-ingestion/admin-ingestion', () => ({
   adminListIngestionSources: () => mockSources(),
   adminListIngestionRuns: (params: AdminListIngestionRunsParams) => mockRuns(params),
   adminGetIngestionRun: (id: string) => mockRun(id),
+  adminStopIngestionRun: (id: string) => {
+    mockStopped.push(id);
+    return mockStop(id);
+  },
   adminQueueIngestionRun: ({ source }: { source: string }) => {
     mockQueued.push(source);
     return mockQueue(source);
@@ -101,6 +107,8 @@ async function renderPage() {
 describe('IngestionPage', () => {
   beforeEach(() => {
     mockQueued.length = 0;
+    mockStopped.length = 0;
+    mockStop = async (id) => run({ id, status: 'STOPPED' });
     mockSources = async () => [
       source('TICKETMASTER'),
       source('VENUE', { enabled: false }),
@@ -261,6 +269,55 @@ describe('IngestionPage', () => {
     expect(await within(table).findByText('QUEUED')).toBeOnTheScreen();
     // A run still going has no counts yet: they are written when it ends.
     expect(within(table).getAllByText('—')).toHaveLength(2);
+  });
+
+  it('stops a running run after confirming, then shows it stopping', async () => {
+    const running = run({
+      id: 'run-live',
+      status: 'RUNNING',
+      finishedAt: null,
+      trigger: 'SCHEDULE',
+    });
+    let stopAsked = false;
+    mockSources = async () => [
+      source('TICKETMASTER', {
+        lastRun: stopAsked ? { ...running, stopRequestedAt: '2026-10-05T17:00:00Z' } : running,
+      }),
+      source('VENUE', { enabled: false }),
+      source('SETLISTFM', { enabled: false, lastRun: undefined }),
+    ];
+    mockStop = async (id) => {
+      stopAsked = true;
+      return { ...running, id, stopRequestedAt: '2026-10-05T17:00:00Z' };
+    };
+    await renderPage();
+
+    await fireEvent.press(await screen.findByTestId('ingestion-stop-TICKETMASTER'));
+    expect(mockStopped).toEqual([]);
+    expect(
+      screen.getByText('• Ask the run to stop at its next heartbeat, within about 30 seconds'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('• Keep the gigs it has already stored')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+
+    expect(mockStopped).toEqual(['run-live']);
+    await waitFor(() =>
+      expect(screen.getByTestId('ingestion-stop-TICKETMASTER')).toHaveTextContent('Stopping…'),
+    );
+    expect(screen.getByTestId('ingestion-stop-TICKETMASTER')).toBeDisabled();
+  });
+
+  it('offers Stop for a queued run, which never starts', async () => {
+    mockRun = async (id) => detail(run({ id, status: 'QUEUED', finishedAt: null }));
+    await renderPage();
+    expect(screen.queryByTestId('ingestion-stop-TICKETMASTER')).toBeNull();
+    await fireEvent.press(await screen.findByTestId('ingestion-run-now-TICKETMASTER'));
+    await fireEvent.press(await screen.findByTestId('ingestion-stop-TICKETMASTER'));
+    expect(
+      screen.getByText('• Close the queued run as STOPPED; it never starts'),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+    expect(mockStopped).toEqual(['queued-1']);
   });
 
   it('says it is waiting for the scheduler after 60 s still queued', async () => {

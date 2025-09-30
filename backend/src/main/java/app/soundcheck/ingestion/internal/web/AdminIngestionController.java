@@ -6,6 +6,7 @@ import app.soundcheck.ingestion.internal.AdminIngestion.RunSummary;
 import app.soundcheck.ingestion.internal.AdminIngestion.SourceView;
 import app.soundcheck.ingestion.internal.AdminMatchReviews;
 import app.soundcheck.ingestion.internal.AdminMatchReviews.Decision;
+import app.soundcheck.ingestion.internal.AdminMatchReviews.Keep;
 import app.soundcheck.ingestion.internal.AdminMatchReviews.ReviewView;
 import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
@@ -57,8 +58,13 @@ public class AdminIngestionController {
 
     @Schema(name = "MatchReviewDecision")
     public record DecideRequest(
-            @NotNull @Schema(description = "MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs")
-                    Decision decision) {}
+            @NotNull @Schema(description = "MERGE: the two become one gig (see keep); KEEP_APART: two gigs")
+                    Decision decision,
+            @Schema(
+                            nullable = true,
+                            description = "Which gig a MERGE keeps: EXISTING (default), the one that was there first;"
+                                    + " NEW, the listing's gig")
+                    Keep keep) {}
 
     private final AdminIngestion admin;
     private final AdminMatchReviews reviews;
@@ -82,7 +88,17 @@ public class AdminIngestionController {
             summary = "Ingestion runs, newest first, with their main counters and issues counted by kind")
     public Page<RunSummary> runs(
             @RequestParam(required = false) String source,
-            @Parameter(schema = @Schema(allowableValues = {"QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED"}))
+            @Parameter(
+                            schema =
+                                    @Schema(
+                                            allowableValues = {
+                                                "QUEUED",
+                                                "RUNNING",
+                                                "SUCCEEDED",
+                                                "PARTIAL",
+                                                "FAILED",
+                                                "STOPPED"
+                                            }))
                     @RequestParam(required = false)
                     String status,
             @RequestParam(required = false) String cursor,
@@ -111,6 +127,18 @@ public class AdminIngestionController {
         return new QueuedRun(runId);
     }
 
+    @PostMapping("/runs/{id}/stop")
+    @Operation(
+            operationId = "adminStopIngestionRun",
+            summary = "Stop a run: a QUEUED one is closed as STOPPED at once; a RUNNING one stops at"
+                    + " its next heartbeat, within about 30 s, and keeps what it ingested. Answers the run as it"
+                    + " is now. 404 RUN_NOT_FOUND; 409 RUN_ENDED")
+    public RunSummary stop(@AuthenticationPrincipal Jwt jwt, @PathVariable UUID id) {
+        RunSummary run = admin.stop(id, UUID.fromString(jwt.getSubject()));
+        Actors.audit(jwt, "ingestion.run.stop", run.source() + " " + id);
+        return run;
+    }
+
     @GetMapping("/match-reviews")
     @Operation(
             operationId = "adminListMatchReviews",
@@ -133,7 +161,11 @@ public class AdminIngestionController {
                     + " MERGE_CONFLICT leaves the review OPEN")
     public ResponseEntity<Void> decide(
             @AuthenticationPrincipal Jwt jwt, @PathVariable UUID id, @Valid @RequestBody DecideRequest request) {
-        reviews.decide(id, request.decision(), UUID.fromString(jwt.getSubject()));
+        reviews.decide(
+                id,
+                request.decision(),
+                request.keep() == null ? Keep.EXISTING : request.keep(),
+                UUID.fromString(jwt.getSubject()));
         Actors.audit(jwt, "ingestion.match-review." + request.decision().name().toLowerCase(java.util.Locale.ROOT), id);
         return ResponseEntity.noContent().build();
     }

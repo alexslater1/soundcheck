@@ -173,6 +173,11 @@ public class IngestionService {
             // Per group, not per run: a group read in full counts even when the run as a whole stopped early.
             unlistGigsDroppedByTheirSite(sourceName, runId, stats);
             error = null;
+        } catch (RunStopped e) {
+            // An operator pressed Stop: what was ingested so far stays, like a failed run's.
+            status = "STOPPED";
+            error = "stopped from the console";
+            log.info("Ingestion run {} for {} stopped from the console", runId, sourceName);
         } catch (RuntimeException e) {
             // The source gave up (after its retries) or something unexpected broke: keep what was ingested.
             error = e.getClass().getSimpleName() + ": " + e.getMessage();
@@ -198,6 +203,8 @@ public class IngestionService {
         try {
             stats.enrichment =
                     enricher.enrichPending(stats, sink, heartbeat::beat).toMap();
+        } catch (RunStopped e) {
+            throw e; // not an enrichment failure: the whole run stops
         } catch (RuntimeException e) {
             stats.issue("ENRICHMENT_ABORTED", null, e.getClass().getSimpleName() + ": " + e.getMessage());
             log.warn("Enrichment stopped early in run {}: {}", runId, e.toString());
@@ -214,7 +221,18 @@ public class IngestionService {
         }
     }
 
-    /** Updates the run's heartbeat at most every 30 seconds. */
+    /** Thrown by {@link Heartbeat#beat} when an operator asked the run to stop. */
+    static final class RunStopped extends RuntimeException {
+        RunStopped() {
+            super("stopped from the console", null, false, false);
+        }
+    }
+
+    /**
+     * Updates the run's heartbeat at most every 30 seconds, and stops the run (throws {@link RunStopped})
+     * when that write finds a stop request. Called once per gig and once per enriched artist, outside their
+     * own error handling, so the request is seen within about 30 seconds.
+     */
     private final class Heartbeat {
         private final UUID runId;
         private Instant last = Instant.EPOCH;
@@ -226,8 +244,11 @@ public class IngestionService {
         void beat() {
             Instant now = Instant.now(clock);
             if (Duration.between(last, now).compareTo(HEARTBEAT_EVERY) >= 0) {
-                runs.heartbeat(runId, now);
+                boolean stop = runs.heartbeat(runId, now);
                 last = now;
+                if (stop) {
+                    throw new RunStopped();
+                }
             }
         }
     }

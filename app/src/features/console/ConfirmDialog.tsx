@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Modal, StyleSheet, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
@@ -19,6 +20,7 @@ export function ConfirmDialog({
   error,
   onConfirm,
   onCancel,
+  children,
 }: {
   visible: boolean;
   title: string;
@@ -31,6 +33,8 @@ export function ConfirmDialog({
   error?: string | null;
   onConfirm: () => void;
   onCancel: () => void;
+  /** A choice the action needs, shown under the changes (which gig a merge keeps). */
+  children?: ReactNode;
 }) {
   const { colors } = useTheme();
   return (
@@ -48,6 +52,7 @@ export function ConfirmDialog({
               <Text key={c}>• {c}</Text>
             ))}
           </View>
+          {children}
           {error ? <Text style={{ color: colors.danger }}>{error}</Text> : null}
           <View style={styles.buttons}>
             <Button

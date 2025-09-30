@@ -8,6 +8,7 @@ import {
   adminListIngestionRuns,
   adminListIngestionSources,
   adminQueueIngestionRun,
+  adminStopIngestionRun,
   getAdminGetIngestionRunQueryKey,
   getAdminListIngestionRunsQueryKey,
   getAdminListIngestionSourcesQueryKey,
@@ -25,7 +26,9 @@ import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
+import { ConfirmDialog } from '../ConfirmDialog';
 import { DataTable, type Column } from '../DataTable';
+import { problemLines } from '../ranking/configModel';
 import {
   groupIssues,
   isActive,
@@ -213,6 +216,7 @@ export function SourceCard({
   onRunChanged: () => void;
 }) {
   const { colors } = useTheme();
+  const queryClient = useQueryClient();
   const [tracked, setTracked] = useState<{ runId: string; pressedAt: number } | null>(null);
   const queue = useMutation({
     mutationFn: () => adminQueueIngestionRun({ source: source.name }),
@@ -244,6 +248,25 @@ export function SourceCard({
     queue.isPending ||
     (tracked !== null && isActive(trackedStatus)) ||
     (!lastIsTracked && isActive(source.lastRun?.status));
+
+  // Stop: the run this card is following, else the source's own queued or running run (one the
+  // schedule started, or one queued before the page was opened).
+  const active =
+    tracked && isActive(trackedStatus)
+      ? { id: tracked.runId, status: trackedStatus, stopRequestedAt: run.data?.run.stopRequestedAt }
+      : !lastIsTracked && source.lastRun && isActive(source.lastRun.status)
+        ? source.lastRun
+        : null;
+  const stopping = active !== null && active.stopRequestedAt != null;
+  const [confirmStop, setConfirmStop] = useState(false);
+  const stop = useMutation({
+    mutationFn: (id: string) => adminStopIngestionRun(id),
+    onSuccess: (r) => {
+      setConfirmStop(false);
+      void queryClient.invalidateQueries({ queryKey: getAdminGetIngestionRunQueryKey(r.id) });
+      onRunChanged();
+    },
+  });
   const last =
     trackedEnded && run.data && (lastIsTracked || !source.lastRun) ? run.data.run : source.lastRun;
 
@@ -274,7 +297,7 @@ export function SourceCard({
       )}
       {tracked && isActive(trackedStatus) ? (
         <Text variant="caption" testID={`ingestion-tracked-${source.name}`}>
-          {trackedStatus === 'QUEUED' ? 'Queued…' : 'Running…'}
+          {stopping ? 'Stopping…' : trackedStatus === 'QUEUED' ? 'Queued…' : 'Running…'}
         </Text>
       ) : null}
       {trackedEnded && run.data ? (
@@ -304,12 +327,46 @@ export function SourceCard({
           onPress={() => queue.mutate()}
           testID={`ingestion-run-now-${source.name}`}
         />
+        {active ? (
+          <Button
+            title={stopping ? 'Stopping…' : 'Stop…'}
+            size="small"
+            variant="outline"
+            disabled={stopping || stop.isPending}
+            onPress={() => {
+              stop.reset();
+              setConfirmStop(true);
+            }}
+            testID={`ingestion-stop-${source.name}`}
+          />
+        ) : null}
         {source.enabled ? null : (
           <Text variant="caption" muted>
             Not enabled in this deployment
           </Text>
         )}
       </View>
+      {active ? (
+        <ConfirmDialog
+          visible={confirmStop}
+          title={`Stop the ${source.name} run?`}
+          changes={
+            active.status === 'QUEUED'
+              ? ['Close the queued run as STOPPED; it never starts']
+              : [
+                  'Ask the run to stop at its next heartbeat, within about 30 seconds',
+                  'Keep the gigs it has already stored',
+                  'Close it as STOPPED; the source can run again after that',
+                ]
+          }
+          confirmLabel="Stop"
+          destructive
+          busy={stop.isPending}
+          error={stop.isError ? problemLines(stop.error).join(' · ') : null}
+          onConfirm={() => stop.mutate(active.id)}
+          onCancel={() => setConfirmStop(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -411,7 +468,7 @@ function StatusText({ status }: { status: string }) {
   const color =
     status === 'FAILED'
       ? colors.danger
-      : status === 'PARTIAL'
+      : status === 'PARTIAL' || status === 'STOPPED'
         ? colors.warning
         : status === 'SUCCEEDED'
           ? colors.success
@@ -504,25 +561,24 @@ export function RunIssues({ runId }: { runId: string }) {
               {`+${g.issues.length - ISSUES_PER_KIND} more`}
             </Text>
           ) : null}
-          {ISSUE_ACTIONS[g.kind] ? (
-            <Link
-              href={{
-                pathname: '/console/catalog',
-                params: { tab: ISSUE_ACTIONS[g.kind].catalogTab },
-              }}
-            >
-              <Text
-                variant="caption"
-                style={{ color: colors.accent }}
-                testID={`issue-action-${g.kind}`}
-              >
-                {ISSUE_ACTIONS[g.kind].label}
-              </Text>
-            </Link>
-          ) : null}
+          <IssueAction kind={g.kind} />
         </View>
       ))}
     </View>
+  );
+}
+
+/** "Where to act" for an issue kind that has a place in the console (Catalog → Venues); else nothing. */
+function IssueAction({ kind }: { kind: string }) {
+  const { colors } = useTheme();
+  const action = ISSUE_ACTIONS[kind];
+  if (!action) return null;
+  return (
+    <Link href={{ pathname: '/console/catalog', params: { tab: action.catalogTab } }}>
+      <Text variant="caption" style={{ color: colors.accent }} testID={`issue-action-${kind}`}>
+        {action.label}
+      </Text>
+    </Link>
   );
 }
 

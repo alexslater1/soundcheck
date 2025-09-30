@@ -163,13 +163,65 @@ public class IngestionRuns {
         }
     }
 
-    /** "Still alive": see {@link #ABANDONED_AFTER}. */
-    public void heartbeat(UUID runId, Instant now) {
-        dsl.update(INGESTION_RUN)
+    /**
+     * "Still alive": see {@link #ABANDONED_AFTER}. The same statement reads whether an operator has asked
+     * the run to stop, so stopping costs the run no extra query.
+     *
+     * @return true when the run should stop now
+     */
+    public boolean heartbeat(UUID runId, Instant now) {
+        return dsl.update(INGESTION_RUN)
                 .set(INGESTION_RUN.HEARTBEAT_AT, at(now))
                 .where(INGESTION_RUN.ID.eq(runId))
                 .and(INGESTION_RUN.STATUS.eq("RUNNING"))
+                .returning(INGESTION_RUN.STOP_REQUESTED_AT)
+                .fetchOptional()
+                .map(r -> r.getStopRequestedAt() != null)
+                .orElse(false);
+    }
+
+    /** What {@link #requestStop} did. */
+    public enum StopOutcome {
+        /** The run was still QUEUED: it is closed as STOPPED and never starts. */
+        STOPPED,
+        /** The run is RUNNING: it stops at its next heartbeat and closes itself as STOPPED. */
+        STOPPING
+    }
+
+    /**
+     * "Stop" from the console. A queued run is closed at once; a running one is only flagged,
+     * because another process is running it: that process sees the flag with its next heartbeat. The row
+     * stays RUNNING meanwhile, so the source can't start a second run until the first has stopped.
+     *
+     * @throws ApiException 404 {@code RUN_NOT_FOUND}; 409 {@code RUN_ENDED} for a run that has finished
+     */
+    public StopOutcome requestStop(UUID runId, UUID requestedBy, Instant now) {
+        int closed = dsl.update(INGESTION_RUN)
+                .set(INGESTION_RUN.STATUS, "STOPPED")
+                .set(INGESTION_RUN.FINISHED_AT, at(now))
+                .set(INGESTION_RUN.ERROR, "stopped from the console before it started")
+                .set(INGESTION_RUN.STOP_REQUESTED_AT, at(now))
+                .set(INGESTION_RUN.STOP_REQUESTED_BY, requestedBy)
+                .where(INGESTION_RUN.ID.eq(runId))
+                .and(INGESTION_RUN.STATUS.eq("QUEUED"))
                 .execute();
+        if (closed == 1) {
+            return StopOutcome.STOPPED;
+        }
+        // A second press keeps the first request's time and operator.
+        int flagged = dsl.update(INGESTION_RUN)
+                .set(INGESTION_RUN.STOP_REQUESTED_AT, DSL.coalesce(INGESTION_RUN.STOP_REQUESTED_AT, at(now)))
+                .set(INGESTION_RUN.STOP_REQUESTED_BY, DSL.coalesce(INGESTION_RUN.STOP_REQUESTED_BY, requestedBy))
+                .where(INGESTION_RUN.ID.eq(runId))
+                .and(INGESTION_RUN.STATUS.eq("RUNNING"))
+                .execute();
+        if (flagged == 1) {
+            return StopOutcome.STOPPING;
+        }
+        if (dsl.fetchExists(INGESTION_RUN, INGESTION_RUN.ID.eq(runId))) {
+            throw ApiException.conflict("RUN_ENDED", "This ingestion run has already finished");
+        }
+        throw ApiException.notFound("RUN_NOT_FOUND", "No ingestion run " + runId);
     }
 
     /** Keeps a raw response replayable; {@code request} never contains secrets. */
