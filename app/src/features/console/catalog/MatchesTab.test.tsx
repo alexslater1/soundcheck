@@ -98,7 +98,34 @@ describe('MatchesTab', () => {
     expect(screen.getByText('Merge these gigs?')).toBeOnTheScreen();
     expect(mockDecide).toHaveBeenCalledTimes(1);
     await fireEvent.press(screen.getByTestId('confirm-ok'));
-    expect(mockDecide).toHaveBeenLastCalledWith({ id: 'r1', data: { decision: 'MERGE' } });
+    expect(mockDecide).toHaveBeenLastCalledWith({
+      id: 'r1',
+      data: { decision: 'MERGE', keep: 'EXISTING' },
+    });
+  });
+
+  it("lets the merge keep the new listing's gig instead, and says so before confirming", async () => {
+    mockAnswer = async () => ({ items: [review('r1')], nextCursor: null });
+    await renderTab();
+    await fireEvent.press(await screen.findByTestId('match-merge-r1'));
+    expect(
+      screen.getByText(
+        '• Delete Pale Kites · Sat 3 Oct 2026 · Band on the Wall; its old link opens the gig that stays',
+      ),
+    ).toBeOnTheScreen();
+
+    await fireEvent.press(screen.getByTestId('match-keep-side-NEW'));
+    expect(screen.getByTestId('match-keep-side-NEW')).toBeChecked();
+    expect(
+      screen.getByText(
+        '• Delete Pale Kite · Sat 3 Oct 2026 · Band on the Wall; its old link opens the gig that stays',
+      ),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+    expect(mockDecide).toHaveBeenLastCalledWith({
+      id: 'r1',
+      data: { decision: 'MERGE', keep: 'NEW' },
+    });
   });
 
   it('shows decided reviews without actions, and an empty queue says so', async () => {

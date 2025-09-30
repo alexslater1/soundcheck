@@ -154,6 +154,32 @@ class MatchReviewDecisionsIT extends IntegrationTest {
     }
 
     @Test
+    void mergeKeepingTheNewGigMovesTheExistingOneIntoIt() {
+        Pair pair = almostMatching(LocalDate.of(2026, 11, 17));
+
+        assertThat(api.post(
+                                "/api/v1/admin/ingestion/match-reviews/"
+                                        + pair.review().getId() + "/decide",
+                                Map.of("decision", "MERGE", "keep", "NEW"),
+                                admin)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.NO_CONTENT);
+
+        MatchReviewRecord review = reviewsOf(pair.site()).getFirst();
+        assertThat(review.getStatus()).isEqualTo("MERGED");
+        assertThat(review.getGigId()).isEqualTo(pair.siteGig());
+        assertThat(review.getCandidateGigId()).isEqualTo(pair.siteGig());
+        assertThat(dsl.fetchExists(GIG, GIG.ID.eq(pair.tmGig()))).isFalse();
+        assertThat(dsl.select(GIG_REDIRECT.INTO_GIG_ID)
+                        .from(GIG_REDIRECT)
+                        .where(GIG_REDIRECT.FROM_GIG_ID.eq(pair.tmGig()))
+                        .fetchOne(GIG_REDIRECT.INTO_GIG_ID))
+                .isEqualTo(pair.siteGig());
+        // Both listings now point at the gig that stayed.
+        assertThat(gigOf(pair.site())).isEqualTo(pair.siteGig());
+    }
+
+    @Test
     void aMergeConflictLeavesTheReviewOpen() {
         LocalDate day = LocalDate.now(clock.withZone(UK)).minusDays(3);
         Pair pair = almostMatching(day);

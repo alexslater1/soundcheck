@@ -27,6 +27,7 @@ import type {
 import type {
   AdminListIngestionRunsParams,
   AdminListMatchReviewsParams,
+  IngestionRun,
   IngestionRunDetail,
   IngestionSource,
   MatchReviewDecision,
@@ -486,6 +487,76 @@ export function useAdminGetIngestionRun<TData = Awaited<ReturnType<typeof adminG
 
 
 /**
+ * @summary Stop a run: a QUEUED one is closed as STOPPED at once; a RUNNING one stops at its next heartbeat, within about 30 s, and keeps what it ingested. Answers the run as it is now. 404 RUN_NOT_FOUND; 409 RUN_ENDED
+ */
+export const getAdminStopIngestionRunUrl = (id: string,) => {
+
+
+  
+
+  return `/api/v1/admin/ingestion/runs/${id}/stop`
+}
+
+export const adminStopIngestionRun = async (id: string, options?: RequestInit): Promise<IngestionRun> => {
+  
+  return customFetch<IngestionRun>(getAdminStopIngestionRunUrl(id),
+  {      
+    ...options,
+    method: 'POST'
+    
+    
+  }
+);}
+
+
+
+
+export const getAdminStopIngestionRunMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminStopIngestionRun>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof adminStopIngestionRun>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['adminStopIngestionRun'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+      
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof adminStopIngestionRun>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  adminStopIngestionRun(id,requestOptions)
+        }
+
+        
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AdminStopIngestionRunMutationResult = NonNullable<Awaited<ReturnType<typeof adminStopIngestionRun>>>
+    
+    export type AdminStopIngestionRunMutationError = unknown
+
+    /**
+ * @summary Stop a run: a QUEUED one is closed as STOPPED at once; a RUNNING one stops at its next heartbeat, within about 30 s, and keeps what it ingested. Answers the run as it is now. 404 RUN_NOT_FOUND; 409 RUN_ENDED
+ */
+export const useAdminStopIngestionRun = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof adminStopIngestionRun>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof adminStopIngestionRun>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+
+      const mutationOptions = getAdminStopIngestionRunMutationOptions(options);
+
+      return useMutation(mutationOptions , queryClient);
+    }
+    /**
  * @summary Every gig source, whether this deployment runs it, the mode, and its latest run
  */
 export const getAdminListIngestionSourcesUrl = () => {

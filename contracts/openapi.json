@@ -2069,8 +2069,13 @@
             "type" : "string"
           },
           "status" : {
-            "enum" : [ "QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED" ],
+            "enum" : [ "QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED", "STOPPED" ],
             "type" : "string"
+          },
+          "stopRequestedAt" : {
+            "description" : "When an operator pressed Stop; a RUNNING run with this set is stopping",
+            "format" : "date-time",
+            "type" : [ "string", "null" ]
           },
           "trigger" : {
             "enum" : [ "SCHEDULE", "CONSOLE", "CLI", "TEST" ],
@@ -2216,9 +2221,14 @@
       "MatchReviewDecision" : {
         "properties" : {
           "decision" : {
-            "description" : "MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs",
+            "description" : "MERGE: the two become one gig (see keep); KEEP_APART: two gigs",
             "enum" : [ "MERGE", "KEEP_APART" ],
             "type" : "string"
+          },
+          "keep" : {
+            "description" : "Which gig a MERGE keeps: EXISTING (default), the one that was there first; NEW, the listing's gig",
+            "enum" : [ "EXISTING", "NEW" ],
+            "type" : [ "string", "null" ]
           }
         },
         "required" : [ "decision" ],
@@ -2591,6 +2601,21 @@
           "items" : {
             "items" : {
               "$ref" : "#/components/schemas/Post"
+            },
+            "type" : "array"
+          },
+          "nextCursor" : {
+            "type" : [ "string", "null" ]
+          }
+        },
+        "required" : [ "items" ],
+        "type" : "object"
+      },
+      "PageRecentGigEdit" : {
+        "properties" : {
+          "items" : {
+            "items" : {
+              "$ref" : "#/components/schemas/RecentGigEdit"
             },
             "type" : "array"
           },
@@ -3740,6 +3765,22 @@
         "required" : [ "kind", "text" ],
         "type" : "object"
       },
+      "RecentGigEdit" : {
+        "properties" : {
+          "edit" : {
+            "$ref" : "#/components/schemas/GigEdit"
+          },
+          "gigStartsAt" : {
+            "format" : "date-time",
+            "type" : "string"
+          },
+          "gigTitle" : {
+            "type" : "string"
+          }
+        },
+        "required" : [ "edit", "gigStartsAt", "gigTitle" ],
+        "type" : "object"
+      },
       "RefreshRequest" : {
         "properties" : {
           "refreshToken" : {
@@ -4790,6 +4831,17 @@
             "format" : "date-time",
             "type" : "string"
           }
+        }, {
+          "in" : "query",
+          "name" : "top",
+          "required" : false,
+          "schema" : {
+            "default" : 10,
+            "format" : "int32",
+            "maximum" : 50,
+            "minimum" : 1,
+            "type" : "integer"
+          }
         } ],
         "responses" : {
           "200" : {
@@ -4803,7 +4855,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "The top 10 artists and gigs by positive engagements, then posts, and uploads by UK hour",
+        "summary" : "The top artists and gigs (10 unless `top` says, at most 50) by positive engagements, then posts, and uploads by UK hour",
         "tags" : [ "admin-analytics" ]
       }
     },
@@ -4877,6 +4929,41 @@
         },
         "summary" : "KPIs against the previous period, a series per UK day, and the share of the activity that synthetic accounts produced. 400 ANALYTICS_RANGE_INVALID unless from < to ≤ from + 90 days",
         "tags" : [ "admin-analytics" ]
+      }
+    },
+    "/api/v1/admin/catalog/gig-edits" : {
+      "get" : {
+        "operationId" : "adminListRecentGigEdits",
+        "parameters" : [ {
+          "in" : "query",
+          "name" : "cursor",
+          "required" : false,
+          "schema" : {
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
+          "name" : "limit",
+          "required" : false,
+          "schema" : {
+            "format" : "int32",
+            "type" : "integer"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/PageRecentGigEdit"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Every gig's edits, newest first, each with its gig's title and date (the Edit history tab before a gig is picked)",
+        "tags" : [ "admin-catalog" ]
       }
     },
     "/api/v1/admin/catalog/gig-edits/{id}/undo" : {
@@ -5422,7 +5509,7 @@
           "name" : "status",
           "required" : false,
           "schema" : {
-            "enum" : [ "QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED" ],
+            "enum" : [ "QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED", "STOPPED" ],
             "type" : "string"
           }
         }, {
@@ -5509,6 +5596,34 @@
           }
         },
         "summary" : "One run with every stat and every stored issue (at most 200). 404 RUN_NOT_FOUND",
+        "tags" : [ "admin-ingestion" ]
+      }
+    },
+    "/api/v1/admin/ingestion/runs/{id}/stop" : {
+      "post" : {
+        "operationId" : "adminStopIngestionRun",
+        "parameters" : [ {
+          "in" : "path",
+          "name" : "id",
+          "required" : true,
+          "schema" : {
+            "format" : "uuid",
+            "type" : "string"
+          }
+        } ],
+        "responses" : {
+          "200" : {
+            "content" : {
+              "application/json" : {
+                "schema" : {
+                  "$ref" : "#/components/schemas/IngestionRun"
+                }
+              }
+            },
+            "description" : "OK"
+          }
+        },
+        "summary" : "Stop a run: a QUEUED one is closed as STOPPED at once; a RUNNING one stops at its next heartbeat, within about 30 s, and keeps what it ingested. Answers the run as it is now. 404 RUN_NOT_FOUND; 409 RUN_ENDED",
         "tags" : [ "admin-ingestion" ]
       }
     },

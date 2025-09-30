@@ -102,6 +102,30 @@ class GigEditUndoIT extends IntegrationTest {
     }
 
     @Test
+    void everyGigsEditsAreListedNewestFirstAPageAtATime() {
+        edit(Map.of("startTime", "22:15"));
+        JsonNode original = latest("STARTS_AT");
+        JsonNode undo = ok(undo(original));
+
+        JsonNode first = ok(api.get("/api/v1/admin/catalog/gig-edits?limit=1", admin));
+        assertThat(first.path("items").size()).isEqualTo(1);
+        JsonNode newest = first.path("items").get(0);
+        assertThat(newest.path("edit").path("id").asText(""))
+                .isEqualTo(undo.path("id").asText(""));
+        assertThat(newest.path("gigTitle").asText("")).isNotBlank();
+        assertThat(newest.path("gigStartsAt").asText("")).isNotBlank();
+
+        String cursor = first.path("nextCursor").asText("");
+        assertThat(cursor).isNotBlank();
+        JsonNode second = ok(api.get("/api/v1/admin/catalog/gig-edits?limit=1&cursor=" + cursor, admin));
+        JsonNode older = second.path("items").get(0).path("edit");
+        assertThat(older.path("id").asText("")).isEqualTo(original.path("id").asText(""));
+        // Its undo is on the page before, and still named.
+        assertThat(older.path("undoneByEditId").asText(""))
+                .isEqualTo(undo.path("id").asText(""));
+    }
+
+    @Test
     void undoingTheDateAndTheVenuePutsThemBackWithTheGigsPoint() {
         Instant before = startsAt();
         UUID elsewhere = data.venue("Edit Elsewhere " + tag, 51.45, -2.58);

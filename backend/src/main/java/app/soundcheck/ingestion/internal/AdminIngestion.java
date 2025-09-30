@@ -60,12 +60,16 @@ public class AdminIngestion {
             UUID id,
             String source,
             @Schema(allowableValues = {"SCHEDULE", "CONSOLE", "CLI", "TEST"}) String trigger,
-            @Schema(allowableValues = {"QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED"}) String status,
+            @Schema(allowableValues = {"QUEUED", "RUNNING", "SUCCEEDED", "PARTIAL", "FAILED", "STOPPED"}) String status,
             @Schema(nullable = true, description = "When \"Run now\" queued it; null for runs that started at once")
                     Instant queuedAt,
             @Schema(description = "When it started; for a QUEUED run, when it was queued") Instant startedAt,
             @Schema(nullable = true) Instant finishedAt,
             @Schema(nullable = true, description = "Who pressed \"Run now\"") UUID requestedBy,
+            @Schema(
+                            nullable = true,
+                            description = "When an operator pressed Stop; a RUNNING run with this set is stopping")
+                    Instant stopRequestedAt,
             int fetched,
             int created,
             int updated,
@@ -186,6 +190,17 @@ public class AdminIngestion {
         return runs.enqueue(source, "CONSOLE", requestedBy, Instant.now(clock));
     }
 
+    /**
+     * "Stop": a queued run is closed as STOPPED at once; a running one stops at its next heartbeat,
+     * within about 30 seconds, and closes itself as STOPPED. Answers the run as it is now.
+     *
+     * @throws ApiException 404 {@code RUN_NOT_FOUND}; 409 {@code RUN_ENDED} for a run that has finished
+     */
+    public RunSummary stop(UUID runId, UUID requestedBy) {
+        runs.requestStop(runId, requestedBy, Instant.now(clock));
+        return get(runId).run();
+    }
+
     private Map<String, Object> stats(IngestionRunRecord row) {
         return read(row.getStats().data(), STATS);
     }
@@ -214,6 +229,7 @@ public class AdminIngestion {
                 row.getStartedAt().toInstant(),
                 instant(row.getFinishedAt()),
                 row.getRequestedBy(),
+                instant(row.getStopRequestedAt()),
                 count(stats, "fetched"),
                 count(stats, "created"),
                 count(stats, "updated"),

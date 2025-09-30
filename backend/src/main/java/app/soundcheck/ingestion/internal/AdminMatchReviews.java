@@ -35,7 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <ul>
  *   <li><b>MERGE</b>: the listing's gig is merged into the existing one through catalog's {@link
- *       GigMerging}, in this transaction. A conflict refuses the merge and the review stays OPEN.
+ *       GigMerging}, in this transaction, or the other way round when the operator keeps the
+ *       new one ({@link Keep#NEW}: its listing may have the better title or times). A conflict refuses the
+ *       merge and the review stays OPEN.
  *   <li><b>KEEP_APART</b>: the two stay two gigs; only the review changes.
  * </ul>
  *
@@ -71,6 +73,12 @@ public class AdminMatchReviews {
     public enum Decision {
         MERGE,
         KEEP_APART
+    }
+
+    /** Which gig a MERGE keeps: the one that was there first (the default), or the listing's new one. */
+    public enum Keep {
+        EXISTING,
+        NEW
     }
 
     private final DSLContext dsl;
@@ -138,7 +146,7 @@ public class AdminMatchReviews {
      *     the review is still OPEN
      */
     @Transactional
-    public void decide(UUID reviewId, Decision decision, UUID adminId) {
+    public void decide(UUID reviewId, Decision decision, Keep keep, UUID adminId) {
         MatchReviewRecord review = dsl.selectFrom(MATCH_REVIEW)
                 .where(MATCH_REVIEW.ID.eq(reviewId))
                 .forUpdate()
@@ -148,9 +156,14 @@ public class AdminMatchReviews {
             throw ApiException.conflict("REVIEW_DECIDED", "This review was already decided: " + review.getStatus());
         }
         if (decision == Decision.MERGE) {
-            // The new listing's gig goes into the gig that was there first. The merge's ingestion
-            // participant re-points this review and marks it MERGED; the update below says so plainly.
-            merging.mergeDuplicate(review.getGigId(), review.getCandidateGigId(), adminId);
+            // By default the new listing's gig goes into the gig that was there first. Either way the
+            // merge's ingestion participant re-points this review to the survivor and marks it MERGED;
+            // the update below says so plainly.
+            if (keep == Keep.NEW) {
+                merging.mergeDuplicate(review.getCandidateGigId(), review.getGigId(), adminId);
+            } else {
+                merging.mergeDuplicate(review.getGigId(), review.getCandidateGigId(), adminId);
+            }
         }
         dsl.update(MATCH_REVIEW)
                 .set(MATCH_REVIEW.STATUS, decision == Decision.MERGE ? "MERGED" : "KEPT_APART")

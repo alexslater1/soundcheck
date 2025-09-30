@@ -45,7 +45,9 @@ public class AdminAnalytics {
     /** The position curve covers the first five pages (logged positions 0–49). */
     static final int POSITIONS = 50;
 
-    static final int TOP = 10;
+    /** The most artists and gigs the content lists return; the console shows 10 and scrolls the rest. */
+    public static final int MAX_TOP = 50;
+
     private static final double DAY_MS = Duration.ofDays(1).toMillis();
 
     /** A headline number now and in the previous period; null when there was nothing to measure. */
@@ -346,12 +348,12 @@ public class AdminAnalytics {
     }
 
     /** @throws ApiException 400 {@code ANALYTICS_RANGE_INVALID} as {@link #overview} */
-    public ContentStats content(Instant from, Instant to) {
+    public ContentStats content(Instant from, Instant to, int top) {
         check(from, to);
-        List<TopArtist> artists = queries.topArtists(from, to, TOP).stream()
+        List<TopArtist> artists = queries.topArtists(from, to, top).stream()
                 .map(r -> new TopArtist(r.id(), r.name(), r.posts(), r.positive()))
                 .toList();
-        List<TopGig> gigs = queries.topGigs(from, to, TOP).stream()
+        List<TopGig> gigs = queries.topGigs(from, to, top).stream()
                 .map(r -> new TopGig(
                         r.id(), r.name(), r.startsAt(), r.venue() == null ? "" : r.venue(), r.posts(), r.positive()))
                 .toList();

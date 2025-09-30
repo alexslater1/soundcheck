@@ -8,7 +8,12 @@ import {
   getAdminListMatchReviewsQueryKey,
   useAdminDecideMatchReview,
 } from '@/api/generated/admin-ingestion/admin-ingestion';
-import type { GigSummary, MatchReview, MatchReviewStatus } from '@/api/generated/model';
+import type {
+  GigSummary,
+  MatchReview,
+  MatchReviewDecisionKeep,
+  MatchReviewStatus,
+} from '@/api/generated/model';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
@@ -32,14 +37,16 @@ export function percent(similarity: number): string {
 
 /**
  * The Matches tab: listings the resolver almost matched to a gig it already had, and
- * kept apart. Merge runs the gig merge of the new listing's gig into the existing one; Keep apart
- * only answers the question. The resolver never asks about a linked listing again, either way.
+ * kept apart. Merge runs the gig merge: by default the new listing's gig goes into the existing
+ * one, and the confirmation lets the operator keep the new one instead (its title or times may be the
+ * better ones). Keep apart only answers the question. The resolver never asks about a linked listing again, either way.
  */
 export function MatchesTab() {
   const { colors } = useTheme();
   const client = useQueryClient();
   const [status, setStatus] = useState<MatchReviewStatus>('OPEN');
   const [merging, setMerging] = useState<MatchReview | null>(null);
+  const [keep, setKeep] = useState<NonNullable<MatchReviewDecisionKeep>>('EXISTING');
   const params = { status };
   const query = useInfiniteQuery({
     queryKey: [...getAdminListMatchReviewsQueryKey(params), 'infinite'],
@@ -131,6 +138,7 @@ export function MatchesTab() {
                   variant="danger"
                   onPress={() => {
                     decide.reset();
+                    setKeep('EXISTING');
                     setMerging(r);
                   }}
                   testID={`match-merge-${r.id}`}
@@ -201,21 +209,55 @@ export function MatchesTab() {
         <ConfirmDialog
           visible
           title="Merge these gigs?"
-          changes={[
-            `Move everything on ${gigLine(merging.gig)} (marks, posts, listings…) to ${gigLine(merging.candidate)}`,
-            `Delete ${gigLine(merging.gig)}; its old link opens the gig that stays`,
-            'Refused, and left to decide, if a fan has a post at both',
-          ]}
+          changes={mergeLines(merging, keep)}
           confirmLabel="Merge"
           destructive
           busy={decide.isPending}
           error={decide.isError ? problemLines(decide.error).join(' · ') : null}
-          onConfirm={() => decide.mutate({ id: merging.id, data: { decision: 'MERGE' } })}
+          onConfirm={() => decide.mutate({ id: merging.id, data: { decision: 'MERGE', keep } })}
           onCancel={() => setMerging(null)}
-        />
+        >
+          <View role="radiogroup" accessibilityLabel="Which gig stays" style={styles.keep}>
+            <Text variant="label" muted>
+              WHICH GIG STAYS
+            </Text>
+            {(
+              [
+                ['EXISTING', `The existing one: ${gigLine(merging.candidate)}`],
+                ['NEW', `The new listing's: ${gigLine(merging.gig)}`],
+              ] as const
+            ).map(([id, label]) => (
+              <Pressable
+                key={id}
+                role="radio"
+                aria-checked={keep === id}
+                onPress={() => setKeep(id)}
+                testID={`match-keep-side-${id}`}
+                style={styles.keepOption}
+              >
+                <Text>{keep === id ? '◉' : '○'}</Text>
+                <Text style={styles.keepLabel}>{label}</Text>
+              </Pressable>
+            ))}
+          </View>
+        </ConfirmDialog>
       ) : null}
     </View>
   );
+}
+
+/** The confirmation's lines for a merge that keeps `keep`: everything on the other gig moves to it. */
+export function mergeLines(
+  review: MatchReview,
+  keep: NonNullable<MatchReviewDecisionKeep>,
+): string[] {
+  const [gone, stays] =
+    keep === 'NEW' ? [review.candidate, review.gig] : [review.gig, review.candidate];
+  return [
+    `Move everything on ${gigLine(gone)} (marks, posts, listings…) to ${gigLine(stays)}`,
+    `Delete ${gigLine(gone)}; its old link opens the gig that stays`,
+    'Refused, and left to decide, if a fan has a post at both',
+  ];
 }
 
 const styles = StyleSheet.create({
@@ -228,4 +270,7 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   actions: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
+  keep: { gap: spacing.xs },
+  keepOption: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
+  keepLabel: { flexShrink: 1 },
 });

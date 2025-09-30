@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
@@ -7,6 +8,7 @@ import {
   adminListIngestionRuns,
   adminListIngestionSources,
   adminQueueIngestionRun,
+  adminStopIngestionRun,
   getAdminGetIngestionRunQueryKey,
   getAdminListIngestionRunsQueryKey,
   getAdminListIngestionSourcesQueryKey,
@@ -24,12 +26,16 @@ import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { radius, spacing } from '@/theme/tokens';
 
+import { ConfirmDialog } from '../ConfirmDialog';
 import { DataTable, type Column } from '../DataTable';
+import { problemLines } from '../ranking/configModel';
 import {
   groupIssues,
   isActive,
   isBreakage,
+  ISSUE_ACTIONS,
   issueCountList,
+  nearMissLine,
   RUN_POLL_MS,
   WAITING_NOTE_AFTER_MS,
 } from './issueKinds';
@@ -94,7 +100,7 @@ export default function IngestionPage() {
         Where gigs come from. &quot;Run now&quot; queues a run; the scheduler process picks it up
         within about 15 seconds.
       </Text>
-      <SourcePanel sources={sources} onRunEnded={refresh} />
+      <SourcePanel sources={sources} onRunChanged={refresh} />
       <View style={styles.filters}>
         <Chips
           label="Source"
@@ -137,14 +143,14 @@ export default function IngestionPage() {
 
 function SourcePanel({
   sources,
-  onRunEnded,
+  onRunChanged,
 }: {
   sources: {
     status: 'pending' | 'error' | 'success';
     data?: IngestionSource[];
     refetch: () => unknown;
   };
-  onRunEnded: () => void;
+  onRunChanged: () => void;
 }) {
   if (sources.status === 'pending') {
     return (
@@ -170,7 +176,7 @@ function SourcePanel({
   return (
     <View style={styles.cards}>
       {sources.data.map((s) => (
-        <SourceCard key={s.name} source={s} onRunEnded={onRunEnded} />
+        <SourceCard key={s.name} source={s} onRunChanged={onRunChanged} />
       ))}
     </View>
   );
@@ -197,18 +203,27 @@ function queueErrorMessage(e: unknown): string {
   return "Couldn't queue the run. Try again.";
 }
 
+/**
+ * One source with "Run now". `onRunChanged` re-reads the sources and the history when a run is queued and
+ * when the tracked run ends: the page polls only while the sources list shows an active run, so without
+ * the first call a new run stayed out of the history until it ended.
+ */
 export function SourceCard({
   source,
-  onRunEnded,
+  onRunChanged,
 }: {
   source: IngestionSource;
-  onRunEnded: () => void;
+  onRunChanged: () => void;
 }) {
   const { colors } = useTheme();
+  const queryClient = useQueryClient();
   const [tracked, setTracked] = useState<{ runId: string; pressedAt: number } | null>(null);
   const queue = useMutation({
     mutationFn: () => adminQueueIngestionRun({ source: source.name }),
-    onSuccess: (r) => setTracked({ runId: r.runId, pressedAt: Date.now() }),
+    onSuccess: (r) => {
+      setTracked({ runId: r.runId, pressedAt: Date.now() });
+      onRunChanged();
+    },
   });
   const run = useQuery({
     queryKey: getAdminGetIngestionRunQueryKey(tracked?.runId ?? ''),
@@ -219,7 +234,7 @@ export function SourceCard({
   const trackedStatus = tracked ? (run.data?.run.status ?? 'QUEUED') : undefined;
   const trackedEnded = tracked !== null && run.data !== undefined && !isActive(trackedStatus);
   useEffect(() => {
-    if (trackedEnded) onRunEnded();
+    if (trackedEnded) onRunChanged();
     // Once per run: when the tracked run's status turns final.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackedEnded, tracked?.runId]);
@@ -233,6 +248,25 @@ export function SourceCard({
     queue.isPending ||
     (tracked !== null && isActive(trackedStatus)) ||
     (!lastIsTracked && isActive(source.lastRun?.status));
+
+  // Stop: the run this card is following, else the source's own queued or running run (one the
+  // schedule started, or one queued before the page was opened).
+  const active =
+    tracked && isActive(trackedStatus)
+      ? { id: tracked.runId, status: trackedStatus, stopRequestedAt: run.data?.run.stopRequestedAt }
+      : !lastIsTracked && source.lastRun && isActive(source.lastRun.status)
+        ? source.lastRun
+        : null;
+  const stopping = active !== null && active.stopRequestedAt != null;
+  const [confirmStop, setConfirmStop] = useState(false);
+  const stop = useMutation({
+    mutationFn: (id: string) => adminStopIngestionRun(id),
+    onSuccess: (r) => {
+      setConfirmStop(false);
+      void queryClient.invalidateQueries({ queryKey: getAdminGetIngestionRunQueryKey(r.id) });
+      onRunChanged();
+    },
+  });
   const last =
     trackedEnded && run.data && (lastIsTracked || !source.lastRun) ? run.data.run : source.lastRun;
 
@@ -263,7 +297,7 @@ export function SourceCard({
       )}
       {tracked && isActive(trackedStatus) ? (
         <Text variant="caption" testID={`ingestion-tracked-${source.name}`}>
-          {trackedStatus === 'QUEUED' ? 'Queued…' : 'Running…'}
+          {stopping ? 'Stopping…' : trackedStatus === 'QUEUED' ? 'Queued…' : 'Running…'}
         </Text>
       ) : null}
       {trackedEnded && run.data ? (
@@ -293,12 +327,46 @@ export function SourceCard({
           onPress={() => queue.mutate()}
           testID={`ingestion-run-now-${source.name}`}
         />
+        {active ? (
+          <Button
+            title={stopping ? 'Stopping…' : 'Stop…'}
+            size="small"
+            variant="outline"
+            disabled={stopping || stop.isPending}
+            onPress={() => {
+              stop.reset();
+              setConfirmStop(true);
+            }}
+            testID={`ingestion-stop-${source.name}`}
+          />
+        ) : null}
         {source.enabled ? null : (
           <Text variant="caption" muted>
             Not enabled in this deployment
           </Text>
         )}
       </View>
+      {active ? (
+        <ConfirmDialog
+          visible={confirmStop}
+          title={`Stop the ${source.name} run?`}
+          changes={
+            active.status === 'QUEUED'
+              ? ['Close the queued run as STOPPED; it never starts']
+              : [
+                  'Ask the run to stop at its next heartbeat, within about 30 seconds',
+                  'Keep the gigs it has already stored',
+                  'Close it as STOPPED; the source can run again after that',
+                ]
+          }
+          confirmLabel="Stop"
+          destructive
+          busy={stop.isPending}
+          error={stop.isError ? problemLines(stop.error).join(' · ') : null}
+          onConfirm={() => stop.mutate(active.id)}
+          onCancel={() => setConfirmStop(false)}
+        />
+      ) : null}
     </View>
   );
 }
@@ -337,7 +405,8 @@ function runColumns(expanded: ReadonlySet<string>, toggle: (id: string) => void)
       title: 'Fetched',
       align: 'right',
       sortValue: (r) => r.fetched,
-      render: (r) => <Text>{r.fetched}</Text>,
+      // A run writes its counts when it ends, so a queued or running one has none yet.
+      render: (r) => <Text>{isActive(r.status) ? '—' : r.fetched}</Text>,
     },
     {
       key: 'changes',
@@ -345,7 +414,11 @@ function runColumns(expanded: ReadonlySet<string>, toggle: (id: string) => void)
       flex: 1.2,
       align: 'right',
       sortValue: (r) => r.created,
-      render: (r) => <Text variant="caption">{`${r.created} / ${r.updated} / ${r.skipped}`}</Text>,
+      render: (r) => (
+        <Text variant="caption">
+          {isActive(r.status) ? '—' : `${r.created} / ${r.updated} / ${r.skipped}`}
+        </Text>
+      ),
     },
     {
       key: 'issues',
@@ -395,7 +468,7 @@ function StatusText({ status }: { status: string }) {
   const color =
     status === 'FAILED'
       ? colors.danger
-      : status === 'PARTIAL'
+      : status === 'PARTIAL' || status === 'STOPPED'
         ? colors.warning
         : status === 'SUCCEEDED'
           ? colors.success
@@ -458,8 +531,16 @@ export function RunIssues({ runId }: { runId: string }) {
     );
   }
   const groups = groupIssues(detail.data.issues);
+  const flagged = detail.data.stats.flaggedForReview;
   return (
     <View style={styles.groups} testID={`ingestion-issues-${runId}`}>
+      {typeof flagged === 'number' && flagged > 0 ? (
+        <Link href={{ pathname: '/console/catalog', params: { tab: 'matches' } }}>
+          <Text variant="caption" style={{ color: colors.accent }} testID="issue-near-misses">
+            {nearMissLine(flagged)}
+          </Text>
+        </Link>
+      ) : null}
       {groups.map((g) => (
         <View
           key={g.kind}
@@ -480,9 +561,24 @@ export function RunIssues({ runId }: { runId: string }) {
               {`+${g.issues.length - ISSUES_PER_KIND} more`}
             </Text>
           ) : null}
+          <IssueAction kind={g.kind} />
         </View>
       ))}
     </View>
+  );
+}
+
+/** "Where to act" for an issue kind that has a place in the console (Catalog → Venues); else nothing. */
+function IssueAction({ kind }: { kind: string }) {
+  const { colors } = useTheme();
+  const action = ISSUE_ACTIONS[kind];
+  if (!action) return null;
+  return (
+    <Link href={{ pathname: '/console/catalog', params: { tab: action.catalogTab } }}>
+      <Text variant="caption" style={{ color: colors.accent }} testID={`issue-action-${kind}`}>
+        {action.label}
+      </Text>
+    </Link>
   );
 }
 

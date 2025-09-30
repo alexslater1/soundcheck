@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, render, screen, waitFor } from '@testing-library/react-native';
+import { act, render, screen, waitFor, within } from '@testing-library/react-native';
+import type { ReactNode } from 'react';
 import { Text } from 'react-native';
 
 import type {
@@ -22,6 +23,8 @@ let mockSources: () => Promise<IngestionSource[]>;
 let mockRuns: (params: AdminListIngestionRunsParams) => Promise<PageIngestionRun>;
 let mockRun: (id: string) => Promise<IngestionRunDetail>;
 let mockQueue: (source: string) => Promise<{ runId: string }>;
+let mockStop: (id: string) => Promise<IngestionRun>;
+const mockStopped: string[] = [];
 const mockQueued: string[] = [];
 
 jest.mock('@/api/generated/admin-ingestion/admin-ingestion', () => ({
@@ -34,10 +37,18 @@ jest.mock('@/api/generated/admin-ingestion/admin-ingestion', () => ({
   adminListIngestionSources: () => mockSources(),
   adminListIngestionRuns: (params: AdminListIngestionRunsParams) => mockRuns(params),
   adminGetIngestionRun: (id: string) => mockRun(id),
+  adminStopIngestionRun: (id: string) => {
+    mockStopped.push(id);
+    return mockStop(id);
+  },
   adminQueueIngestionRun: ({ source }: { source: string }) => {
     mockQueued.push(source);
     return mockQueue(source);
   },
+}));
+
+jest.mock('expo-router', () => ({
+  Link: ({ children }: { children: ReactNode }) => children,
 }));
 
 const run = (over: Partial<IngestionRun> = {}): IngestionRun => ({
@@ -67,9 +78,13 @@ const source = (name: string, over: Partial<IngestionSource> = {}): IngestionSou
   ...over,
 });
 
-const detail = (r: IngestionRun, issues: IngestionIssue[] = []): IngestionRunDetail => ({
+const detail = (
+  r: IngestionRun,
+  issues: IngestionIssue[] = [],
+  stats: IngestionRunDetail['stats'] = {},
+): IngestionRunDetail => ({
   run: r,
-  stats: {},
+  stats,
   issues,
 });
 
@@ -92,6 +107,8 @@ async function renderPage() {
 describe('IngestionPage', () => {
   beforeEach(() => {
     mockQueued.length = 0;
+    mockStopped.length = 0;
+    mockStop = async (id) => run({ id, status: 'STOPPED' });
     mockSources = async () => [
       source('TICKETMASTER'),
       source('VENUE', { enabled: false }),
@@ -140,6 +157,27 @@ describe('IngestionPage', () => {
 
     await fireEvent.press(screen.getByTestId('ingestion-issues-toggle-run-9'));
     expect(screen.queryByTestId('ingestion-issues-run-9')).toBeNull();
+  });
+
+  it('says where to act on an issue that has a place, and on the near misses', async () => {
+    const withIssues = run({ id: 'run-7', issueCounts: { MISSING_COORDINATES: 1, NO_ARTISTS: 1 } });
+    mockRuns = async () => ({ items: [withIssues], nextCursor: null });
+    mockRun = async () =>
+      detail(
+        withIssues,
+        [
+          { kind: 'MISSING_COORDINATES', externalId: 'e1', detail: 'New Venue' },
+          { kind: 'NO_ARTISTS', externalId: 'e2', detail: 'Quiz night' },
+        ],
+        { flaggedForReview: 2 },
+      );
+    await renderPage();
+    await fireEvent.press(await screen.findByTestId('ingestion-issues-toggle-run-7'));
+    expect(await screen.findByTestId('issue-near-misses')).toHaveTextContent(
+      '2 near misses to decide: Catalog → Matches',
+    );
+    expect(screen.getByTestId('issue-action-MISSING_COORDINATES')).toBeOnTheScreen();
+    expect(screen.queryByTestId('issue-action-NO_ARTISTS')).toBeNull();
   });
 
   it('offers Run now only for an enabled source without a queued or running run', async () => {
@@ -198,6 +236,88 @@ describe('IngestionPage', () => {
       jest.advanceTimersByTime(RUN_POLL_MS * 3);
     });
     expect(runIds.length).toBe(polls); // no polling once it has ended
+  });
+
+  it('shows the queued run in the history at once, without a refresh', async () => {
+    const queued = run({
+      id: 'queued-1',
+      trigger: 'CONSOLE',
+      status: 'QUEUED',
+      finishedAt: null,
+      fetched: 0,
+      created: 0,
+      updated: 0,
+      skipped: 0,
+    });
+    let pressed = false;
+    mockSources = async () => [
+      source('TICKETMASTER', pressed ? { lastRun: queued } : {}),
+      source('VENUE', { enabled: false }),
+      source('SETLISTFM', { enabled: false, lastRun: undefined }),
+    ];
+    mockRuns = async () => ({ items: pressed ? [queued, run()] : [run()], nextCursor: null });
+    mockRun = async (id) => detail({ ...queued, id });
+    mockQueue = async () => {
+      pressed = true;
+      return { runId: 'queued-1' };
+    };
+    await renderPage();
+    await fireEvent.press(await screen.findByTestId('ingestion-run-now-TICKETMASTER'));
+
+    // Before the fix nothing re-read the history until the run ended (or the page was refreshed).
+    const table = screen.getByTestId('ingestion-runs');
+    expect(await within(table).findByText('QUEUED')).toBeOnTheScreen();
+    // A run still going has no counts yet: they are written when it ends.
+    expect(within(table).getAllByText('—')).toHaveLength(2);
+  });
+
+  it('stops a running run after confirming, then shows it stopping', async () => {
+    const running = run({
+      id: 'run-live',
+      status: 'RUNNING',
+      finishedAt: null,
+      trigger: 'SCHEDULE',
+    });
+    let stopAsked = false;
+    mockSources = async () => [
+      source('TICKETMASTER', {
+        lastRun: stopAsked ? { ...running, stopRequestedAt: '2026-10-05T17:00:00Z' } : running,
+      }),
+      source('VENUE', { enabled: false }),
+      source('SETLISTFM', { enabled: false, lastRun: undefined }),
+    ];
+    mockStop = async (id) => {
+      stopAsked = true;
+      return { ...running, id, stopRequestedAt: '2026-10-05T17:00:00Z' };
+    };
+    await renderPage();
+
+    await fireEvent.press(await screen.findByTestId('ingestion-stop-TICKETMASTER'));
+    expect(mockStopped).toEqual([]);
+    expect(
+      screen.getByText('• Ask the run to stop at its next heartbeat, within about 30 seconds'),
+    ).toBeOnTheScreen();
+    expect(screen.getByText('• Keep the gigs it has already stored')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+
+    expect(mockStopped).toEqual(['run-live']);
+    await waitFor(() =>
+      expect(screen.getByTestId('ingestion-stop-TICKETMASTER')).toHaveTextContent('Stopping…'),
+    );
+    expect(screen.getByTestId('ingestion-stop-TICKETMASTER')).toBeDisabled();
+  });
+
+  it('offers Stop for a queued run, which never starts', async () => {
+    mockRun = async (id) => detail(run({ id, status: 'QUEUED', finishedAt: null }));
+    await renderPage();
+    expect(screen.queryByTestId('ingestion-stop-TICKETMASTER')).toBeNull();
+    await fireEvent.press(await screen.findByTestId('ingestion-run-now-TICKETMASTER'));
+    await fireEvent.press(await screen.findByTestId('ingestion-stop-TICKETMASTER'));
+    expect(
+      screen.getByText('• Close the queued run as STOPPED; it never starts'),
+    ).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+    expect(mockStopped).toEqual(['queued-1']);
   });
 
   it('says it is waiting for the scheduler after 60 s still queued', async () => {

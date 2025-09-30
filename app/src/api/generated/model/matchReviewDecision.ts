@@ -6,8 +6,11 @@
  * OpenAPI spec version: v1
  */
 import type { MatchReviewDecisionDecision } from './matchReviewDecisionDecision';
+import type { MatchReviewDecisionKeep } from './matchReviewDecisionKeep';
 
 export interface MatchReviewDecision {
-  /** MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs */
+  /** MERGE: the two become one gig (see keep); KEEP_APART: two gigs */
   decision: MatchReviewDecisionDecision;
+  /** Which gig a MERGE keeps: EXISTING (default), the one that was there first; NEW, the listing's gig */
+  keep?: MatchReviewDecisionKeep;
 }

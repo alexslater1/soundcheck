@@ -6,6 +6,8 @@ import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.web.Actors;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.time.Instant;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
@@ -54,8 +56,12 @@ public class AdminAnalyticsController {
     @GetMapping("/content")
     @Operation(
             operationId = "adminAnalyticsContent",
-            summary = "The top 10 artists and gigs by positive engagements, then posts, and uploads by UK hour")
-    public AdminAnalytics.ContentStats content(@RequestParam Instant from, @RequestParam Instant to) {
-        return analytics.content(from, to);
+            summary = "The top artists and gigs (10 unless `top` says, at most 50) by positive engagements, then"
+                    + " posts, and uploads by UK hour")
+    public AdminAnalytics.ContentStats content(
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "10") @Min(1) @Max(AdminAnalytics.MAX_TOP) int top) {
+        return analytics.content(from, to, top);
     }
 }

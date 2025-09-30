@@ -12,7 +12,6 @@ import type {
   GigSummary,
   VenueHit,
   VenueMergePreview,
-  VenueMergeResult,
   VenueMergeSameNight,
   VenueMergeSide,
 } from '@/api/generated/model';
@@ -27,6 +26,7 @@ import { radius, spacing } from '@/theme/tokens';
 import { ConfirmDialog } from '../ConfirmDialog';
 import { problemLines } from '../ranking/configModel';
 import { isGigId } from './mergeModel';
+import type { VenueMergeDone } from './tabTypes';
 import { useHandles, who } from './useHandles';
 import { venueCountLabel, venueMergeChanges, venueMergeWarnings } from './venueModel';
 
@@ -35,19 +35,26 @@ type Picked = { id: string; name: string; city?: string | null };
 /**
  * Merging a duplicate venue: pick the duplicate and the venue that stays, read the
  * preview, confirm. Gigs that end up on the same night at one venue are listed afterwards with a button
- * that opens the Merge tab on each pair; the venue merge never merges gigs itself.
+ * that opens the Merge tab on each pair; the venue merge never merges gigs itself. The result lives in the
+ * Catalog page (`done`), so the list is still there after merging a pair in the Merge tab, with that pair
+ * ticked.
  */
 export function VenueMerge({
   openMerge,
+  done,
+  setDone,
+  mergedGigIds,
 }: {
   openMerge: (from: GigSummary, into: GigSummary) => void;
+  done: VenueMergeDone | null;
+  setDone: (done: VenueMergeDone | null) => void;
+  mergedGigIds: ReadonlySet<string>;
 }) {
   const { colors } = useTheme();
   const client = useQueryClient();
   const [from, setFrom] = useState<Picked | null>(null);
   const [into, setInto] = useState<Picked | null>(null);
   const [confirming, setConfirming] = useState(false);
-  const [done, setDone] = useState<{ result: VenueMergeResult; name: string } | null>(null);
   const same = from !== null && into !== null && from.id === into.id;
   const ready = from !== null && into !== null && !same;
   const preview = useAdminPreviewVenueMerge(
@@ -98,7 +105,11 @@ export function VenueMerge({
               .join(', ') || 'nothing'}
             .
           </Text>
-          <SameNight pairs={done.result.sameNight} openMerge={openMerge} />
+          <SameNight
+            pairs={done.result.sameNight}
+            openMerge={openMerge}
+            mergedGigIds={mergedGigIds}
+          />
         </View>
       ) : null}
       <View style={styles.pickers}>
@@ -245,13 +256,18 @@ function Side({
   );
 }
 
-/** Gigs now on the same night at the venue that stays: each opens the Merge tab on that pair. */
+/**
+ * Gigs now on the same night at the venue that stays: each opens the Merge tab on that pair, and a pair
+ * merged since (either gig merged away) is ticked instead.
+ */
 function SameNight({
   pairs,
   openMerge,
+  mergedGigIds,
 }: {
   pairs: VenueMergeSameNight[];
   openMerge: (from: GigSummary, into: GigSummary) => void;
+  mergedGigIds: ReadonlySet<string>;
 }) {
   const { colors } = useTheme();
   const [error, setError] = useState<string | null>(null);
@@ -275,15 +291,25 @@ function SameNight({
           <Text variant="caption">
             {p.day}: {p.movedTitle} / {p.title}
           </Text>
-          <Pressable
-            accessibilityRole="button"
-            onPress={() => void open(p)}
-            testID={`venue-merge-pair-${p.movedGigId}`}
-          >
-            <Text variant="caption" style={{ color: colors.accent }}>
-              Merge these…
+          {mergedGigIds.has(p.movedGigId) || mergedGigIds.has(p.gigId) ? (
+            <Text
+              variant="caption"
+              style={{ color: colors.success }}
+              testID={`venue-merge-pair-done-${p.movedGigId}`}
+            >
+              Merged ✓
             </Text>
-          </Pressable>
+          ) : (
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => void open(p)}
+              testID={`venue-merge-pair-${p.movedGigId}`}
+            >
+              <Text variant="caption" style={{ color: colors.accent }}>
+                Merge these…
+              </Text>
+            </Pressable>
+          )}
         </View>
       ))}
       {error ? (

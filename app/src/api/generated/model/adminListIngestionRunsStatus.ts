@@ -16,4 +16,5 @@ export const AdminListIngestionRunsStatus = {
   SUCCEEDED: 'SUCCEEDED',
   PARTIAL: 'PARTIAL',
   FAILED: 'FAILED',
+  STOPPED: 'STOPPED',
 } as const;

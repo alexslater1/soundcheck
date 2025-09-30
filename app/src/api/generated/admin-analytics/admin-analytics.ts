@@ -37,7 +37,7 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 /**
- * @summary The top 10 artists and gigs by positive engagements, then posts, and uploads by UK hour
+ * @summary The top artists and gigs (10 unless `top` says, at most 50) by positive engagements, then posts, and uploads by UK hour
  */
 export const getAdminAnalyticsContentUrl = (params: AdminAnalyticsContentParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -119,7 +119,7 @@ export function useAdminAnalyticsContent<TData = Awaited<ReturnType<typeof admin
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary The top 10 artists and gigs by positive engagements, then posts, and uploads by UK hour
+ * @summary The top artists and gigs (10 unless `top` says, at most 50) by positive engagements, then posts, and uploads by UK hour
  */
 
 export function useAdminAnalyticsContent<TData = Awaited<ReturnType<typeof adminAnalyticsContent>>, TError = unknown>(

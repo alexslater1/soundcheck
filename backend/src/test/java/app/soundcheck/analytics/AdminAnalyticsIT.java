@@ -241,6 +241,21 @@ class AdminAnalyticsIT extends IntegrationTest {
         assertThat(counts.stream().mapToLong(Long::longValue).sum()).isEqualTo(5);
     }
 
+    @Test
+    void theContentListsTakeTopUpToFifty() {
+        Overview o = seedOverview();
+        String path = "/api/v1/admin/analytics/content?from=" + FROM + "&to=" + TO;
+
+        JsonNode one = ok(api.get(path + "&top=1", api.admin()));
+        assertThat(one.path("topArtists").size()).isEqualTo(1);
+        assertThat(one.path("topArtists").get(0).path("artistId").asText("")).isEqualTo(o.a1().toString());
+        assertThat(one.path("topGigs").size()).isEqualTo(1);
+
+        assertThat(api.get(path + "&top=50", api.admin()).getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(api.get(path + "&top=51", api.admin()).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(api.get(path + "&top=0", api.admin()).getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
     /**
      * Two sessions on 1 July 2031 (positions, first clip, outcome):
      *

@@ -26,6 +26,7 @@ import type {
 
 import type {
   AdminListFanAddedGigsParams,
+  AdminListRecentGigEditsParams,
   AdminListSuspectVenuesParams,
   AdminPreviewGigMergeParams,
   AdminPreviewVenueMergeParams,
@@ -34,6 +35,7 @@ import type {
   GigMergeRequest,
   GigMergeResult,
   PageFanAddedGig,
+  PageRecentGigEdit,
   PageSuspectVenue,
   VenueLocationFixed,
   VenueLocationRequest,
@@ -46,6 +48,108 @@ import { customFetch } from '../../http';
 
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+
+/**
+ * @summary Every gig's edits, newest first, each with its gig's title and date (the Edit history tab before a gig is picked)
+ */
+export const getAdminListRecentGigEditsUrl = (params?: AdminListRecentGigEditsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/v1/admin/catalog/gig-edits?${stringifiedParams}` : `/api/v1/admin/catalog/gig-edits`
+}
+
+export const adminListRecentGigEdits = async (params?: AdminListRecentGigEditsParams, options?: RequestInit): Promise<PageRecentGigEdit> => {
+  
+  return customFetch<PageRecentGigEdit>(getAdminListRecentGigEditsUrl(params),
+  {      
+    ...options,
+    method: 'GET'
+    
+    
+  }
+);}
+
+
+
+export const getAdminListRecentGigEditsQueryKey = (params?: AdminListRecentGigEditsParams,) => {
+    return [`/api/v1/admin/catalog/gig-edits`, ...(params ? [params]: [])] as const;
+    }
+
+    
+export const getAdminListRecentGigEditsQueryOptions = <TData = Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError = unknown>(params?: AdminListRecentGigEditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getAdminListRecentGigEditsQueryKey(params);
+
+  
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof adminListRecentGigEdits>>> = ({ signal }) => adminListRecentGigEdits(params, { signal, ...requestOptions });
+
+      
+
+      
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type AdminListRecentGigEditsQueryResult = NonNullable<Awaited<ReturnType<typeof adminListRecentGigEdits>>>
+export type AdminListRecentGigEditsQueryError = unknown
+
+
+export function useAdminListRecentGigEdits<TData = Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError = unknown>(
+ params: undefined |  AdminListRecentGigEditsParams, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListRecentGigEdits>>,
+          TError,
+          Awaited<ReturnType<typeof adminListRecentGigEdits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListRecentGigEdits<TData = Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError = unknown>(
+ params?: AdminListRecentGigEditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof adminListRecentGigEdits>>,
+          TError,
+          Awaited<ReturnType<typeof adminListRecentGigEdits>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useAdminListRecentGigEdits<TData = Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError = unknown>(
+ params?: AdminListRecentGigEditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+/**
+ * @summary Every gig's edits, newest first, each with its gig's title and date (the Edit history tab before a gig is picked)
+ */
+
+export function useAdminListRecentGigEdits<TData = Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError = unknown>(
+ params?: AdminListRecentGigEditsParams, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof adminListRecentGigEdits>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient 
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getAdminListRecentGigEditsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions , queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  query.queryKey = queryOptions.queryKey ;
+
+  return query;
+}
 
 
 

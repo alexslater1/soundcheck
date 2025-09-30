@@ -163,6 +163,79 @@ class AdminIngestionIT extends IntegrationTest {
     }
 
     @Test
+    void stoppingAQueuedRunClosesItAtOnceAndFreesTheSource() {
+        TestApi.User admin = api.admin();
+        UUID runId = queue("TICKETMASTER", admin);
+
+        ResponseEntity<JsonNode> stopped = api.post(RUNS + "/" + runId + "/stop", Map.of(), admin);
+        assertThat(stopped.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(stopped.getBody().path("status").asText("")).isEqualTo("STOPPED");
+        assertThat(stopped.getBody().path("stopRequestedAt").isNull()).isFalse();
+        assertThat(stopped.getBody().path("finishedAt").isNull()).isFalse();
+        assertThat(poller(serviceWith(sources, true)).runNext())
+                .as("nothing left to run")
+                .isEmpty();
+
+        ResponseEntity<JsonNode> again = api.post(RUNS + "/" + runId + "/stop", Map.of(), admin);
+        assertThat(again.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(again.getBody().path("code").asText("")).isEqualTo("RUN_ENDED");
+        assertThat(api.post(RUNS + "/" + UUID.randomUUID() + "/stop", Map.of(), admin)
+                        .getStatusCode())
+                .isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(findInList(RUNS + "?status=STOPPED", runId, admin)).isTrue();
+        // The source is free again.
+        assertThat(api.post(RUNS, Map.of("source", "TICKETMASTER"), admin).getStatusCode())
+                .isEqualTo(HttpStatus.ACCEPTED);
+    }
+
+    @Test
+    void aRunningRunStopsAtItsNextHeartbeatAndKeepsWhatItIngested() {
+        TestApi.User admin = api.admin();
+        UUID runId = queue("TICKETMASTER", admin);
+        GigSource ticketmaster = sources.stream()
+                .filter(s -> s.name().equals("TICKETMASTER"))
+                .findFirst()
+                .orElseThrow();
+        // Stop is pressed while the run is RUNNING: as its first page is read, before its first gig.
+        GigSource stopping = new GigSource() {
+            @Override
+            public String name() {
+                return ticketmaster.name();
+            }
+
+            @Override
+            public Window window(Instant today, Duration horizon) {
+                return ticketmaster.window(today, horizon);
+            }
+
+            @Override
+            public boolean synthetic() {
+                return ticketmaster.synthetic();
+            }
+
+            @Override
+            public Stream<SourcePage> pages(Instant from, Instant to, CallBudget budget) {
+                ResponseEntity<JsonNode> pressed = api.post(RUNS + "/" + runId + "/stop", Map.of(), admin);
+                assertThat(pressed.getStatusCode()).isEqualTo(HttpStatus.OK);
+                assertThat(pressed.getBody().path("status").asText("")).isEqualTo("RUNNING");
+                assertThat(pressed.getBody().path("stopRequestedAt").isNull()).isFalse();
+                return ticketmaster.pages(from, to, budget);
+            }
+        };
+
+        Optional<IngestionService.RunResult> result =
+                poller(serviceWith(List.of(stopping), true)).runNext();
+
+        assertThat(result).hasValueSatisfying(r -> assertThat(r.status()).isEqualTo("STOPPED"));
+        JsonNode run = api.get(RUNS + "/" + runId, admin).getBody().path("run");
+        assertThat(run.path("status").asText("")).isEqualTo("STOPPED");
+        assertThat(run.path("error").asText("")).isEqualTo("stopped from the console");
+        assertThat(run.path("finishedAt").isNull()).isFalse();
+        // It stopped at the first gig's heartbeat, long before the fixtures' 240 listings.
+        assertThat(run.path("fetched").asInt()).isBetween(1, 239);
+    }
+
+    @Test
     void aSourceThisDeploymentDoesNotRunCannotBeQueued() {
         TestApi.User admin = api.admin();
         for (String source : List.of("VENUE", "SETLISTFM", "NOPE")) {
@@ -300,6 +373,12 @@ class AdminIngestionIT extends IntegrationTest {
             }
         }
         throw new AssertionError("no source " + name);
+    }
+
+    private UUID queue(String source, TestApi.User admin) {
+        ResponseEntity<JsonNode> queued = api.post(RUNS, Map.of("source", source), admin);
+        assertThat(queued.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
+        return UUID.fromString(queued.getBody().path("runId").asText(""));
     }
 
     private boolean findInList(String path, UUID runId, TestApi.User admin) {

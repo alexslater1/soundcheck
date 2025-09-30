@@ -21,14 +21,20 @@ import { problemLines } from '../ranking/configModel';
 import { GigSearchPicker } from './GigSearchPicker';
 import { MergePreview } from './MergePreview';
 import { countLabel, gigLine, mergeChanges } from './mergeModel';
-import type { CatalogTabProps } from './tabTypes';
+import type { CatalogTabProps, VenueMergeDone } from './tabTypes';
 import { useHandles } from './useHandles';
 
 /**
  * The Merge tab: pick the duplicate and the gig that stays, read the preview side by
  * side, and confirm. The server moves everything in one transaction or nothing at all.
  */
-export function MergeTab({ pair }: CatalogTabProps) {
+export function MergeTab({
+  pair,
+  openTab,
+  venueMerge,
+  mergedGigIds,
+  onGigMerged,
+}: CatalogTabProps) {
   const { colors } = useTheme();
   const client = useQueryClient();
   const [from, setFrom] = useState<GigSummary | null>(pair?.from ?? null);
@@ -60,6 +66,7 @@ export function MergeTab({ pair }: CatalogTabProps) {
         onSuccess: (result) => {
           setConfirming(false);
           setDone({ result, into });
+          onGigMerged(from.id);
           setFrom(null);
           void client.invalidateQueries({ queryKey: getAdminListFanAddedGigsQueryKey() });
         },
@@ -87,6 +94,15 @@ export function MergeTab({ pair }: CatalogTabProps) {
           <Link href={{ pathname: '/gig/[id]', params: { id: done.result.into } }}>
             <Text style={{ color: colors.accent }}>Open the gig that stays</Text>
           </Link>
+          {venueMerge && venueMerge.result.sameNight.length > 0 ? (
+            <Button
+              title={sameNightLeftLabel(venueMerge, mergedGigIds)}
+              variant="secondary"
+              size="small"
+              onPress={() => openTab('venues')}
+              testID="merge-back-to-venues"
+            />
+          ) : null}
         </View>
       ) : null}
       <View style={styles.pickers}>
@@ -168,6 +184,14 @@ export function MergeTab({ pair }: CatalogTabProps) {
       ) : null}
     </View>
   );
+}
+
+/** "Back to the same-night list (2 left)": the pairs whose gigs are both still there. */
+function sameNightLeftLabel(done: VenueMergeDone, merged: ReadonlySet<string>): string {
+  const left = done.result.sameNight.filter(
+    (p) => !merged.has(p.movedGigId) && !merged.has(p.gigId),
+  ).length;
+  return left > 0 ? `Back to the same-night list (${left} left)` : 'Back to the same-night list';
 }
 
 const styles = StyleSheet.create({

@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react-native';
 
-import type { GigEdit } from '@/api/generated/model';
+import type { GigEdit, PageRecentGigEdit } from '@/api/generated/model';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
 import { gig } from './catalogTestData';
@@ -12,8 +12,16 @@ let mockEdits: { data?: GigEdit[]; status: 'pending' | 'error' | 'success' };
 const mockEditCalls: { id: string; enabled: boolean }[] = [];
 const mockPicked = gig('gig-1', 'Keo');
 
+let mockRecent: (cursor?: string) => Promise<PageRecentGigEdit>;
+const mockRecentCalls: (string | undefined)[] = [];
+
 jest.mock('@/api/generated/admin-catalog/admin-catalog', () => ({
   getAdminListGigEditsQueryKey: (id: string) => [`/api/v1/admin/catalog/gigs/${id}/edits`],
+  getAdminListRecentGigEditsQueryKey: () => ['/api/v1/admin/catalog/gig-edits'],
+  adminListRecentGigEdits: (params: { cursor?: string }) => {
+    mockRecentCalls.push(params.cursor);
+    return mockRecent(params.cursor);
+  },
   useAdminListGigEdits: (id: string, options: { query: { enabled: boolean } }) => {
     mockEditCalls.push({ id, enabled: options.query.enabled });
     return { ...mockEdits, refetch: jest.fn() };
@@ -69,12 +77,45 @@ describe('EditHistoryTab', () => {
     mockUndo.mockReset();
     mockEditCalls.length = 0;
     mockEdits = { status: 'success', data: [] };
+    mockRecentCalls.length = 0;
+    mockRecent = async () => ({ items: [], nextCursor: null });
   });
 
-  it('asks for a gig first', async () => {
+  it("lists every gig's edits before a gig is picked, a page at a time", async () => {
+    mockRecent = async (cursor) =>
+      cursor
+        ? {
+            items: [
+              {
+                edit: edit('e9', { gigId: 'gig-2' }),
+                gigTitle: 'Bea',
+                gigStartsAt: '2026-11-18T19:00:00Z',
+              },
+            ],
+            nextCursor: null,
+          }
+        : {
+            items: [{ edit: edit('e1'), gigTitle: 'Keo', gigStartsAt: '2026-10-03T19:00:00Z' }],
+            nextCursor: 'next',
+          };
     await renderTab();
-    expect(screen.getByTestId('edits-empty')).toBeOnTheScreen();
+    expect(await screen.findByText('Keo · Sat 3 Oct 2026')).toBeOnTheScreen();
+    expect(screen.getByText('Title: Keo → Keo (live)')).toBeOnTheScreen();
     expect(mockEditCalls.every((c) => !c.enabled)).toBe(true);
+
+    await fireEvent.press(screen.getByText('Load more'));
+    expect(await screen.findByText('Bea · Wed 18 Nov 2026')).toBeOnTheScreen();
+    expect(mockRecentCalls).toEqual([undefined, 'next']);
+
+    await fireEvent.press(screen.getByTestId('edit-undo-e9'));
+    expect(screen.getByText('• On Bea · Wed 18 Nov 2026:')).toBeOnTheScreen();
+    await fireEvent.press(screen.getByTestId('confirm-ok'));
+    expect(mockUndo).toHaveBeenCalledWith({ id: 'e9' });
+  });
+
+  it('says when nobody has edited a gig yet', async () => {
+    await renderTab();
+    expect(await screen.findByText('No edits yet')).toBeOnTheScreen();
   });
 
   it('lists the edits with who made them, and what undid what', async () => {
