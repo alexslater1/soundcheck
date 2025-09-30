@@ -205,3 +205,17 @@ def test_cosine() -> None:
     assert click.cosine({"a": 1.0}, {"a": 2.0}) == pytest.approx(1.0)
     assert click.cosine({"a": 1.0}, {"b": 1.0}) == 0.0
     assert click.cosine({}, {"a": 1.0}) == 0.0
+
+
+def test_overrides_change_only_the_named_parameters() -> None:
+    changed = click.with_overrides(click.DEFAULT, ["alpha=2.0", " w_artist = 0.7"])
+    assert changed.alpha == 2.0
+    assert changed.w_artist == 0.7
+    assert changed.bias == click.DEFAULT.bias
+    assert click.with_overrides(click.DEFAULT, []) == click.DEFAULT
+
+
+def test_overrides_refuse_unknown_tuple_or_non_numeric_parameters() -> None:
+    for bad in (["nope=1"], ["watch_engaged=1"], ["alpha=high"], ["alpha"], ["alpha="]):
+        with pytest.raises(ValueError):
+            click.with_overrides(click.DEFAULT, bad)

@@ -317,9 +317,9 @@ lab-publish: ## Publish a trained config as a LAB DRAFT via the API (LAB_API=…
 	[ -n "$${LAB_API:-}" ] && [ -n "$(REPORT)" ] || { echo "lab-publish: set LAB_API (the lab's own API) and REPORT=lab/reports/<ts>"; exit 1; }
 	$(UV_LAB) run soundcheck-lab publish "$(abspath $(REPORT))"
 
-lab-loop: ## simulate (40 × 3 × 6) → extract → train → evaluate → publish, on the lab's OWN stack (LAB_API=… LAB_DATABASE_URL=…)
+lab-loop: ## simulate (40 × 3 × 6) → extract → train → evaluate → publish, on the lab's OWN stack (LAB_API=… LAB_DATABASE_URL=… [SEED=11] [CLICK="alpha=2.0 w_artist=0.7"])
 	[ -n "$${LAB_API:-}" ] && [ -n "$${LAB_DATABASE_URL:-}" ] || { echo "lab-loop: set LAB_API and LAB_DATABASE_URL to the lab's own stack (never the dev stack)"; exit 1; }
-	$(UV_LAB) run soundcheck-lab loop
+	$(UV_LAB) run soundcheck-lab loop $(if $(SEED),--seed $(SEED)) $(foreach c,$(CLICK),--click $(c))
 
 # ── Performance and operations ───────────────────────────────────────────────
 load: ## Run a k6 scenario (SCENARIO=feed|gigs|events|upload|mixed, PROFILE=medium)

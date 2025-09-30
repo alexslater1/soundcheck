@@ -199,6 +199,14 @@ def seed_scale(profile: str = typer.Option("small", help="small | medium | large
     _not_yet("seed-scale")
 
 
+# A sensitivity run changes one click-model number at a time; the run's file records the model used.
+CLICK_OPTION = typer.Option(
+    [],
+    "--click",
+    help="Change a click-model number for a sensitivity run, e.g. --click alpha=2.0 (repeatable)",
+)
+
+
 @app.command()
 def simulate(
     api_url: str = typer.Option(
@@ -220,21 +228,29 @@ def simulate(
     ),
     workers: int = typer.Option(4, min=1, max=16, help="Sessions run at once within a round"),
     out: str = typer.Option("", help="Directory for sim-<seed>-<ts>.json (default lab/data)"),
+    click_overrides: list[str] = CLICK_OPTION,
 ) -> Path:
     """Run synthetic personas against the real API with a click model."""
     from datetime import UTC, datetime
 
     from soundcheck_lab.seed.api import Api
     from soundcheck_lab.seed.personas import check_password_for
-    from soundcheck_lab.sim import check, world
+    from soundcheck_lab.sim import check, click, world
     from soundcheck_lab.sim import personas as sim_personas
     from soundcheck_lab.sim import run as sim
 
+    try:
+        params = click.with_overrides(click.DEFAULT, click_overrides)
+    except ValueError as e:
+        typer.echo(f"simulate: --click {e}", err=True)
+        raise typer.Exit(2) from e
+    if click_overrides:
+        typer.echo(f"click model changed for a sensitivity run: {', '.join(click_overrides)}")
     check_password_for(api_url)
     lab_root = Path(__file__).resolve().parents[2]
     the_world = world.load(db, seed)
     people = sim_personas.make(the_world, seed, personas, sessions, days, datetime.now(UTC))
-    settings = sim.Settings(personas, sessions, days, seed, api_url, round_wait, workers)
+    settings = sim.Settings(personas, sessions, days, seed, api_url, round_wait, workers, params)
     client = Api(api_url, auth_spacing_s=0.5)  # the local profile allows 120 auth calls a minute
     try:
         result = sim.run(settings, client, the_world, people, typer.echo)
@@ -556,6 +572,7 @@ def loop(
     sessions: int = typer.Option(3, min=1),
     days: int = typer.Option(6, min=2),
     seed: int = typer.Option(11, min=0, max=10**9 - 1),
+    click_overrides: list[str] = CLICK_OPTION,
 ) -> None:
     """simulate → extract → train → evaluate → publish, on the lab's own stack."""
     import time
@@ -581,6 +598,7 @@ def loop(
             round_wait=12.0,
             workers=4,
             out="",
+            click_overrides=click_overrides,
         ),
     )
     data = step("extract", lambda: extract(db=db, since="1d", sim=str(sim_path), out=""))

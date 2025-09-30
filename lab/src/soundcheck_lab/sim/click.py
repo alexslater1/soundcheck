@@ -17,7 +17,8 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, fields, replace
+from typing import Any, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -50,6 +51,30 @@ class Params:
 
 
 DEFAULT = Params()
+
+
+def with_overrides(params: Params, overrides: Sequence[str]) -> Params:
+    """`["alpha=2.0", "w_artist=0.7"]` → a copy of `params` with those numbers changed, for the
+    sensitivity runs (does the lab still recover the rules when the rules change?). Only the scalar
+    parameters can be set; the defaults stay fixed.
+
+    Raises ValueError for an unknown or non-numeric parameter, or a missing value."""
+    scalars = {f.name for f in fields(params) if isinstance(getattr(params, f.name), float)}
+    changes: dict[str, float] = {}
+    for item in overrides:
+        name, sep, value = item.partition("=")
+        name = name.strip()
+        if not sep or not value.strip():
+            raise ValueError(f"{item!r}: expected name=value")
+        if name not in scalars:
+            known = ", ".join(sorted(scalars))
+            raise ValueError(f"{name!r} is not a click-model parameter ({known})")
+        try:
+            changes[name] = float(value)
+        except ValueError as e:
+            raise ValueError(f"{item!r}: {value!r} is not a number") from e
+    # Every name is a float field (checked above); mypy can't see that through **.
+    return replace(params, **cast(dict[str, Any], changes))
 
 
 @dataclass(frozen=True)
