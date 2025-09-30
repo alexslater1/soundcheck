@@ -67,6 +67,23 @@ describe('SoundcheckObservability', () => {
     expect(JSON.stringify(policy)).toContain('"aws:SecureTransport":"false"');
   });
 
+  it("lets this account's CloudWatch alarms publish to the topic", () => {
+    // The topic policy replaces SNS's default one, so without an explicit Allow every alarm action fails.
+    type Statement = {
+      Effect: string;
+      Principal?: { Service?: string };
+      Action: string;
+      Condition?: Record<string, Record<string, unknown>>;
+    };
+    const policy = resourcesOf(template, 'AWS::SNS::TopicPolicy')[0]![1] as { PolicyDocument: { Statement: Statement[] } };
+    const statements = policy.PolicyDocument.Statement;
+    const allow = statements.find((s) => s.Effect === 'Allow' && s.Principal?.Service === 'cloudwatch.amazonaws.com');
+    expect(allow).toBeDefined();
+    expect(allow!.Action).toBe('sns:Publish');
+    expect(Object.keys(allow!.Condition ?? {})).toEqual(expect.arrayContaining(['StringEquals', 'ArnLike']));
+    expect(JSON.stringify(allow!.Condition!.ArnLike)).toContain(':alarm:*');
+  });
+
   it('has a dashboard and the contract outputs', () => {
     template.resourceCountIs('AWS::CloudWatch::Dashboard', 1);
     expect(Object.keys(template.toJSON().Outputs ?? {})).toEqual(expect.arrayContaining(['AlarmTopicArn', 'DashboardName']));

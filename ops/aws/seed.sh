@@ -43,7 +43,14 @@ fi
 # The seed's root for this target: its own .localdata/seed/ for progress, the real fixtures/ for clips.
 seed_root="$AWS_LOCAL/seed-$SOUNDCHECK_ENV"
 mkdir -p "$seed_root"
-[[ -e $seed_root/fixtures ]] || ln -s "$ROOT/fixtures" "$seed_root/fixtures"
+# The real clips (fixtures/clips/mine) are gitignored, so a worktree has none: use the main checkout's.
+fixtures="$ROOT/fixtures"
+main=$(git -C "$ROOT" rev-parse --path-format=absolute --git-common-dir 2>/dev/null) && main=${main%/.git}
+if [[ ! -d $fixtures/clips/mine && -n $main && -d $main/fixtures/clips/mine ]]; then fixtures="$main/fixtures"; fi
+[[ -e $seed_root/fixtures ]] || ln -s "$fixtures" "$seed_root/fixtures"
+if [[ ! -d $seed_root/fixtures/clips/mine && " $* " != *" --no-real "* ]]; then
+  say "warning: no fixtures/clips/mine behind $seed_root/fixtures: the real gigs and clips will be skipped"
+fi
 
 cd "$ROOT/lab" || exit
 (
