@@ -12,7 +12,6 @@ import type {
   GigSummary,
   VenueHit,
   VenueMergePreview,
-  VenueMergeResult,
   VenueMergeSameNight,
   VenueMergeSide,
 } from '@/api/generated/model';
