@@ -9,4 +9,5 @@
 export type AdminAnalyticsContentParams = {
 from: string;
 to: string;
+top?: number;
 };

@@ -11,6 +11,36 @@ import {
 
 
 /**
+ * @summary Every gig's edits, newest first, each with its gig's title and date (the Edit history tab before a gig is picked)
+ */
+export const adminListRecentGigEditsQueryParams = zod.object({
+  "cursor": zod.string().optional(),
+  "limit": zod.number().optional()
+})
+
+export const adminListRecentGigEditsResponse = zod.object({
+  "items": zod.array(zod.object({
+  "edit": zod.object({
+  "createdAt": zod.string().datetime({}),
+  "field": zod.enum(['ACT_ADDED', 'STARTS_AT', 'DATE', 'VENUE', 'HEADLINER', 'TITLE', 'MERGE']),
+  "gigId": zod.string().uuid(),
+  "id": zod.string().uuid(),
+  "newLabel": zod.string().nullish(),
+  "newValue": zod.string().nullish().describe('Null only for an undo that took an act off the bill'),
+  "oldLabel": zod.string().nullish().describe('The act\'s or venue\'s name for an id value'),
+  "oldValue": zod.string().nullish(),
+  "undoable": zod.boolean().describe('False for a merge, which can\'t be undone'),
+  "undoesEditId": zod.string().uuid().nullish().describe('The edit this one undoes'),
+  "undoneByEditId": zod.string().uuid().nullish().describe('The latest edit that undid this one'),
+  "userId": zod.string().uuid().nullish().describe('Who made it; null once their account is purged')
+}),
+  "gigStartsAt": zod.string().datetime({}),
+  "gigTitle": zod.string()
+})),
+  "nextCursor": zod.string().nullish()
+})
+
+/**
  * @summary Put the edit's old value back, logged as an edit that undoes it. 409 EDIT_SUPERSEDED, ACT_HAS_CLIPS, MERGE_NOT_UNDOABLE or EDIT_NOT_UNDOABLE
  */
 export const adminUndoGigEditParams = zod.object({

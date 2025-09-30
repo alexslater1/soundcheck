@@ -10,10 +10,14 @@ import app.soundcheck.shared.config.ConditionalOnRole;
 import app.soundcheck.shared.config.Roles;
 import app.soundcheck.shared.jooq.catalog.tables.records.GigEditRecord;
 import app.soundcheck.shared.web.ApiException;
+import app.soundcheck.shared.web.Cursor;
+import app.soundcheck.shared.web.Page;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -61,6 +65,10 @@ public class GigEdits {
             @Schema(nullable = true, description = "The latest edit that undid this one") UUID undoneByEditId,
             @Schema(description = "False for a merge, which can't be undone") boolean undoable) {}
 
+    /** An edit with the gig it changed, for the list of every gig's edits (the Edit history tab's default). */
+    @Schema(name = "RecentGigEdit")
+    public record RecentEdit(EditView edit, String gigTitle, Instant gigStartsAt) {}
+
     private final DSLContext dsl;
     private final SubmissionRepository submissions;
     private final CatalogReadRepository reads;
@@ -103,6 +111,57 @@ public class GigEdits {
         Map<String, String> labels = labels(rows);
         return rows.stream().map(r -> view(r, labels, undoneBy.get(r.getId()))).toList();
     }
+
+    /**
+     * Every gig's edits, newest first, a page at a time (keyset on created_at, id). An edit's "undone by"
+     * is looked up across the whole table, since its undo can be on another page. Expected index:
+     * gig_edit_created (created_at, id), V154.
+     */
+    @Transactional(readOnly = true)
+    public Page<RecentEdit> recent(@Nullable String cursor, @Nullable Integer limit) {
+        Cursor after = Cursor.decode(cursor);
+        int size = Cursor.limit(limit);
+        Condition where = DSL.noCondition();
+        if (after != null) {
+            where = DSL.row(GIG_EDIT.CREATED_AT, GIG_EDIT.ID)
+                    .lt(DSL.row(after.at().atOffset(ZoneOffset.UTC), after.id()));
+        }
+        List<GigEditRecord> rows = dsl.selectFrom(GIG_EDIT)
+                .where(where)
+                .orderBy(GIG_EDIT.CREATED_AT.desc(), GIG_EDIT.ID.desc())
+                .limit(size + 1)
+                .fetch();
+        boolean more = rows.size() > size;
+        List<GigEditRecord> page = more ? rows.subList(0, size) : rows;
+        List<UUID> ids = page.stream().map(GigEditRecord::getId).toList();
+        Map<UUID, UUID> undoneBy = new HashMap<>();
+        // The latest undo of each edit on the page. Expected index: gig_edit_undoes (undoes_edit_id), V154.
+        dsl.select(GIG_EDIT.UNDOES_EDIT_ID, GIG_EDIT.ID)
+                .from(GIG_EDIT)
+                .where(GIG_EDIT.UNDOES_EDIT_ID.in(ids))
+                .orderBy(GIG_EDIT.CREATED_AT.desc(), GIG_EDIT.ID.desc())
+                .forEach(r -> undoneBy.putIfAbsent(r.value1(), r.value2()));
+        Map<UUID, GigLine> gigs = new HashMap<>();
+        dsl.select(GIG.ID, GIG.TITLE, GIG.STARTS_AT)
+                .from(GIG)
+                .where(GIG.ID.in(
+                        page.stream().map(GigEditRecord::getGigId).distinct().toList()))
+                .forEach(r ->
+                        gigs.put(r.value1(), new GigLine(r.value2(), r.value3().toInstant())));
+        Map<String, String> labels = labels(page);
+        List<RecentEdit> items = new ArrayList<>();
+        for (GigEditRecord r : page) {
+            GigLine gig = gigs.get(r.getGigId()); // never null: gig_id cascades on delete
+            items.add(new RecentEdit(view(r, labels, undoneBy.get(r.getId())), gig.title(), gig.startsAt()));
+        }
+        if (!more) {
+            return Page.of(items);
+        }
+        GigEditRecord last = page.getLast();
+        return new Page<>(items, new Cursor(last.getCreatedAt().toInstant(), last.getId()).encode());
+    }
+
+    private record GigLine(String title, Instant startsAt) {}
 
     /**
      * Puts the edit's old value back, and logs that as an edit of the same field.

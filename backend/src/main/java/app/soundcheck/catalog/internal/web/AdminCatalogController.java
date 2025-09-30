@@ -157,6 +157,16 @@ public class AdminCatalogController {
         return result;
     }
 
+    @GetMapping("/gig-edits")
+    @Operation(
+            operationId = "adminListRecentGigEdits",
+            summary = "Every gig's edits, newest first, each with its gig's title and date (the Edit history"
+                    + " tab before a gig is picked)")
+    public Page<GigEdits.RecentEdit> recentGigEdits(
+            @RequestParam(required = false) String cursor, @RequestParam(required = false) Integer limit) {
+        return edits.recent(cursor, limit);
+    }
+
     @GetMapping("/gigs/{id}/edits")
     @Operation(
             operationId = "adminListGigEdits",

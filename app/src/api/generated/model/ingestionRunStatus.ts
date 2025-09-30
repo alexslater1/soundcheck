@@ -16,4 +16,5 @@ export const IngestionRunStatus = {
   SUCCEEDED: 'SUCCEEDED',
   PARTIAL: 'PARTIAL',
   FAILED: 'FAILED',
+  STOPPED: 'STOPPED',
 } as const;

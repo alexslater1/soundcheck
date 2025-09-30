@@ -7,7 +7,7 @@
  */
 
 /**
- * MERGE: the listing's gig goes into the existing one; KEEP_APART: two gigs
+ * MERGE: the two become one gig (see keep); KEEP_APART: two gigs
  */
 export type MatchReviewDecisionDecision = typeof MatchReviewDecisionDecision[keyof typeof MatchReviewDecisionDecision];
 

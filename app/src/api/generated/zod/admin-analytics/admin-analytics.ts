@@ -11,11 +11,16 @@ import {
 
 
 /**
- * @summary The top 10 artists and gigs by positive engagements, then posts, and uploads by UK hour
+ * @summary The top artists and gigs (10 unless `top` says, at most 50) by positive engagements, then posts, and uploads by UK hour
  */
+export const adminAnalyticsContentQueryTopDefault = 10;
+export const adminAnalyticsContentQueryTopMax = 50;
+
+
 export const adminAnalyticsContentQueryParams = zod.object({
   "from": zod.string().datetime({}),
-  "to": zod.string().datetime({})
+  "to": zod.string().datetime({}),
+  "top": zod.number().min(1).max(adminAnalyticsContentQueryTopMax).default(adminAnalyticsContentQueryTopDefault)
 })
 
 export const adminAnalyticsContentResponse = zod.object({

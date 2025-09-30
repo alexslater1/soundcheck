@@ -1,15 +1,17 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import {
+  adminListRecentGigEdits,
   getAdminListGigEditsQueryKey,
+  getAdminListRecentGigEditsQueryKey,
   useAdminListGigEdits,
   useAdminUndoGigEdit,
 } from '@/api/generated/admin-catalog/admin-catalog';
-import type { GigEdit, GigSummary } from '@/api/generated/model';
+import type { GigEdit, GigSummary, RecentGigEdit } from '@/api/generated/model';
+import { formatGigDate } from '@/features/gigs/format';
 import { Button } from '@/components/ui/Button';
-import { StateMessage } from '@/components/ui/StateMessage';
 import { Text } from '@/components/ui/Text';
 import { useTheme } from '@/theme/ThemeProvider';
 import { spacing } from '@/theme/tokens';
@@ -23,25 +25,42 @@ import { gigLine } from './mergeModel';
 import { useHandles, who } from './useHandles';
 
 /**
- * The Edit history tab: pick a gig, read every edit fans (and operators) made to it, newest
- * first, and undo one. An undo puts the old value back and is itself logged; the server refuses it when
+ * The Edit history tab: every gig's edits, newest first, until a gig is picked; then that gig's.
+ * Undo one from either list. An undo puts the old value back and is itself logged; the server refuses it when
  * a later edit changed the same thing, or when an act it would remove is on clips.
  */
 export function EditHistoryTab() {
   const { colors } = useTheme();
   const client = useQueryClient();
   const [gig, setGig] = useState<GigSummary | null>(null);
-  const [undoing, setUndoing] = useState<GigEdit | null>(null);
+  // The edit to undo, with the gig it is on ("Keo · Sat 3 Oct 2026 …") for the confirmation.
+  const [undoing, setUndoing] = useState<{ edit: GigEdit; on: string } | null>(null);
   const edits = useAdminListGigEdits(gig?.id ?? '', { query: { enabled: gig !== null } });
-  const handles = useHandles((edits.data ?? []).map((e) => e.userId));
+  const recent = useInfiniteQuery({
+    queryKey: [...getAdminListRecentGigEditsQueryKey(), 'infinite'],
+    queryFn: ({ pageParam, signal }) =>
+      adminListRecentGigEdits(pageParam ? { cursor: pageParam } : {}, { signal }),
+    initialPageParam: undefined as string | undefined,
+    getNextPageParam: (last) => last.nextCursor ?? undefined,
+    enabled: gig === null,
+  });
+  const recentRows = recent.data?.pages.flatMap((p) => p.items);
+  const handles = useHandles(
+    gig ? (edits.data ?? []).map((e) => e.userId) : (recentRows ?? []).map((r) => r.edit.userId),
+  );
   const undo = useAdminUndoGigEdit({
     mutation: {
       onSuccess: () => {
         setUndoing(null);
+        void client.invalidateQueries({ queryKey: getAdminListRecentGigEditsQueryKey() });
         return client.invalidateQueries({ queryKey: getAdminListGigEditsQueryKey(gig?.id ?? '') });
       },
     },
   });
+  const startUndo = (edit: GigEdit, on: string) => {
+    undo.reset();
+    setUndoing({ edit, on });
+  };
 
   const columns: Column<GigEdit>[] = [
     {
@@ -89,10 +108,7 @@ export function EditHistoryTab() {
             title="Undo…"
             size="small"
             variant="secondary"
-            onPress={() => {
-              undo.reset();
-              setUndoing(e);
-            }}
+            onPress={() => startUndo(e, gig ? gigLine(gig) : '')}
             testID={`edit-undo-${e.id}`}
           />
         ) : (
@@ -115,10 +131,18 @@ export function EditHistoryTab() {
         testID="edits-pick-gig"
       />
       {gig === null ? (
-        <StateMessage
-          testID="edits-empty"
-          title="Pick a gig"
-          detail="Search for it by act or title, or paste its id from the Fan gigs tab or the gig page."
+        <DataTable
+          testID="edits-recent"
+          columns={recentColumns(columns, startUndo)}
+          rows={recentRows}
+          rowKey={(r) => r.edit.id}
+          status={recent.status}
+          onRetry={() => void recent.refetch()}
+          emptyTitle="No edits yet"
+          emptyDetail="Edits fans make to gigs appear here, newest first. Pick a gig to see only its own."
+          hasMore={recent.hasNextPage}
+          loadingMore={recent.isFetchingNextPage}
+          onLoadMore={() => void recent.fetchNextPage()}
         />
       ) : (
         <DataTable
@@ -132,21 +156,68 @@ export function EditHistoryTab() {
           emptyDetail="Nobody has changed this gig since it was listed or added."
         />
       )}
-      {undoing && gig ? (
+      {undoing ? (
         <ConfirmDialog
           visible
           title="Undo this edit?"
-          changes={[`On ${gigLine(gig)}:`, ...undoChanges(undoing)]}
+          changes={[`On ${undoing.on}:`, ...undoChanges(undoing.edit)]}
           confirmLabel="Undo"
           destructive
           busy={undo.isPending}
           error={undo.isError ? problemLines(undo.error).join(' · ') : null}
-          onConfirm={() => undo.mutate({ id: undoing.id })}
+          onConfirm={() => undo.mutate({ id: undoing.edit.id })}
           onCancel={() => setUndoing(null)}
         />
       ) : null}
     </View>
   );
+}
+
+/** "Keo · Sat 3 Oct 2026": the gig a recent edit is on. */
+export function recentGigLine(r: RecentGigEdit): string {
+  return `${r.gigTitle} · ${formatGigDate(r.gigStartsAt)}`;
+}
+
+/**
+ * The single gig's columns, read through each row's edit, after a Gig column; Undo names the gig the
+ * edit is on.
+ */
+function recentColumns(
+  columns: Column<GigEdit>[],
+  startUndo: (edit: GigEdit, on: string) => void,
+): Column<RecentGigEdit>[] {
+  const gigColumn: Column<RecentGigEdit> = {
+    key: 'gig',
+    title: 'Gig',
+    flex: 2.5,
+    sortValue: (r) => r.gigTitle,
+    render: (r) => <Text>{recentGigLine(r)}</Text>,
+  };
+  return [
+    gigColumn,
+    ...columns.map((c): Column<RecentGigEdit> => {
+      const sortValue = c.sortValue;
+      return {
+        ...c,
+        sortValue: sortValue ? (r) => sortValue(r.edit) : undefined,
+        render:
+          c.key === 'actions'
+            ? (r) =>
+                r.edit.undoable ? (
+                  <Button
+                    title="Undo…"
+                    size="small"
+                    variant="secondary"
+                    onPress={() => startUndo(r.edit, recentGigLine(r))}
+                    testID={`edit-undo-${r.edit.id}`}
+                  />
+                ) : (
+                  c.render(r.edit)
+                )
+            : (r) => c.render(r.edit),
+      };
+    }),
+  ];
 }
 
 const styles = StyleSheet.create({

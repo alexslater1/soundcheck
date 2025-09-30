@@ -124,7 +124,8 @@ export const adminDecideMatchReviewParams = zod.object({
 })
 
 export const adminDecideMatchReviewBody = zod.object({
-  "decision": zod.enum(['MERGE', 'KEEP_APART']).describe('MERGE: the listing\'s gig goes into the existing one; KEEP_APART: two gigs')
+  "decision": zod.enum(['MERGE', 'KEEP_APART']).describe('MERGE: the two become one gig (see keep); KEEP_APART: two gigs'),
+  "keep": zod.enum(['EXISTING', 'NEW']).nullish().describe('Which gig a MERGE keeps: EXISTING (default), the one that was there first; NEW, the listing\'s gig')
 })
 
 /**
@@ -132,7 +133,7 @@ export const adminDecideMatchReviewBody = zod.object({
  */
 export const adminListIngestionRunsQueryParams = zod.object({
   "source": zod.string().optional(),
-  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED']).optional(),
+  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'STOPPED']).optional(),
   "cursor": zod.string().optional(),
   "limit": zod.number().optional()
 })
@@ -153,7 +154,8 @@ export const adminListIngestionRunsResponse = zod.object({
   "skipped": zod.number(),
   "source": zod.string(),
   "startedAt": zod.string().datetime({}).describe('When it started; for a QUEUED run, when it was queued'),
-  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED']),
+  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'STOPPED']),
+  "stopRequestedAt": zod.string().datetime({}).nullish().describe('When an operator pressed Stop; a RUNNING run with this set is stopping'),
   "trigger": zod.enum(['SCHEDULE', 'CONSOLE', 'CLI', 'TEST']),
   "unchanged": zod.number(),
   "updated": zod.number()
@@ -201,12 +203,42 @@ export const adminGetIngestionRunResponse = zod.object({
   "skipped": zod.number(),
   "source": zod.string(),
   "startedAt": zod.string().datetime({}).describe('When it started; for a QUEUED run, when it was queued'),
-  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED']),
+  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'STOPPED']),
+  "stopRequestedAt": zod.string().datetime({}).nullish().describe('When an operator pressed Stop; a RUNNING run with this set is stopping'),
   "trigger": zod.enum(['SCHEDULE', 'CONSOLE', 'CLI', 'TEST']),
   "unchanged": zod.number(),
   "updated": zod.number()
 }),
   "stats": zod.record(zod.string(), zod.any())
+})
+
+/**
+ * @summary Stop a run: a QUEUED one is closed as STOPPED at once; a RUNNING one stops at its next heartbeat, within about 30 s, and keeps what it ingested. Answers the run as it is now. 404 RUN_NOT_FOUND; 409 RUN_ENDED
+ */
+export const adminStopIngestionRunParams = zod.object({
+  "id": zod.string().uuid()
+})
+
+export const adminStopIngestionRunResponse = zod.object({
+  "apiCalls": zod.number(),
+  "created": zod.number(),
+  "error": zod.string().nullish(),
+  "errors": zod.number(),
+  "fetched": zod.number(),
+  "finishedAt": zod.string().datetime({}).nullish(),
+  "id": zod.string().uuid(),
+  "issueCounts": zod.record(zod.string(), zod.number()),
+  "merged": zod.number(),
+  "queuedAt": zod.string().datetime({}).nullish().describe('When \"Run now\" queued it; null for runs that started at once'),
+  "requestedBy": zod.string().uuid().nullish().describe('Who pressed \"Run now\"'),
+  "skipped": zod.number(),
+  "source": zod.string(),
+  "startedAt": zod.string().datetime({}).describe('When it started; for a QUEUED run, when it was queued'),
+  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'STOPPED']),
+  "stopRequestedAt": zod.string().datetime({}).nullish().describe('When an operator pressed Stop; a RUNNING run with this set is stopping'),
+  "trigger": zod.enum(['SCHEDULE', 'CONSOLE', 'CLI', 'TEST']),
+  "unchanged": zod.number(),
+  "updated": zod.number()
 })
 
 /**
@@ -229,7 +261,8 @@ export const adminListIngestionSourcesResponseItem = zod.object({
   "skipped": zod.number(),
   "source": zod.string(),
   "startedAt": zod.string().datetime({}).describe('When it started; for a QUEUED run, when it was queued'),
-  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED']),
+  "status": zod.enum(['QUEUED', 'RUNNING', 'SUCCEEDED', 'PARTIAL', 'FAILED', 'STOPPED']),
+  "stopRequestedAt": zod.string().datetime({}).nullish().describe('When an operator pressed Stop; a RUNNING run with this set is stopping'),
   "trigger": zod.enum(['SCHEDULE', 'CONSOLE', 'CLI', 'TEST']),
   "unchanged": zod.number(),
   "updated": zod.number()

@@ -11,6 +11,7 @@ import type { IngestionRunIssueCounts } from './ingestionRunIssueCounts';
 import type { IngestionRunQueuedAt } from './ingestionRunQueuedAt';
 import type { IngestionRunRequestedBy } from './ingestionRunRequestedBy';
 import type { IngestionRunStatus } from './ingestionRunStatus';
+import type { IngestionRunStopRequestedAt } from './ingestionRunStopRequestedAt';
 import type { IngestionRunTrigger } from './ingestionRunTrigger';
 
 export interface IngestionRun {
@@ -32,6 +33,8 @@ export interface IngestionRun {
   /** When it started; for a QUEUED run, when it was queued */
   startedAt: string;
   status: IngestionRunStatus;
+  /** When an operator pressed Stop; a RUNNING run with this set is stopping */
+  stopRequestedAt?: IngestionRunStopRequestedAt;
   trigger: IngestionRunTrigger;
   unchanged: number;
   updated: number;
