@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="Soundcheck in its surroundings: fans on Android and the web, an operator and the demo seeder call it; it calls six outside services and sends its telemetry to Grafana Cloud. Nothing outside calls in." font-family="&#x27;Ubuntu Sans&#x27;, &#x27;DejaVu Sans&#x27;, sans-serif">
+<title>System context</title>
+<defs>
+<marker id="h-line" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#4A4760"/></marker>
+<marker id="h-accent" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#6D28D9"/></marker>
+<marker id="h-warn" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#A34A06"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#F7F6FB"/>
+<polyline points="440,260 680,260" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="440,440 680,440" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="440,620 680,620" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="440,800 680,800" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,150 1420,150" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,278 1420,278" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,406 1420,406" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,534 1420,534" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,662 1420,662" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,790 1420,790" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1160,918 1420,918" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<rect x="60" y="195" width="380" height="130" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="84" y="251.24" font-size="32" font-weight="600" fill="#14121C">Fan on Android</text>
+<text x="84" y="299.24" font-size="26" fill="#5E5B70">Expo app on a Pixel</text>
+<rect x="60" y="375" width="380" height="130" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="84" y="431.24" font-size="32" font-weight="600" fill="#14121C">Fan in a browser</text>
+<text x="84" y="479.24" font-size="26" fill="#5E5B70">the same Expo app</text>
+<rect x="60" y="555" width="380" height="130" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="84" y="611.24" font-size="32" font-weight="600" fill="#14121C">Operator</text>
+<text x="84" y="659.24" font-size="26" fill="#5E5B70">the console, web only</text>
+<rect x="60" y="735" width="380" height="130" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="84" y="791.24" font-size="32" font-weight="600" fill="#14121C">Demo seeder</text>
+<text x="84" y="839.24" font-size="26" fill="#5E5B70">Python, via the API</text>
+<rect x="680" y="96" width="480" height="876" rx="16" fill="#EDE5FD" stroke="#6D28D9" stroke-width="4"/>
+<text x="704" y="415.08" font-size="44" font-weight="600" fill="#14121C">Soundcheck</text>
+<text x="704" y="463.08" font-size="26" fill="#5E5B70">gig discovery + concert clips</text>
+<text x="704" y="539.0799999999999" font-size="26" fill="#5E5B70">Expo app: Android and web</text>
+<text x="704" y="577.0799999999999" font-size="26" fill="#5E5B70">Spring Boot modular monolith</text>
+<text x="704" y="615.0799999999999" font-size="26" fill="#5E5B70">Postgres + PostGIS, S3, SQS</text>
+<text x="704" y="691.0799999999999" font-size="26" fill="#5E5B70">live on AWS, eu-north-1</text>
+<rect x="1420" y="96" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="141.24" font-size="32" font-weight="600" fill="#14121C">Ticketmaster</text>
+<text x="1444" y="189.24" font-size="26" fill="#5E5B70">UK gig listings</text>
+<rect x="1420" y="224" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="269.24" font-size="32" font-weight="600" fill="#14121C">London venue sites</text>
+<text x="1444" y="317.24" font-size="26" fill="#5E5B70">21 venues&#x27; own pages</text>
+<rect x="1420" y="352" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="397.24" font-size="32" font-weight="600" fill="#14121C">MusicBrainz · Last.fm</text>
+<text x="1444" y="445.24" font-size="26" fill="#5E5B70">artist ids, genre tags</text>
+<rect x="1420" y="480" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="525.24" font-size="32" font-weight="600" fill="#14121C">postcodes.io</text>
+<text x="1444" y="573.24" font-size="26" fill="#5E5B70">postcode → coordinates</text>
+<rect x="1420" y="608" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="653.24" font-size="32" font-weight="600" fill="#14121C">setlist.fm</text>
+<text x="1444" y="701.24" font-size="26" fill="#5E5B70">past gigs, setlists</text>
+<rect x="1420" y="736" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="781.24" font-size="32" font-weight="600" fill="#14121C">Firebase (FCM)</text>
+<text x="1444" y="829.24" font-size="26" fill="#5E5B70">push notifications</text>
+<rect x="1420" y="864" width="460" height="108" rx="16" fill="#FFFFFF" stroke="#5E5B70" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="909.24" font-size="32" font-weight="600" fill="#14121C">Grafana Cloud</text>
+<text x="1444" y="957.24" font-size="26" fill="#5E5B70">traces, metrics, logs</text>
+<text x="452" y="246" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">browse, post</text>
+<text x="452" y="426" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">the same, on web</text>
+<text x="452" y="606" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">run the system</text>
+<text x="452" y="786" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">public API only</text>
+<text x="1174" y="136" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">daily, 05:10</text>
+<text x="1174" y="264" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">robots.txt, ≥ 5 s</text>
+<text x="1174" y="392" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">each new artist</text>
+<text x="1174" y="520" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">pin-less venues</text>
+<text x="1174" y="648" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">backfill, lookups</text>
+<text x="1174" y="776" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">per inbox entry</text>
+<text x="1174" y="904" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">OTLP</text>
+</svg>

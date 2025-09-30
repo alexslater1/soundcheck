@@ -1,0 +1,74 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="The For You pipeline: user context, candidates from seven SQL generators, twelve features, a logistic score, MMR diversity, exploration, a 200-item session and the served-item log; the loop below reads that log through one label view, trains in Python, publishes a DRAFT config that the playground compares and activates. The purple steps are one pure function shared with the playground&#x27;s preview." font-family="&#x27;Ubuntu Sans&#x27;, &#x27;DejaVu Sans&#x27;, sans-serif">
+<title>The feed: ranked once per session, logged as served, learned from offline</title>
+<defs>
+<marker id="h-line" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#4A4760"/></marker>
+<marker id="h-accent" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#6D28D9"/></marker>
+<marker id="h-warn" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#A34A06"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#F7F6FB"/>
+<polyline points="450,175.0 500,175.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="910,175.0 960,175.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1370,175.0 1420,175.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1420,495.0 1370,495.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="960,495.0 910,495.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="500,495.0 450,495.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="450,835.0 500,835.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="910,835.0 960,835.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1370,835.0 1420,835.0" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1625.0,270 1625.0,400" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="245.0,590 245.0,740" fill="none" stroke="#4A4760" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1830,835.0 1864,835 1864,175 1830,175.0" fill="none" stroke="#6D28D9" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-accent)"/>
+<rect x="40" y="80" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="64" y="147.24" font-size="32" font-weight="600" fill="#14121C">User context</text>
+<text x="64" y="195.24" font-size="26" fill="#5E5B70">follows, genres, home,</text>
+<text x="64" y="233.24" font-size="26" fill="#5E5B70">blocks, recently seen</text>
+<rect x="500" y="80" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="524" y="147.24" font-size="32" font-weight="600" fill="#14121C">Candidates</text>
+<text x="524" y="195.24" font-size="26" fill="#5E5B70">7 generators in one</text>
+<text x="524" y="233.24" font-size="26" fill="#5E5B70">SQL statement</text>
+<rect x="960" y="80" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="984" y="147.24" font-size="32" font-weight="600" fill="#14121C">12 features</text>
+<text x="984" y="195.24" font-size="26" fill="#5E5B70">each in [0, 1]: genre</text>
+<text x="984" y="233.24" font-size="26" fill="#5E5B70">similarity, recency…</text>
+<rect x="1420" y="80" width="410" height="190" rx="16" fill="#EDE5FD" stroke="#6D28D9" stroke-width="4"/>
+<text x="1444" y="147.24" font-size="32" font-weight="600" fill="#14121C">Score</text>
+<text x="1444" y="195.24" font-size="26" fill="#5E5B70" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">σ(bias + Σ wᵢ·fᵢ)</text>
+<text x="1444" y="233.24" font-size="26" fill="#5E5B70">a contribution per feature</text>
+<rect x="40" y="400" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="64" y="467.24" font-size="32" font-weight="600" fill="#14121C">served_item log</text>
+<text x="64" y="515.24" font-size="26" fill="#5E5B70">features as served,</text>
+<text x="64" y="553.24" font-size="26" fill="#5E5B70">position, exploration</text>
+<rect x="500" y="400" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="524" y="467.24" font-size="32" font-weight="600" fill="#14121C">Session</text>
+<text x="524" y="515.24" font-size="26" fill="#5E5B70">200 items, cut into</text>
+<text x="524" y="553.24" font-size="26" fill="#5E5B70">pages of 10</text>
+<rect x="960" y="400" width="410" height="190" rx="16" fill="#EDE5FD" stroke="#6D28D9" stroke-width="4"/>
+<text x="984" y="467.24" font-size="32" font-weight="600" fill="#14121C">Explore</text>
+<text x="984" y="515.24" font-size="26" fill="#5E5B70">10 % of the slots from</text>
+<text x="984" y="553.24" font-size="26" fill="#5E5B70">the 4th: fresh posts</text>
+<rect x="1420" y="400" width="410" height="190" rx="16" fill="#EDE5FD" stroke="#6D28D9" stroke-width="4"/>
+<text x="1444" y="467.24" font-size="32" font-weight="600" fill="#14121C">Diversify (MMR)</text>
+<text x="1444" y="515.24" font-size="26" fill="#5E5B70">score vs similarity,</text>
+<text x="1444" y="553.24" font-size="26" fill="#5E5B70">≤ 5 posts per author</text>
+<rect x="40" y="740" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="64" y="807.24" font-size="32" font-weight="600" fill="#14121C">served_outcome</text>
+<text x="64" y="855.24" font-size="26" fill="#5E5B70">one definition of</text>
+<text x="64" y="893.24" font-size="26" fill="#5E5B70">“engaged” (a view)</text>
+<rect x="500" y="740" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="524" y="807.24" font-size="32" font-weight="600" fill="#14121C">Python lab</text>
+<text x="524" y="855.24" font-size="26" fill="#5E5B70">logistic regression</text>
+<text x="524" y="893.24" font-size="26" fill="#5E5B70">+ a position prior</text>
+<rect x="960" y="740" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="984" y="807.24" font-size="32" font-weight="600" fill="#14121C">DRAFT config</text>
+<text x="984" y="855.24" font-size="26" fill="#5E5B70">weights + metrics,</text>
+<text x="984" y="893.24" font-size="26" fill="#5E5B70">marked simulated</text>
+<rect x="1420" y="740" width="410" height="190" rx="16" fill="#FFFFFF" stroke="#C9C5DD" stroke-width="2.5"/>
+<text x="1444" y="807.24" font-size="32" font-weight="600" fill="#14121C">Playground</text>
+<text x="1444" y="855.24" font-size="26" fill="#5E5B70">preview, replay,</text>
+<text x="1444" y="893.24" font-size="26" fill="#5E5B70">then Activate</text>
+<text x="1639" y="344" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">scored list</text>
+<text x="259" y="680" font-size="26" font-weight="500" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="10" stroke-linejoin="round" paint-order="stroke">joined with events</text>
+<text x="1898" y="505" font-size="26" font-weight="600" fill="#6D28D9" text-anchor="middle" stroke="#F7F6FB" stroke-width="8" stroke-linejoin="round" paint-order="stroke" transform="rotate(-90 1898 505)">Activate: every API instance reloads</text>
+<text x="510" y="668" font-size="26" font-weight="400" fill="#14121C" text-anchor="start" stroke="#F7F6FB" stroke-width="8" stroke-linejoin="round" paint-order="stroke">the same σ in Python and Java: 26 parity cases, |Δ| &lt; 1e-6</text>
+<text x="40" y="1010" font-size="26" font-weight="600" fill="#6D28D9" text-anchor="start" stroke="#F7F6FB" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Purple: FeedRanker.rank, one pure function for the live feed and the playground&#x27;s preview</text>
+</svg>

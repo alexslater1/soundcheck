@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="On the left, the rejected dual write: the status commits, then the process dies before the send, so the clip waits forever (or, sending first, a rollback leaves a job for an upload that never completed). On the right, the outbox: the status and the event row commit together, the relay sends after the commit and marks the row done, a resubmitter resends what a crash left, and the worker&#x27;s claim absorbs a duplicate." font-family="&#x27;Ubuntu Sans&#x27;, &#x27;DejaVu Sans&#x27;, sans-serif">
+<title>Why an outbox: the dual write and the outbox, side by side</title>
+<defs>
+<marker id="h-line" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#C4C4CF"/></marker>
+<marker id="h-accent" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#B69CFB"/></marker>
+<marker id="h-warn" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#FBBF24"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#141418"/>
+<polyline points="460.0,330 460,412" fill="none" stroke="#FBBF24" stroke-width="3.5" stroke-linejoin="round"/>
+<polyline points="460,480 460.0,560" fill="none" stroke="#FBBF24" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-warn)"/>
+<polyline points="1190.0,330 1190.0,470" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="1380,550.0 1480,550.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1100,770 1100,630" fill="none" stroke="#B69CFB" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-accent)"/>
+<rect x="80" y="170" width="760" height="160" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="104" y="222.24" font-size="32" font-weight="600" fill="#FAFAFA">Transaction</text>
+<text x="104" y="270.24" font-size="26" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">UPDATE media_asset SET status</text>
+<text x="104" y="308.24" font-size="26" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">= &#x27;UPLOADED&#x27;; COMMIT</text>
+<rect x="80" y="560" width="760" height="130" rx="16" fill="#3A2A0B" stroke="#FBBF24" stroke-width="3.5" stroke-dasharray="10 7"/>
+<text x="104" y="616.24" font-size="32" font-weight="600" fill="#FAFAFA">SQS SendMessage</text>
+<text x="104" y="664.24" font-size="26" fill="#B4B4BE">never happens</text>
+<rect x="1000" y="170" width="840" height="160" rx="16" fill="#2A1F4D" stroke="#B69CFB" stroke-width="4"/>
+<text x="1024" y="222.24" font-size="32" font-weight="600" fill="#FAFAFA">One transaction</text>
+<text x="1024" y="270.24" font-size="26" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">status = &#x27;UPLOADED&#x27;</text>
+<text x="1024" y="308.24" font-size="26" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">+ INSERT event_publication</text>
+<rect x="1000" y="470" width="380" height="160" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1024" y="522.24" font-size="32" font-weight="600" fill="#FAFAFA">TranscodeRelay</text>
+<text x="1024" y="570.24" font-size="26" fill="#B4B4BE">after the commit:</text>
+<text x="1024" y="608.24" font-size="26" fill="#B4B4BE">send, then mark done</text>
+<rect x="1480" y="470" width="360" height="160" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1504" y="522.24" font-size="32" font-weight="600" fill="#FAFAFA">SQS</text>
+<text x="1504" y="570.24" font-size="26" fill="#B4B4BE">a duplicate is fine:</text>
+<text x="1504" y="608.24" font-size="26" fill="#B4B4BE">the claim absorbs it</text>
+<rect x="1000" y="770" width="380" height="170" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1024" y="827.24" font-size="32" font-weight="600" fill="#FAFAFA">OutboxResubmitter</text>
+<text x="1024" y="875.24" font-size="26" fill="#B4B4BE">every minute: resend</text>
+<text x="1024" y="913.24" font-size="26" fill="#B4B4BE">rows left incomplete</text>
+<text x="1206" y="412" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">after commit</text>
+<text x="1394" y="536" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">send</text>
+<text x="1114" y="712" font-size="26" font-weight="500" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">a crash left it? run it again</text>
+<text x="80" y="110" font-size="34" font-weight="700" fill="#FBBF24" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Rejected: commit, then send</text>
+<text x="1000" y="110" font-size="34" font-weight="700" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Built: the transactional outbox</text>
+<text x="494" y="455" font-size="28" font-weight="600" fill="#FBBF24" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">the process dies here</text>
+<text x="80" y="770" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">The clip waits in UPLOADED forever:</text>
+<text x="80" y="808" font-size="28" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">nothing will ever send its job.</text>
+<text x="80" y="880" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Send first instead? A rollback leaves</text>
+<text x="80" y="918" font-size="28" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">a job for an upload that never completed.</text>
+<circle cx="460" cy="446" r="18" fill="#FBBF24"/>
+<text x="460" y="455" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">×</text>
+</svg>

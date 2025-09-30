@@ -28,7 +28,7 @@ endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
 	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-extract lab-train lab-eval \
-	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight guide \
+	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight diagrams diagrams-check \
 	aws-check aws-bootstrap aws-secrets aws-push aws-diff aws-deploy aws-smoke aws-status aws-logs aws-ingest \
 	aws-backfill-past-gigs aws-seed aws-pause aws-resume aws-destroy aws-lab aws-test
 
@@ -222,6 +222,12 @@ screens: ## Web screenshots for docs/screens/web (synthetic clips; needs `make d
 	npx playwright test --config screens.config.ts $(ARGS) || status=$$?
 	$(CURDIR)/ops/scripts/prune-test-posts.sh --apply || true
 	exit $$status
+
+diagrams: ## Draw the diagrams (docs/diagrams): SVG from build.py's data, then PNG with headless Chrome, one at a time
+	python3 $(CURDIR)/docs/diagrams/build.py --png
+
+diagrams-check: ## Fail if a diagram has > 12 boxes, text < 24 px, a source missing at HEAD, or a stale SVG/PNG
+	python3 $(CURDIR)/docs/diagrams/build.py --check
 
 openapi: ## Regenerate contracts/openapi.json and the TypeScript client (orval)
 	$(GRADLE) test --tests app.soundcheck.OpenApiSnapshotIT -PopenapiWrite=true

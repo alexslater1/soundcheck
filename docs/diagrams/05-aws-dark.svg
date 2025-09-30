@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="The AWS deployment: one CloudFront domain in front of two S3 buckets and, through a VPC origin, an internal load balancer; API tasks and Spot transcode workers in public subnets with no NAT gateway; PostgreSQL in isolated subnets; SQS with a dead-letter queue; secrets, alarms and telemetry beside them." font-family="&#x27;Ubuntu Sans&#x27;, &#x27;DejaVu Sans&#x27;, sans-serif">
+<title>AWS deployment (eu-north-1, as run on 2025-10-01)</title>
+<defs>
+<marker id="h-line" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#C4C4CF"/></marker>
+<marker id="h-accent" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#B69CFB"/></marker>
+<marker id="h-warn" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#FBBF24"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#141418"/>
+<rect x="440" y="370" width="900" height="640" rx="20" fill="#26262F" fill-opacity="0.55" stroke="#3D3D4C" stroke-width="2" stroke-dasharray="10 8"/>
+<rect x="462" y="430" width="856" height="200" rx="20" fill="#26262F" fill-opacity="0.55" stroke="#3D3D4C" stroke-width="2" stroke-dasharray="10 8"/>
+<rect x="462" y="660" width="856" height="300" rx="20" fill="#26262F" fill-opacity="0.55" stroke="#3D3D4C" stroke-width="2" stroke-dasharray="10 8"/>
+<polyline points="390,155.0 480,155.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="920,136.5 1420,135.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="920,220 1140,220 1140,285 1420,285.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="674.0,260 674.0,466" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="674.0,606 674.0,712" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="864,760 890,760 890,560 916,560.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1106.0,712 1106.0,606" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="674,902 674,978 1390,978 1390,920 1420,920.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="1420,850.0 1296,850.0" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="225,90 225,40 1640,40 1640.0,70" fill="none" stroke="#B69CFB" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-accent)"/>
+<rect x="60" y="90" width="330" height="130" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="84" y="146.24" font-size="32" font-weight="600" fill="#FAFAFA">Phone, browser</text>
+<text x="84" y="194.24" font-size="26" fill="#B4B4BE">the Expo app</text>
+<rect x="480" y="70" width="440" height="190" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="504" y="137.24" font-size="32" font-weight="600" fill="#FAFAFA">CloudFront</text>
+<text x="504" y="185.24" font-size="26" fill="#B4B4BE">HTTPS, security headers</text>
+<text x="504" y="223.24" font-size="26" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">/*  /api/*  /media/*</text>
+<rect x="1420" y="70" width="440" height="130" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="126.24" font-size="32" font-weight="600" fill="#FAFAFA">S3 media bucket</text>
+<text x="1444" y="174.24" font-size="26" fill="#B4B4BE">OAC reads media/* only</text>
+<rect x="1420" y="225" width="440" height="120" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="276.24" font-size="32" font-weight="600" fill="#FAFAFA">S3 web bucket</text>
+<text x="1444" y="324.24" font-size="26" fill="#B4B4BE">the static web app</text>
+<rect x="1420" y="400" width="440" height="115" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="448.74" font-size="32" font-weight="600" fill="#FAFAFA">Grafana Cloud</text>
+<text x="1444" y="496.74" font-size="26" fill="#B4B4BE">OTLP; traces at 10 %</text>
+<rect x="1420" y="540" width="440" height="115" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="588.74" font-size="32" font-weight="600" fill="#FAFAFA">Secrets Manager</text>
+<text x="1444" y="636.74" font-size="26" fill="#B4B4BE">one JSON app secret</text>
+<rect x="1420" y="680" width="440" height="115" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="728.74" font-size="32" font-weight="600" fill="#FAFAFA">CloudWatch alarms</text>
+<text x="1444" y="776.74" font-size="26" fill="#B4B4BE">DLQ, ALB 5xx → e-mail</text>
+<rect x="1420" y="820" width="440" height="130" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1444" y="876.24" font-size="32" font-weight="600" fill="#FAFAFA">SQS + DLQ</text>
+<text x="1444" y="924.24" font-size="26" fill="#B4B4BE">3 receives, then DLQ</text>
+<rect x="484" y="466" width="380" height="140" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="508" y="527.24" font-size="32" font-weight="600" fill="#FAFAFA">Internal ALB</text>
+<text x="508" y="575.24" font-size="26" fill="#B4B4BE">from CloudFront only</text>
+<rect x="916" y="466" width="380" height="140" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="940" y="527.24" font-size="32" font-weight="600" fill="#FAFAFA">RDS PostgreSQL 17</text>
+<text x="940" y="575.24" font-size="26" fill="#B4B4BE">t4g.micro, single-AZ</text>
+<rect x="484" y="712" width="380" height="190" rx="16" fill="#2A1F4D" stroke="#B69CFB" stroke-width="4"/>
+<text x="508" y="779.24" font-size="32" font-weight="600" fill="#FAFAFA">API service</text>
+<text x="508" y="827.24" font-size="26" fill="#B4B4BE">api + scheduler roles</text>
+<text x="508" y="865.24" font-size="26" fill="#B4B4BE">0.5 vCPU · 1–2 tasks</text>
+<rect x="916" y="712" width="380" height="190" rx="16" fill="#2A1F4D" stroke="#B69CFB" stroke-width="4"/>
+<text x="940" y="779.24" font-size="32" font-weight="600" fill="#FAFAFA">Transcode workers</text>
+<text x="940" y="827.24" font-size="26" fill="#B4B4BE">Fargate Spot, 2 vCPU</text>
+<text x="940" y="865.24" font-size="26" fill="#B4B4BE">0–2 tasks on backlog</text>
+<text x="398" y="141" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">HTTPS</text>
+<text x="1180" y="122" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">/media/*</text>
+<text x="1160" y="272" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">/*</text>
+<text x="690" y="330" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">/api/* · VPC origin</text>
+<text x="688" y="668" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">HTTP</text>
+<text x="880" y="648" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="end" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">SQL</text>
+<text x="1120" y="668" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">claim</text>
+<text x="1180" y="968" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">outbox relay</text>
+<text x="1308" y="838" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">poll</text>
+<text x="560" y="30" font-size="26" font-weight="500" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">presigned PUT: bytes skip the API</text>
+<text x="1320" y="404" font-size="24" font-weight="600" fill="#B4B4BE" text-anchor="end" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">VPC · 2 AZs · no NAT · S3 gateway endpoint</text>
+<text x="1300" y="458" font-size="24" font-weight="600" fill="#B4B4BE" text-anchor="end" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">isolated subnets</text>
+<text x="482" y="694" font-size="24" font-weight="600" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">public subnets</text>
+<text x="60" y="330" font-size="28" font-weight="700" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Decisions on this picture</text>
+<text x="60" y="380" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">No NAT gateway;</text>
+<text x="60" y="412" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">tasks get public IPs, but</text>
+<text x="60" y="444" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">take traffic from the ALB</text>
+<text x="60" y="492" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">The ALB answers</text>
+<text x="60" y="524" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">CloudFront only</text>
+<text x="60" y="572" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Spot workers,</text>
+<text x="60" y="604" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">scaled from zero</text>
+<text x="60" y="652" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">One AZ</text>
+<text x="60" y="684" font-size="26" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">for the database</text>
+</svg>

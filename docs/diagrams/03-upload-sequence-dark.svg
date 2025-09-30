@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="The upload sequence: the phone gets a presigned URL, puts the bytes straight into S3, completes; the API records UPLOADED and the event in one transaction and relays it to SQS after the commit; a worker claims the clip with a conditional UPDATE, transcodes, finalizes only if it still holds the claim, then deletes the message. Lettered notes give the behaviour when each step fails." font-family="&#x27;Ubuntu Sans&#x27;, &#x27;DejaVu Sans&#x27;, sans-serif">
+<title>Upload → ready, and what happens when each step fails</title>
+<defs>
+<marker id="h-line" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#C4C4CF"/></marker>
+<marker id="h-accent" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#B69CFB"/></marker>
+<marker id="h-warn" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#FBBF24"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#141418"/>
+<line x1="116" y1="112" x2="116" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<line x1="296" y1="112" x2="296" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<line x1="476" y1="112" x2="476" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<line x1="656" y1="112" x2="656" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<line x1="836" y1="112" x2="836" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<line x1="1016" y1="112" x2="1016" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<line x1="1196" y1="112" x2="1196" y2="1010" stroke="#3D3D4C" stroke-width="3" stroke-dasharray="6 8"/>
+<polyline points="116,168 296,168" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="296,227 476,227" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="296,286 116,286" fill="none" stroke="#C4C4CF" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="116,345 1016,345" fill="none" stroke="#B69CFB" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-accent)"/>
+<polyline points="116,404 296,404" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="296,463 1016,463" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="296,522 476,522" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="296,581 656,581" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="656,640 836,640" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="836,699 476,699" fill="none" stroke="#B69CFB" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-accent)"/>
+<polyline points="836,758 1016,758" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="836,817 476,817" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="836,876 656,876" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="116,935 1196,935" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<rect x="32" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="116.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">Phone</text>
+<rect x="212" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="296.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">API</text>
+<rect x="392" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="476.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">Postgres</text>
+<rect x="572" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="656.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">SQS</text>
+<rect x="752" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="836.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">Worker</text>
+<rect x="932" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1016.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">S3</text>
+<rect x="1112" y="40" width="168" height="72" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1196.0" y="85.52" font-size="28" font-weight="600" fill="#FAFAFA" text-anchor="middle">CloudFront</text>
+<text x="130" y="156" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">1  ticket: POST /media/uploads</text>
+<text x="310" y="215" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">asset AWAITING_UPLOAD</text>
+<text x="130" y="274" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">presigned URL: type + length signed</text>
+<text x="130" y="333" font-size="26" font-weight="500" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">2  PUT the bytes straight to S3</text>
+<text x="130" y="392" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">3  POST …/complete</text>
+<text x="310" y="451" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">HeadObject: the right size?</text>
+<text x="310" y="510" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">UPLOADED + event, one transaction</text>
+<text x="310" y="569" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">4  relay after the commit (+ traceparent)</text>
+<text x="670" y="628" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">5  receive (long poll)</text>
+<text x="490" y="687" font-size="26" font-weight="500" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">6  claim: one conditional UPDATE</text>
+<text x="850" y="746" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">7  transcode to an HLS ladder</text>
+<text x="490" y="805" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">8  READY + MediaReady, if still mine</text>
+<text x="670" y="864" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">9  delete the message, last</text>
+<text x="130" y="923" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">10  play master.m3u8 through CloudFront</text>
+<text x="1360" y="172" font-size="30" font-weight="700" fill="#FBBF24" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">If it fails</text>
+<text x="1414" y="236" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Cut off mid-upload: Retry sends</text>
+<text x="1414" y="269" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">only the missing parts (no auto-resume)</text>
+<text x="1414" y="344" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">complete twice: one job</text>
+<text x="1414" y="377" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">(checked on AWS, 2025-10-01)</text>
+<text x="1414" y="452" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">API dies after the commit:</text>
+<text x="1414" y="485" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">the outbox resends the event</text>
+<text x="1414" y="560" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Duplicate message: the claim gets</text>
+<text x="1414" y="593" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">0 rows; a finished clip&#x27;s is deleted</text>
+<text x="1414" y="668" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Worker dies or Spot reclaims it:</text>
+<text x="1414" y="701" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">released, or its 15-min lease expires</text>
+<text x="1414" y="776" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Lease lost: finalize writes</text>
+<text x="1414" y="809" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">nothing; the new owner finishes</text>
+<text x="1414" y="884" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Not a video: REJECTED, no retry;</text>
+<text x="1414" y="917" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">3 failures: FAILED, DLQ, alarm</text>
+<circle cx="1046" cy="325" r="18" fill="#FBBF24"/>
+<text x="1046" y="334" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">A</text>
+<circle cx="394.0" cy="384" r="18" fill="#FBBF24"/>
+<text x="394.0" y="393" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">B</text>
+<circle cx="873.0" cy="561" r="18" fill="#FBBF24"/>
+<text x="873.0" y="570" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">C</text>
+<circle cx="986.0" cy="620" r="18" fill="#FBBF24"/>
+<text x="986.0" y="629" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">D</text>
+<circle cx="1257.0" cy="738" r="18" fill="#FBBF24"/>
+<text x="1257.0" y="747" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">E</text>
+<circle cx="988.0" cy="797" r="18" fill="#FBBF24"/>
+<text x="988.0" y="806" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">F</text>
+<circle cx="1378" cy="227" r="18" fill="#FBBF24"/>
+<text x="1378" y="236" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">A</text>
+<circle cx="1378" cy="335" r="18" fill="#FBBF24"/>
+<text x="1378" y="344" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">B</text>
+<circle cx="1378" cy="443" r="18" fill="#FBBF24"/>
+<text x="1378" y="452" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">C</text>
+<circle cx="1378" cy="551" r="18" fill="#FBBF24"/>
+<text x="1378" y="560" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">D</text>
+<circle cx="1378" cy="659" r="18" fill="#FBBF24"/>
+<text x="1378" y="668" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">E</text>
+<circle cx="1378" cy="767" r="18" fill="#FBBF24"/>
+<text x="1378" y="776" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">F</text>
+<circle cx="1378" cy="875" r="18" fill="#FBBF24"/>
+<text x="1378" y="884" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">G</text>
+<circle cx="1301.0" cy="738" r="18" fill="#FBBF24"/>
+<text x="1301.0" y="747" font-size="25" font-weight="700" fill="#141418" text-anchor="middle">G</text>
+</svg>
