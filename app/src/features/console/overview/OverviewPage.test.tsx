@@ -9,6 +9,7 @@ import OverviewPage, { feedCharts, hadActivity } from './OverviewPage';
 let mockOverview: () => Promise<AnalyticsOverview>;
 let mockFeed: () => Promise<AnalyticsFeed>;
 let mockContent: () => Promise<AnalyticsContent>;
+const mockContentParams: unknown[] = [];
 
 jest.mock('expo-router', () => ({
   useLocalSearchParams: () => ({ range: '7d' }),
@@ -20,7 +21,10 @@ jest.mock('@/api/generated/admin-analytics/admin-analytics', () => ({
   getAdminAnalyticsContentQueryKey: (p: unknown) => ['content', p],
   adminAnalyticsOverview: () => mockOverview(),
   adminAnalyticsFeed: () => mockFeed(),
-  adminAnalyticsContent: () => mockContent(),
+  adminAnalyticsContent: (params: unknown) => {
+    mockContentParams.push(params);
+    return mockContent();
+  },
 }));
 jest.mock('../charts/ChartCanvas', () => ({ ChartCanvas: () => null }));
 
@@ -180,6 +184,13 @@ describe('OverviewPage', () => {
     expect(screen.getByText('Pulp at the Hall')).toBeOnTheScreen();
     expect(screen.getByTestId('chart-hours')).toBeOnTheScreen();
     expect(screen.queryByTestId('overview-empty')).toBeNull();
+  });
+
+  it('asks for the top 50 artists and gigs and scrolls them past ten rows', async () => {
+    await renderPage();
+    expect(await screen.findByTestId('top-artists-scroll')).toBeOnTheScreen();
+    expect(screen.getByTestId('top-gigs-scroll')).toBeOnTheScreen();
+    expect(mockContentParams.at(-1)).toMatchObject({ top: 50 });
   });
 
   it('says so when nothing happened in the period', async () => {

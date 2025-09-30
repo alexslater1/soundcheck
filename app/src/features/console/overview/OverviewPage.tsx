@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import {
   adminAnalyticsContent,
@@ -44,6 +44,9 @@ import {
  * that seeded and simulated accounts produced (always shown), the daily charts, For You engagement
  * and the top artists and gigs. Each of the three endpoints loads and fails on its own.
  */
+/** How many top artists and gigs the Overview asks for (the API's maximum). */
+export const TOP_LISTED = 50;
+
 export default function OverviewPage() {
   const [range] = useConsoleRange();
   const params = rangeQuery(range);
@@ -55,9 +58,11 @@ export default function OverviewPage() {
     queryKey: getAdminAnalyticsFeedQueryKey(params),
     queryFn: ({ signal }) => adminAnalyticsFeed(params, { signal }),
   });
+  // The top lists ask for 50; about ten rows show and the rest scroll.
+  const contentParams = { ...params, top: TOP_LISTED };
   const content = useQuery({
-    queryKey: getAdminAnalyticsContentQueryKey(params),
-    queryFn: ({ signal }) => adminAnalyticsContent(params, { signal }),
+    queryKey: getAdminAnalyticsContentQueryKey(contentParams),
+    queryFn: ({ signal }) => adminAnalyticsContent(contentParams, { signal }),
   });
 
   return (
@@ -435,27 +440,31 @@ function ContentSection({
       <View style={styles.grid}>
         <Cell>
           <Text style={styles.tableTitle}>Top artists</Text>
-          <DataTable
-            testID="top-artists"
-            columns={artistColumns}
-            rows={data?.topArtists}
-            rowKey={(a) => a.artistId}
-            status={status}
-            onRetry={onRetry}
-            emptyTitle="No artist was posted or engaged with in this period"
-          />
+          <ScrollView style={styles.topList} nestedScrollEnabled testID="top-artists-scroll">
+            <DataTable
+              testID="top-artists"
+              columns={artistColumns}
+              rows={data?.topArtists}
+              rowKey={(a) => a.artistId}
+              status={status}
+              onRetry={onRetry}
+              emptyTitle="No artist was posted or engaged with in this period"
+            />
+          </ScrollView>
         </Cell>
         <Cell>
           <Text style={styles.tableTitle}>Top gigs</Text>
-          <DataTable
-            testID="top-gigs"
-            columns={gigColumns}
-            rows={data?.topGigs}
-            rowKey={(g) => g.gigId}
-            status={status}
-            onRetry={onRetry}
-            emptyTitle="No gig was posted or engaged with in this period"
-          />
+          <ScrollView style={styles.topList} nestedScrollEnabled testID="top-gigs-scroll">
+            <DataTable
+              testID="top-gigs"
+              columns={gigColumns}
+              rows={data?.topGigs}
+              rowKey={(g) => g.gigId}
+              status={status}
+              onRetry={onRetry}
+              emptyTitle="No gig was posted or engaged with in this period"
+            />
+          </ScrollView>
         </Cell>
       </View>
       {data ? (
@@ -491,4 +500,6 @@ const styles = StyleSheet.create({
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   cell: { flexGrow: 1, flexBasis: 460, minWidth: 0, gap: spacing.xs },
   tableTitle: { fontWeight: '600' },
+  // About ten rows of a top list; the other 40 scroll.
+  topList: { maxHeight: 480 },
 });
