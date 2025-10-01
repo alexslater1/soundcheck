@@ -88,7 +88,8 @@ counts=$(psql_perf -F '=' -c "select 'users', count(*) from identity.app_user
   union all select 'user_follows', count(*) from social.user_follow
   union all select 'post_likes', reltuples::bigint from pg_class where oid = 'content.post_like'::regclass
   union all select 'interaction_events', (select sum(reltuples)::bigint from pg_class c join pg_inherits i on i.inhrelid = c.oid where i.inhparent = 'signals.interaction_event'::regclass)")
-top_cpu=$(ps -eo pcpu,comm --sort=-pcpu | sed -n '2,6p' | awk '{ printf "%s %s%%; ", $2, $1 }')
+# The five busiest processes over one second (top's second sample), so a build or upload is on record.
+top_cpu=$(top -bn2 -d 1 -o %CPU -w 200 | awk '/^top -/ { n++ } n == 2 && $1 ~ /^[0-9]+$/ && c < 5 { printf "%s %s%%; ", $12, $9; c++ }')
 
 jq -n \
   --arg utc "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
