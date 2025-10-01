@@ -27,6 +27,17 @@ soundcheck:
     dlq-url: ""
   media:
     public-base-url: ${PERF_PUBLIC_BASE_URL:http://localhost:8088}
+    # Raised, not disabled: far above any per-user rate a load scenario reaches, so the limiter
+    # never answers 429, but every request still pays for its Postgres-backed check.
+    uploads-per-hour: 1000000
+  rate-limit:
+    auth:
+      # setup() signs 500 users in from one address (k6), each once.
+      per-ip-per-minute: 1000000
+      per-email-per-minute: 1000000
+    events-per-minute: 1000000
+    feed-builds-per-minute: 1000000
+    per-user-per-minute: 1000000
   admin:
     # No bootstrap admin in the perf database (the .env one is for the local dev stack).
     email: ""
@@ -53,6 +64,13 @@ management:
   opentelemetry:
     resource-attributes:
       deployment.environment: perf
+  metrics:
+    distribution:
+      # Latency histograms, so Grafana can draw p95 per endpoint and per feed stage during a run (the
+      # k6 run file stays the measurement of record).
+      percentiles-histogram:
+        http.server.requests: true
+        soundcheck.feed.stage: true
 
 logging:
   level:
