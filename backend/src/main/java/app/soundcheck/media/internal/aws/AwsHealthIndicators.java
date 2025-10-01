@@ -1,5 +1,6 @@
 package app.soundcheck.media.internal.aws;
 
+import org.springframework.boot.actuate.autoconfigure.health.ConditionalOnEnabledHealthIndicator;
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.context.annotation.Bean;
@@ -13,12 +14,15 @@ import software.amazon.awssdk.services.sqs.model.QueueAttributeName;
 /**
  * Readiness contributors: the process is ready only when the bucket and the queue answer.
  * Registered as beans named {@code s3} and {@code sqs} so they appear under those keys in
- * {@code /actuator/health/readiness}.
+ * {@code /actuator/health/readiness}. Each can be switched off with {@code management.health.s3.enabled}
+ * / {@code management.health.sqs.enabled}, as Boot's own indicators can: the {@code perf} profile does,
+ * so the perf API's health doesn't depend on the shared LocalStack.
  */
 @Configuration(proxyBeanMethods = false)
 class AwsHealthIndicators {
 
     @Bean
+    @ConditionalOnEnabledHealthIndicator("s3")
     HealthIndicator s3HealthIndicator(S3Client s3, StorageProperties storage) {
         return () -> {
             try {
@@ -35,6 +39,7 @@ class AwsHealthIndicators {
     }
 
     @Bean
+    @ConditionalOnEnabledHealthIndicator("sqs")
     HealthIndicator sqsHealthIndicator(SqsClient sqs, QueueProperties queue) {
         return () -> {
             try {

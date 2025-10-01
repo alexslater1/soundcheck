@@ -1,0 +1,67 @@
+# The perf stack.
+# A separate compose project (`soundcheck-perf`), so scale loads and load tests never compete with the local
+# stack (`soundcheck`) for its database, its memory or its data. Only Postgres lives here: the perf API is
+# the normal jar run from the host with profile `perf` (`make perf-api`), and storage is the shared
+# LocalStack's `-perf` bucket and queue, created and deleted by `make perf-up` / `make perf-down`.
+#
+#   make perf-up      start it (and the -perf bucket and queue when LocalStack is running)
+#   make perf-down    stop it, keep the volume, delete the -perf bucket and queue
+#   make perf-reset   drop the volume (asks first)
+name: soundcheck-perf
+
+services:
+  db:
+    image: postgis/postgis:17-3.5
+    # The same extensions as the local stack's compose (pg_stat_statements, auto_explain), plus fixed resources so
+    # every measured run sees the same database. auto_explain logs plans with buffers but without
+    # log_analyze: timing every node of every query would distort the measurement (explain.sh runs
+    # EXPLAIN ANALYZE on purpose, one query at a time).
+    command:
+      - postgres
+      - -c
+      - shared_preload_libraries=pg_stat_statements,auto_explain
+      - -c
+      - auto_explain.log_min_duration=50ms
+      - -c
+      - auto_explain.log_buffers=on
+      - -c
+      - log_min_duration_statement=250ms
+      - -c
+      - shared_buffers=1GB
+      - -c
+      - effective_cache_size=3GB
+      - -c
+      - work_mem=16MB
+      # Index rebuilds after a scale load (seed-scale drops and recreates secondary indexes).
+      - -c
+      - maintenance_work_mem=512MB
+      - -c
+      - max_parallel_maintenance_workers=2
+      # Fewer forced checkpoints while COPY writes gigabytes of WAL.
+      - -c
+      - max_wal_size=8GB
+      - -c
+      - checkpoint_timeout=15min
+      # The laptop's disk is an SSD.
+      - -c
+      - random_page_cost=1.1
+    environment:
+      POSTGRES_DB: soundcheck_perf
+      POSTGRES_USER: soundcheck
+      POSTGRES_PASSWORD: soundcheck
+    ports:
+      - "127.0.0.1:55500:5432"
+    cpus: 4
+    mem_limit: 4g
+    shm_size: 1g
+    volumes:
+      - soundcheck-perf-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U soundcheck -d soundcheck_perf"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  soundcheck-perf-pgdata:
+    name: soundcheck-perf-pgdata
