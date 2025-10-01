@@ -98,6 +98,13 @@ class Report:
     now: float = 0.0
 
 
+def login_pool_path(root: Path, profile_name: str) -> Path:
+    """Where seed-scale writes the k6 login pool: `login-pool.txt` for medium (the measured
+    profile), `login-pool-<profile>.txt` for the others, so loading small keeps medium's pool."""
+    name = "login-pool.txt" if profile_name == "medium" else f"login-pool-{profile_name}.txt"
+    return root / "docs" / "perf" / name
+
+
 def check_local(dsn: str, api_url: str) -> None:
     """Refuses any target but the local perf stack: never the dev database, never AWS."""
     db = urlparse(dsn)
