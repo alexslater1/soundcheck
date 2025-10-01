@@ -24,3 +24,16 @@ regexes = [
   '''String\.join\("\\\\n", base64\.split''',
   '''secret-SENTINEL-8888''',
 ]
+
+# Postgres EXPLAIN output in the perf run files has lines such as "Sort Key: p_2.published_at DESC", which
+# `generic-api-key` reads as a key. Allowed only for that rule, only in docs/perf/runs/ and only on a plan's
+# key-label lines, so a real key anywhere else in a run file is still caught. (gitleaks 8.24 ignores a
+# top-level [[allowlists]] next to [extend]; a rule-scoped allowlist on the default rule works.)
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "EXPLAIN plan key labels in perf run files"
+condition = "AND"
+paths = ['''^docs/perf/runs/''']
+regexTarget = "line"
+regexes = ['''^\s*(?:->\s*)?(?:Sort|Presorted|Group|Cache|Hash|Merge|Partition) Key: ''']

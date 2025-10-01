@@ -18,11 +18,6 @@ app = typer.Typer(
 )
 
 
-def _not_yet(command: str) -> None:
-    typer.echo(f"{command}: not yet implemented", err=True)
-    raise typer.Exit(code=1)
-
-
 @app.command()
 def version() -> None:
     """Print the lab version."""
@@ -194,9 +189,42 @@ def backfill_setlists(
 
 
 @app.command("seed-scale")
-def seed_scale(profile: str = typer.Option("small", help="small | medium | large")) -> None:
-    """Generate the performance dataset directly in Postgres."""
-    _not_yet("seed-scale")
+def seed_scale(
+    profile: str = typer.Option("small", help="small | medium (large is cut)"),
+    seed: int = typer.Option(42, help="The same seed gives the same rows"),
+    db: str = typer.Option(
+        "postgresql://soundcheck:soundcheck@127.0.0.1:55500/soundcheck_perf",
+        envvar="PERF_DATABASE_URL",
+        help="The perf database (local soundcheck_perf… only)",
+    ),
+    api: str = typer.Option("http://localhost:8201", envvar="PERF_API", help="The perf API"),
+    now: str = typer.Option("", help="Pretend it is this UTC time (ISO 8601); default: this hour"),
+) -> None:
+    """Generate the performance dataset directly in the perf database with COPY."""
+    from datetime import UTC, datetime
+
+    from soundcheck_lab.scale import load
+    from soundcheck_lab.scale.profiles import profile as find_profile
+
+    try:
+        chosen = find_profile(profile)
+        load.check_local(db, api)
+    except ValueError as e:
+        typer.echo(f"seed-scale: {e}", err=True)
+        raise typer.Exit(code=2) from e
+    root = Path(__file__).resolve().parents[3]
+    at = datetime.fromisoformat(now).replace(tzinfo=UTC).timestamp() if now else None
+    settings = load.Settings(
+        profile=chosen,
+        seed=seed,
+        dsn=db,
+        api_url=api,
+        now=at,
+        login_pool=root / "docs" / "perf" / "login-pool.txt",
+        hash_cache=root / ".localdata" / "perf" / "password-hash",
+    )
+    report = load.run(settings, typer.echo)
+    typer.echo(load.table_report(chosen, report))
 
 
 # A sensitivity run changes one click-model number at a time; the run's file records the model used.

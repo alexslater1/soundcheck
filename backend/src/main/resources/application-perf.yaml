@@ -1,0 +1,59 @@
+# Profile `perf`: the normal jar against its own perf stack (ops/perf/compose.perf.yaml).
+# `make perf-api` runs it. Values come from PERF_* variables, never the DB_URL/S3_BUCKET/… that .env sets
+# for the local dev stack, so the perf API can't reach its database even when the Makefile exports .env.
+spring:
+  datasource:
+    url: ${PERF_DB_URL:jdbc:postgresql://localhost:55500/soundcheck_perf}
+    username: soundcheck
+    password: soundcheck
+    hikari:
+      # The AWS API's value, so the laptop's pool matches what AWS runs.
+      maximum-pool-size: ${DB_POOL_SIZE:10}
+
+server:
+  port: ${PERF_API_PORT:8201}
+
+soundcheck:
+  # The API role only: no scheduler (AccountPurgeJob deletes media objects, and nothing should run in the
+  # background during a measurement) and no transcode worker.
+  roles: api
+  public-base-url: ${PERF_PUBLIC_BASE_URL:http://localhost:8088}
+  storage:
+    # The shared LocalStack, but only the perf stack's own bucket and queue (`make perf-up` creates them).
+    endpoint: ${PERF_S3_ENDPOINT:http://localhost:4566}
+    bucket: soundcheck-media-perf
+  queue:
+    url: ${PERF_S3_ENDPOINT:http://localhost:4566}/000000000000/soundcheck-transcode-perf
+    dlq-url: ""
+  media:
+    public-base-url: ${PERF_PUBLIC_BASE_URL:http://localhost:8088}
+  admin:
+    # No bootstrap admin in the perf database (the .env one is for the local dev stack).
+    email: ""
+    password: ""
+    synthetic-email-domains: seed.soundcheck.test,sim.soundcheck.test,perf.soundcheck.test
+  ingestion:
+    mode: fixtures
+    venues:
+      enabled: false
+
+management:
+  health:
+    # The measured endpoints never call storage, and the shared LocalStack may be stopped: its health
+    # must not decide whether the perf API is UP. (The upload scenario needs LocalStack running.)
+    s3:
+      enabled: false
+    sqs:
+      enabled: false
+  endpoint:
+    health:
+      group:
+        readiness:
+          include: db,readinessState
+  opentelemetry:
+    resource-attributes:
+      deployment.environment: perf
+
+logging:
+  level:
+    app.soundcheck: info

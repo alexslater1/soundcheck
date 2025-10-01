@@ -28,10 +28,18 @@ def test_schema_command_prints_all_features() -> None:
     assert "position_prior" in result.output
 
 
-def test_unimplemented_commands_exit_1() -> None:
-    result = runner.invoke(app, ["seed-scale"])
-    assert result.exit_code == 1
-    assert "not yet implemented" in result.output
+def test_seed_scale_refuses_anything_but_the_local_perf_stack() -> None:
+    remote = runner.invoke(
+        app, ["seed-scale", "--db", "postgresql://u:p@db.example.com/soundcheck_perf"]
+    )
+    assert remote.exit_code == 2
+    assert "local perf stack" in remote.output
+    alexs = runner.invoke(app, ["seed-scale", "--db", "postgresql://u:p@localhost:5432/soundcheck"])
+    assert alexs.exit_code == 2
+    assert "soundcheck_perf" in alexs.output
+    large = runner.invoke(app, ["seed-scale", "--profile", "large"])
+    assert large.exit_code == 2
+    assert "cut" in large.output
 
 
 NO_LAB_ENV = {"LAB_DATABASE_URL": None, "LAB_API": None}

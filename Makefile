@@ -27,7 +27,7 @@ define not_yet
 endef
 
 .PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
-	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale simulate lab-extract lab-train lab-eval \
+	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale perf-up perf-down perf-reset perf-api perf-api-stop simulate lab-extract lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight diagrams diagrams-check \
 	aws-check aws-bootstrap aws-secrets aws-push aws-diff aws-deploy aws-smoke aws-status aws-logs aws-ingest \
 	aws-backfill-past-gigs aws-seed aws-pause aws-resume aws-destroy aws-lab aws-test
@@ -291,8 +291,24 @@ backup: ## Save the local database, every clip and the seed's progress to .local
 restore: ## Put a backup back: make restore BACKUP=.localdata/backups/<stamp> (stop make dev first; asks unless YES=1)
 	$(CURDIR)/ops/scripts/restore.sh "$(BACKUP)"
 
-seed-scale: ## Generate the performance dataset (PROFILE=small|medium|large) into DB_NAME=soundcheck_perf
-	$(call not_yet,seed-scale)
+seed-scale: ## Generate the performance dataset into the perf database (PROFILE=small|medium, SEED=42; needs make perf-up and, once, make perf-api)
+	$(UV_LAB) run soundcheck-lab seed-scale --profile $(or $(PROFILE),small) --seed $(or $(SEED),42)
+
+# A separate perf stack (ops/perf/compose.perf.yaml, compose project soundcheck-perf), never the dev stack.
+perf-up: ## Start the perf Postgres (127.0.0.1:55500) and the -perf bucket and queue in LocalStack (if running)
+	$(CURDIR)/ops/perf/perf.sh up
+
+perf-down: ## Stop the perf stack (keeps its volume) and delete the -perf bucket and queue
+	$(CURDIR)/ops/perf/perf.sh down
+
+perf-reset: ## Drop the perf database's volume (prints it and asks unless YES=1)
+	$(CURDIR)/ops/perf/perf.sh reset
+
+perf-api: ## Run the jar with profile perf on 8201 (taskset PERF_API_CPUS, timeout 3h; REBUILD=1 rebuilds the jar)
+	$(CURDIR)/ops/perf/perf.sh api
+
+perf-api-stop: ## Stop the perf API started by make perf-api
+	$(CURDIR)/ops/perf/perf.sh api-stop
 
 clips: ## Generate 20 synthetic test clips into fixtures/clips/ with FFmpeg (deterministic)
 	python3 $(CURDIR)/ops/scripts/make_clips.py

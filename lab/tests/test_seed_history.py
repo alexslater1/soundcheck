@@ -2,8 +2,10 @@
 
 import csv
 import json
+import shutil
 from datetime import date, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import httpx
@@ -344,6 +346,8 @@ def test_months_run_in_order_repeat_while_capped_and_stop_when_memory_runs_low(
 
     gigs = [on("2024-07-20"), on("2024-06-10"), on("2025-01-05"), on("2024-07-02")]
     monkeypatch.setattr(run, "available_mb", lambda: 4000)
+    # The runner's own free disk varies (13 GB on a CI runner), so the test fixes it too.
+    monkeypatch.setattr(shutil, "disk_usage", lambda _: SimpleNamespace(free=100 * 10**9))
     plan = run.Batches()
     seen = []
     for month, pass_no in plan(gigs, "2024-07..", lambda _: None):
