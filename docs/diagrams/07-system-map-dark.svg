@@ -1,0 +1,146 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080" role="img" aria-label="The whole system on one page: four clients reach CloudFront; CloudFront sends /api to the API service, a Spring Boot modular monolith whose nine modules are drawn inside it, and /media to S3; the API and the transcode workers, the same jar in another role, share S3, SQS and PostgreSQL; ingestion calls six outside services, notifications calls Firebase, and both processes send telemetry to Grafana Cloud." font-family="&#x27;Ubuntu Sans&#x27;, &#x27;DejaVu Sans&#x27;, sans-serif">
+<title>The system map, as deployed</title>
+<defs>
+<marker id="h-line" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#C4C4CF"/></marker>
+<marker id="h-accent" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#B69CFB"/></marker>
+<marker id="h-warn" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="12" markerHeight="12" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0,0 L12,6 L0,12 z" fill="#FBBF24"/></marker>
+</defs>
+<rect width="1920" height="1080" fill="#141418"/>
+<rect x="16" y="96" width="300" height="504" rx="18" fill="none" stroke="#3D3D4C" stroke-width="2.5" stroke-dasharray="10 8"/>
+<rect x="620" y="96" width="812" height="584" rx="22" fill="#2A1F4D" fill-opacity="0.45" stroke="#B69CFB" stroke-width="3.5"/>
+<rect x="636" y="220" width="780" height="326" rx="18" fill="none" stroke="#3D3D4C" stroke-width="2.5" stroke-dasharray="10 8"/>
+<rect x="620" y="900" width="812" height="170" rx="22" fill="#2A1F4D" fill-opacity="0.45" stroke="#B69CFB" stroke-width="3.5"/>
+<rect x="1460" y="96" width="448" height="590" rx="18" fill="none" stroke="#3D3D4C" stroke-width="2.5" stroke-dasharray="10 8"/>
+<polyline points="302,188 344,188" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="302,300 344,300" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="302,412 344,412" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="302,524 344,524" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="584,178 636,178" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="464,572 464,780 620,780" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="166,600 166,830 620,830" fill="none" stroke="#B69CFB" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-accent)"/>
+<polyline points="750,680 750,740" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1026,680 1026,740" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="1300,680 1300,740" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="700,916 700,856" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1000,856 1000,916" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" stroke-dasharray="14 10" marker-end="url(#h-line)"/>
+<polyline points="1138,940 1138,878 1200,878 1200,856" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1410,916 1410,856" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1407,309 1460,309" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1407,489 1442,489 1442,744 1476,744" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<polyline points="1432,960 1452,960 1452,844 1476,844" fill="none" stroke="#C4C4CF" stroke-width="3.5" stroke-linejoin="round" marker-end="url(#h-line)"/>
+<rect x="30" y="140" width="272" height="96" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="54" y="182.6" font-size="32" font-weight="600" fill="#FAFAFA">Android app</text>
+<text x="54" y="216.6" font-size="24" fill="#B4B4BE">Expo · release APK</text>
+<rect x="30" y="252" width="272" height="96" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="54" y="294.6" font-size="32" font-weight="600" fill="#FAFAFA">Web app</text>
+<text x="54" y="328.6" font-size="24" fill="#B4B4BE">the same code</text>
+<rect x="30" y="364" width="272" height="96" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="54" y="406.6" font-size="32" font-weight="600" fill="#FAFAFA">Console</text>
+<text x="54" y="440.6" font-size="24" fill="#B4B4BE">/console · ADMIN</text>
+<rect x="30" y="476" width="272" height="96" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="54" y="518.6" font-size="32" font-weight="600" fill="#FAFAFA">Seed client</text>
+<text x="54" y="552.6" font-size="24" fill="#B4B4BE">Python · API only</text>
+<rect x="344" y="140" width="240" height="432" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="368" y="260.6" font-size="32" font-weight="600" fill="#FAFAFA">CloudFront</text>
+<text x="368" y="294.6" font-size="24" fill="#B4B4BE">one domain</text>
+<text x="368" y="354.6" font-size="24" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">/api/* → ALB</text>
+<text x="368" y="384.6" font-size="24" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">/media/* → S3</text>
+<text x="368" y="414.6" font-size="24" fill="#B4B4BE" font-family="&#x27;Ubuntu Sans Mono&#x27;, &#x27;DejaVu Sans Mono&#x27;, monospace">/* → web app</text>
+<text x="368" y="474.6" font-size="24" fill="#B4B4BE">HTTPS, headers</text>
+<rect x="636" y="150" width="780" height="56" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1026.0" y="186.84" font-size="26" font-weight="600" fill="#FAFAFA" text-anchor="middle">HTTP chain: rate limits · trace · JWT ES256</text>
+<rect x="652" y="268" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="676" y="302.8" font-size="26" font-weight="600" fill="#FAFAFA">identity</text>
+<text x="676" y="336.8" font-size="24" fill="#B4B4BE">users, tokens</text>
+<rect x="909" y="268" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="933" y="302.8" font-size="26" font-weight="600" fill="#FAFAFA">catalog</text>
+<text x="933" y="336.8" font-size="24" fill="#B4B4BE">gigs and venues</text>
+<rect x="1166" y="268" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1190" y="302.8" font-size="26" font-weight="600" fill="#FAFAFA">ingestion</text>
+<text x="1190" y="336.8" font-size="24" fill="#B4B4BE">fetch, resolve</text>
+<rect x="652" y="358" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="676" y="392.8" font-size="26" font-weight="600" fill="#FAFAFA">content</text>
+<text x="676" y="426.8" font-size="24" fill="#B4B4BE">posts, likes</text>
+<rect x="909" y="358" width="241" height="84" rx="16" fill="#2A1F4D" stroke="#B69CFB" stroke-width="4"/>
+<text x="933" y="392.8" font-size="26" font-weight="600" fill="#FAFAFA">media</text>
+<text x="933" y="426.8" font-size="24" fill="#B4B4BE">uploads, relay</text>
+<rect x="1166" y="358" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1190" y="392.8" font-size="26" font-weight="600" fill="#FAFAFA">social</text>
+<text x="1190" y="426.8" font-size="24" fill="#B4B4BE">follows, blocks</text>
+<rect x="652" y="448" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="676" y="482.8" font-size="26" font-weight="600" fill="#FAFAFA">signals</text>
+<text x="676" y="516.8" font-size="24" fill="#B4B4BE">events, rollups</text>
+<rect x="909" y="448" width="241" height="84" rx="16" fill="#2A1F4D" stroke="#B69CFB" stroke-width="4"/>
+<text x="933" y="482.8" font-size="26" font-weight="600" fill="#FAFAFA">feed</text>
+<text x="933" y="516.8" font-size="24" fill="#B4B4BE">For You ranking</text>
+<rect x="1166" y="448" width="241" height="84" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1190" y="482.8" font-size="26" font-weight="600" fill="#FAFAFA">notifications</text>
+<text x="1190" y="516.8" font-size="24" fill="#B4B4BE">inbox, push</text>
+<rect x="636" y="562" width="384" height="100" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="660" y="606.6" font-size="32" font-weight="600" fill="#FAFAFA">shared (open)</text>
+<text x="660" y="640.6" font-size="24" fill="#B4B4BE">outbox · locks · limits</text>
+<rect x="1036" y="562" width="380" height="100" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1060" y="606.6" font-size="32" font-weight="600" fill="#FAFAFA">Scheduled jobs</text>
+<text x="1060" y="640.6" font-size="24" fill="#B4B4BE">ingest 05:10 · rollups</text>
+<rect x="620" y="740" width="260" height="116" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="644" y="777.6" font-size="32" font-weight="600" fill="#FAFAFA">S3 buckets</text>
+<text x="644" y="811.6" font-size="24" fill="#B4B4BE">uploads/ · media/</text>
+<text x="644" y="841.6" font-size="24" fill="#B4B4BE">the web app</text>
+<rect x="896" y="740" width="260" height="116" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="920" y="777.6" font-size="32" font-weight="600" fill="#FAFAFA">SQS</text>
+<text x="920" y="811.6" font-size="24" fill="#B4B4BE">transcode jobs</text>
+<text x="920" y="841.6" font-size="24" fill="#B4B4BE">DLQ after 3</text>
+<rect x="1172" y="740" width="260" height="116" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1196" y="776.4" font-size="28" font-weight="600" fill="#FAFAFA">PostgreSQL 17</text>
+<text x="1196" y="810.4" font-size="24" fill="#B4B4BE">RDS · PostGIS</text>
+<text x="1196" y="840.4" font-size="24" fill="#B4B4BE">a schema each</text>
+<rect x="636" y="916" width="494" height="90" rx="16" fill="#2A1F4D" stroke="#B69CFB" stroke-width="4"/>
+<text x="660" y="955.6" font-size="32" font-weight="600" fill="#FAFAFA">TranscodeWorker + FFmpeg</text>
+<text x="660" y="989.6" font-size="24" fill="#B4B4BE">claim · ffprobe · HLS ladder</text>
+<rect x="1146" y="916" width="270" height="90" rx="16" fill="#1F1F27" stroke="#3D3D4C" stroke-width="2.5"/>
+<text x="1170" y="955.6" font-size="32" font-weight="600" fill="#FAFAFA">Listeners</text>
+<text x="1170" y="989.6" font-size="24" fill="#B4B4BE">post, inbox, push</text>
+<rect x="1476" y="144" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="176.8" font-size="26" font-weight="600" fill="#FAFAFA">Ticketmaster</text>
+<text x="1500" y="210.8" font-size="24" fill="#B4B4BE">UK listings, daily 05:10</text>
+<rect x="1476" y="232" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="264.8" font-size="26" font-weight="600" fill="#FAFAFA">Venue websites</text>
+<text x="1500" y="298.8" font-size="24" fill="#B4B4BE">21 London venues, politely</text>
+<rect x="1476" y="320" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="352.8" font-size="26" font-weight="600" fill="#FAFAFA">MusicBrainz</text>
+<text x="1500" y="386.8" font-size="24" fill="#B4B4BE">artist ids</text>
+<rect x="1476" y="408" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="440.8" font-size="26" font-weight="600" fill="#FAFAFA">Last.fm</text>
+<text x="1500" y="474.8" font-size="24" fill="#B4B4BE">genre tags</text>
+<rect x="1476" y="496" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="528.8" font-size="26" font-weight="600" fill="#FAFAFA">postcodes.io</text>
+<text x="1500" y="562.8" font-size="24" fill="#B4B4BE">venue coordinates</text>
+<rect x="1476" y="584" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="616.8" font-size="26" font-weight="600" fill="#FAFAFA">setlist.fm</text>
+<text x="1500" y="650.8" font-size="24" fill="#B4B4BE">past gigs, setlists</text>
+<rect x="1476" y="704" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="736.8" font-size="26" font-weight="600" fill="#FAFAFA">Firebase (FCM)</text>
+<text x="1500" y="770.8" font-size="24" fill="#B4B4BE">push to Android</text>
+<rect x="1476" y="804" width="416" height="80" rx="16" fill="#1F1F27" stroke="#B4B4BE" stroke-width="2.5" stroke-dasharray="10 7"/>
+<text x="1500" y="836.8" font-size="26" font-weight="600" fill="#FAFAFA">Grafana Cloud</text>
+<text x="1500" y="870.8" font-size="24" fill="#B4B4BE">traces, metrics, logs</text>
+<text x="476" y="690" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">/media/*</text>
+<text x="180" y="818" font-size="26" font-weight="500" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">presigned PUT: bytes skip the API</text>
+<text x="762" y="718" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">presign · HEAD</text>
+<text x="1038" y="718" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">job, after commit</text>
+<text x="1312" y="718" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">jOOQ</text>
+<text x="712" y="888" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">original in, HLS out</text>
+<text x="1012" y="888" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">receive</text>
+<text x="1212" y="888" font-size="26" font-weight="500" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="10" stroke-linejoin="round" paint-order="stroke">claim, finalize</text>
+<text x="1476" y="920" font-size="24" font-weight="400" fill="#B4B4BE" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">OTLP from both processes</text>
+<text x="30" y="952" font-size="28" font-weight="700" fill="#B69CFB" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">One jar, two roles:</text>
+<text x="30" y="990" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">the API service and the workers</text>
+<text x="30" y="1026" font-size="26" font-weight="400" fill="#FAFAFA" text-anchor="start" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">run the same code, scaled apart</text>
+<text x="38" y="128" font-size="24" font-weight="600" fill="#B4B4BE" letter-spacing="1" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">CLIENTS</text>
+<text x="642" y="136" font-size="32" font-weight="700" fill="#B69CFB" letter-spacing="0" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">API service</text>
+<text x="1410" y="136" font-size="24" font-weight="500" fill="#B4B4BE" text-anchor="end" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">roles api, scheduler · Fargate 1–2</text>
+<text x="658" y="252" font-size="24" font-weight="600" fill="#B4B4BE" letter-spacing="1" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">MODULES · SPRING MODULITH</text>
+<text x="642" y="1048" font-size="32" font-weight="700" fill="#B69CFB" letter-spacing="0" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">Transcode workers</text>
+<text x="1410" y="1048" font-size="24" font-weight="500" fill="#B4B4BE" text-anchor="end" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">role worker · Fargate Spot 0–2</text>
+<text x="1482" y="128" font-size="24" font-weight="600" fill="#B4B4BE" letter-spacing="1" stroke="#141418" stroke-width="8" stroke-linejoin="round" paint-order="stroke">CALLED BY INGESTION</text>
+</svg>

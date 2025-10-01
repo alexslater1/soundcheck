@@ -8,7 +8,8 @@
 `make diagrams` and `make diagrams-check` call the first two forms. Standard library only.
 
 The figures are data: each box, line and label is written here, and every figure names the files it was
-drawn from (`sources`), which the check finds at HEAD.
+drawn from (`sources`), which the check finds at HEAD. Figure 8 (08-system-map-local.png) is a static
+PNG that this script doesn't draw: --png leaves it alone and --check only checks that it exists.
 
 Every PNG is rendered by one headless Chrome at a time; before each, the script waits until the machine has
 at least 3 GB available (the laptop is shared with other work).
@@ -66,8 +67,16 @@ class Box:
     title: str
     lines: tuple[str, ...] = ()
     style: str = "plain"  # plain | accent (the part the figure is about) | ext (outside service) | warn (rejected)
+    #                       | jar (a process: one jar in a role) | group (a dashed frame holding other boxes)
     mono: tuple[int, ...] = ()  # indexes of `lines` set in the mono face
     title_size: int = TITLE
+    line_size: int = BODY  # the system map's dense boxes use 24 (the minimum)
+    tag: str = ""  # jar and group only: a note at the top right (or bottom right)
+    title_at: str = "top"  # jar and group only: "top" or "bottom", where the title sits
+
+    @property
+    def container(self) -> bool:
+        return self.style in ("jar", "group")
 
     def side(self, s: str, t: float = 0.5) -> tuple[float, float]:
         """A point on side l/r/t/b, t of the way along it."""
@@ -134,6 +143,7 @@ class Figure:
     frames: list[Frame] = field(default_factory=list)
     lifelines: list[tuple[float, float, float]] = field(default_factory=list)  # (x, y1, y2)
     markers: list[Marker] = field(default_factory=list)
+    max_boxes: int = MAX_BOXES  # raised only for the one dense figure (the system map)
 
     def box(self, b: Box) -> Box:
         self.boxes.append(b)
@@ -502,7 +512,99 @@ def outbox() -> Figure:
     return f
 
 
-FIGURES = (context, containers, upload, feed, aws, outbox)
+
+# ── figure 7: the system map, redrawn as deployed on AWS ──────────────────────────────────────────────
+
+def system_map() -> Figure:
+    f = Figure(
+        "07-system-map",
+        "The system map, as deployed",
+        "The whole system on one page: four clients reach CloudFront; CloudFront sends /api to the API service, "
+        "a Spring Boot modular monolith whose nine modules are drawn inside it, and /media to S3; the API and the "
+        "transcode workers, the same jar in another role, share S3, SQS and PostgreSQL; ingestion calls six outside "
+        "services, notifications calls Firebase, and both processes send telemetry to Grafana Cloud.",
+        (
+            "backend/src/main/java/app/soundcheck/shared/config/Roles.java",
+            "backend/src/test/java/app/soundcheck/ModularityTests.java",
+            "backend/src/main/java/app/soundcheck/media/internal/worker/TranscodeWorker.java",
+            "backend/src/main/java/app/soundcheck/ingestion/internal/IngestionSchedule.java",
+            "infra/lib/edge-stack.ts",
+            "infra/lib/compute-stack.ts",
+            "infra/lib/data-stack.ts",
+        ),
+        max_boxes=32,
+    )
+    # clients
+    f.box(Box("m-clients", 16, 96, 300, 504, "CLIENTS", style="group"))
+    clients = [("Android app", "Expo · release APK"), ("Web app", "the same code"),
+               ("Console", "/console · ADMIN"), ("Seed client", "Python · API only")]
+    for i, (title, line) in enumerate(clients):
+        y = 140 + i * 112
+        f.box(Box(f"m-c{i}", 30, y, 272, 96, title, (line,), line_size=24))
+        f.arrows.append(Arrow(((302, y + 48), (344, y + 48))))
+    f.box(Box("m-cf", 344, 140, 240, 432, "CloudFront", ("one domain", "", "/api/* → ALB", "/media/* → S3",
+                                                          "/* → web app", "", "HTTPS, headers"), mono=(2, 3, 4), line_size=24))
+    # the API process: one jar, roles api and scheduler
+    f.box(Box("m-api", 620, 96, 812, 584, "API service", style="jar", tag="roles api, scheduler · Fargate 1–2"))
+    f.box(Box("m-chain", 636, 150, 780, 56, "HTTP chain: rate limits · trace · JWT ES256", title_size=26, line_size=24))
+    f.box(Box("m-mods", 636, 220, 780, 326, "MODULES · SPRING MODULITH", style="group", title_at="top"))
+    mods = [("identity", "users, tokens"), ("catalog", "gigs and venues"), ("ingestion", "fetch, resolve"),
+            ("content", "posts, likes"), ("media", "uploads, relay"), ("social", "follows, blocks"),
+            ("signals", "events, rollups"), ("feed", "For You ranking"), ("notifications", "inbox, push")]
+    for k, (title, line) in enumerate(mods):
+        x, y = 652 + (k % 3) * 257, 268 + (k // 3) * 90
+        style = "accent" if title in ("media", "feed") else "plain"
+        f.box(Box(f"m-{title}", x, y, 241, 84, title, (line,), style=style, title_size=26, line_size=24))
+    f.box(Box("m-shared", 636, 562, 384, 100, "shared (open)", ("outbox · locks · limits",), line_size=24))
+    f.box(Box("m-jobs", 1036, 562, 380, 100, "Scheduled jobs", ("ingest 05:10 · rollups",), line_size=24))
+    # stores
+    f.box(Box("m-s3", 620, 740, 260, 116, "S3 buckets", ("uploads/ · media/", "the web app"), style="ext", line_size=24))
+    f.box(Box("m-sqs", 896, 740, 260, 116, "SQS", ("transcode jobs", "DLQ after 3"), style="ext", line_size=24))
+    f.box(Box("m-pg", 1172, 740, 260, 116, "PostgreSQL 17", ("RDS · PostGIS", "a schema each"), title_size=28, line_size=24))
+    # the worker process: the same jar, role worker
+    f.box(Box("m-workers", 620, 900, 812, 170, "Transcode workers", style="jar", tag="role worker · Fargate Spot 0–2",
+              title_at="bottom"))
+    f.box(Box("m-tw", 636, 916, 494, 90, "TranscodeWorker + FFmpeg", ("claim · ffprobe · HLS ladder",), style="accent", line_size=24))
+    f.box(Box("m-wl", 1146, 916, 270, 90, "Listeners", ("post, inbox, push",), line_size=24))
+    # outside services
+    f.box(Box("m-out", 1460, 96, 448, 590, "CALLED BY INGESTION", style="group"))
+    outside = [("Ticketmaster", "UK listings, daily 05:10"), ("Venue websites", "21 London venues, politely"),
+               ("MusicBrainz", "artist ids"), ("Last.fm", "genre tags"), ("postcodes.io", "venue coordinates"),
+               ("setlist.fm", "past gigs, setlists")]
+    for i, (title, line) in enumerate(outside):
+        f.box(Box(f"m-o{i}", 1476, 144 + i * 88, 416, 80, title, (line,), style="ext", title_size=26, line_size=24))
+    f.box(Box("m-fcm", 1476, 704, 416, 80, "Firebase (FCM)", ("push to Android",), style="ext", title_size=26, line_size=24))
+    f.box(Box("m-graf", 1476, 804, 416, 80, "Grafana Cloud", ("traces, metrics, logs",), style="ext", title_size=26, line_size=24))
+    f.arrows += [
+        Arrow(((584, 178), (636, 178))),
+        Arrow(((464, 572), (464, 780), (620, 780)), "/media/*", at=(476, 690)),
+        Arrow(((166, 600), (166, 830), (620, 830)), "presigned PUT: bytes skip the API", at=(180, 818), tone="accent"),
+        Arrow(((750, 680), (750, 740)), "presign · HEAD", at=(762, 718)),
+        Arrow(((1026, 680), (1026, 740)), "job, after commit", at=(1038, 718), style="async"),
+        Arrow(((1300, 680), (1300, 740)), "jOOQ", at=(1312, 718)),
+        Arrow(((700, 916), (700, 856)), "original in, HLS out", at=(712, 888)),
+        Arrow(((1000, 856), (1000, 916)), "receive", at=(1012, 888), style="async"),
+        Arrow(((1138, 940), (1138, 878), (1200, 878), (1200, 856)), "claim, finalize", at=(1212, 888)),
+        Arrow(((1410, 916), (1410, 856))),
+        Arrow(((1407, 309), (1460, 309))),
+        Arrow(((1407, 489), (1442, 489), (1442, 744), (1476, 744))),
+        Arrow(((1432, 960), (1452, 960), (1452, 844), (1476, 844))),
+    ]
+    f.texts += [
+        Text(1476, 920, "OTLP from both processes", size=24),
+        Text(30, 952, "One jar, two roles:", size=28, tone="accent", weight=700),
+        Text(30, 990, "the API service and the workers", size=26, tone="ink"),
+        Text(30, 1026, "run the same code, scaled apart", size=26, tone="ink"),
+    ]
+    return f
+
+
+FIGURES = (context, containers, upload, feed, aws, outbox, system_map)
+
+
+# ── figure 8: the system map on the laptop, a static PNG that build.py doesn't draw ────────────────────
+
+LOCAL_MAP = "08-system-map-local"  # a static PNG: --png leaves it alone, --check only checks that it exists
 
 
 # ── SVG ───────────────────────────────────────────────────────────────────────────────────────────────
@@ -538,6 +640,13 @@ def svg(fig: Figure, theme: str) -> str:
             out.append(f'<text x="{fr.x + 20}" y="{fr.y + 34}" font-size="24" fill="{t["muted"]}" font-weight="600">{esc(fr.label)}</text>')
     for x, y1, y2 in fig.lifelines:
         out.append(f'<line x1="{x}" y1="{y1}" x2="{x}" y2="{y2}" stroke="{t["border"]}" stroke-width="3" stroke-dasharray="6 8"/>')
+    for b in fig.boxes:
+        if b.style == "jar":
+            out.append(f'<rect x="{b.x}" y="{b.y}" width="{b.w}" height="{b.h}" rx="22" fill="{t["accent_soft"]}" '
+                       f'fill-opacity="0.45" stroke="{t["accent"]}" stroke-width="3.5"/>')
+        elif b.style == "group":
+            out.append(f'<rect x="{b.x}" y="{b.y}" width="{b.w}" height="{b.h}" rx="18" fill="none" '
+                       f'stroke="{t["border"]}" stroke-width="2.5" stroke-dasharray="10 8"/>')
     for a in fig.arrows:
         c = color(t, a.tone)
         dash = ' stroke-dasharray="14 10"' if a.style in ("async", "reply") else ""
@@ -547,6 +656,8 @@ def svg(fig: Figure, theme: str) -> str:
         out.append(f'<polyline points="{pts}" fill="none" stroke="{c}" stroke-width="{sw}" '
                    f'stroke-linejoin="round"{dash}{head}/>')
     for b in fig.boxes:
+        if b.container:
+            continue
         fill, stroke, sw, dash = t["surface"], t["border"], 2.5, ""
         if b.style == "accent":
             fill, stroke, sw = t["accent_soft"], t["accent"], 4
@@ -558,20 +669,22 @@ def svg(fig: Figure, theme: str) -> str:
         out.append(f'<rect x="{b.x}" y="{b.y}" width="{b.w}" height="{b.h}" rx="16" fill="{fill}" stroke="{stroke}" '
                    f'stroke-width="{sw}"{dash}/>')
         lines = [ln for ln in b.lines]
-        content = b.title_size + len(lines) * (BODY + 12)
-        ty = b.y + (b.h - content) / 2 + b.title_size * 0.82
+        compact = b.line_size < BODY  # the system map's dense boxes: lines 1.25 em apart
+        step = b.line_size * 1.25 if compact else b.line_size + 12
+        content = b.title_size + len(lines) * step
+        ty = b.y + (b.h - content) / 2 + b.title_size * (0.8 if compact else 0.82)
         if not lines:
             out.append(f'<text x="{b.x + b.w / 2}" y="{b.y + b.h / 2 + b.title_size * 0.34}" font-size="{b.title_size}" '
                        f'font-weight="600" fill="{t["ink"]}" text-anchor="middle">{esc(b.title)}</text>')
             continue
         out.append(f'<text x="{b.x + 24}" y="{ty}" font-size="{b.title_size}" font-weight="600" fill="{t["ink"]}">{esc(b.title)}</text>')
-        ly = ty + 10
+        ly = ty + (4 if compact else 10)
         for i, ln in enumerate(lines):
-            ly += BODY + 12
+            ly += step
             if not ln:
                 continue
             fam = f' font-family="{esc(MONO)}"' if i in b.mono else ""
-            out.append(f'<text x="{b.x + 24}" y="{ly}" font-size="{BODY}" fill="{t["muted"]}"{fam}>{esc(ln)}</text>')
+            out.append(f'<text x="{b.x + 24}" y="{ly}" font-size="{b.line_size}" fill="{t["muted"]}"{fam}>{esc(ln)}</text>')
     for a in fig.arrows:
         if not a.label:
             continue
@@ -586,6 +699,21 @@ def svg(fig: Figure, theme: str) -> str:
         out.append(f'<text x="{tx.x}" y="{tx.y}" font-size="{tx.size}" font-weight="{tx.weight}" '
                    f'fill="{color(t, tx.tone)}" text-anchor="{tx.anchor}" stroke="{t["bg"]}" stroke-width="8" '
                    f'stroke-linejoin="round" paint-order="stroke"{fam}{rot}>{esc(tx.text)}</text>')
+    for b in fig.boxes:
+        if not b.container:
+            continue
+        ty = (b.y + (40 if b.style == "jar" else 32)) if b.title_at == "top" else b.y + b.h - 22
+        if b.style == "jar":
+            size, weight, tone = b.title_size, 700, t["accent"]
+        else:
+            size, weight, tone = 24, 600, t["muted"]
+        out.append(f'<text x="{b.x + 22}" y="{ty}" font-size="{size}" font-weight="{weight}" fill="{tone}" '
+                   f'letter-spacing="{1 if b.style == "group" else 0}" stroke="{t["bg"]}" stroke-width="8" '
+                   f'stroke-linejoin="round" paint-order="stroke">{esc(b.title)}</text>')
+        if b.tag:
+            out.append(f'<text x="{b.x + b.w - 22}" y="{ty}" font-size="24" font-weight="500" fill="{t["muted"]}" '
+                       f'text-anchor="end" stroke="{t["bg"]}" stroke-width="8" stroke-linejoin="round" '
+                       f'paint-order="stroke">{esc(b.tag)}</text>')
     for m in fig.markers:
         out.append(f'<circle cx="{m.x}" cy="{m.y}" r="18" fill="{t["warn"]}"/>')
         out.append(f'<text x="{m.x}" y="{m.y + 9}" font-size="25" font-weight="700" fill="{t["bg"]}" '
@@ -605,13 +733,19 @@ def problems() -> list[str]:
     found: list[str] = []
     for make in FIGURES:
         fig = make()
-        if len(fig.boxes) > MAX_BOXES:
-            found.append(f"{fig.id}: {len(fig.boxes)} boxes (at most {MAX_BOXES})")
-        sizes = [b.title_size for b in fig.boxes] + [BODY, LABEL] + [tx.size for tx in fig.texts]
+        drawn_boxes = [b for b in fig.boxes if not b.container]
+        if len(drawn_boxes) > fig.max_boxes:
+            found.append(f"{fig.id}: {len(drawn_boxes)} boxes (at most {fig.max_boxes})")
+        sizes = [b.title_size for b in fig.boxes] + [b.line_size for b in fig.boxes] + [LABEL] + [tx.size for tx in fig.texts]
         if min(sizes) < MIN_FONT:
             found.append(f"{fig.id}: text at {min(sizes)} px (at least {MIN_FONT})")
         for b in fig.boxes:
-            need = max([width(b.title, b.title_size, 600)] + [width(ln, BODY, mono=i in b.mono) for i, ln in enumerate(b.lines)])
+            if b.container:
+                need = width(b.title, b.title_size, 700) + width(b.tag, 24) + 80
+                if need > b.w:
+                    found.append(f"{fig.id}: container {b.id}'s title and tag need about {need:.0f} px")
+                continue
+            need = max([width(b.title, b.title_size, 600)] + [width(ln, b.line_size, mono=i in b.mono) for i, ln in enumerate(b.lines)])
             pad = 48 if b.lines else 16
             if need + pad > b.w:
                 found.append(f"{fig.id}: box {b.id} is {b.w} px wide, its text needs about {need + pad:.0f}")
@@ -637,6 +771,9 @@ def problems() -> list[str]:
                 found.append(f"{png} missing: run make diagrams")
             elif manifest.get(png) != digest:
                 found.append(f"{png} was not rendered from the current SVG: run make diagrams")
+    local_png = f"{LOCAL_MAP}.png"
+    if not (HERE / local_png).exists():
+        found.append(f"{local_png} missing: it is a static PNG, restore it from git")
     return found
 
 
@@ -657,13 +794,16 @@ def available_gb() -> float:
     return 0.0
 
 
-def render(svg_path: Path, png_path: Path, profile: Path) -> None:
+def render(svg_path: Path, png_path: Path, profile: Path, scale: int = 1, wait_ms: int = 0) -> None:
     """One headless Chrome, one screenshot; returns only after Chrome has exited."""
     while available_gb() < 3.0:
         print(f"  waiting: {available_gb():.1f} GB available, need 3", flush=True)
         time.sleep(30)
     cmd = [CHROME, "--headless", "--disable-gpu", "--no-sandbox", f"--user-data-dir={profile}", "--hide-scrollbars",
-           "--force-device-scale-factor=1", f"--window-size={W},{H}", f"--screenshot={png_path}", svg_path.as_uri()]
+           f"--force-device-scale-factor={scale}", f"--window-size={W},{H}", f"--screenshot={png_path}"]
+    if wait_ms:
+        cmd.append(f"--virtual-time-budget={wait_ms}")
+    cmd.append(svg_path.as_uri())
     subprocess.run(cmd, check=True, timeout=120, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 

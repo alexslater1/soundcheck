@@ -1,6 +1,6 @@
 # Diagrams
 
-Six figures of the system (the sixth is an extra). Each is 1920×1080, has at most 12 boxes and no text under 24 px, and comes as SVG and PNG, light and dark (`*-dark.*`). They are drawn from the code at `origin/main` `b8cc923` (2025-10-01).
+Eight figures of the system (the seventh and eighth are system maps). Each is 1920×1080; figures 1–6 have at most 12 boxes, and every figure drawn here has no text under 24 px. Figures 1–7 come as SVG and PNG, light and dark (`*-dark.*`); figure 8 is a static PNG. They are drawn from the code at `origin/main` `b8cc923` (2025-10-01).
 
 ```bash
 make diagrams         # SVG from docs/diagrams/build.py, then a PNG of each through headless Chrome (one at a time)
@@ -35,6 +35,13 @@ eu-north-1 as run on 2025-10-01: one CloudFront domain in front of the web bucke
 ### 6. The dual write against the outbox: `06-outbox.svg` / `.png`
 Left, the rejected dual write: the status commits, the process dies before the send, and the clip waits forever (send first, and a rollback leaves a job for an upload that never completed). Right, what is built: the status and the event row in one transaction, the relay after the commit, the resubmitter for what a crash left, and the claim absorbing any duplicate.
 **Sources:** `UploadService.java`, `TranscodeRelay.java`, `OutboxResubmitter.java` (every minute, rows older than one minute), `TranscodeJobs.java`.
+
+### 7. The system map, as deployed: `07-system-map.svg` / `.png`
+The whole system on one page, as deployed on AWS: the four clients reach CloudFront; `/api` goes to the API service, a modular monolith with its nine modules drawn inside it, the HTTP chain above them, `shared` and the scheduled jobs below; `/media` and the presigned uploads go to S3; the API and the transcode workers (the same jar in another role) share S3, SQS and PostgreSQL; ingestion calls six outside services, notifications calls Firebase, both processes send OTLP to Grafana Cloud. It has 32 boxes: the 12-box rule is lifted for this figure only (`max_boxes`); its box lines are 24 px, the minimum.
+**Sources:** `Roles.java`, `ModularityTests.java`, `TranscodeWorker.java`, `IngestionSchedule.java`, `infra/lib/edge-stack.ts`, `compute-stack.ts`, `data-stack.ts`.
+
+### 8. The system map on the laptop: `08-system-map-local.png`
+A static export of the local system map (Caddy edge, LocalStack, Grafana LGTM, `make ingest`). PNG only, at 2× for sharpness; its text is smaller than 24 px. `build.py` doesn't draw it: `make diagrams` leaves it alone and `make diagrams-check` only checks that it exists.
 
 ## Notes on the figures
 
