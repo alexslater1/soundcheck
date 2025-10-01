@@ -9,7 +9,16 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 COMPOSE=(docker compose -f "$ROOT/ops/perf/compose.perf.yaml")
 STATE="$ROOT/.localdata/perf"
 LOCK="${HEAVY_LOCK:-/home/alex/Documents/Soundcheck/.localdata/locks/heavy.lock}"
-LOCALSTACK="${PERF_S3_ENDPOINT:-http://localhost:4566}"
+# PERF_STANDALONE=1: the perf stack's own LGTM (Grafana :3010, OTLP :4328) and LocalStack (:4576) from the compose
+# profile `standalone`, for when the local stack (the shared :3000/:4318 and :4566) is stopped.
+if [ "${PERF_STANDALONE:-}" = 1 ]; then
+  COMPOSE+=(--profile standalone)
+  LOCALSTACK="${PERF_S3_ENDPOINT:-http://localhost:4576}"
+  OTLP="${PERF_OTLP_ENDPOINT:-http://localhost:4328}"
+else
+  LOCALSTACK="${PERF_S3_ENDPOINT:-http://localhost:4566}"
+  OTLP="${PERF_OTLP_ENDPOINT:-http://localhost:4318}"
+fi
 REGION="${AWS_REGION:-eu-west-2}"
 BUCKET=soundcheck-media-perf
 QUEUE=soundcheck-transcode-perf
@@ -68,15 +77,21 @@ api_pid() {
 
 case "${1:-}" in
   up)
-    "${COMPOSE[@]}" up -d --wait db
+    if [ "${PERF_STANDALONE:-}" = 1 ]; then
+      "${COMPOSE[@]}" up -d --wait db lgtm localstack
+      echo "Standalone: Grafana http://127.0.0.1:3010, OTLP $OTLP, LocalStack $LOCALSTACK."
+    else
+      "${COMPOSE[@]}" up -d --wait db
+    fi
     storage_create
     echo "Perf Postgres: postgresql://soundcheck:soundcheck@127.0.0.1:55500/soundcheck_perf"
     ;;
 
   down)
     "$0" api-stop || true
-    "${COMPOSE[@]}" stop
     storage_delete
+    # Stops the standalone LGTM and LocalStack too, when they run.
+    "${COMPOSE[@]}" --profile standalone stop
     echo "Perf stack stopped; volume soundcheck-perf-pgdata kept (make perf-reset drops it)."
     ;;
 
@@ -108,9 +123,11 @@ case "${1:-}" in
     env -u DB_URL -u DB_USER -u DB_PASSWORD -u S3_ENDPOINT -u S3_BUCKET -u SQS_QUEUE_URL -u SQS_DLQ_URL \
         -u SOUNDCHECK_ROLES -u SOUNDCHECK_ADMIN_EMAIL -u SOUNDCHECK_ADMIN_PASSWORD -u SERVER_PORT \
         SPRING_PROFILES_ACTIVE=perf PERF_API_PORT="$PORT" OTLP_ENABLED="${OTLP_ENABLED:-true}" \
+        PERF_S3_ENDPOINT="$LOCALSTACK" OTEL_EXPORTER_OTLP_ENDPOINT="$OTLP" \
         nohup timeout "$API_TIMEOUT" taskset -c "$API_CPUS" \
           java "-Xmx$API_XMX" -jar "$jar" >"$STATE/api.log" 2>&1 &
     echo $! >"$STATE/launcher.pid"
+    echo "Storage $LOCALSTACK, telemetry $OTLP."
     echo "Starting the perf API on $PORT (CPUs $API_CPUS, -Xmx$API_XMX, stops after $API_TIMEOUT; log $STATE/api.log)…"
     for _ in $(seq 1 120); do
       if curl -sf -m 2 "http://localhost:$PORT/actuator/health" >/dev/null 2>&1; then
