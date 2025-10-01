@@ -135,9 +135,14 @@ set -e
   "$ROOT/ops/scripts/pg-top.sh" "$DSN"
 } >"$PG_TOP"
 
-[ -f "$RUN_FILE" ] || die "k6 exited $k6_exit and wrote no run file"
+# 0: every target met; 99: a target missed (the run still counts). Anything else is a broken run (a script
+# error, setup failing, k6 killed): it leaves no run file behind.
+if [ "$k6_exit" != 0 ] && [ "$k6_exit" != 99 ]; then
+  rm -f "$RUN_FILE" "$PG_TOP"
+  die "k6 exited $k6_exit: no run recorded"
+fi
+[ -f "$RUN_FILE" ] || die "k6 wrote no run file"
 echo "Run file: ${RUN_FILE#"$ROOT"/}"
 echo "Top statements: ${PG_TOP#"$ROOT"/}"
 # k6 exits 99 when a threshold (a target) is missed: the run still counts, the run file says which.
-if [ "$k6_exit" = 99 ]; then echo "At least one target was missed (see the run file's thresholds)."; exit 0; fi
-exit "$k6_exit"
+if [ "$k6_exit" = 99 ]; then echo "At least one target was missed (see the run file's thresholds)."; fi

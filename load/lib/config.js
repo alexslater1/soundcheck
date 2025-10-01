@@ -23,7 +23,8 @@ export const REQUEST_TIMEOUT = __ENV.REQUEST_TIMEOUT || '120s';
 // VUs to keep the rate; past this cap k6 drops iterations and counts them (dropped_iterations).
 export const MAX_VUS = Number(__ENV.MAX_VUS || '600');
 
-export const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Client': 'k6' };
+// The API accepts only its two clients' names; the load stands in for the phone app.
+export const JSON_HEADERS = { 'Content-Type': 'application/json', 'X-Client': 'android' };
 
 // The trend statistics every run file records.
 export const SUMMARY_TREND_STATS = ['avg', 'min', 'med', 'max', 'p(90)', 'p(95)', 'p(99)', 'count'];
