@@ -33,7 +33,7 @@ export function upload(data) {
     JSON.stringify({ kind: 'VIDEO', contentType: 'video/mp4', bytes: BYTES, durationMs: 10000, width: 1280, height: 720 }),
     { headers, tags: { endpoint: 'upload_create' }, timeout: REQUEST_TIMEOUT },
   );
-  if (!check(create, { 'create 200': (r) => r.status === 200 })) return;
+  if (!check(create, { 'create 201': (r) => r.status === 201 })) return;
   const ticket = create.json();
 
   const put = http.put(ticket.putUrl, BODY, {
