@@ -14,7 +14,7 @@ import pytest
 from soundcheck_lab.scale import distributions as d
 from soundcheck_lab.scale.dataset import Dataset, Reference
 from soundcheck_lab.scale.ids import uuid7, uuid7_strings
-from soundcheck_lab.scale.load import check_local, partition_name
+from soundcheck_lab.scale.load import check_local, login_pool_path, partition_name
 from soundcheck_lab.scale.profiles import PROFILES, Profile, profile
 
 CITIES = Path(__file__).resolve().parents[2] / "fixtures" / "geo" / "uk-cities.csv"
@@ -267,3 +267,10 @@ def test_profiles_have_their_fixed_counts() -> None:
     assert PROFILES["large"].users == 1_000_000
     with pytest.raises(ValueError):
         profile("large")
+
+
+def test_login_pool_file_per_profile() -> None:
+    # Loading small for a smoke run must not overwrite medium's pool.
+    root = Path("/repo")
+    assert login_pool_path(root, "medium") == root / "docs" / "perf" / "login-pool.txt"
+    assert login_pool_path(root, "small") == root / "docs" / "perf" / "login-pool-small.txt"

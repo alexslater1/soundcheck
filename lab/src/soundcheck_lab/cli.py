@@ -220,7 +220,7 @@ def seed_scale(
         dsn=db,
         api_url=api,
         now=at,
-        login_pool=root / "docs" / "perf" / "login-pool.txt",
+        login_pool=load.login_pool_path(root, chosen.name),
         hash_cache=root / ".localdata" / "perf" / "password-hash",
     )
     report = load.run(settings, typer.echo)

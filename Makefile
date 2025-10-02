@@ -344,8 +344,8 @@ lab-loop: ## simulate (40 × 3 × 6) → extract → train → evaluate → publ
 	$(UV_LAB) run soundcheck-lab loop $(if $(SEED),--seed $(SEED)) $(foreach c,$(CLICK),--click $(c))
 
 # ── Performance and operations ───────────────────────────────────────────────
-load: ## Run a k6 scenario (SCENARIO=feed|gigs|events|upload|mixed, PROFILE=medium)
-	$(call not_yet,load)
+load: ## Run a recorded k6 scenario against the perf API (SCENARIO=feed|following|gigs|events|upload|mixed, PROFILE=medium, RATE_SCALE=1.0, DURATION=1m, PERF_API_PORT=8200)
+	SCENARIO=$(or $(SCENARIO),feed) PROFILE=$(or $(PROFILE),medium) $(CURDIR)/ops/perf/run.sh
 
 # Container images. The jar is built here on the host, not inside `docker build`: compiling needs
 # Docker itself (jOOQ's code generation starts PostGIS with Testcontainers). The api and worker images only
