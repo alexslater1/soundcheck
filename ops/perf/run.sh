@@ -12,8 +12,10 @@
 #      top statements for the run (…-pg-top.txt).
 #
 # Variables: SCENARIO (feed|following|gigs|events|upload|mixed), PROFILE (small|medium), RATE_SCALE (1.0),
-# DURATION (hold, 1m), RAMP (1m), PERF_API_PORT (8200) or BASE_URL, SMOKE=1 (label a smoke run), NOISY=1
-# (something else was running), NOTES (free text), K6_CPUS (12-19), MIN_MEM_GB (5).
+# DURATION (hold, 1m), RAMP (1m), PERF_API_PORT (8200) or BASE_URL, SMOKE=1 (label a smoke run), WARMUP=1
+# (label a warm-up run: kept, never measured), NOISY=1 (something else was running), NOTES (free text),
+# K6_CPUS (12-19), MIN_MEM_GB (5). During the run the CPU clock is sampled every 10 s (thermal throttling
+# shows as falling MHz) into the run file's environment.cpu_mhz.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -99,6 +101,7 @@ jq -n \
   --arg base_url "$BASE_URL" \
   --argjson smoke "$( [ "${SMOKE:-}" = 1 ] && echo true || echo false )" \
   --argjson noisy "$noisy" \
+  --argjson warmup "$( [ "${WARMUP:-}" = 1 ] && echo true || echo false )" \
   --arg notes "${NOTES:-}" \
   --arg uptime "$(uptime)" \
   --arg free "$(free -m)" \
@@ -113,7 +116,7 @@ jq -n \
   --arg top_cpu "$top_cpu" \
   '{
      run: { utc_start: $utc, commit: $commit, branch: $branch, profile: $profile, base_url: $base_url,
-            smoke: $smoke, noisy: $noisy, notes: $notes },
+            smoke: $smoke, warmup: $warmup, noisy: $noisy, notes: $notes },
      environment: { uptime: $uptime, free_m: ($free | split("\n")), power: $power, cpu: $cpu,
                     k6: $k6_version, top_cpu_before: $top_cpu,
                     cpu_split: { postgres: $pg_cpus, api: ("taskset " + $api_cpus + ", " + $api_xmx), k6: ("taskset " + $k6_cpus) } },
@@ -123,12 +126,26 @@ jq -n \
 # 6. The run. pg_stat_statements starts empty, so pg-top.sh shows only this run's statements.
 psql_perf -c "select pg_stat_statements_reset()" >/dev/null
 echo "k6 run $SCENARIO against $BASE_URL ($PROFILE, RATE_SCALE=${RATE_SCALE:-1.0}, hold ${DURATION:-1m})…"
+# The CPU clock every 10 s: the mean MHz of the API's P-cores (0-11) and of k6's E-cores (12-19).
+(
+  while :; do
+    awk -v t="$(date -u +%H:%M:%S)" '/^processor/ { cpu = $3 } /^cpu MHz/ { if (cpu < 12) { p += $4; np++ } else { e += $4; ne++ } }
+      END { printf "%s p=%.0f e=%.0f\n", t, p / np, e / ne }' /proc/cpuinfo >>"$SCRATCH/mhz.txt"
+    sleep 10
+  done
+) &
+mhz_pid=$!
 set +e
 BASE_URL="$BASE_URL" RUN_META="$SCRATCH/meta.json" RUN_FILE="$RUN_FILE" LOGIN_POOL="$POOL" PERF_PASSWORD="$PASSWORD" \
   systemd-run --user --scope -q -p MemoryMax=3G \
   taskset -c "$K6_CPUS" k6 run --no-usage-report --quiet "$SCRIPT"
 k6_exit=$?
 set -e
+kill "$mhz_pid" 2>/dev/null || true
+if [ -f "$RUN_FILE" ] && [ -s "$SCRATCH/mhz.txt" ]; then
+  jq --rawfile mhz "$SCRATCH/mhz.txt" '.environment.cpu_mhz = { every: "10s", p_cores_0_11_and_e_cores_12_19: ($mhz | split("\n") | map(select(length > 0))) }' \
+    "$RUN_FILE" >"$SCRATCH/run.json" && mv "$SCRATCH/run.json" "$RUN_FILE"
+fi
 
 {
   echo "# pg-top.sh after $SCENARIO on $PROFILE, run $STAMP (commit $(git -C "$ROOT" rev-parse --short HEAD))"
