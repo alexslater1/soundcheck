@@ -14,6 +14,11 @@ spring:
     password: ${DB_PASSWORD:soundcheck}
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:10}
+      # Postgres's JIT off for the API's connections: For
+      # You's candidate statement is costed above jit_above_cost, so Postgres compiled it on every execution,
+      # and no statement here runs long enough to repay that.
+      data-source-properties:
+        options: "-c jit=off"
   flyway:
     enabled: true
     locations: classpath:db/migration
