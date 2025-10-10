@@ -85,8 +85,9 @@ public class CandidateRepository {
      * PrivateAuthorCandidatesIT} holds the two to the same answers.
      */
     public List<Candidate> candidates(UserContext viewer, RankingConfig.Params params, Instant now) {
-        // Engagement per post over the last week, and over the last 48 hours.
-        CommonTableExpression<Record2<UUID, Long>> recent = engagementSince("recent", now.minus(TASTE_WINDOW));
+        // Engagement over the last week, per candidate (TASTE, LOCAL), and every post's over the last 48
+        // hours (TRENDING ranks all posts by it, so it needs the whole aggregate).
+        Field<Long> recentEngagement = engagementOf(POST_CANDIDATE.POST_ID, now.minus(TASTE_WINDOW));
         CommonTableExpression<Record2<UUID, Long>> trending = engagementSince("trending", now.minus(TRENDING_WINDOW));
         Condition allowed = POST_CANDIDATE
                 .AUTHOR_ID
@@ -140,8 +141,6 @@ public class CandidateRepository {
         if (params.cap(CandidateSource.TASTE) > 0 && !viewer.topGenres().isEmpty()) {
             generators.add(candidate(CandidateSource.TASTE)
                     .from(POST_CANDIDATE)
-                    .leftJoin(recent)
-                    .on(recent.field(POST_STAT_HOURLY.POST_ID).eq(POST_CANDIDATE.POST_ID))
                     .where(allowed)
                     .and(DSL.exists(DSL.selectOne()
                             .from(POST_TAG)
@@ -151,7 +150,7 @@ public class CandidateRepository {
                             .and(ARTIST_GENRE.GENRE_ID.eq(
                                     DSL.any(viewer.topGenres().toArray(Short[]::new))))))
                     .and(POST_CANDIDATE.PUBLISHED_AT.ge(at(now.minus(TASTE_WINDOW))))
-                    .orderBy(engagement(recent).desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
+                    .orderBy(recentEngagement.desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
                     .limit(params.cap(CandidateSource.TASTE)));
         }
         // LOCAL: the gig is near the viewer's home, last 7 days, most engaged first.
@@ -160,14 +159,12 @@ public class CandidateRepository {
                     .from(POST_CANDIDATE)
                     .join(GIG_PLACE)
                     .on(GIG_PLACE.GIG_ID.eq(POST_CANDIDATE.GIG_ID))
-                    .leftJoin(recent)
-                    .on(recent.field(POST_STAT_HOURLY.POST_ID).eq(POST_CANDIDATE.POST_ID))
                     .where(allowed)
                     .and(DSL.condition(
                             "ST_DWithin({0}, {1}, {2})",
                             GIG_PLACE.LOCATION, point(viewer.home()), DSL.val(params.localRadiusKm() * 1000.0)))
                     .and(POST_CANDIDATE.PUBLISHED_AT.ge(at(now.minus(LOCAL_WINDOW))))
-                    .orderBy(engagement(recent).desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
+                    .orderBy(recentEngagement.desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
                     .limit(params.cap(CandidateSource.LOCAL)));
         }
         // C6 TRENDING: the most engagement in the last 48 hours.
@@ -202,7 +199,7 @@ public class CandidateRepository {
         }
 
         Map<UUID, Candidate> byPost = new LinkedHashMap<>();
-        dsl.with(recent).with(trending).selectFrom(union.asTable("candidates")).forEach(r -> {
+        dsl.with(trending).selectFrom(union.asTable("candidates")).forEach(r -> {
             UUID postId = r.get(POST_CANDIDATE.POST_ID);
             Candidate candidate = byPost.computeIfAbsent(
                     postId,
@@ -239,6 +236,24 @@ public class CandidateRepository {
                         // and leaving out the one that straddles the cutoff would shorten the window.
                         .where(POST_STAT_HOURLY.HOUR.ge(at(since.truncatedTo(ChronoUnit.HOURS))))
                         .groupBy(POST_STAT_HOURLY.POST_ID));
+    }
+
+    /**
+     * One post's engagements since the given moment, as a correlated scalar subquery (0 when it has none).
+     * Expected index: {@code post_stats_hourly_post (post_id, hour)}, one short range scan per candidate.
+     *
+     * <p>TASTE and LOCAL used to left-join a CTE of
+     * every post's weekly sum (about 235,000 rows on medium). A CTE has no index, and when the planner
+     * underestimated LOCAL's candidates (1 row for thousands) it nested-looped over the whole CTE once per
+     * candidate. The probe costs the same whatever the estimate.
+     */
+    private static Field<Long> engagementOf(Field<UUID> postId, Instant since) {
+        return DSL.coalesce(
+                DSL.field(DSL.select(DSL.sum(POST_STAT_HOURLY.ENGAGEMENTS).cast(Long.class))
+                        .from(POST_STAT_HOURLY)
+                        .where(POST_STAT_HOURLY.POST_ID.eq(postId))
+                        .and(POST_STAT_HOURLY.HOUR.ge(at(since.truncatedTo(ChronoUnit.HOURS))))),
+                0L);
     }
 
     private static Field<Long> engagement(CommonTableExpression<Record2<UUID, Long>> window) {
