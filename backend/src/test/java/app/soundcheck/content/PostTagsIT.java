@@ -190,6 +190,11 @@ class PostTagsIT extends IntegrationTest {
         api.put("/api/v1/users/" + friend.id() + "/follow", null, stranger);
         assertThat(ids(ok(api.get("/api/v1/feed/following", stranger)).path("items")))
                 .contains(postId);
+        // Following its author too, the post is in both of byAuthors' branches: it comes once.
+        api.put("/api/v1/users/" + author.id() + "/follow", null, stranger);
+        assertThat(ids(ok(api.get("/api/v1/feed/following", stranger)).path("items")))
+                .containsOnlyOnce(postId);
+        api.delete("/api/v1/users/" + author.id() + "/follow", stranger);
 
         // The author can remove the friend's clip.
         String friendsClip = withFriend.path("clips").get(1).path("id").asText("");

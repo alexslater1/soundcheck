@@ -15,6 +15,10 @@ management:
 # The shared test context makes many auth calls from one IP; the limits themselves are tested in
 # AuthRateLimitIT, which lowers these with @TestPropertySource (which outranks this file).
 soundcheck:
+  feed:
+    # Every For You build reads the trending pool fresh: a test that writes engagement and then
+    # builds a feed must see it, not a copy another test loaded up to a minute ago.
+    trending-pool-ttl: 0s
   # The new-gig alert job stays off: the alert tests run GigAlertService.run() themselves, and other tests'
   # gigs must not turn into inbox entries behind their backs.
   alerts:

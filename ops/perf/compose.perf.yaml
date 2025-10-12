@@ -97,7 +97,13 @@ services:
       SQS_ENDPOINT_STRATEGY: "off"
     ports:
       - "127.0.0.1:4576:4566"
-    mem_limit: 1g
+    # 2 GB and more open files: at 1 GB it was OOM-killed during an upload run's hold, after "Too
+    # many open files".
+    mem_limit: 2g
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health >/dev/null"]
       interval: 5s

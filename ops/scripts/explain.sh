@@ -16,7 +16,9 @@ OUT_DIR="$ROOT/docs/perf/runs"
 names=("$@")
 [ "${names[0]}" = all ] && mapfile -t names < <(cd "$QUERIES" && ls *.sql | sed 's/\.sql$//')
 
-psql_perf() { docker exec -i "$DB_CONTAINER" psql -U soundcheck -d soundcheck_perf -X -q -P pager=off "$@"; }
+# The session the API's pool opens (application.yaml: JIT off), so plans match what it runs.
+# EXPLAIN_JIT=on reproduces the baseline's sessions (those plans were taken with JIT on).
+psql_perf() { docker exec -i -e PGOPTIONS="-c jit=${EXPLAIN_JIT:-off}" "$DB_CONTAINER" psql -U soundcheck -d soundcheck_perf -X -q -P pager=off "$@"; }
 
 users=$(psql_perf -At -c "select count(*) from identity.app_user where email like '%@perf.soundcheck.test'")
 case "$users" in 5000) profile=small ;; 100000) profile=medium ;; 1000000) profile=large ;; *) profile="custom-$users-users" ;; esac
@@ -40,6 +42,7 @@ for name in "${names[@]}"; do
     echo "uptime:  $(uptime)"
     echo "power:   online=$(cat /sys/class/power_supply/*/online 2>/dev/null | tr '\n' ' ')(1 = on mains)"
     echo "postgres: $(docker inspect "$DB_CONTAINER" --format '{{.Config.Image}} cpuset={{.HostConfig.CpusetCpus}} mem={{.HostConfig.Memory}}')"
+    echo "session: jit=${EXPLAIN_JIT:-off}"
     echo "query:   ops/perf/queries/$name.sql"
     grep '^-- ' "$file" | grep -v '^-- check:'
     echo

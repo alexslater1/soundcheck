@@ -26,13 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.jooq.CommonTableExpression;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.Record2;
 import org.jooq.Record5;
 import org.jooq.Select;
+import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.jspecify.annotations.Nullable;
 import org.springframework.stereotype.Repository;
@@ -66,9 +65,11 @@ public class CandidateRepository {
     private static final Field<String> SOURCE = DSL.field(DSL.name("source"), String.class);
 
     private final DSLContext dsl;
+    private final TrendingPool trendingPool;
 
-    CandidateRepository(DSLContext dsl) {
+    CandidateRepository(DSLContext dsl, TrendingPool trendingPool) {
         this.dsl = dsl;
+        this.trendingPool = trendingPool;
     }
 
     // ── candidates ───────────────────────────────────────────────────────────────────────────────
@@ -85,9 +86,8 @@ public class CandidateRepository {
      * PrivateAuthorCandidatesIT} holds the two to the same answers.
      */
     public List<Candidate> candidates(UserContext viewer, RankingConfig.Params params, Instant now) {
-        // Engagement per post over the last week, and over the last 48 hours.
-        CommonTableExpression<Record2<UUID, Long>> recent = engagementSince("recent", now.minus(TASTE_WINDOW));
-        CommonTableExpression<Record2<UUID, Long>> trending = engagementSince("trending", now.minus(TRENDING_WINDOW));
+        // Engagement over the last week, per candidate (TASTE, LOCAL).
+        Field<Long> recentEngagement = engagementOf(POST_CANDIDATE.POST_ID, now.minus(TASTE_WINDOW));
         Condition allowed = POST_CANDIDATE
                 .AUTHOR_ID
                 .ne(viewer.userId())
@@ -140,8 +140,6 @@ public class CandidateRepository {
         if (params.cap(CandidateSource.TASTE) > 0 && !viewer.topGenres().isEmpty()) {
             generators.add(candidate(CandidateSource.TASTE)
                     .from(POST_CANDIDATE)
-                    .leftJoin(recent)
-                    .on(recent.field(POST_STAT_HOURLY.POST_ID).eq(POST_CANDIDATE.POST_ID))
                     .where(allowed)
                     .and(DSL.exists(DSL.selectOne()
                             .from(POST_TAG)
@@ -151,7 +149,7 @@ public class CandidateRepository {
                             .and(ARTIST_GENRE.GENRE_ID.eq(
                                     DSL.any(viewer.topGenres().toArray(Short[]::new))))))
                     .and(POST_CANDIDATE.PUBLISHED_AT.ge(at(now.minus(TASTE_WINDOW))))
-                    .orderBy(engagement(recent).desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
+                    .orderBy(recentEngagement.desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
                     .limit(params.cap(CandidateSource.TASTE)));
         }
         // LOCAL: the gig is near the viewer's home, last 7 days, most engaged first.
@@ -160,25 +158,29 @@ public class CandidateRepository {
                     .from(POST_CANDIDATE)
                     .join(GIG_PLACE)
                     .on(GIG_PLACE.GIG_ID.eq(POST_CANDIDATE.GIG_ID))
-                    .leftJoin(recent)
-                    .on(recent.field(POST_STAT_HOURLY.POST_ID).eq(POST_CANDIDATE.POST_ID))
                     .where(allowed)
                     .and(DSL.condition(
                             "ST_DWithin({0}, {1}, {2})",
                             GIG_PLACE.LOCATION, point(viewer.home()), DSL.val(params.localRadiusKm() * 1000.0)))
                     .and(POST_CANDIDATE.PUBLISHED_AT.ge(at(now.minus(LOCAL_WINDOW))))
-                    .orderBy(engagement(recent).desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
+                    .orderBy(recentEngagement.desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
                     .limit(params.cap(CandidateSource.LOCAL)));
         }
-        // C6 TRENDING: the most engagement in the last 48 hours.
-        if (params.cap(CandidateSource.TRENDING) > 0) {
+        // TRENDING: the most engagement in the last 48 hours, from the shared pool (the top
+        // 2,000 of every post, at most a minute old), with this viewer's filters applied here.
+        TrendingPool.Top top =
+                params.cap(CandidateSource.TRENDING) > 0 ? trendingPool.top(now) : TrendingPool.Top.EMPTY;
+        if (!top.isEmpty()) {
+            Table<?> pool = DSL.table("unnest({0}, {1})", DSL.val(top.postIds()), DSL.val(top.engagements()))
+                    .as("trending", "post_id", "engagements");
+            Field<UUID> poolPost = DSL.field(DSL.name("trending", "post_id"), UUID.class);
+            Field<Long> poolEngagement = DSL.field(DSL.name("trending", "engagements"), Long.class);
             generators.add(candidate(CandidateSource.TRENDING)
                     .from(POST_CANDIDATE)
-                    .join(trending)
-                    .on(trending.field(POST_STAT_HOURLY.POST_ID).eq(POST_CANDIDATE.POST_ID))
+                    .join(pool)
+                    .on(poolPost.eq(POST_CANDIDATE.POST_ID))
                     .where(allowed)
-                    .and(engagement(trending).gt(0L))
-                    .orderBy(engagement(trending).desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
+                    .orderBy(poolEngagement.desc(), POST_CANDIDATE.PUBLISHED_AT.desc())
                     .limit(params.cap(CandidateSource.TRENDING)));
         }
         // FRESH: published in the last 72 hours and hardly shown yet (the exploration pool).
@@ -202,7 +204,7 @@ public class CandidateRepository {
         }
 
         Map<UUID, Candidate> byPost = new LinkedHashMap<>();
-        dsl.with(recent).with(trending).selectFrom(union.asTable("candidates")).forEach(r -> {
+        dsl.selectFrom(union.asTable("candidates")).forEach(r -> {
             UUID postId = r.get(POST_CANDIDATE.POST_ID);
             Candidate candidate = byPost.computeIfAbsent(
                     postId,
@@ -227,22 +229,22 @@ public class CandidateRepository {
                 DSL.inline(source.name()).as(SOURCE));
     }
 
-    /** post id → engagements since the given moment (expected index: the post_stats_hourly primary key, hour first). */
-    private CommonTableExpression<Record2<UUID, Long>> engagementSince(String name, Instant since) {
-        return DSL.name(name)
-                .fields("post_id", "engagements")
-                .as(DSL.select(
-                                POST_STAT_HOURLY.POST_ID,
-                                DSL.sum(POST_STAT_HOURLY.ENGAGEMENTS).cast(Long.class))
+    /**
+     * One post's engagements since the given moment, as a correlated scalar subquery (0 when it has none).
+     * Expected index: {@code post_stats_hourly_post (post_id, hour)}, one short range scan per candidate.
+     *
+     * <p>TASTE and LOCAL used to left-join a CTE of
+     * every post's weekly sum (about 235,000 rows on medium). A CTE has no index, and when the planner
+     * underestimated LOCAL's candidates (1 row for thousands) it nested-looped over the whole CTE once per
+     * candidate. The probe costs the same whatever the estimate.
+     */
+    private static Field<Long> engagementOf(Field<UUID> postId, Instant since) {
+        return DSL.coalesce(
+                DSL.field(DSL.select(DSL.sum(POST_STAT_HOURLY.ENGAGEMENTS).cast(Long.class))
                         .from(POST_STAT_HOURLY)
-                        // From the start of the hour the window begins in: the buckets are whole hours,
-                        // and leaving out the one that straddles the cutoff would shorten the window.
-                        .where(POST_STAT_HOURLY.HOUR.ge(at(since.truncatedTo(ChronoUnit.HOURS))))
-                        .groupBy(POST_STAT_HOURLY.POST_ID));
-    }
-
-    private static Field<Long> engagement(CommonTableExpression<Record2<UUID, Long>> window) {
-        return DSL.coalesce(window.field("engagements", Long.class), 0L);
+                        .where(POST_STAT_HOURLY.POST_ID.eq(postId))
+                        .and(POST_STAT_HOURLY.HOUR.ge(at(since.truncatedTo(ChronoUnit.HOURS))))),
+                0L);
     }
 
     // ── facts for the features, one query each for all candidates ────────────────────────────────

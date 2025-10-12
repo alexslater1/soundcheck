@@ -350,26 +350,43 @@ public class PostRepository {
 
     /**
      * Published posts on any of the users' profiles (their own, and those they put on their profile)
-     * that the viewer has not hidden, newest first; {@code limit + 1} rows. Expected indexes:
-     * {@code post_author_pub} per author, {@code post_person_profile} per user, the post_hide primary key
-     * for the anti-join.
+     * that the viewer has not hidden, newest first; {@code limit + 1} rows.
+     *
+     * <p>Two branches, each already in page order and cut to the page, then merged: the users' own posts
+     * (expected index {@code post_author_pub (author_id, published_at desc, id)}) and the posts they put on
+     * their profile ({@code post_person_profile}, then the primary key); the post_hide primary key for the
+     * anti-join. {@code union}, not {@code union all}: a post can be in both.
+     * As one {@code author_id in (…) or id in (…)} condition no index
+     * served both the filter and the order, so Postgres walked every published post newest first and
+     * discarded about 243,000 rows to find 21.
      */
     public List<PostRow> byAuthors(Collection<UUID> authorIds, UUID viewerId, @Nullable Cursor cursor, int limit) {
         if (authorIds.isEmpty()) {
             return List.of();
         }
-        Condition where = POST.STATUS
+        Condition shown = POST.STATUS
                 .eq("PUBLISHED")
-                .and(onProfileOf(authorIds))
                 .and(DSL.notExists(DSL.selectOne()
                         .from(POST_HIDE)
                         .where(POST_HIDE.POST_ID.eq(POST.ID))
                         .and(POST_HIDE.USER_ID.eq(viewerId))));
         if (cursor != null) {
-            where = where.and(DSL.row(POST.PUBLISHED_AT, POST.ID).lt(DSL.row(at(cursor.at()), cursor.id())));
+            shown = shown.and(DSL.row(POST.PUBLISHED_AT, POST.ID).lt(DSL.row(at(cursor.at()), cursor.id())));
         }
+        Select<Record1<UUID>> own = DSL.select(POST.ID)
+                .from(POST)
+                .where(shown)
+                .and(POST.AUTHOR_ID.in(authorIds))
+                .orderBy(POST.PUBLISHED_AT.desc(), POST.ID.desc())
+                .limit(limit + 1);
+        Select<Record1<UUID>> onProfile = DSL.select(POST.ID)
+                .from(POST)
+                .where(shown)
+                .and(POST.ID.in(profilePosts(authorIds)))
+                .orderBy(POST.PUBLISHED_AT.desc(), POST.ID.desc())
+                .limit(limit + 1);
         return dsl.selectFrom(POST)
-                .where(where)
+                .where(POST.ID.in(own.union(onProfile)))
                 .orderBy(POST.PUBLISHED_AT.desc(), POST.ID.desc())
                 .limit(limit + 1)
                 .fetch(PostRepository::toRow);

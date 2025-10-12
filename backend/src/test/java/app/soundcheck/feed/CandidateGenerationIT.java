@@ -166,6 +166,9 @@ class CandidateGenerationIT extends IntegrationTest {
         UUID pTaste = post(stranger, null, List.of(indieArtist), now.minus(Duration.ofDays(1)));
         stats(pTaste, 60, 0, 0, 0, 0);
         UUID pJazz = post(stranger, null, List.of(jazzArtist), now.minus(Duration.ofDays(4)));
+        // Older than pTaste but engaged with four days ago: inside TASTE's week, outside TRENDING's 48 hours.
+        UUID pTasteEngaged = post(stranger, null, List.of(indieArtist), now.minus(Duration.ofDays(6)));
+        hourly(pTasteEngaged, now.minus(Duration.ofDays(4)), 400);
 
         // Never candidates: the viewer's own, a blocked author's, a hidden one, one still processing,
         // one whose author deleted their account.
@@ -236,6 +239,7 @@ class CandidateGenerationIT extends IntegrationTest {
         assertThat(sources.get(pTrending)).containsExactly(CandidateSource.TRENDING);
         assertThat(sources.get(pFresh)).containsExactly(CandidateSource.FRESH);
         assertThat(sources.get(pTaste)).containsExactly(CandidateSource.TASTE);
+        assertThat(sources.get(pTasteEngaged)).containsExactly(CandidateSource.TASTE);
         // 220 km away, a genre the viewer did not choose, and the five that must never be served.
         assertThat(sources).doesNotContainKeys(pFar, pJazz, pOwn, pBlocked, pHidden, pPending, pDeleted);
         assertThat(candidates).extracting(Candidate::postId).doesNotHaveDuplicates();
@@ -252,13 +256,15 @@ class CandidateGenerationIT extends IntegrationTest {
                 .doesNotContain(pFresh);
 
         // A cap keeps the first of the generator's own order: the newest followed post, the most engaged
-        // trending one.
+        // trending one, and the taste post with the most engagement this week (not the newest; that sum
+        // moved from a joined CTE to a per-post subquery).
         Map<String, Integer> one = new HashMap<>(PARAMS.candidateCaps());
         one.put("FOLLOWING", 1);
         one.put("TRENDING", 1);
         one.put("FRESH", 0);
         one.put("GIG", 0);
         one.put("LOCAL", 0);
+        one.put("TASTE", 1);
         Map<UUID, Set<CandidateSource>> capped =
                 generator
                         .candidates(context, new RankingConfig.Params(24, 20, 0.8, 0.1, 200, 10, one, 50, 3, 5), now)
@@ -268,6 +274,8 @@ class CandidateGenerationIT extends IntegrationTest {
         assertThat(capped).doesNotContainKey(pFollow); // twelve hours old: behind the newest one
         assertThat(capped.get(pTrending)).containsExactly(CandidateSource.TRENDING);
         assertThat(capped).doesNotContainKey(pLocal); // 5 engagements against 500
+        assertThat(capped.get(pTasteEngaged)).containsExactly(CandidateSource.TASTE);
+        assertThat(capped).doesNotContainKey(pTaste); // newer, but no engagement this week
 
         // ── the features of three posts, exactly ────────────────────────────────────────────────
         Map<UUID, Featured> featured = generator.features(context, candidates, PARAMS, PRIOR, now).stream()
