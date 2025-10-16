@@ -19,6 +19,16 @@ Billable again: about \$60 a month while it runs (list prices)."
 
 status=$(ask aws rds describe-db-instances --db-instance-identifier "$db" \
   --query 'DBInstances[0].DBInstanceStatus' --output text) || status=""
+# Resumed straight after a pause, the database is still stopping, and RDS refuses to start it until it
+# has stopped; waiting for "available" alone would then time out (2025-10-16: about 8 minutes).
+if [[ $status == stopping ]]; then
+  say "the database is still stopping; waiting until it has stopped"
+  while ! dry && [[ $(aws rds describe-db-instances --db-instance-identifier "$db" \
+    --query 'DBInstances[0].DBInstanceStatus' --output text) == stopping ]]; do
+    sleep 20
+  done
+  status=stopped
+fi
 if [[ -z $status || $status == stopped ]]; then
   run aws rds start-db-instance --db-instance-identifier "$db" --query 'DBInstance.DBInstanceStatus' --output text
 fi
