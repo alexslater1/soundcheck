@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.jooq.Record;
 import org.jooq.Record1;
 import org.jooq.Select;
@@ -398,16 +399,47 @@ public class PostRepository {
      * created_at desc)}, {@code post_person_profile}.
      */
     public List<PostRow> ownPosts(UUID authorId, @Nullable Cursor cursor, int limit) {
-        Condition where = POST.AUTHOR_ID
-                .eq(authorId)
-                .and(POST.STATUS.ne("DELETED"))
-                .or(POST.STATUS.eq("PUBLISHED").and(POST.ID.in(profilePosts(List.of(authorId)))));
+        Condition where = ownPostsOf(authorId);
         if (cursor != null) {
             where = where.and(DSL.row(POST.CREATED_AT, POST.ID).lt(DSL.row(at(cursor.at()), cursor.id())));
         }
         return dsl.selectFrom(POST)
                 .where(where)
                 .orderBy(POST.CREATED_AT.desc(), POST.ID.desc())
+                .limit(limit + 1)
+                .fetch(PostRepository::toRow);
+    }
+
+    /**
+     * A profile's PUBLISHED posts (its own and those put on it) in gig order: the newest gig day first,
+     * posts not from a gig last, then newest published first; {@code limit + 1} rows. No index serves this
+     * order; a profile holds tens of posts, which Postgres reads through {@code post_author_pub} and
+     * {@code post_person_profile} and sorts.
+     */
+    public List<PostRow> publishedByGigDay(UUID userId, @Nullable GigDayCursor cursor, int limit) {
+        return byGigDay(
+                POST.STATUS.eq("PUBLISHED").and(onProfileOf(List.of(userId))), POST.PUBLISHED_AT, cursor, limit);
+    }
+
+    /**
+     * {@link #ownPosts} in gig order: the newest gig day first, posts not from a gig last, then newest
+     * created first; {@code limit + 1} rows. Expected indexes as {@link #ownPosts}, then a sort (see
+     * {@link #publishedByGigDay}).
+     */
+    public List<PostRow> ownPostsByGigDay(UUID authorId, @Nullable GigDayCursor cursor, int limit) {
+        return byGigDay(ownPostsOf(authorId), POST.CREATED_AT, cursor, limit);
+    }
+
+    private List<PostRow> byGigDay(
+            Condition where, Field<OffsetDateTime> at, @Nullable GigDayCursor cursor, int limit) {
+        Field<LocalDate> day = DSL.coalesce(POST.DAY, DSL.inline(GigDayCursor.NO_DAY));
+        if (cursor != null) {
+            where = where.and(DSL.row(day, at, POST.ID)
+                    .lt(DSL.row(DSL.val(cursor.day()), DSL.val(at(cursor.at())), DSL.val(cursor.id()))));
+        }
+        return dsl.selectFrom(POST)
+                .where(where)
+                .orderBy(day.desc(), at.desc(), POST.ID.desc())
                 .limit(limit + 1)
                 .fetch(PostRepository::toRow);
     }
@@ -481,6 +513,14 @@ public class PostRepository {
                 .and(POST.STATUS.eq("PUBLISHED"))
                 .groupBy(POST.AUTHOR_ID)
                 .fetchMap(r -> r.value1(), r -> (long) r.value2());
+    }
+
+    /** The author's own posts in every status except DELETED, and the published posts they put on their profile. */
+    private static Condition ownPostsOf(UUID authorId) {
+        return POST.AUTHOR_ID
+                .eq(authorId)
+                .and(POST.STATUS.ne("DELETED"))
+                .or(POST.STATUS.eq("PUBLISHED").and(POST.ID.in(profilePosts(List.of(authorId)))));
     }
 
     /** Posts by any of the users, or put on the profile of any of them. */

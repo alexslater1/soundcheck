@@ -8041,6 +8041,15 @@
         "operationId" : "listMyPosts",
         "parameters" : [ {
           "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "default" : "gig",
+            "enum" : [ "gig", "posted" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "cursor",
           "required" : false,
           "schema" : {
@@ -8069,7 +8078,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "The caller's own posts in every status (processing and failed included), newest first",
+        "summary" : "The caller's own posts in every status (processing and failed included): by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)",
         "tags" : [ "posts" ]
       }
     },
@@ -9376,6 +9385,15 @@
           }
         }, {
           "in" : "query",
+          "name" : "sort",
+          "required" : false,
+          "schema" : {
+            "default" : "gig",
+            "enum" : [ "gig", "posted" ],
+            "type" : "string"
+          }
+        }, {
+          "in" : "query",
           "name" : "cursor",
           "required" : false,
           "schema" : {
@@ -9404,7 +9422,7 @@
             "description" : "OK"
           }
         },
-        "summary" : "A user's published posts, newest first",
+        "summary" : "A user's published posts: by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)",
         "tags" : [ "posts" ]
       }
     },

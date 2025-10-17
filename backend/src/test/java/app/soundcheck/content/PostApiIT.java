@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.jooq.DSLContext;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -326,6 +327,54 @@ class PostApiIT extends IntegrationTest {
                 .isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(api.get("/api/v1/posts/" + UUID.randomUUID(), viewer).getStatusCode())
                 .isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
+    void aProfileListsItsPostsByGigDayOrByWhenTheyWerePosted() {
+        UUID venue = data.venue("Albert Hall " + UUID.randomUUID());
+        UUID act = data.artist("Keo " + UUID.randomUUID());
+        UUID march = data.gig("Keo", venue, Instant.parse("2026-03-01T19:30:00Z"), act);
+        UUID lastJune = data.gig("Keo", venue, Instant.parse("2025-06-01T19:30:00Z"), act);
+        UUID may = data.gig("Keo", venue, Instant.parse("2026-05-01T19:30:00Z"), act);
+        // Posted in this order: March's gig, a post from no gig, last June's gig, then May's gig.
+        String fromMarch = postFrom(march);
+        String fromNoGig = postFrom(null);
+        String fromLastJune = postFrom(lastJune);
+        String fromMay = postFrom(may);
+
+        for (String list : List.of("/api/v1/users/" + author.id() + "/posts", "/api/v1/me/posts")) {
+            TestApi.User reader = list.startsWith("/api/v1/me") ? author : viewer;
+            // Gig order is the default: newest gig first, the post from no gig last; paged by the gig day.
+            JsonNode first = api.get(list + "?limit=2", reader).getBody();
+            assertThat(ids(first.path("items"))).as(list).containsExactly(fromMay, fromMarch);
+            JsonNode second = api.get(
+                            list + "?limit=2&cursor=" + first.path("nextCursor").asText(""), reader)
+                    .getBody();
+            assertThat(ids(second.path("items"))).as(list).containsExactly(fromLastJune, fromNoGig);
+            assertThat(second.path("nextCursor").isNull()).isTrue();
+            assertThat(items(list + "?sort=gig", reader)).containsExactly(fromMay, fromMarch, fromLastJune, fromNoGig);
+
+            // Posted order: newest posted first, whatever the gig.
+            JsonNode posted = api.get(list + "?sort=posted&limit=2", reader).getBody();
+            assertThat(ids(posted.path("items"))).as(list).containsExactly(fromMay, fromLastJune);
+            String postedCursor = posted.path("nextCursor").asText("");
+            assertThat(items(list + "?sort=posted&cursor=" + postedCursor, reader))
+                    .containsExactly(fromNoGig, fromMarch);
+
+            // A cursor belongs to its order, and there are only two orders.
+            assertThat(code(api.get(list + "?sort=gig&cursor=" + postedCursor, reader)))
+                    .isEqualTo("CURSOR_INVALID");
+            assertThat(code(api.get(list + "?sort=likes", reader))).isEqualTo("SORT_INVALID");
+        }
+    }
+
+    private String postFrom(@Nullable UUID gig) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("clips", List.of(Map.of("mediaId", data.video(author.id(), "READY"))));
+        if (gig != null) {
+            body.put("gigId", gig);
+        }
+        return created(api.post("/api/v1/posts", body, author)).path("id").asText("");
     }
 
     @Test

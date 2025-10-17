@@ -175,12 +175,15 @@ public class PostController {
     @GetMapping("/me/posts")
     @Operation(
             operationId = "listMyPosts",
-            summary = "The caller's own posts in every status (processing and failed included), newest first")
+            summary =
+                    "The caller's own posts in every status (processing and failed included): by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)")
     public Page<Post> mine(
             @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(required = false, defaultValue = "gig") @Schema(allowableValues = {"gig", "posted"})
+                    String sort,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
-        return posts.mine(userId(jwt), cursor, limit);
+        return posts.mine(userId(jwt), profileOrder(sort), cursor, limit);
     }
 
     @GetMapping("/me/gigs/unposted")
@@ -193,13 +196,27 @@ public class PostController {
     }
 
     @GetMapping("/users/{id}/posts")
-    @Operation(operationId = "listUserPosts", summary = "A user's published posts, newest first")
+    @Operation(
+            operationId = "listUserPosts",
+            summary =
+                    "A user's published posts: by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)")
     public Page<Post> byUser(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable UUID id,
+            @RequestParam(required = false, defaultValue = "gig") @Schema(allowableValues = {"gig", "posted"})
+                    String sort,
             @RequestParam(required = false) String cursor,
             @RequestParam(required = false) @Min(1) @Max(50) Integer limit) {
-        return posts.byAuthor(userId(jwt), id, cursor, limit);
+        return posts.byAuthor(userId(jwt), id, profileOrder(sort), cursor, limit);
+    }
+
+    /** A profile's order; a cursor belongs to one order, so changing it starts from the first page. */
+    private static PostService.ProfileOrder profileOrder(String sort) {
+        return switch (sort) {
+            case "gig" -> PostService.ProfileOrder.GIG;
+            case "posted" -> PostService.ProfileOrder.POSTED;
+            default -> throw ApiException.badRequest("SORT_INVALID", "sort must be gig or posted");
+        };
     }
 
     @GetMapping("/gigs/{id}/posts")

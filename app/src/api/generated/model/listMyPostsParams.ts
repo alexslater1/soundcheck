@@ -5,8 +5,10 @@
  * Gig discovery and concert clips.
  * OpenAPI spec version: v1
  */
+import type { ListMyPostsSort } from './listMyPostsSort';
 
 export type ListMyPostsParams = {
+sort?: ListMyPostsSort;
 cursor?: string;
 limit?: number;
 };

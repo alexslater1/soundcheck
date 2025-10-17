@@ -363,7 +363,7 @@ export function useListUnpostedGigs<TData = Awaited<ReturnType<typeof listUnpost
 
 
 /**
- * @summary The caller's own posts in every status (processing and failed included), newest first
+ * @summary The caller's own posts in every status (processing and failed included): by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)
  */
 export const getListMyPostsUrl = (params?: ListMyPostsParams,) => {
   const normalizedParams = new URLSearchParams();
@@ -445,7 +445,7 @@ export function useListMyPosts<TData = Awaited<ReturnType<typeof listMyPosts>>, 
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary The caller's own posts in every status (processing and failed included), newest first
+ * @summary The caller's own posts in every status (processing and failed included): by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)
  */
 
 export function useListMyPosts<TData = Awaited<ReturnType<typeof listMyPosts>>, TError = unknown>(
@@ -1133,7 +1133,7 @@ export const useSetPostOnProfile = <TError = unknown,
       return useMutation(mutationOptions , queryClient);
     }
     /**
- * @summary A user's published posts, newest first
+ * @summary A user's published posts: by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)
  */
 export const getListUserPostsUrl = (id: string,
     params?: ListUserPostsParams,) => {
@@ -1222,7 +1222,7 @@ export function useListUserPosts<TData = Awaited<ReturnType<typeof listUserPosts
  , queryClient?: QueryClient
   ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
 /**
- * @summary A user's published posts, newest first
+ * @summary A user's published posts: by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)
  */
 
 export function useListUserPosts<TData = Awaited<ReturnType<typeof listUserPosts>>, TError = unknown>(
