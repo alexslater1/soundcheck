@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 
-import { StyleSheet } from 'react-native';
+import { PixelRatio, StyleSheet } from 'react-native';
 
 import type { Post, PostClip } from '@/api/generated/model';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { ClipCarousel } from './ClipCarousel';
+import { ClipCarousel, frameOf, snapIntervalFor } from './ClipCarousel';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 const mockPlayerProps = jest.fn();
@@ -134,6 +134,58 @@ describe('ClipCarousel', () => {
     expect(screen.getByTestId('act-chip-a-keo').props.accessibilityState.selected).toBe(true);
     expect(screen.getByTestId('act-chip-a-cards').props.accessibilityState.selected).toBe(false);
     expect(onClipChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'c3' }));
+  });
+
+  it('keeps the clips either side ready only for the post in view (a feed holds three posts live)', async () => {
+    const clips = [ready('c1'), ready('c2'), ready('c3')];
+    await show(postWith(clips), { active: false });
+    // A post above or below the one in view: only the clip it shows has a player.
+    expect(screen.getByTestId('player-c1-idle')).toBeTruthy();
+    expect(screen.getByTestId('player-c2-poster')).toBeTruthy();
+  });
+
+  it("draws a clip close to the box at the box's shape, and a clip of another shape at its own", () => {
+    const sized = (width: number, height: number) =>
+      ({ ...ready('c1'), playback: { status: 'READY', width, height } }) as PostClip;
+    // A 9:16 phone clip on a card taller than 9:16 fills the card (2025-10-17: drawn at 9:16 it
+    // left black above and below, and its seek bar under the caption).
+    expect(frameOf(sized(1080, 1920), 0.5)).toBe(0.5);
+    // A landscape clip in a portrait box is shown whole, at its own shape.
+    expect(frameOf(sized(1920, 1080), 0.5)).toBeCloseTo(16 / 9);
+    // Size unknown: the box.
+    expect(frameOf(ready('c1'), 0.5)).toBe(0.5);
+  });
+
+  it('makes each clip exactly as wide as the frame and snaps to that width (no sliver of the next)', async () => {
+    await render(
+      <ThemeProvider>
+        <ClipCarousel post={postWith([ready('c1'), ready('c2')])} active />
+      </ThemeProvider>,
+    );
+    // A width that is not a whole number of points, as on a 411.4 pt phone.
+    await act(async () => {
+      fireEvent(screen.getByTestId('clip-frame'), 'layout', {
+        nativeEvent: { layout: { width: 363.43, height: 500, x: 0, y: 0 } },
+      });
+    });
+    expect(StyleSheet.flatten(screen.getByTestId('clip-c1').props.style).width).toBe(363.43);
+    expect(screen.getByTestId('clip-list').props.snapToInterval).toBe(
+      snapIntervalFor(363.43, PixelRatio.get()),
+    );
+  });
+
+  it("gives Android a snap interval that truncates to the clips' own pixel width", () => {
+    // What Android does with it, in 32-bit floats: (interval * density).toInt().
+    const toPixels = (interval: number, density: number) =>
+      Math.trunc(Math.fround(Math.fround(interval) * Math.fround(density)));
+    // On the phone: 954 px clips at density 2.625. The width itself came out 1 px short.
+    expect(toPixels(954 / 2.625, 2.625)).toBe(953);
+    expect(toPixels(snapIntervalFor(954 / 2.625, 2.625), 2.625)).toBe(954);
+    for (const density of [2, 2.625, 2.75, 3, 3.5]) {
+      for (let pixels = 600; pixels < 1400; pixels++) {
+        expect(toPixels(snapIntervalFor(pixels / density, density), density)).toBe(pixels);
+      }
+    }
   });
 
   it('centres the dots on the clip even when the overlay leaves room for the sound button', async () => {

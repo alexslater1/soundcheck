@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import {
   FlatList,
+  PixelRatio,
   Platform,
   Pressable,
   StyleSheet,
@@ -104,7 +105,9 @@ export function ClipCarousel({
     }
   };
   const onLayout = (event: LayoutChangeEvent) => {
-    const measured = Math.round(event.nativeEvent.layout.width);
+    // Exact, not rounded: the phone is 411.4 pt wide, and clips 0.4 pt narrower than the frame showed
+    // a growing sliver of the next one as they were swiped (2025-10-17).
+    const measured = event.nativeEvent.layout.width;
     if (measured !== width) {
       setWidth(measured);
     }
@@ -172,7 +175,16 @@ export function ClipCarousel({
           <FlatList
             ref={list}
             horizontal
-            pagingEnabled
+            // On the phone the list snaps to its clips' own width rather than to its pixel width, which
+            // can differ from it by a pixel and drift by that much per clip (2025-10-17).
+            {...(Platform.OS === 'web'
+              ? { pagingEnabled: true }
+              : {
+                  snapToInterval: snapIntervalFor(width, PixelRatio.get()),
+                  snapToAlignment: 'start' as const,
+                  decelerationRate: 'fast' as const,
+                  disableIntervalMomentum: true,
+                })}
             data={clips}
             keyExtractor={(clip) => clip.id}
             getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
@@ -196,13 +208,16 @@ export function ClipCarousel({
                     post={post}
                     clip={item}
                     active={active && i === index}
-                    live={live && Math.abs(i - index) <= 1}
+                    // The post in view keeps its clips either side ready; a post above or below keeps
+                    // only the clip it shows. The feed holds three posts live, so this keeps it to five
+                    // players, not nine (a crash on a profile of many-clip posts, 2025-10-17).
+                    live={live && (i === index || (active && Math.abs(i - index) <= 1))}
                     soundAtTop={soundAtTop}
                     // One sound button for the carousel, drawn below: it stays still while the
                     // clips swipe past under it, as the counter and the dots do.
                     soundButton={false}
                     shade={shade}
-                    frameAspect={shapeOf(item) ?? boxAspect}
+                    frameAspect={frameOf(item, boxAspect)}
                     rounded={rounded ?? frameAspect === undefined}
                     surface={surface}
                     startAtMs={i === initial ? startAtMs : undefined}
@@ -294,10 +309,32 @@ export function soundOf(clip: PostClip | undefined): 'toggle' | 'none' | null {
   return playback.hasAudio === false ? 'none' : 'toggle';
 }
 
+/**
+ * The snap interval to give Android for clips `width` points wide. Android turns it into pixels by
+ * truncating (`(interval * density).toInt()`), and a width that is a whole number of pixels (954 px)
+ * comes out of the multiplication a hair under it (953.999…): the list then snapped 1 px short per clip,
+ * showing a sliver of the previous one that grew with every swipe (2025-10-17). Half a pixel more
+ * truncates to the clips' own pixel width.
+ */
+export function snapIntervalFor(width: number, density: number): number {
+  return (Math.round(width * density) + 0.5) / density;
+}
+
 /** A clip's own shape (width over height), or null while its size is unknown. */
 function shapeOf(clip: PostClip): number | null {
   const { width, height } = clip.playback;
   return width && height ? width / height : null;
+}
+
+/**
+ * The shape a clip is drawn at in the post's box: its own when it is fitted whole (`ShapedClip`), the
+ * box's when it is close enough to fill it. Drawing a filling clip at its own shape left it shorter than
+ * a feed card taller than the clip: black above and below it, the counter and dots pushed down from the
+ * ticket, and its seek bar under the caption (2025-10-17).
+ */
+export function frameOf(clip: PostClip, boxAspect: number): number {
+  const own = shapeOf(clip);
+  return own !== null && clipInBox(own, boxAspect) !== null ? own : boxAspect;
 }
 
 /**

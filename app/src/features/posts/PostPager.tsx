@@ -147,6 +147,11 @@ export function PostPager({
     manager.getState().setEnabled(visible);
     viewability.setShown(visible);
   }, [visible, manager, viewability]);
+  // Under another screen (a profile, a post) the paused neighbours' decoders and buffers are freed:
+  // with this list's players and the new screen's at once, the phone ran out (2025-10-17).
+  useEffect(() => {
+    manager.getState().setOnScreen(onScreen);
+  }, [onScreen, manager]);
   // A new feed session is a new list: what was seen in the old one may be seen (and reported) again.
   const sessionId = items[0]?.sessionId;
   useEffect(() => {

@@ -118,7 +118,9 @@ export function FeedPage({ post, reasons, width, height, onGone }: Props) {
         {
           height,
           padding: box.inset,
-          backgroundColor: immersive ? '#000000' : colors.background,
+          // Clear round a card, so the screen's own background and glow show there: an opaque page
+          // drew a dark box round every card over the glow (2025-10-17).
+          backgroundColor: immersive ? '#000000' : 'transparent',
         },
       ]}
       testID={`post-${post.id}`}
