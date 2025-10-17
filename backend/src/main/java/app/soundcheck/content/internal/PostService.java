@@ -32,6 +32,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 import org.jspecify.annotations.Nullable;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -321,8 +322,18 @@ public class PostService implements PostFeed {
         return view(viewerId, row);
     }
 
+    /**
+     * How a profile lists its posts: by the gig's day, newest gig first (the default), or by when they
+     * were posted, newest first. Within a gig day the newest posted comes first.
+     */
+    public enum ProfileOrder {
+        GIG,
+        POSTED
+    }
+
     @Transactional(readOnly = true)
-    public Page<Post> byAuthor(UUID viewerId, UUID authorId, @Nullable String cursor, @Nullable Integer limit) {
+    public Page<Post> byAuthor(
+            UUID viewerId, UUID authorId, ProfileOrder order, @Nullable String cursor, @Nullable Integer limit) {
         // A deleted account, or one that has blocked the viewer, "does not exist" for the viewer.
         if (!users.exists(authorId) || social.hasBlocked(authorId, viewerId)) {
             throw ApiException.notFound("USER_NOT_FOUND", "No such user");
@@ -331,7 +342,16 @@ public class PostService implements PostFeed {
         if (visibility.hidden(viewerId, authorId)) {
             throw ApiException.forbidden("PROFILE_PRIVATE", "This profile is private");
         }
-        return publishedPage(viewerId, PostRepository.Scope.author(authorId), cursor, limit);
+        if (order == ProfileOrder.POSTED) {
+            return publishedPage(viewerId, PostRepository.Scope.author(authorId), cursor, limit);
+        }
+        return visiblePage(
+                viewerId,
+                cursor,
+                limit,
+                (from, size) -> posts.publishedByGigDay(authorId, GigDayCursor.decode(from), size),
+                row -> GigDayCursor.after(row, Objects.requireNonNull(row.publishedAt()))
+                        .encode());
     }
 
     /**
@@ -375,7 +395,12 @@ public class PostService implements PostFeed {
         // assembler would drop their posts anyway, but then each page would be refilled again and again.
         Set<UUID> hidden = visibility.hiddenAmong(viewerId, authorIds);
         List<UUID> shown = authorIds.stream().filter(id -> !hidden.contains(id)).toList();
-        return visiblePage(viewerId, cursor, limit, (from, size) -> posts.byAuthors(shown, viewerId, from, size));
+        return visiblePage(
+                viewerId,
+                cursor,
+                limit,
+                (from, size) -> posts.byAuthors(shown, viewerId, Cursor.decode(from), size),
+                PostService::publishedCursor);
     }
 
     @Override
@@ -390,19 +415,36 @@ public class PostService implements PostFeed {
 
     /** The author's own posts, including those still processing or failed (the profile grid's badges). */
     @Transactional(readOnly = true)
-    public Page<Post> mine(UUID authorId, @Nullable String cursor, @Nullable Integer limit) {
+    public Page<Post> mine(UUID authorId, ProfileOrder order, @Nullable String cursor, @Nullable Integer limit) {
         int size = limit(limit);
-        List<PostRow> rows = posts.ownPosts(authorId, Cursor.decode(cursor), size);
+        List<PostRow> rows = order == ProfileOrder.POSTED
+                ? posts.ownPosts(authorId, Cursor.decode(cursor), size)
+                : posts.ownPostsByGigDay(authorId, GigDayCursor.decode(cursor), size);
         boolean more = rows.size() > size;
         List<PostRow> shown = more ? rows.subList(0, size) : rows;
-        String next =
-                more ? new Cursor(shown.getLast().createdAt(), shown.getLast().id()).encode() : null;
+        String next = null;
+        if (more) {
+            PostRow last = shown.getLast();
+            next = order == ProfileOrder.POSTED
+                    ? new Cursor(last.createdAt(), last.id()).encode()
+                    : GigDayCursor.after(last, last.createdAt()).encode();
+        }
         return new Page<>(assembler.assemble(authorId, shown), next);
     }
 
     private Page<Post> publishedPage(
             UUID viewerId, PostRepository.Scope scope, @Nullable String cursor, @Nullable Integer limit) {
-        return visiblePage(viewerId, cursor, limit, (from, size) -> posts.published(scope, from, size));
+        return visiblePage(
+                viewerId,
+                cursor,
+                limit,
+                (from, size) -> posts.published(scope, Cursor.decode(from), size),
+                PostService::publishedCursor);
+    }
+
+    /** The cursor after a row of a list in published order, newest first. */
+    private static String publishedCursor(PostRow row) {
+        return new Cursor(Objects.requireNonNull(row.publishedAt()), row.id()).encode();
     }
 
     /**
@@ -412,16 +454,18 @@ public class PostService implements PostFeed {
      * of times. Each read asks for exactly the places still free, so the cursor is always the last row
      * read.
      *
-     * @param read (position, n) → up to n + 1 rows after the position, newest first
+     * @param read (cursor, n) → up to n + 1 rows after the cursor, in the list's order
+     * @param cursorAfter the cursor of the position after a row
      */
     private Page<Post> visiblePage(
             UUID viewerId,
             @Nullable String cursor,
             @Nullable Integer limit,
-            BiFunction<@Nullable Cursor, Integer, List<PostRow>> read) {
+            BiFunction<@Nullable String, Integer, List<PostRow>> read,
+            Function<PostRow, String> cursorAfter) {
         int size = limit(limit);
         List<Post> items = new ArrayList<>(size);
-        Cursor position = Cursor.decode(cursor);
+        @Nullable String position = cursor;
         for (int round = 0; round < MAX_FILL_ROUNDS; round++) {
             int wanted = size - items.size();
             List<PostRow> rows = read.apply(position, wanted);
@@ -431,13 +475,13 @@ public class PostService implements PostFeed {
             if (!more) {
                 return new Page<>(items, null);
             }
-            position = new Cursor(shown.getLast().publishedAt(), shown.getLast().id());
+            position = cursorAfter.apply(shown.getLast());
             if (items.size() == size) {
                 break;
             }
         }
         // Either the page is full, or the rounds ran out: the client continues from the cursor.
-        return new Page<>(items, position == null ? null : position.encode());
+        return new Page<>(items, position);
     }
 
     // ── delete ───────────────────────────────────────────────────────────────────────────────────

@@ -22,7 +22,9 @@ import { spacing } from '@/theme/tokens';
 import { FollowedArtists } from './FollowedArtists';
 import { FollowUserButton } from './FollowUserButton';
 import { ProfileHeader } from './ProfileHeader';
+import { ProfileOrderToggle } from './ProfileOrderToggle';
 import { ProfileTabs, type ProfileTab } from './ProfileTabs';
+import { useProfileOrder } from './profileOrder';
 import { UserGigs } from './UserGigs';
 
 /**
@@ -156,7 +158,8 @@ export function ProfileScreen({ handle }: { handle: string }) {
 }
 
 function UserPosts({ userId }: { userId: string }) {
-  const posts = useListUserPosts(userId, { limit: 30 });
+  const order = useProfileOrder((state) => state.order);
+  const posts = useListUserPosts(userId, { limit: 30, sort: order });
   if (posts.isPending) {
     return <Skeleton height={200} />;
   }
@@ -170,7 +173,12 @@ function UserPosts({ userId }: { userId: string }) {
       </Text>
     );
   }
-  return <PostGrid posts={posts.data.items} pagerOf={{ userId }} />;
+  return (
+    <>
+      <ProfileOrderToggle />
+      <PostGrid posts={posts.data.items} pagerOf={{ userId }} />
+    </>
+  );
 }
 
 const styles = StyleSheet.create({

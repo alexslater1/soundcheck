@@ -331,12 +331,13 @@ export const listUnpostedGigsResponseItem = zod.object({
 export const listUnpostedGigsResponse = zod.array(listUnpostedGigsResponseItem)
 
 /**
- * @summary The caller's own posts in every status (processing and failed included), newest first
+ * @summary The caller's own posts in every status (processing and failed included): by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)
  */
-export const listMyPostsQueryLimitMax = 50;
+export const listMyPostsQuerySortDefault = "gig";export const listMyPostsQueryLimitMax = 50;
 
 
 export const listMyPostsQueryParams = zod.object({
+  "sort": zod.enum(['gig', 'posted']).default(listMyPostsQuerySortDefault),
   "cursor": zod.string().optional(),
   "limit": zod.number().min(1).max(listMyPostsQueryLimitMax).optional()
 })
@@ -1330,16 +1331,17 @@ export const setPostOnProfileResponse = zod.object({
 })
 
 /**
- * @summary A user's published posts, newest first
+ * @summary A user's published posts: by gig day, newest gig first (sort=gig), or newest posted first (sort=posted)
  */
 export const listUserPostsParams = zod.object({
   "id": zod.string().uuid()
 })
 
-export const listUserPostsQueryLimitMax = 50;
+export const listUserPostsQuerySortDefault = "gig";export const listUserPostsQueryLimitMax = 50;
 
 
 export const listUserPostsQueryParams = zod.object({
+  "sort": zod.enum(['gig', 'posted']).default(listUserPostsQuerySortDefault),
   "cursor": zod.string().optional(),
   "limit": zod.number().min(1).max(listUserPostsQueryLimitMax).optional()
 })
