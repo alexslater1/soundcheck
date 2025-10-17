@@ -161,6 +161,33 @@ in_order "$tmp/resume.out" "resume" \
   "/ops/scripts/smoke.sh $URL"
 pass "aws-resume: database first and waited for, limits back to cdk.json's ($api_min-$api_max, $worker_min-$worker_max), then smoke"
 
+# ── aws-warm / aws-cool ──────────────────────────────────────────────────────────────────────────
+dry warm "$SCRIPTS/worker.sh" warm
+in_order "$tmp/warm.out" "warm" \
+  "Warm one worker on 'demo'" \
+  "+ aws application-autoscaling register-scalable-target --service-namespace ecs --scalable-dimension ecs:service:DesiredCount --resource-id $worker_target --min-capacity 1 --max-capacity $worker_max" \
+  "+ aws ecs update-service --cluster SoundcheckCompute-Cluster-Fixture --service SoundcheckCompute-WorkerService-Fixture --desired-count 1" \
+  "+ aws ecs wait services-stable --cluster SoundcheckCompute-Cluster-Fixture --services SoundcheckCompute-WorkerService-Fixture" \
+  "until make aws-cool"
+lacks "$tmp/warm.out" "ApiService-Fixture --desired-count" "warm touches only the worker"
+pass "aws-warm: worker minimum 1 (maximum from cdk.json), started from 0, waited for"
+
+dry cool "$SCRIPTS/worker.sh" cool
+contains "$tmp/cool.out" "+ aws application-autoscaling register-scalable-target --service-namespace ecs --scalable-dimension ecs:service:DesiredCount --resource-id $worker_target --min-capacity 0 --max-capacity $worker_max" "cool"
+lacks "$tmp/cool.out" "--desired-count" "cool leaves a running worker to the idle alarm"
+lacks "$tmp/cool.out" "Type '" "cool saves money: it doesn't ask"
+pass "aws-cool: worker minimum back to 0, no task stopped"
+
+if DRY_RUN=1 YES=1 AWS_OUTPUTS_FILE="$HERE/outputs.json" "$SCRIPTS/worker.sh" >"$tmp/worker-usage.out" 2>&1 </dev/null; then
+  fail "worker.sh without warm|cool went ahead"
+fi
+contains "$tmp/worker-usage.out" "usage:" "worker.sh without an argument"
+if printf 'yes\n' | DRY_RUN=1 AWS_OUTPUTS_FILE="$HERE/outputs.json" "$SCRIPTS/worker.sh" warm >"$tmp/warm-no.out" 2>&1; then
+  fail "warm went ahead without the env name typed"
+fi
+lacks "$tmp/warm-no.out" "+ aws application-autoscaling" "an unconfirmed warm"
+pass "aws-warm: needs warm|cool, and the env name typed"
+
 # ── aws-ingest / aws-backfill-past-gigs ──────────────────────────────────────────────────────────
 dry ingest "$SCRIPTS/ingest.sh"
 contains "$tmp/ingest.out" "+ aws ecs run-task --cluster SoundcheckCompute-Cluster-Fixture --task-definition arn:aws:ecs:eu-north-1:111122223333:task-definition/SoundcheckComputeJob:3 --launch-type FARGATE" "ingest"

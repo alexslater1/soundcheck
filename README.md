@@ -201,6 +201,12 @@ make aws-backfill-past-gigs     # on AWS: setlist.fm's past gigs of the acts wit
 make aws-pause    # API and workers to 0 tasks (and their scaling limits to 0), then the database stops (asks)
 make aws-resume   # database first, then the services, then aws-smoke (asks)
 ```
+**A warm worker for a demo:** workers start from zero when a clip arrives (about 4½ minutes) and the last one stops after 15 idle minutes.
+```bash
+make aws-warm     # worker minimum 1: one keeps running until aws-cool (billable; asks)
+make aws-cool     # minimum back to 0: workers scale from zero again
+```
+`aws-resume` sets the minimum back to 0, so warm again after a resume.
 Paused, the address stays and the site answers 503; the bill drops to about $22 a month (the load balancer, storage, secrets, alarms). AWS starts a stopped database again by itself after 7 days, so pause again then. **Resume the day before you need it:** on 2025-10-16 the first resume was refused for about half an hour (`InsufficientDBInstanceCapacity`: no db.t4g.micro free in the database's zone); a refused resume changes nothing, so just run it again later. Measured: pause about 8 min, resume about 11 min once AWS accepts the start (database about 6 min, API about 3 min), then the smoke test. **Resume before any `aws-deploy`:** a deploy while paused would start tasks against a stopped database (`aws-deploy` refuses and says so).
 
 **Teardown:**

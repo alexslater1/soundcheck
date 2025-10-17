@@ -30,7 +30,7 @@ endef
 	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale perf-up perf-down perf-reset perf-api perf-api-stop simulate lab-extract lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight diagrams diagrams-check \
 	aws-check aws-bootstrap aws-secrets aws-push aws-diff aws-deploy aws-smoke aws-status aws-logs aws-ingest \
-	aws-backfill-past-gigs aws-seed aws-pause aws-resume aws-destroy aws-lab aws-test
+	aws-backfill-past-gigs aws-seed aws-warm aws-cool aws-pause aws-resume aws-destroy aws-lab aws-test
 
 help: ## List targets with one-line descriptions
 	@awk 'BEGIN {FS = ":.*## "} /^[a-zA-Z0-9_-]+:.*## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -411,6 +411,12 @@ aws-backfill-past-gigs: ## The setlist.fm past-gigs backfill on AWS as a one-off
 
 aws-seed: ## seed-demo against the AWS site (SEED_ARGS="--no-real" for the from-empty run; asks)
 	$(MAKE) seed-demo TARGET=aws
+
+aws-warm: ## Keep one transcode worker running for a demo (no 4½-minute start from zero; billable until aws-cool; asks)
+	$(CURDIR)/ops/aws/worker.sh warm
+
+aws-cool: ## Undo aws-warm: workers scale from zero again (a running one stops after 15 idle minutes)
+	$(CURDIR)/ops/aws/worker.sh cool
 
 aws-pause: ## Cost brake: API and workers to 0, database stopped (about $$22 a month while paused; asks)
 	$(CURDIR)/ops/aws/pause.sh
