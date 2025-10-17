@@ -6,7 +6,7 @@ import type { Post, PostClip } from '@/api/generated/model';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { ClipCarousel } from './ClipCarousel';
+import { ClipCarousel, frameOf } from './ClipCarousel';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 const mockPlayerProps = jest.fn();
@@ -134,6 +134,26 @@ describe('ClipCarousel', () => {
     expect(screen.getByTestId('act-chip-a-keo').props.accessibilityState.selected).toBe(true);
     expect(screen.getByTestId('act-chip-a-cards').props.accessibilityState.selected).toBe(false);
     expect(onClipChange).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'c3' }));
+  });
+
+  it('keeps the clips either side ready only for the post in view (a feed holds three posts live)', async () => {
+    const clips = [ready('c1'), ready('c2'), ready('c3')];
+    await show(postWith(clips), { active: false });
+    // A post above or below the one in view: only the clip it shows has a player.
+    expect(screen.getByTestId('player-c1-idle')).toBeTruthy();
+    expect(screen.getByTestId('player-c2-poster')).toBeTruthy();
+  });
+
+  it("draws a clip close to the box at the box's shape, and a clip of another shape at its own", () => {
+    const sized = (width: number, height: number) =>
+      ({ ...ready('c1'), playback: { status: 'READY', width, height } }) as PostClip;
+    // A 9:16 phone clip on a card taller than 9:16 fills the card (2025-10-17: drawn at 9:16 it
+    // left black above and below, and its seek bar under the caption).
+    expect(frameOf(sized(1080, 1920), 0.5)).toBe(0.5);
+    // A landscape clip in a portrait box is shown whole, at its own shape.
+    expect(frameOf(sized(1920, 1080), 0.5)).toBeCloseTo(16 / 9);
+    // Size unknown: the box.
+    expect(frameOf(ready('c1'), 0.5)).toBe(0.5);
   });
 
   it('centres the dots on the clip even when the overlay leaves room for the sound button', async () => {

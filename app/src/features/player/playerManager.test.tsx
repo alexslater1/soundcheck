@@ -117,4 +117,29 @@ describe('player manager', () => {
     expect(states('f-')[1]).toBe('playing');
     expect(forYou.getState().currentId).toBe('clip-6');
   });
+
+  it("keeps only the clip in view's player while the list's screen is covered", async () => {
+    const manager = createPlayerManager();
+    await render(
+      <PlayerManagerProvider value={manager}>
+        {ids.map((id) => (
+          <Clip key={id} id={id} />
+        ))}
+      </PlayerManagerProvider>,
+    );
+    await act(async () => {
+      manager.getState().setOrder(ids);
+      manager.getState().setCurrent('clip-4');
+    });
+    expect(states().filter((s) => s !== 'poster')).toHaveLength(MAX_LIVE_PLAYERS);
+
+    // A profile or a post opens on top: the neighbours go, the clip in view stays (a post page opened
+    // from it may be playing it).
+    await act(async () => manager.getState().setOnScreen(false));
+    expect(manager.getState().liveIds).toEqual(['clip-4']);
+
+    // Back on screen: the neighbours are ready again.
+    await act(async () => manager.getState().setOnScreen(true));
+    expect(manager.getState().liveIds).toEqual(['clip-3', 'clip-4', 'clip-5']);
+  });
 });
