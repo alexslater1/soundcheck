@@ -97,9 +97,10 @@ describe('FeedPage', () => {
     const card = StyleSheet.flatten(screen.getByTestId('feed-card').props.style);
     expect(card.borderRadius).toBeGreaterThan(0);
     expect(card.width).toBe(PAGE.width - CARD_INSET * 2);
-    expect(StyleSheet.flatten(screen.getByTestId('post-post-1').props.style).padding).toBe(
-      CARD_INSET,
-    );
+    const page = StyleSheet.flatten(screen.getByTestId('post-post-1').props.style);
+    expect(page.padding).toBe(CARD_INSET);
+    // Clear round the card: the screen's background and glow show there, not a dark box (2025-10-17).
+    expect(page.backgroundColor).toBe('transparent');
     // The card rounds the clip, which needs a TextureView on Android.
     expect(screen.getByTestId('video-textureView-square')).toBeTruthy();
     // The date is on the ticket in full: month, day and year.
@@ -118,6 +119,9 @@ describe('FeedPage', () => {
     const card = StyleSheet.flatten(screen.getByTestId('feed-card').props.style);
     expect(card.borderRadius).toBeUndefined();
     expect(card.width).toBe(PAGE.width);
+    expect(StyleSheet.flatten(screen.getByTestId('post-post-1').props.style).backgroundColor).toBe(
+      '#000000',
+    );
     expect(screen.getByTestId('video-surfaceView-square')).toBeTruthy();
     expect(screen.getByTestId('gig-ticket')).toBeTruthy();
   });

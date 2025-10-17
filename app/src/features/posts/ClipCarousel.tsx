@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useEffect, useMemo, useRef, useState, type PropsWithChildren } from 'react';
 import {
   FlatList,
+  PixelRatio,
   Platform,
   Pressable,
   StyleSheet,
@@ -104,7 +105,9 @@ export function ClipCarousel({
     }
   };
   const onLayout = (event: LayoutChangeEvent) => {
-    const measured = Math.round(event.nativeEvent.layout.width);
+    // Exact, not rounded: the phone is 411.4 pt wide, and clips 0.4 pt narrower than the frame showed
+    // a growing sliver of the next one as they were swiped (2025-10-17).
+    const measured = event.nativeEvent.layout.width;
     if (measured !== width) {
       setWidth(measured);
     }
@@ -172,7 +175,16 @@ export function ClipCarousel({
           <FlatList
             ref={list}
             horizontal
-            pagingEnabled
+            // On the phone the list snaps to its clips' own width rather than to its pixel width, which
+            // can differ from it by a pixel and drift by that much per clip (2025-10-17).
+            {...(Platform.OS === 'web'
+              ? { pagingEnabled: true }
+              : {
+                  snapToInterval: snapIntervalFor(width, PixelRatio.get()),
+                  snapToAlignment: 'start' as const,
+                  decelerationRate: 'fast' as const,
+                  disableIntervalMomentum: true,
+                })}
             data={clips}
             keyExtractor={(clip) => clip.id}
             getItemLayout={(_, i) => ({ length: width, offset: width * i, index: i })}
@@ -295,6 +307,17 @@ export function soundOf(clip: PostClip | undefined): 'toggle' | 'none' | null {
     return null;
   }
   return playback.hasAudio === false ? 'none' : 'toggle';
+}
+
+/**
+ * The snap interval to give Android for clips `width` points wide. Android turns it into pixels by
+ * truncating (`(interval * density).toInt()`), and a width that is a whole number of pixels (954 px)
+ * comes out of the multiplication a hair under it (953.999…): the list then snapped 1 px short per clip,
+ * showing a sliver of the previous one that grew with every swipe (2025-10-17). Half a pixel more
+ * truncates to the clips' own pixel width.
+ */
+export function snapIntervalFor(width: number, density: number): number {
+  return (Math.round(width * density) + 0.5) / density;
 }
 
 /** A clip's own shape (width over height), or null while its size is unknown. */

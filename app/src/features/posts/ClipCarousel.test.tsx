@@ -1,12 +1,12 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react-native';
 
-import { StyleSheet } from 'react-native';
+import { PixelRatio, StyleSheet } from 'react-native';
 
 import type { Post, PostClip } from '@/api/generated/model';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
-import { ClipCarousel, frameOf } from './ClipCarousel';
+import { ClipCarousel, frameOf, snapIntervalFor } from './ClipCarousel';
 
 jest.mock('@expo/vector-icons/Ionicons', () => 'Ionicons');
 const mockPlayerProps = jest.fn();
@@ -154,6 +154,38 @@ describe('ClipCarousel', () => {
     expect(frameOf(sized(1920, 1080), 0.5)).toBeCloseTo(16 / 9);
     // Size unknown: the box.
     expect(frameOf(ready('c1'), 0.5)).toBe(0.5);
+  });
+
+  it('makes each clip exactly as wide as the frame and snaps to that width (no sliver of the next)', async () => {
+    await render(
+      <ThemeProvider>
+        <ClipCarousel post={postWith([ready('c1'), ready('c2')])} active />
+      </ThemeProvider>,
+    );
+    // A width that is not a whole number of points, as on a 411.4 pt phone.
+    await act(async () => {
+      fireEvent(screen.getByTestId('clip-frame'), 'layout', {
+        nativeEvent: { layout: { width: 363.43, height: 500, x: 0, y: 0 } },
+      });
+    });
+    expect(StyleSheet.flatten(screen.getByTestId('clip-c1').props.style).width).toBe(363.43);
+    expect(screen.getByTestId('clip-list').props.snapToInterval).toBe(
+      snapIntervalFor(363.43, PixelRatio.get()),
+    );
+  });
+
+  it("gives Android a snap interval that truncates to the clips' own pixel width", () => {
+    // What Android does with it, in 32-bit floats: (interval * density).toInt().
+    const toPixels = (interval: number, density: number) =>
+      Math.trunc(Math.fround(Math.fround(interval) * Math.fround(density)));
+    // On the phone: 954 px clips at density 2.625. The width itself came out 1 px short.
+    expect(toPixels(954 / 2.625, 2.625)).toBe(953);
+    expect(toPixels(snapIntervalFor(954 / 2.625, 2.625), 2.625)).toBe(954);
+    for (const density of [2, 2.625, 2.75, 3, 3.5]) {
+      for (let pixels = 600; pixels < 1400; pixels++) {
+        expect(toPixels(snapIntervalFor(pixels / density, density), density)).toBe(pixels);
+      }
+    }
   });
 
   it('centres the dots on the clip even when the overlay leaves room for the sound button', async () => {
