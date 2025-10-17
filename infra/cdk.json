@@ -13,6 +13,8 @@
     "apiMemoryMiB": 1024,
     "apiMinTasks": 1,
     "apiMaxTasks": 2,
+    "workerCpu": 4096,
+    "workerMemoryMiB": 8192,
     "workerMinTasks": 0,
     "workerMaxTasks": 2,
     "pushEnabled": false,

@@ -74,7 +74,7 @@ describe('SoundcheckCompute', () => {
 
   it('sizes the tasks and gives the worker 120 s to finish a job on stop', () => {
     expect([tasks.api.props.Cpu, tasks.api.props.Memory]).toEqual(['512', '1024']);
-    expect([tasks.worker.props.Cpu, tasks.worker.props.Memory]).toEqual(['2048', '4096']);
+    expect([tasks.worker.props.Cpu, tasks.worker.props.Memory]).toEqual(['4096', '8192']);
     expect([tasks.job.props.Cpu, tasks.job.props.Memory]).toEqual(['1024', '2048']);
     expect(tasks.worker.container.StopTimeout).toBe(120);
     expect(tasks.api.container.PortMappings).toEqual([expect.objectContaining({ ContainerPort: 8080 })]);

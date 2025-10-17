@@ -147,7 +147,7 @@ export class ComputeStack extends SoundcheckStack {
       port: true,
     });
     // 120 s is Fargate's maximum: the worker waits up to 90 s for FFmpeg, then 15 s to release the job.
-    const workerTask = taskDefinition('worker', { cpu: 2048, memoryLimitMiB: 4096 }, props.workerRepository, {
+    const workerTask = taskDefinition('worker', { cpu: config.workerCpu, memoryLimitMiB: config.workerMemoryMiB }, props.workerRepository, {
       stopTimeout: Duration.seconds(120),
     });
     this.jobTaskDefinition = taskDefinition('job', { cpu: 1024, memoryLimitMiB: 2048 }, props.apiRepository);

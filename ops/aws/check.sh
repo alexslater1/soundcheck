@@ -46,9 +46,10 @@ if ((signed_in)); then
   api_cpu=$(cdk_default apiCpu 512)
   api_max=$(cdk_default apiMaxTasks 2)
   worker_max=$(cdk_default workerMaxTasks 2)
-  # Workers are 2 vCPU (2048 units); the worst case puts every task on on-demand capacity.
-  need=$(((api_cpu * api_max + 2048 * worker_max + 1023) / 1024))
-  say "Fargate vCPU quotas (the maxima use up to $need vCPU: API $api_max x $api_cpu units, workers $worker_max x 2048)"
+  # The worst case puts every task on on-demand capacity.
+  worker_cpu=$(cdk_default workerCpu 4096)
+  need=$(((api_cpu * api_max + worker_cpu * worker_max + 1023) / 1024))
+  say "Fargate vCPU quotas (the maxima use up to $need vCPU: API $api_max x $api_cpu units, workers $worker_max x $worker_cpu)"
   for quota in L-3032A538:On-Demand L-36FBB829:Spot; do
     code=${quota%%:*}
     if value=$(try_aws aws service-quotas get-service-quota --service-code fargate --quota-code "$code" --query 'Quota.Value' --output text); then

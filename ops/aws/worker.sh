@@ -23,9 +23,9 @@ max=$(ask aws application-autoscaling describe-scalable-targets --service-namesp
 if [[ $mode == warm ]]; then
   # aws-pause leaves the maximum at 0, and the database stopped: a worker would only fail to start.
   [[ $max != 0 ]] || die "Soundcheck is paused (worker maximum 0): run make aws-resume first"
-  confirm "Warm one worker on '$SOUNDCHECK_ENV': its scaling minimum goes to 1, so one worker task (2 vCPU, 4 GB,
-mostly Spot) keeps running until make aws-cool or make aws-pause. Billable the whole time: a few cents to
-about 10 cents an hour at list prices (an estimate, not a measured bill)."
+  confirm "Warm one worker on '$SOUNDCHECK_ENV': its scaling minimum goes to 1, so one worker task (4 vCPU, 8 GB,
+mostly Spot) keeps running until make aws-cool or make aws-pause. Billable the whole time: \$0.22 an hour on-demand at list prices,
+less on Spot (an estimate, not a measured bill)."
   run aws application-autoscaling register-scalable-target --service-namespace ecs \
     --scalable-dimension ecs:service:DesiredCount --resource-id "$target" \
     --min-capacity 1 --max-capacity "$worker_max"

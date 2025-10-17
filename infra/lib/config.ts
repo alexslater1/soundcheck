@@ -40,6 +40,9 @@ export interface SoundcheckConfig {
   readonly apiMemoryMiB: number;
   readonly apiMinTasks: number;
   readonly apiMaxTasks: number;
+  /** The transcode worker's size: FFmpeg uses every vCPU, so a clip transcodes about twice as fast on 4 as on 2. */
+  readonly workerCpu: number;
+  readonly workerMemoryMiB: number;
   readonly workerMinTasks: number;
   readonly workerMaxTasks: number;
   /** Alarm e-mail address; passed on the command line only, never committed. */
@@ -135,15 +138,21 @@ export function readConfig(node: Node): SoundcheckConfig {
       ? undefined
       : matching('webOrigin', webOriginRaw, /^https:\/\/[a-z0-9.-]+$/, 'an https origin with no path or trailing slash');
 
-  const apiCpu = int('apiCpu', 256);
-  const apiMemoryMiB = int('apiMemoryMiB', 512);
-  const memoryFits = FARGATE_MEMORY[apiCpu];
-  if (memoryFits === undefined) {
-    throw new ConfigError('apiCpu', `must be one of ${Object.keys(FARGATE_MEMORY).join(', ')}, got ${apiCpu}`);
-  }
-  if (!memoryFits(apiMemoryMiB)) {
-    throw new ConfigError('apiMemoryMiB', `${apiMemoryMiB} is not a Fargate memory size for ${apiCpu} CPU units`);
-  }
+  // A task's CPU units and memory, checked against the sizes Fargate accepts.
+  const taskSize = (cpuKey: string, memoryKey: string): [number, number] => {
+    const cpu = int(cpuKey, 256);
+    const memory = int(memoryKey, 512);
+    const memoryFits = FARGATE_MEMORY[cpu];
+    if (memoryFits === undefined) {
+      throw new ConfigError(cpuKey, `must be one of ${Object.keys(FARGATE_MEMORY).join(', ')}, got ${cpu}`);
+    }
+    if (!memoryFits(memory)) {
+      throw new ConfigError(memoryKey, `${memory} is not a Fargate memory size for ${cpu} CPU units`);
+    }
+    return [cpu, memory];
+  };
+  const [apiCpu, apiMemoryMiB] = taskSize('apiCpu', 'apiMemoryMiB');
+  const [workerCpu, workerMemoryMiB] = taskSize('workerCpu', 'workerMemoryMiB');
 
   const apiMinTasks = int('apiMinTasks', 1);
   const apiMaxTasks = int('apiMaxTasks', 1);
@@ -190,6 +199,8 @@ export function readConfig(node: Node): SoundcheckConfig {
     webOrigin,
     apiCpu,
     apiMemoryMiB,
+    workerCpu,
+    workerMemoryMiB,
     apiMinTasks,
     apiMaxTasks,
     workerMinTasks,

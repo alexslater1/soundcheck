@@ -223,7 +223,7 @@ It removes every stack. The database leaves a final snapshot. The media bucket (
 |---|---|---|
 | Application Load Balancer (internal) | $0.02394 an hour + $0.0076 per LCU-hour | $17.48 + usage |
 | API task, Fargate 0.5 vCPU / 1 GB (1 to 2 tasks) | $0.0445 per vCPU-hour + $0.0049 per GB-hour | $19.82 per task |
-| Worker task, Fargate 2 vCPU / 4 GB (0 to 2, mostly Spot) | $0.1086 an hour on-demand; Spot is cheaper | only while transcoding |
+| Worker task, Fargate 4 vCPU / 8 GB (0 to 2, mostly Spot) | $0.2172 an hour on-demand; Spot is cheaper | only while transcoding (or while `make aws-warm` holds one) |
 | RDS PostgreSQL db.t4g.micro, single-AZ | $0.016 an hour | $11.68 |
 | RDS storage, 20 GB gp3 | $0.12 per GB-month | $2.40 |
 | Public IPv4 (each running task) | $0.005 an hour | $3.65 per task |
