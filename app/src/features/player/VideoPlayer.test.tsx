@@ -27,6 +27,7 @@ type FakePlayer = {
   replaceAsync: jest.Mock;
   listeners: Record<string, Listener[]>;
   source: unknown;
+  bufferOptions?: unknown;
   /** Every value assigned to `muted`, in order (expo-video's native setter races on a quick flip). */
   mutedWrites: boolean[];
 };
@@ -126,6 +127,12 @@ describe('VideoPlayer (native)', () => {
     });
     expect(player.loop).toBe(true);
     expect(player.muted).toBe(true);
+    // A bounded read-ahead: unbounded, a feed's players filled the Java heap (on the phone,
+    // 2025-10-17).
+    expect(player.bufferOptions).toEqual({
+      preferredForwardBufferDuration: 10,
+      maxBufferBytes: 4 * 1024 * 1024,
+    });
     expect(player.play).toHaveBeenCalledTimes(1);
     expect(player.pause).not.toHaveBeenCalled();
   });

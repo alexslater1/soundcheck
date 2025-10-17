@@ -51,8 +51,20 @@ function newPlayer(hlsUrl: string): NativePlayer {
   player.loop = true;
   player.muted = usePlayerPrefs.getState().muted;
   player.timeUpdateEventInterval = 0.25;
+  player.bufferOptions = PLAYER_BUFFER;
   return player;
 }
+
+/**
+ * How far each player reads ahead. ExoPlayer keeps what it has read on the app's Java heap (256 MB on the
+ * Pixel), and by default reads 20 s ahead with no limit in bytes: with a feed's players all filling up,
+ * the app ran out and was killed (`OutOfMemoryError` on OkHttp's thread, 2025-10-17).
+ * 4 MB is about 10 s of the 720p rung (3 Mbps), far more than a swipe needs to start.
+ */
+export const PLAYER_BUFFER = {
+  preferredForwardBufferDuration: 10,
+  maxBufferBytes: 4 * 1024 * 1024,
+} as const;
 
 /**
  * A clip on Android: expo-video, which plays HLS natively (Media3/ExoPlayer picks the rendition that
