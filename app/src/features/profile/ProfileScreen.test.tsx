@@ -5,6 +5,7 @@ import type { PropsWithChildren } from 'react';
 import { useAuthStore } from '@/features/auth/store';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
+import { useProfileOrder } from './profileOrder';
 import { ProfileScreen } from './ProfileScreen';
 
 const mockProfile = jest.fn();
@@ -65,6 +66,7 @@ describe('ProfileScreen (private profiles)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useAuthStore.setState({ me: { id: 'user-1' } as never });
+    useProfileOrder.setState({ order: 'gig' });
     mockPosts.mockReturnValue({ isPending: false, data: { items: [{ id: 'p1' }, { id: 'p2' }] } });
   });
 
@@ -121,5 +123,22 @@ describe('ProfileScreen (private profiles)', () => {
     );
     expect(screen.getByRole('link', { name: '10 followers' })).toBeTruthy();
     expect(screen.getByRole('link', { name: '3 following' })).toBeTruthy();
+  });
+
+  it('lists the clips by gig date, or by when they were posted once the viewer chooses that', async () => {
+    mockProfile.mockReturnValue({
+      isPending: false,
+      data: { ...profile, profileVisibility: 'PUBLIC', contentVisible: true },
+    });
+    await render(<ProfileScreen handle="ben" />, { wrapper: Providers });
+
+    expect(mockPosts).toHaveBeenLastCalledWith('user-2', { limit: 30, sort: 'gig' });
+    expect(screen.getByRole('radio', { name: 'Gig date' })).toBeChecked();
+
+    await fireEvent.press(screen.getByRole('radio', { name: 'Recently posted' }));
+    expect(mockPosts).toHaveBeenLastCalledWith('user-2', { limit: 30, sort: 'posted' });
+    expect(screen.getByRole('radio', { name: 'Recently posted' })).toBeChecked();
+    // One choice for every profile, kept for next time.
+    expect(useProfileOrder.getState().order).toBe('posted');
   });
 });

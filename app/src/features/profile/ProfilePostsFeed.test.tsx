@@ -5,9 +5,10 @@ import type { PagePost, Post } from '@/api/generated/model';
 import type { PagerItem } from '@/features/posts/PostPager';
 import { ThemeProvider } from '@/theme/ThemeProvider';
 
+import { useProfileOrder } from './profileOrder';
 import { PROFILE_PAGE, ProfilePostsFeed } from './ProfilePostsFeed';
 
-type Params = { limit?: number; cursor?: string };
+type Params = { limit?: number; sort?: string; cursor?: string };
 const mockUserPosts = jest.fn<Promise<PagePost>, [string, Params]>();
 const mockMyPosts = jest.fn<Promise<PagePost>, [Params]>();
 
@@ -61,6 +62,7 @@ describe('ProfilePostsFeed', () => {
     mockUserPosts.mockReset();
     mockMyPosts.mockReset();
     mockPager.length = 0;
+    useProfileOrder.setState({ order: 'gig' });
   });
 
   it("opens a profile's posts at the one tapped, and loads the next page at the end", async () => {
@@ -72,12 +74,34 @@ describe('ProfilePostsFeed', () => {
     expect(await screen.findByText('p3')).toBeTruthy();
     expect(screen.getByTestId('pager-PROFILE')).toBeTruthy();
     // The same list as the grid, as many a page, so the tapped post is on the first.
-    expect(mockUserPosts).toHaveBeenCalledWith('u1', { limit: PROFILE_PAGE, cursor: undefined });
+    expect(mockUserPosts).toHaveBeenCalledWith('u1', {
+      limit: PROFILE_PAGE,
+      sort: 'gig',
+      cursor: undefined,
+    });
     expect(mockPager.at(-1)?.initialIndex).toBe(1);
 
     await act(async () => mockPager.at(-1)?.onEndReached?.());
     expect(await screen.findByText('p4')).toBeTruthy();
-    expect(mockUserPosts).toHaveBeenLastCalledWith('u1', { limit: PROFILE_PAGE, cursor: 'c1' });
+    expect(mockUserPosts).toHaveBeenLastCalledWith('u1', {
+      limit: PROFILE_PAGE,
+      sort: 'gig',
+      cursor: 'c1',
+    });
+  });
+
+  it('swipes through the posts in the order the grid shows them', async () => {
+    useProfileOrder.setState({ order: 'posted' });
+    mockMyPosts.mockResolvedValue(page(['m2', 'm1']));
+    await renderFeed(true, 'm1');
+
+    expect(await screen.findByText('m1')).toBeTruthy();
+    expect(mockMyPosts).toHaveBeenCalledWith({
+      limit: PROFILE_PAGE,
+      sort: 'posted',
+      cursor: undefined,
+    });
+    expect(mockPager.at(-1)?.initialIndex).toBe(1);
   });
 
   it('reads your own list on Me, and opens at the first post without a start', async () => {

@@ -22,6 +22,8 @@ import { spacing, touchTarget } from '@/theme/tokens';
 import { FollowedArtists } from './FollowedArtists';
 import { MyGigsCalendar } from './MyGigsCalendar';
 import { ProfileHeader } from './ProfileHeader';
+import { ProfileOrderToggle } from './ProfileOrderToggle';
+import { useProfileOrder } from './profileOrder';
 import { ProfileTabs, type ProfileTab } from './ProfileTabs';
 import { useChangeAvatar } from './useChangeAvatar';
 
@@ -42,8 +44,9 @@ export function MeScreen() {
   // When the grid first showed something still processing; cleared when nothing is. The polling
   // schedule runs from this moment, not from when the tab was first opened.
   const waitingSince = useRef<number | null>(null);
+  const order = useProfileOrder((state) => state.order);
   const posts = useListMyPosts(
-    { limit: 30 },
+    { limit: 30, sort: order },
     {
       query: {
         // While something is still processing, keep looking so its badge clears by itself.
@@ -190,7 +193,10 @@ export function MeScreen() {
               No clips yet. Share one from the Create tab.
             </Text>
           ) : (
-            <PostGrid posts={posts.data.items} pagerOf={{ userId: me.id, mine: true }} />
+            <>
+              <ProfileOrderToggle />
+              <PostGrid posts={posts.data.items} pagerOf={{ userId: me.id, mine: true }} />
+            </>
           )
         ) : tab === 'gigs' ? (
           <MyGigsCalendar />

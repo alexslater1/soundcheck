@@ -14,6 +14,8 @@ import { StateMessage } from '@/components/ui/StateMessage';
 import { refreshFirstPage, usePullToRefresh } from '@/features/feed/usePullToRefresh';
 import { PostPager } from '@/features/posts/PostPager';
 
+import { useProfileOrder } from './profileOrder';
+
 /** As many posts a page as the profile's grid shows, so the post tapped there is on the first page. */
 export const PROFILE_PAGE = 30;
 
@@ -21,7 +23,8 @@ export const PROFILE_PAGE = 30;
  * A profile's posts, full screen, one post a page: what tapping a post in a profile's grid opens, like
  * Search's artist posts. Up and down change the post, left and right the clip. It reads the same list
  * as the grid (your own posts on Me, anyone's on their profile), so a private profile's posts are left
- * are left out by the same server rule; later pages follow the server's cursor.
+ * out by the same server rule, and in the same order (gig date or recently posted); later pages follow
+ * the server's cursor.
  */
 export function ProfilePostsFeed({
   userId,
@@ -34,20 +37,22 @@ export function ProfilePostsFeed({
   startPostId?: string;
 }) {
   const client = useQueryClient();
+  const order = useProfileOrder((state) => state.order);
   const key = useMemo(
     () =>
       [
         ...(mine ? getListMyPostsQueryKey() : getListUserPostsQueryKey(userId)),
         'infinite',
+        order,
       ] as const,
-    [mine, userId],
+    [mine, userId, order],
   );
   const feed = useInfiniteQuery({
     queryKey: key,
     queryFn: ({ pageParam }) =>
       mine
-        ? listMyPosts({ limit: PROFILE_PAGE, cursor: pageParam })
-        : listUserPosts(userId, { limit: PROFILE_PAGE, cursor: pageParam }),
+        ? listMyPosts({ limit: PROFILE_PAGE, sort: order, cursor: pageParam })
+        : listUserPosts(userId, { limit: PROFILE_PAGE, sort: order, cursor: pageParam }),
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (last) => last.nextCursor ?? undefined,
     refetchOnWindowFocus: false,
