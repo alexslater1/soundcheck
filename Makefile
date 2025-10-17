@@ -26,7 +26,7 @@ define not_yet
 	@echo "$(1): not yet implemented"; exit 1
 endef
 
-.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone android apk web test verify lab-check e2e screens \
+.PHONY: help setup install keys up dev openapi-check-client down media-snapshot reset stop-daemons status api worker app phone mirror android apk web test verify lab-check e2e screens \
 	openapi openapi-check ingest venue-coverage venue-preview record-fixtures backfill-setlists backfill-past-gigs purge-past-gigs purge-fixtures prune-local prune-test-posts seed-demo seed-acceptance backup restore seed-scale perf-up perf-down perf-reset perf-api perf-api-stop simulate lab-extract lab-train lab-eval \
 	lab-publish lab-loop load clips clips-check images dlq-redrive demo-preflight diagrams diagrams-check \
 	aws-check aws-bootstrap aws-secrets aws-push aws-diff aws-deploy aws-smoke aws-status aws-logs aws-ingest \
@@ -126,6 +126,16 @@ phone: ## Forward the phone's ports to the laptop (adb reverse 8088, 8081, 4566)
 	# 8088 the edge (API, web, media), 8081 the Expo bundler, 4566 LocalStack S3 (presigned upload URLs).
 	for port in 8088 8081 4566; do adb reverse tcp:$$port tcp:$$port >/dev/null; done
 	adb reverse --list
+
+mirror: ## Show the phone on the laptop with scrcpy (taps shown, stays awake, phone audio); extra flags: ARGS=--no-audio
+	adb get-state >/dev/null 2>&1 || { echo "no phone found: plug in USB, unlock it, accept the debugging prompt (check: adb devices)"; exit 1; }
+	# Android 16 needs scrcpy 2+; Ubuntu's apt package is 1.25. Get the Linux release from github.com/Genymobile/scrcpy.
+	ver=$$(scrcpy --version 2>/dev/null | awk 'NR==1 {print $$2}')
+	[ "$${ver%%.*}" -ge 2 ] 2>/dev/null || { echo "scrcpy $${ver:-missing}: need 2 or later (github.com/Genymobile/scrcpy/releases)"; exit 1; }
+	# Use the SDK's adb when present, so scrcpy can't start a second adb server of another version.
+	sdk_adb=$$HOME/Android/Sdk/platform-tools/adb
+	if [ -x "$$sdk_adb" ]; then export ADB="$$sdk_adb"; fi
+	scrcpy --show-touches --stay-awake --max-size 1600 --window-title Soundcheck $(ARGS)
 
 # `phone` is a prerequisite so the forwards exist first: `expo run:android` stays in the foreground as the bundler,
 # so nothing after it in the recipe would run.
