@@ -2,8 +2,6 @@
 
 Discover live music near you, share concert clips, and get a feed that learns what you care about.
 
-> **Status (2025-08-31):** the core is built and verified against the local stack: five rounds of phone feedback on a Pixel, the Android smoke checklist passed on a release APK (`make apk`), 8 web journeys in CI, push notifications through Firebase. Open: the from-empty seeding run, which moves to the new AWS database. Measured performance numbers, the admin console and ranking lab (in progress) and the AWS deployment with a live URL come next.
-
 Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Native client, S3 video storage), built to scale.
 
 ## What's interesting here
@@ -11,10 +9,10 @@ Soundcheck is a music social app (Java/Spring Boot + PostgreSQL API, React Nativ
 - **Personalised ranking you can see inside** — candidate generation, a transparent logistic scorer with per-item explanations, diversity re-ranking, exploration, and a live tuning console.
 - **Offline learning loop** — serve-time feature logging, a Python lab that trains and evaluates new weights, and a human-approved publish/activate flow; Java/Python parity tests.
 - **Real data integration** — UK gigs from Ticketmaster and from London venues' own websites (read politely: robots.txt, per-host spacing, conditional requests), enriched with MusicBrainz and Last.fm, with entity resolution and matching of the same show across sources (venue, night, shared act); setlists looked up live from setlist.fm.
-- **Measured performance** — million-row datasets, k6 load tests and an EXPLAIN-driven before/after report.
+- **Load testing** — million-row synthetic datasets, k6 scenarios against a separate perf stack, and EXPLAIN capture of the hot-path queries.
 - **Infrastructure as code** — AWS CDK stacks deployed from the laptop with one command, a dry run and typed confirmations, alarms, a budget and a pause/resume cost brake.
 
-## What it does today
+## What it does
 - **Gigs** — real UK gigs from Ticketmaster (a year ahead) plus 21 grassroots London venues read from their own what's-on pages (on in the local profile only, off by default elsewhere), enriched from MusicBrainz and Last.fm and matched across sources so one show stays one gig; fans add the gigs no source lists, including past ones found on setlist.fm. A calendar with ranked artist and venue suggestions, several picks at once, near home / UK-wide / another city, saved searches; gig pages with a bar of the bill's acts, each with its own setlist and clips.
 - **Clips** — record or pick, upload straight to S3 in resumable parts (compressed only on mobile data), transcoded by FFmpeg workers into an HLS ladder, played adaptively on Android and the web.
 - **Social** — posts tagged with the gig and acts, likes, comments, follows, blocks, an Activity inbox driven by domain events and pushed to the phone through Firebase Cloud Messaging (Android; off until a Firebase project is set up), account deletion with a 7-day purge.
@@ -89,12 +87,14 @@ flowchart TB
   fcm -.->|notification| android
 ```
 
-Ingestion (Ticketmaster, the venue sites, enrichment) runs in the `scheduler` role, which shares the API service; setlists are looked up when a past gig's page is opened, and the venue sites are read under a compliance gate. Locally the same shape runs in Docker Compose: **Caddy** plays CloudFront (the same path routing on `localhost:8088`, and the security headers CloudFront will add), **LocalStack** plays S3 and SQS, **PostGIS** plays RDS, and **Grafana LGTM** collects the OpenTelemetry traces and metrics. AWS is not deployed yet, and the lab's train/publish loop is still to come.
+Ingestion (Ticketmaster, the venue sites, enrichment) runs in the `scheduler` role, which shares the API service; setlists are looked up when a past gig's page is opened. Locally the same shape runs in Docker Compose: **Caddy** plays CloudFront (the same path routing on `localhost:8088`, and the security headers CloudFront will add), **LocalStack** plays S3 and SQS, **PostGIS** plays RDS, and **Grafana LGTM** collects the OpenTelemetry traces and metrics. `docs/diagrams/` has drawn versions in light and dark: the system context, the containers, an upload from start to ready, the feed pipeline and learning loop, the AWS deployment, the outbox and the system map.
 
-## Repository guide
+## Repository layout
 | Path | Contents |
 |---|---|
 | `docs/SETUP.md` | Accounts, keys and Ubuntu toolchain |
+| `docs/AWS-REDEPLOY.md` | What the AWS teardown deleted and kept, and how to redeploy from zero |
+| `docs/diagrams/` · `docs/screens/` | Architecture diagrams, drawn from `build.py` (`make diagrams`) · web and Android screenshots with their provenance |
 | `backend/` | Spring Boot 3.5 / Java 21 modular monolith (Spring Modulith, jOOQ, Flyway); roles `api`, `scheduler`, `worker` |
 | `app/` | Expo SDK 53 universal app (Android + web + admin console), TypeScript, Expo Router, TanStack Query, orval client |
 | `lab/` | Python 3.13 ranking lab (uv, typer CLI `soundcheck-lab`): scorer parity, and the demo seeding client (`seed-demo`) |
@@ -119,7 +119,7 @@ make worker         # terminal 2 — transcode worker (role worker)
 make app            # terminal 3 — Expo dev server; press w for web, or open http://localhost:8088
 make android        # build + install the dev build on the connected phone (needs JDK 17, see below); only after native changes
 make phone          # just the phone's port forwards (adb reverse): rerun after replugging USB when the app is already installed
-make apk            # a release APK for rehearsal: JS bundled in (no Metro), the local edge via adb reverse, debug-signed; ~6 GB free (stop make dev)
+make apk            # a release APK for the phone: JS bundled in (no Metro), the local edge via adb reverse, debug-signed; ~6 GB free (stop make dev)
 adb install -r app/android/app/build/outputs/apk/release/app-release.apk   # replaces the dev build (same package); make android puts it back
 make status         # what is running: containers, api/worker/expo, build daemons, phone forwards
 make help           # every target with a one-line description
@@ -151,10 +151,10 @@ Checks: `make verify` (backend build + tests, app lint/typecheck/tests, orval dr
 
 Edge: http://localhost:8088 · API: http://localhost:8080 · Expo web: http://localhost:8081 · Grafana: http://localhost:3000 · LocalStack: http://localhost:4566
 
-Notes: the backend needs Docker running (jOOQ code is generated from a throwaway PostGIS container at build time, and the integration tests start their own PostGIS and LocalStack containers). The Android Gradle build needs JDK 17 (`sdk install java 17.0.x-tem`; JDK 24+ breaks AGP's CMake step) while the backend uses JDK 21 — `make android` picks the SDKMAN JDK 17 automatically when present. Targets that are not built yet print `not yet implemented` and exit 1. The compose stack publishes Postgres, LocalStack and Grafana (anonymous Admin) on every network interface: bind them to `127.0.0.1` in `compose.yaml` before demoing on a shared network.
+Notes: the backend needs Docker running (jOOQ code is generated from a throwaway PostGIS container at build time, and the integration tests start their own PostGIS and LocalStack containers). The Android Gradle build needs JDK 17 (`sdk install java 17.0.x-tem`; JDK 24+ breaks AGP's CMake step) while the backend uses JDK 21 — `make android` picks the SDKMAN JDK 17 automatically when present. The compose stack publishes Postgres, LocalStack and Grafana (anonymous Admin) on every network interface: bind them to `127.0.0.1` in `compose.yaml` before demoing on a shared network.
 
 ## Running on AWS
-**Not deployed yet.** The stacks, the images and the commands below are written; the first real deploy is still to come. Everything here runs from the laptop; there is no CI deploy.
+**Torn down on 2025-10-19: nothing runs on AWS and nothing bills.** [`docs/AWS-REDEPLOY.md`](docs/AWS-REDEPLOY.md) lists what was deleted and kept, and the steps to bring it all back from zero. Everything here runs from the laptop; there is no CI deploy.
 
 **Account, region and the Free plan.** One standard AWS account (e-mail sign-up; the root user has MFA and stays locked away), used through an IAM Identity Center user with the SSO profile `soundcheck`. The region is **eu-north-1** (Stockholm) by choice: the profile, the stacks and the scripts all pin it. Global services (IAM, CloudFront) work as usual. **The account is on the Free plan: AWS closes it when the sign-up credits are used up, or after six months, and keeps its content for 90 days.** The $50 budget alerts by e-mail long before that.
 
