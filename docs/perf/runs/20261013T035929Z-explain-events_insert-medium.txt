@@ -1,0 +1,42 @@
+# explain.sh events_insert on medium
+utc:     2026-10-13T03:59:29Z
+commit:  cfce53cdc05281d9847f83c9f5acba89bfdf9fa3
+uptime:   04:59:29 up 4 days,  7:36,  1 user,  load average: 11.89, 10.89, 8.45
+power:   online=1 (1 = on mains)
+postgres: postgis/postgis:17-3.5 cpuset=4,6,8,10 mem=4294967296
+session: jit=off
+query:   ops/perf/queries/events_insert.sql
+-- events_insert: one POST /events batch of 20 rows into the partitioned table (EventRepository); rolled back.
+-- Source: the statement's text as pg_stat_statements and auto_explain record it, with the binds auto_explain logged
+-- ("Query Parameters"), for one request as perf_u205 (01940483-6188-731a-a99b-54ec14467635) on medium (seed 42, loaded
+-- by seed-scale at 2026-10-13 02:21Z), logged at 2026-10-13 02:32:42.757 UTC (idle) by the perf API built at 8db165b.
+-- The ids exist only in that load: after another seed-scale, recapture them. The request sent events.js's 20 rows (the
+-- viewer's first Following page) without clientTs.
+
+## first execution (cold or partly warm cache)
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Insert on interaction_event  (cost=0.00..0.30 rows=0 width=0) (actual time=2.956..2.956 rows=0 loops=1)
+   Buffers: shared hit=272 read=29 dirtied=14 written=1
+   ->  Values Scan on "*VALUES*"  (cost=0.00..0.30 rows=20 width=176) (actual time=0.250..0.273 rows=20 loops=1)
+         Buffers: shared hit=26 read=3
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.247 ms
+ Execution Time: 5.073 ms
+(8 rows)
+
+
+## second execution (warm cache)
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Insert on interaction_event  (cost=0.00..0.30 rows=0 width=0) (actual time=0.617..0.617 rows=0 loops=1)
+   Buffers: shared hit=299
+   ->  Values Scan on "*VALUES*"  (cost=0.00..0.30 rows=20 width=176) (actual time=0.042..0.064 rows=20 loops=1)
+         Buffers: shared hit=29
+ Planning:
+   Buffers: shared hit=3
+ Planning Time: 0.235 ms
+ Execution Time: 1.159 ms
+(8 rows)
+

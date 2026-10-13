@@ -1,0 +1,29 @@
+# pg-top.sh after gigs on small, run 20261013T015024Z (commit 8db165b)
+# Statements since pg_stat_statements_reset() at the start of the run: setup's logins included.
+ #  | calls | mean_ms | total_ms | rows | blks_hit | blks_read | hit_pct |                                                          query                                                           
+----+-------+---------+----------+------+----------+-----------+---------+--------------------------------------------------------------------------------------------------------------------------
+  1 |  2961 |    0.50 |   1481.2 | 2431 |    14821 |         0 |   100.0 | SELECT state FROM shared.rate_limit_bucket WHERE id = $1 FOR UPDATE
+  2 |   901 |    0.65 |    587.5 | 7680 |   264866 |         7 |   100.0 | select "catalog"."gig"."id", "catalog"."gig"."title", "catalog"."gig"."starts_at", "catalog"."gig"."status", "catalog"."
+  3 |   500 |    0.40 |    198.9 |  500 |    89024 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+  4 |  1901 |    0.06 |    106.6 | 1901 |    22043 |         0 |   100.0 | UPDATE shared.rate_limit_bucket SET state=$1 WHERE id=$2
+  5 |   500 |    0.10 |     51.1 |  500 |     6239 |         0 |   100.0 | insert into "identity"."refresh_token" ("id", "user_id", "family_id", "token_hash", "expires_at", "client", "user_agent"
+  6 |   157 |    0.14 |     22.5 | 7065 |     9203 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+  7 |   530 |    0.03 |     16.4 |  530 |     3845 |         0 |   100.0 | INSERT INTO shared.rate_limit_bucket(id, state) VALUES($1, $2) ON CONFLICT(id) DO NOTHING
+  8 |   183 |    0.08 |     15.3 | 6222 |     4650 |         0 |   100.0 | select "catalog"."gig_artist"."gig_id", "catalog"."gig_artist"."artist_id", "catalog"."gig_artist"."billing_order" from 
+  9 |   157 |    0.10 |     15.2 | 5024 |     7744 |         0 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 10 |    86 |    0.14 |     11.7 | 4128 |     4730 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 11 |    85 |    0.12 |     10.0 | 3060 |     4423 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 12 |    64 |    0.15 |      9.3 | 3520 |     5508 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 13 |    86 |    0.09 |      7.7 | 2924 |     3698 |         0 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 14 |    73 |    0.11 |      7.7 | 1606 |     2920 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 15 |    62 |    0.12 |      7.5 | 1736 |     2604 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 16 |   500 |    0.01 |      7.1 |  500 |     1500 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."handle", "identity"."app_user"."display_name", "identity"."app
+ 17 |    85 |    0.08 |      6.8 | 2210 |     3485 |         0 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 18 |    80 |    0.08 |      6.7 | 1200 |     2483 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 19 |    64 |    0.10 |      6.5 | 2240 |     3328 |         0 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 20 |    64 |    0.09 |      5.5 | 2304 |     1792 |         0 |   100.0 | select "catalog"."gig_artist"."gig_id", "catalog"."gig_artist"."artist_id", "catalog"."gig_artist"."billing_order" from 
+
+      pg_stat_statements_info      
+-----------------------------------
+ since reset: 2026-10-13T01:50:26Z
+

@@ -1,0 +1,261 @@
+# JFR of the perf API during feed run 1 (runs/20261013T025347Z-feed-medium.json): JFR.start duration=120s settings=profile at 2026-10-13T02:54:24Z (35 s after k6 started)
+# jcmd/jfr from Temurin 21.0.12.1; the .jfr itself is not kept
+
+## jfr summary
+
+ Version: 2.1
+ Chunks: 1
+ Start: 2026-10-13 02:54:25 (UTC)
+ Duration: 120 s
+
+ Event Type                              Count  Size (bytes) 
+=============================================================
+ jdk.ObjectAllocationSample              30340        535281
+ jdk.GCPhaseParallel                     28268        817478
+ jdk.ThreadPark                           8834        342839
+ jdk.SocketRead                           6442        308677
+ jdk.NativeMethodSample                   5805         68824
+ jdk.PromoteObjectInNewPLAB               4515         89854
+ jdk.ExecutionSample                      3129         43688
+ jdk.ModuleExport                         1846         20129
+ jdk.PromoteObjectOutsidePLAB             1127         19734
+ jdk.TenuringDistribution                 1020         13294
+ jdk.Checkpoint                            641       4757145
+ jdk.SystemProcess                         525         86471
+ jdk.BooleanFlag                           505         15870
+ jdk.GCPhasePauseLevel1                    404         16739
+ jdk.ActiveSetting                         360         11898
+ jdk.MetaspaceChunkFreeListSummary         352          7040
+ jdk.GCReferenceStatistics                 352          4260
+ jdk.ThreadCPULoad                         253          4484
+ jdk.OldObjectSample                       204          7307
+ jdk.GCPhasePauseLevel2                    201          7427
+ jdk.ExecuteVMOperation                    200          3782
+ jdk.SafepointBegin                        197          3137
+ jdk.GCHeapSummary                         176          7215
+ jdk.MetaspaceSummary                      176          9328
+ jdk.G1HeapSummary                         176          5252
+ jdk.Compilation                           161          4827
+ jdk.LongFlag                              161          5381
+ jdk.ModuleRequire                         158          1580
+ jdk.UnsignedLongFlag                      132          4614
+ jdk.GCPhaseConcurrent                     120          5768
+ jdk.NetworkUtilization                    120          1857
+ jdk.ResidentSetSize                       119          2142
+ jdk.ExceptionStatistics                   119          2018
+ jdk.CPULoad                               119          2380
+ jdk.JavaThreadStatistics                  119          1547
+ jdk.ClassLoadingStatistics                119          1547
+ jdk.CompilerStatistics                    119          3927
+ jdk.ThreadAllocationStatistics            111          1396
+ jdk.G1MMU                                 108          1620
+ jdk.GCCPUTime                             108          1941
+ jdk.GCPhasePause                          108          2860
+ jdk.InitialEnvironmentVariable             92          6681
+ jdk.JavaMonitorWait                        91          3037
+ jdk.GarbageCollection                      88          2220
+ jdk.GCPhaseConcurrentLevel1                80          3180
+ jdk.YoungGarbageCollection                 68          1020
+ jdk.G1GarbageCollection                    68          1020
+ jdk.EvacuationInformation                  68          2120
+ jdk.G1EvacuationYoungStatistics            68          2102
+ jdk.G1EvacuationOldStatistics              68          1818
+ jdk.G1BasicIHOP                            68          2979
+ jdk.G1AdaptiveIHOP                         68          3053
+ jdk.InitialSecurityProperty                49          2768
+ jdk.NativeLibrary                          38          2970
+ jdk.ThreadEnd                              30           420
+ jdk.ThreadSleep                            29           672
+ jdk.StringFlag                             28           875
+ jdk.IntFlag                                25           960
+ jdk.DirectBufferStatistics                 23           621
+ jdk.Deoptimization                         22           603
+ jdk.OldGarbageCollection                   20           300
+ jdk.ThreadStart                            16           283
+ jdk.CompilationFailure                     16           702
+ jdk.InitialSystemProperty                  15           955
+ jdk.DoubleFlag                             15           620
+ jdk.UnsignedIntFlag                        14           487
+ jdk.ThreadContextSwitchRate                11           132
+ jdk.SymbolTableStatistics                  11           429
+ jdk.StringTableStatistics                  11           429
+ jdk.ClassLoaderStatistics                  10           296
+ jdk.GCHeapMemoryPoolUsage                   6           240
+ jdk.CodeCacheStatistics                     6           198
+ jdk.SocketWrite                             5           208
+ jdk.FileWrite                               4            92
+ jdk.JavaMonitorEnter                        2            56
+ jdk.GCHeapMemoryUsage                       2            46
+ jdk.PhysicalMemory                          2            36
+ jdk.GCConfiguration                         2            52
+ jdk.Metadata                                1        103283
+ jdk.ClassRedefinition                       1            12
+ jdk.RetransformClasses                      1            18
+ jdk.MetaspaceGCThreshold                    1            17
+ jdk.ActiveRecording                         1           103
+ jdk.JVMInformation                          1           297
+ jdk.OSInformation                           1           248
+ jdk.VirtualizationInformation               1            36
+ jdk.CPUInformation                          1          1741
+ jdk.CPUTimeStampCounter                     1            20
+ jdk.ThreadDump                              1         62142
+ jdk.CompilerConfiguration                   1            11
+ jdk.CodeCacheConfiguration                  1            46
+ jdk.GCSurvivorConfiguration                 1            11
+ jdk.GCTLABConfiguration                     1            13
+ jdk.GCHeapConfiguration                     1            26
+ jdk.YoungGenerationConfiguration            1            18
+ jdk.JavaMonitorInflate                      0             0
+ jdk.SyncOnValueBasedClass                   0             0
+ jdk.ContinuationFreeze                      0             0
+ jdk.ContinuationThaw                        0             0
+ jdk.ContinuationFreezeFast                  0             0
+ jdk.ContinuationFreezeSlow                  0             0
+ jdk.ContinuationThawFast                    0             0
+ jdk.ContinuationThawSlow                    0             0
+ jdk.ReservedStackActivation                 0             0
+ jdk.ClassLoad                               0             0
+ jdk.FileForce                               0             0
+ jdk.ClassDefine                             0             0
+ jdk.RedefineClasses                         0             0
+ jdk.FileRead                                0             0
+ jdk.ClassUnload                             0             0
+ jdk.IntFlagChanged                          0             0
+ jdk.UnsignedIntFlagChanged                  0             0
+ jdk.LongFlagChanged                         0             0
+ jdk.UnsignedLongFlagChanged                 0             0
+ jdk.DoubleFlagChanged                       0             0
+ jdk.BooleanFlagChanged                      0             0
+ jdk.StringFlagChanged                       0             0
+ jdk.JavaExceptionThrow                      0             0
+ jdk.JavaErrorThrow                          0             0
+ jdk.MetaspaceAllocationFailure              0             0
+ jdk.MetaspaceOOM                            0             0
+ jdk.PSHeapSummary                           0             0
+ jdk.Deserialization                         0             0
+ jdk.SystemGC                                0             0
+ jdk.ProcessStart                            0             0
+ jdk.ParallelOldGarbageCollection            0             0
+ jdk.SecurityPropertyModification            0             0
+ jdk.TLSHandshake                            0             0
+ jdk.VirtualThreadPinned                     0             0
+ jdk.ObjectCountAfterGC                      0             0
+ jdk.VirtualThreadSubmitFailed               0             0
+ jdk.X509Validation                          0             0
+ jdk.PromotionFailed                         0             0
+ jdk.EvacuationFailed                        0             0
+ jdk.ConcurrentModeFailure                   0             0
+ jdk.X509Certificate                         0             0
+ jdk.GCPhasePauseLevel3                      0             0
+ jdk.GCPhasePauseLevel4                      0             0
+ jdk.GCPhaseConcurrentLevel2                 0             0
+ jdk.AllocationRequiringGC                   0             0
+ jdk.G1HeapRegionTypeChange                  0             0
+ jdk.JITRestart                              0             0
+ jdk.CompilerPhase                           0             0
+ jdk.CompilerInlining                        0             0
+ jdk.CodeCacheFull                           0             0
+ jdk.SafepointStateSynchronization           0             0
+ jdk.SafepointCleanup                        0             0
+ jdk.SafepointCleanupTask                    0             0
+ jdk.SafepointEnd                            0             0
+ jdk.Shutdown                                0             0
+ jdk.ObjectAllocationInNewTLAB               0             0
+ jdk.ObjectAllocationOutsideTLAB             0             0
+ jdk.NativeMemoryUsage                       0             0
+ jdk.NativeMemoryUsageTotal                  0             0
+ jdk.DumpReason                              0             0
+ jdk.DataLoss                                0             0
+ jdk.ObjectCount                             0             0
+ jdk.G1HeapRegionInformation                 0             0
+ jdk.ZYoungGarbageCollection                 0             0
+ jdk.ZOldGarbageCollection                   0             0
+ jdk.ZAllocationStall                        0             0
+ jdk.ZPageAllocation                         0             0
+ jdk.ZRelocationSet                          0             0
+ jdk.ZRelocationSetGroup                     0             0
+ jdk.ZStatisticsCounter                      0             0
+ jdk.ZStatisticsSampler                      0             0
+ jdk.ZThreadPhase                            0             0
+ jdk.ZUncommit                               0             0
+ jdk.ZUnmap                                  0             0
+ jdk.ShenandoahHeapRegionStateChange         0             0
+ jdk.ShenandoahHeapRegionInformation         0             0
+ jdk.Flush                                   0             0
+ jdk.HeapDump                                0             0
+ jdk.GCLocker                                0             0
+ jdk.FinalizerStatistics                     0             0
+ jdk.JavaAgent                               0             0
+ jdk.NativeAgent                             0             0
+ jdk.ContainerConfiguration                  0             0
+ jdk.ContainerCPUUsage                       0             0
+ jdk.ContainerCPUThrottling                  0             0
+ jdk.ContainerMemoryUsage                    0             0
+ jdk.ContainerIOUsage                        0             0
+ jdk.SecurityProviderService                 0             0
+ jdk.VirtualThreadEnd                        0             0
+ jdk.VirtualThreadStart                      0             0
+
+## jfr view hot-methods
+
+                                                              Java Methods that Executes the Most
+
+Method                                                                                                                                          Samples Percent
+----------------------------------------------------------------------------------------------------------------------------------------------- ------- -------
+java.util.ImmutableCollections$Set12.contains(Object)                                                                                               704  22.50%
+app.soundcheck.feed.internal.ranking.MmrReranker.rerank(List, double, int, int)                                                                     245   7.83%
+java.util.HashMap.getNode(Object)                                                                                                                   217   6.94%
+app.soundcheck.feed.internal.ranking.MmrReranker.authorJustShown(MmrReranker$Item, List)                                                            125   3.99%
+sun.security.util.math.intpoly.IntegerPolynomialP256.carryReduce0(...)                                                                              115   3.68%
+app.soundcheck.feed.internal.ranking.MmrReranker.maxSimilarity(MmrReranker$Item, List)                                                               85   2.72%
+sun.security.util.math.intpoly.IntegerPolynomialP256.carryReduce(...)                                                                                68   2.17%
+java.util.ImmutableCollections$SetN.probe(Object)                                                                                                    64   2.05%
+sun.security.util.math.intpoly.IntegerPolynomialP256.mult(long[], long[], long[])                                                                    61   1.95%
+sun.security.util.math.intpoly.IntegerPolynomialP256.carryReduce(long[], long, long, long, long, long, long, long, long, long, long)                 54   1.73%
+java.lang.System$2.unparkVirtualThread(Thread)                                                                                                       49   1.57%
+sun.nio.cs.StreamEncoder.write(char[], int, int)                                                                                                     45   1.44%
+sun.nio.cs.StreamEncoder.implWrite(CharBuffer)                                                                                                       43   1.37%
+app.soundcheck.feed.internal.ranking.MmrReranker.similarity(MmrReranker$Item, MmrReranker$Item)                                                      29   0.93%
+java.util.UUID.equals(Object)                                                                                                                        27   0.86%
+java.lang.AbstractStringBuilder.ensureCapacityInternal(int)                                                                                          23   0.74%
+sun.security.util.math.intpoly.IntegerPolynomial.conditionalAssign(int, long[], long[])                                                              22   0.70%
+java.lang.Object.equals(Object)                                                                                                                      18   0.58%
+org.jooq.impl.CursorImpl$CursorRecordInitialiser.setValue(AbstractRecord, Field, int)                                                                17   0.54%
+java.util.HashMap.resize()                                                                                                                           16   0.51%
+java.util.concurrent.ConcurrentHashMap.get(Object)                                                                                                   16   0.51%
+java.lang.String.hashCode()                                                                                                                          15   0.48%
+java.util.HashMap.putVal(int, Object, Object, boolean, boolean)                                                                                      14   0.45%
+org.jooq.impl.AbstractNamed.equals(Object)                                                                                                           14   0.45%
+org.springframework.boot.json.JsonValueWriter.writeString(Object)                                                                                    12   0.38%
+
+## jfr view allocation-by-class
+
+                                                                      Allocation by Class
+
+Object Type                                                                                                                                 Allocation Pressure
+------------------------------------------------------------------------------------------------------------------------------------------- -------------------
+byte[]                                                                                                                                                   44.11%
+java.lang.ThreadLocal$ThreadLocalMap$Entry[]                                                                                                             36.46%
+java.util.ImmutableCollections$Set12$1                                                                                                                    6.80%
+char[]                                                                                                                                                    4.51%
+boolean[]                                                                                                                                                 1.59%
+java.nio.HeapCharBuffer                                                                                                                                   1.04%
+io.opentelemetry.sdk.trace.export.BatchSpanProcessor$Worker$$Lambda.0x0000719b08568278                                                                    0.56%
+java.lang.Object[]                                                                                                                                        0.43%
+java.lang.String                                                                                                                                          0.41%
+jdk.internal.vm.StackChunk                                                                                                                                0.24%
+org.jooq.impl.DefaultRenderContext                                                                                                                        0.21%
+java.lang.Double                                                                                                                                          0.18%
+double[]                                                                                                                                                  0.17%
+java.util.HashMap$Node[]                                                                                                                                  0.16%
+java.util.HashMap$Node                                                                                                                                    0.15%
+java.util.UUID                                                                                                                                            0.13%
+java.time.Instant                                                                                                                                         0.11%
+java.util.ArrayList                                                                                                                                       0.11%
+long[]                                                                                                                                                    0.11%
+java.lang.StackTraceElement                                                                                                                               0.10%
+byte[][]                                                                                                                                                  0.10%
+org.jooq.impl.DataMap                                                                                                                                     0.08%
+java.util.stream.ReferencePipeline$Head                                                                                                                   0.08%
+java.util.LinkedHashMap$Entry                                                                                                                             0.07%
+java.lang.StringBuilder                                                                                                                                   0.06%

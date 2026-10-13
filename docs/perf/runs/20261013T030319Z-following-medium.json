@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "scenario": "following",
+  "run": {
+    "utc_start": "2026-10-13T03:03:20Z",
+    "commit": "cfce53cdc05281d9847f83c9f5acba89bfdf9fa3",
+    "branch": "main",
+    "profile": "medium",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": false,
+    "warmup": false,
+    "noisy": false,
+    "notes": "measured: 1 m ramp + 5 m hold; standalone perf stack"
+  },
+  "environment": {
+    "uptime": " 04:03:20 up 4 days,  6:40,  1 user,  load average: 1.08, 6.05, 5.54",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       11384        1785        1640        4516        4327",
+      "Swap:           4095        4035          60"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "03:03:21 p=417 e=3311",
+        "03:03:31 p=464 e=894",
+        "03:03:41 p=583 e=1558",
+        "03:03:51 p=861 e=1053",
+        "03:04:01 p=1936 e=1392",
+        "03:04:11 p=916 e=1445",
+        "03:04:21 p=1069 e=1919",
+        "03:04:31 p=1077 e=1812",
+        "03:04:41 p=1640 e=2047",
+        "03:04:51 p=1256 e=1570",
+        "03:05:01 p=1248 e=1290",
+        "03:05:11 p=1523 e=2621",
+        "03:05:21 p=1323 e=1222",
+        "03:05:31 p=1089 e=1253",
+        "03:05:41 p=1778 e=1998",
+        "03:05:51 p=877 e=1165",
+        "03:06:01 p=1703 e=1828",
+        "03:06:11 p=1030 e=2109",
+        "03:06:21 p=761 e=1681",
+        "03:06:31 p=1279 e=1448",
+        "03:06:41 p=1067 e=1664",
+        "03:06:51 p=1186 e=990",
+        "03:07:01 p=1707 e=2073",
+        "03:07:11 p=1801 e=1063",
+        "03:07:21 p=1384 e=1524",
+        "03:07:31 p=1419 e=1117",
+        "03:07:41 p=2001 e=1264",
+        "03:07:51 p=1838 e=1959",
+        "03:08:01 p=1087 e=1946",
+        "03:08:11 p=1386 e=1065",
+        "03:08:21 p=1308 e=1275",
+        "03:08:31 p=1167 e=1477",
+        "03:08:41 p=2899 e=2650",
+        "03:08:51 p=1363 e=1568",
+        "03:09:01 p=1701 e=1348",
+        "03:09:11 p=1123 e=1434",
+        "03:09:21 p=838 e=1426"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 10090020,
+    "post_likes": 8000040,
+    "gigs": 50000,
+    "users": 100000,
+    "posts": 1000000,
+    "user_follows": 2000000
+  },
+  "k6": {
+    "rate_scale": 1,
+    "iterations_per_s": 100,
+    "ramp": "1m",
+    "hold": "5m",
+    "test_run_ms": 368120.71,
+    "iterations": 32999,
+    "dropped_iterations": 0,
+    "vus_max": 300,
+    "checks": {
+      "rate": 1,
+      "passes": 32999,
+      "fails": 0
+    },
+    "http_reqs": 33499,
+    "http_req_failed_all": 0,
+    "http_req_duration_all_ms": {
+      "count": 33499,
+      "avg": 10.57,
+      "min": 4.48,
+      "med": 8.2,
+      "max": 352.16,
+      "p(90)": 14.69,
+      "p(95)": 19.13,
+      "p(99)": 59.18
+    },
+    "data_sent_bytes": 18268395,
+    "data_received_bytes": 1830486513
+  },
+  "endpoints": {
+    "following": {
+      "target": {
+        "rate_per_s": 100,
+        "p95_ms": 60,
+        "errors_below": null
+      },
+      "asked_rate_per_s": 100,
+      "requests": 30000,
+      "achieved_rate_per_s": 100,
+      "latency_ms": {
+        "p(99)": 23.86,
+        "count": 30000,
+        "avg": 9.51,
+        "min": 4.48,
+        "med": 8.05,
+        "max": 352.16,
+        "p(90)": 13.26,
+        "p(95)": 15.97
+      },
+      "failed_rate": 0,
+      "p95_target_met": true,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_failed{endpoint:following,phase:hold}: rate<1": true,
+    "checks: rate>0.99": true,
+    "http_req_duration{endpoint:following,phase:hold}: p(95)<60": true
+  },
+  "scenario_notes": []
+}

@@ -1,0 +1,64 @@
+# explain.sh rollup_end_of_batch on medium
+utc:     2026-10-13T03:59:33Z
+commit:  cfce53cdc05281d9847f83c9f5acba89bfdf9fa3
+uptime:   04:59:33 up 4 days,  7:36,  1 user,  load average: 11.02, 10.73, 8.41
+power:   online=1 (1 = on mains)
+postgres: postgis/postgis:17-3.5 cpuset=4,6,8,10 mem=4294967296
+session: jit=off
+query:   ops/perf/queries/rollup_end_of_batch.sql
+-- rollup_end_of_batch: where the post-stats rollup's next batch of 50,000 events ends (EventLog.endOfBatch).
+-- Written by hand in jOOQ's shape from EventLog.java (not captured from a log: the perf profile runs no scheduler,
+-- so the rollup never ran under load). The watermark is the perf database's own `post_stats` row after the
+-- medium load (2026-10-13 01:59:59.699504Z, id 10000000).
+-- The question: does the plain `occurred_at >=` bound beside the row
+-- comparison let PostgreSQL prune the daily partitions before the watermark?
+
+## first execution (cold or partly warm cache)
+                                                                                                                                          QUERY PLAN                                                                                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1913.68..1913.69 rows=1 width=16) (actual time=13.745..13.746 rows=1 loops=1)
+   Buffers: shared hit=9 read=195
+   ->  Sort  (cost=1913.68..2038.68 rows=50000 width=16) (actual time=13.744..13.745 rows=1 loops=1)
+         Sort Key: interaction_event.occurred_at DESC, interaction_event.id DESC
+         Sort Method: top-N heapsort  Memory: 25kB
+         Buffers: shared hit=9 read=195
+         ->  Limit  (cost=1.34..1663.68 rows=50000 width=16) (actual time=0.139..10.020 rows=50000 loops=1)
+               Buffers: shared hit=3 read=195
+               ->  Append  (cost=1.34..27058.30 rows=813820 width=16) (actual time=0.139..7.664 rows=50000 loops=1)
+                     Buffers: shared hit=3 read=195
+                     Subplans Removed: 7
+                     ->  Index Only Scan using interaction_event_p20261013_pkey on interaction_event_p20261013 interaction_event_1  (cost=0.43..22972.73 rows=813813 width=16) (actual time=0.138..5.316 rows=50000 loops=1)
+                           Index Cond: ((occurred_at >= '2026-10-13 01:59:59.699504+00'::timestamp(6) with time zone) AND (ROW(occurred_at, id) > ROW('2026-10-13 01:59:59.699504+00'::timestamp(6) with time zone, '10000000'::bigint)) AND (occurred_at <= (now() - '00:00:05'::interval)))
+                           Heap Fetches: 80
+                           Buffers: shared hit=3 read=195
+ Planning:
+   Buffers: shared hit=1146 read=15
+ Planning Time: 3.676 ms
+ Execution Time: 13.805 ms
+(19 rows)
+
+
+## second execution (warm cache)
+                                                                                                                                          QUERY PLAN                                                                                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1913.68..1913.69 rows=1 width=16) (actual time=13.239..13.240 rows=1 loops=1)
+   Buffers: shared hit=204
+   ->  Sort  (cost=1913.68..2038.68 rows=50000 width=16) (actual time=13.238..13.239 rows=1 loops=1)
+         Sort Key: interaction_event.occurred_at DESC, interaction_event.id DESC
+         Sort Method: top-N heapsort  Memory: 25kB
+         Buffers: shared hit=204
+         ->  Limit  (cost=1.34..1663.68 rows=50000 width=16) (actual time=0.030..9.411 rows=50000 loops=1)
+               Buffers: shared hit=198
+               ->  Append  (cost=1.34..27058.30 rows=813820 width=16) (actual time=0.030..6.950 rows=50000 loops=1)
+                     Buffers: shared hit=198
+                     Subplans Removed: 7
+                     ->  Index Only Scan using interaction_event_p20261013_pkey on interaction_event_p20261013 interaction_event_1  (cost=0.43..22972.73 rows=813813 width=16) (actual time=0.029..4.511 rows=50000 loops=1)
+                           Index Cond: ((occurred_at >= '2026-10-13 01:59:59.699504+00'::timestamp(6) with time zone) AND (ROW(occurred_at, id) > ROW('2026-10-13 01:59:59.699504+00'::timestamp(6) with time zone, '10000000'::bigint)) AND (occurred_at <= (now() - '00:00:05'::interval)))
+                           Heap Fetches: 80
+                           Buffers: shared hit=198
+ Planning:
+   Buffers: shared hit=1161
+ Planning Time: 2.392 ms
+ Execution Time: 13.293 ms
+(19 rows)
+

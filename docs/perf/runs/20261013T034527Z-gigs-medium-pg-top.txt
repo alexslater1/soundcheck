@@ -1,0 +1,29 @@
+# pg-top.sh after gigs on medium, run 20261013T034527Z (commit cfce53c)
+# Statements since pg_stat_statements_reset() at the start of the run: setup's logins included.
+ #  | calls | mean_ms | total_ms |  rows   | blks_hit | blks_read | hit_pct |                                                          query                                                           
+----+-------+---------+----------+---------+----------+-----------+---------+--------------------------------------------------------------------------------------------------------------------------
+  1 | 32999 |    1.08 |  35565.7 |  604639 | 14365340 |       107 |   100.0 | select "catalog"."gig"."id", "catalog"."gig"."title", "catalog"."gig"."starts_at", "catalog"."gig"."status", "catalog"."
+  2 |   500 |    5.60 |   2801.2 |     500 |  1785500 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+  3 | 27475 |    0.08 |   2261.8 | 1169739 |  1411370 |       106 |   100.0 | select "catalog"."gig_artist"."gig_id", "catalog"."gig_artist"."artist_id", "catalog"."gig_artist"."billing_order" from 
+  4 | 33999 |    0.05 |   1539.7 |   33999 |   384505 |         9 |   100.0 | UPDATE shared.rate_limit_bucket SET state=$1 WHERE id=$2
+  5 | 33999 |    0.04 |   1519.4 |   33999 |   163086 |         0 |   100.0 | SELECT state FROM shared.rate_limit_bucket WHERE id = $1 FOR UPDATE
+  6 |  5455 |    0.18 |    976.5 |  349120 |   791385 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+  7 |  5431 |    0.16 |    847.2 |  293411 |   668150 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+  8 |  5455 |    0.13 |    709.2 |  250930 |   657838 |         2 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+  9 |  5431 |    0.11 |    582.7 |  200947 |   515943 |         2 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 10 |  2803 |    0.17 |    466.5 |  170983 |   381208 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 11 |  2700 |    0.17 |    462.6 |  167400 |   358992 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 12 |  2782 |    0.16 |    447.5 |  161356 |   370006 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 13 |  2742 |    0.15 |    414.2 |  153552 |   323340 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 14 |  2781 |    0.14 |    376.0 |  139050 |   314253 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 15 | 27475 |    0.01 |    374.3 |      79 |    82640 |       101 |    99.9 | select "catalog"."gig_attendance"."gig_id", case when ("catalog"."gig_attendance"."status" = $1 and "catalog"."gig"."sta
+ 16 |  2781 |    0.13 |    361.1 |  114021 |   283480 |         0 |   100.0 | select "catalog"."artist_genre"."artist_id", "catalog"."genre"."slug" from "catalog"."artist_genre" join "catalog"."genr
+ 17 |  2700 |    0.12 |    318.6 |  108000 |   291573 |         0 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 18 |  2803 |    0.11 |    317.7 |  109317 |   288708 |         1 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 19 |  2782 |    0.11 |    308.2 |  105716 |   278200 |         0 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+ 20 |  2781 |    0.09 |    262.0 |   86211 |   239112 |         2 |   100.0 | select "catalog"."artist"."id", "catalog"."artist"."name", "catalog"."artist"."image_url", "catalog"."artist"."mbid" fro
+
+      pg_stat_statements_info      
+-----------------------------------
+ since reset: 2026-10-13T03:45:29Z
+

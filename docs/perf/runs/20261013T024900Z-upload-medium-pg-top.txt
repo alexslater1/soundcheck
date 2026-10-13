@@ -1,0 +1,29 @@
+# pg-top.sh after upload on medium, run 20261013T024900Z (commit cfce53c)
+# Statements since pg_stat_statements_reset() at the start of the run: setup's logins included.
+ #  | calls | mean_ms | total_ms | rows | blks_hit | blks_read | hit_pct |                                                          query                                                           
+----+-------+---------+----------+------+----------+-----------+---------+--------------------------------------------------------------------------------------------------------------------------
+  1 |   500 |    5.93 |   2967.5 |  500 |  1785500 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+  2 |  3820 |    0.21 |    785.3 | 3760 |    18558 |         0 |   100.0 | SELECT state FROM shared.rate_limit_bucket WHERE id = $1 FOR UPDATE
+  3 |   900 |    0.62 |    555.0 |  900 |    16164 |       918 |    94.6 | update "media"."media_asset" set "status" = $1, "actual_bytes" = $2, "uploaded_at" = cast($3 as timestamp(6) with time z
+  4 |   900 |    0.48 |    427.8 |  900 |    12568 |       802 |    94.0 | insert into "media"."media_asset" ("id", "owner_id", "kind", "status", "content_type", "declared_bytes", "original_key",
+  5 |  3700 |    0.05 |    189.1 | 3700 |    42381 |         0 |   100.0 | UPDATE shared.rate_limit_bucket SET state=$1 WHERE id=$2
+  6 |   500 |    0.11 |     53.7 |  500 |     7148 |         0 |   100.0 | insert into "identity"."refresh_token" ("id", "user_id", "family_id", "token_hash", "expires_at", "client", "user_agent"
+  7 |  1800 |    0.02 |     44.7 | 1800 |     8940 |         0 |   100.0 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+  8 |   707 |    0.06 |     39.4 |  707 |     9753 |         1 |   100.0 | -- Only copy if no entry in target table INSERT INTO shared.EVENT_PUBLICATION_ARCHIVE (ID, LISTENER_ID, EVENT_TYPE, SERI
+  9 |   900 |    0.03 |     26.4 |  900 |     5383 |         6 |    99.9 | INSERT INTO shared.EVENT_PUBLICATION (ID, EVENT_TYPE, LISTENER_ID, PUBLICATION_DATE, SERIALIZED_EVENT) VALUES ($1, $2, $
+ 10 |   900 |    0.02 |     19.1 |  900 |     4500 |         0 |   100.0 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 11 |   193 |    0.06 |     10.8 |  193 |     2072 |        17 |    99.2 | -- Only copy if no entry in target table INSERT INTO shared.EVENT_PUBLICATION_ARCHIVE (ID, LISTENER_ID, EVENT_TYPE, SERI
+ 12 |   900 |    0.01 |     10.4 |  900 |     4479 |         0 |   100.0 | DELETE FROM shared.EVENT_PUBLICATION WHERE ID = $1
+ 13 |   500 |    0.01 |      6.9 |  500 |     2000 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."handle", "identity"."app_user"."display_name", "identity"."app
+ 14 |    60 |    0.07 |      4.0 |   60 |      240 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+ 15 |    60 |    0.04 |      2.7 |   60 |      523 |         0 |   100.0 | INSERT INTO shared.rate_limit_bucket(id, state) VALUES($1, $2) ON CONFLICT(id) DO NOTHING
+ 16 |     1 |    0.14 |      0.1 |    1 |        0 |         0 |         | select pg_stat_statements_reset()
+ 17 |     1 |    0.03 |      0.0 |    1 |        1 |         0 |   100.0 | select "feed"."ranking_config"."id", "feed"."ranking_config"."version", "feed"."ranking_config"."status", "feed"."rankin
+ 18 |     2 |    0.01 |      0.0 |    0 |        0 |         0 |         | SET extra_float_digits = 2
+ 19 |     2 |    0.00 |      0.0 |    0 |        0 |         0 |         | SET application_name = 'PostgreSQL JDBC Driver'
+ 20 |    10 |    0.00 |      0.0 |    0 |        0 |         0 |         | BEGIN
+
+      pg_stat_statements_info      
+-----------------------------------
+ since reset: 2026-10-13T02:49:01Z
+

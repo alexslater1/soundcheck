@@ -1,0 +1,29 @@
+# pg-top.sh after feed on small, run 20261013T021342Z (commit 8db165b)
+# Statements since pg_stat_statements_reset() at the start of the run: setup's logins included.
+ #  | calls | mean_ms | total_ms |  rows  | blks_hit | blks_read | hit_pct |                                                          query                                                           
+----+-------+---------+----------+--------+----------+-----------+---------+--------------------------------------------------------------------------------------------------------------------------
+  1 |   394 |   29.52 |  11630.6 | 360177 | 11586584 |       645 |   100.0 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  2 |   449 |    2.64 |   1184.9 |  58121 |   950759 |         0 |   100.0 | select "feed"."post_engager"."post_id", count(distinct "feed"."post_engager"."user_id") from "feed"."post_engager" where
+  3 |  3377 |    0.28 |    939.0 |   3311 |    16898 |         0 |   100.0 | SELECT state FROM shared.rate_limit_bucket WHERE id = $1 FOR UPDATE
+  4 |    32 |   19.71 |    630.8 |  24523 |   821664 |        14 |   100.0 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  5 |  1347 |    0.39 |    519.1 |   1347 |    10327 |         0 |   100.0 | select "feed"."feed_session"."id", "feed"."feed_session"."user_id", "feed"."feed_session"."config_id", "feed"."feed_sess
+  6 |   449 |    1.05 |    472.0 |    449 |    15494 |         0 |   100.0 | insert into "feed"."feed_session" ("id", "user_id", "config_id", "created_at", "expires_at", "items") values (cast($1 as
+  7 |   449 |    0.91 |    409.2 | 218112 |   322489 |         0 |   100.0 | select "feed"."post_stat"."post_id", "feed"."post_stat"."impressions", "feed"."post_stat"."likes", "feed"."post_stat"."c
+  8 |    23 |   15.27 |    351.1 |  13333 |   534042 |         1 |   100.0 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  9 |   449 |    0.72 |    325.0 | 360830 |   177539 |         0 |   100.0 | select "feed"."post_tag"."post_id", "feed"."post_tag"."artist_id" from "feed"."post_tag" where "feed"."post_tag"."post_i
+ 10 |   449 |    0.65 |    293.7 | 112934 |   133194 |         0 |   100.0 | select "feed"."gig_place"."gig_id", ST_Distance("feed"."gig_place"."location", ST_SetSRID(ST_MakePoint(cast($1 as double
+ 11 |  1796 |    0.10 |    178.0 |  17960 |    90303 |         0 |   100.0 | insert into "feed"."served_item" ("session_id", "position", "served_at", "user_id", "post_id", "config_id", "score", "fe
+ 12 |   500 |    0.35 |    175.4 |    500 |    89006 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+ 13 |  3245 |    0.05 |    162.5 |   3245 |    37129 |         0 |   100.0 | UPDATE shared.rate_limit_bucket SET state=$1 WHERE id=$2
+ 14 |   449 |    0.25 |    114.2 | 120223 |    43857 |         0 |   100.0 | select "feed"."artist_genre"."artist_id", "feed"."artist_genre"."genre_id", "feed"."artist_genre"."weight" from "feed"."
+ 15 |  1796 |    0.04 |     74.0 |  22277 |    41613 |         0 |   100.0 | select "content"."post_clip"."id", "content"."post_clip"."post_id", "content"."post_clip"."owner_id", "content"."post_cl
+ 16 |   449 |    0.16 |     74.0 |   3932 |    13798 |       135 |    99.0 | select "signals"."interaction_event"."post_id" from "signals"."interaction_event" where ("signals"."interaction_event"."
+ 17 |  1796 |    0.04 |     73.9 |  17960 |    30134 |         0 |   100.0 | select "content"."post"."id", "content"."post"."author_id", "content"."post"."media_id", "content"."post"."gig_id", "con
+ 18 |  1563 |    0.04 |     58.8 |  15630 |    41185 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."handle", "identity"."app_user"."display_name", "identity"."app
+ 19 |   500 |    0.09 |     46.0 |    500 |     6742 |         0 |   100.0 | insert into "identity"."refresh_token" ("id", "user_id", "family_id", "token_hash", "expires_at", "client", "user_agent"
+ 20 |  1796 |    0.02 |     43.0 |    619 |    43313 |         0 |   100.0 | select "content"."post_like"."post_id" from "content"."post_like" where ("content"."post_like"."user_id" = cast($1 as uu
+
+      pg_stat_statements_info      
+-----------------------------------
+ since reset: 2026-10-13T02:13:43Z
+

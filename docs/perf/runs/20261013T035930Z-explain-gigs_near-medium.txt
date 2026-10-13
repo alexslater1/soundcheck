@@ -1,0 +1,87 @@
+# explain.sh gigs_near on medium
+utc:     2026-10-13T03:59:30Z
+commit:  cfce53cdc05281d9847f83c9f5acba89bfdf9fa3
+uptime:   04:59:30 up 4 days,  7:36,  1 user,  load average: 11.02, 10.73, 8.41
+power:   online=1 (1 = on mains)
+postgres: postgis/postgis:17-3.5 cpuset=4,6,8,10 mem=4294967296
+session: jit=off
+query:   ops/perf/queries/gigs_near.sql
+-- gigs_near: gigs within 25 km of Manchester in the next 30 days (CatalogReadRepository.gigs).
+-- Source: the statement's text as pg_stat_statements and auto_explain record it, with the binds auto_explain logged
+-- ("Query Parameters"), for one request as perf_u205 (01940483-6188-731a-a99b-54ec14467635) on medium (seed 42, loaded
+-- by seed-scale at 2026-10-13 02:21Z), logged at 2026-10-13 02:32:42.634 UTC (idle) by the perf API built at 8db165b.
+-- The ids exist only in that load: after another seed-scale, recapture them.
+
+## first execution (cold or partly warm cache)
+                                                                                            QUERY PLAN                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1617.60..1630.13 rows=1 width=280) (actual time=7.006..7.050 rows=21 loops=1)
+   Buffers: shared hit=581
+   ->  Result  (cost=1617.60..1630.13 rows=1 width=280) (actual time=7.005..7.048 rows=21 loops=1)
+         Buffers: shared hit=581
+         ->  Sort  (cost=1617.60..1617.60 rows=1 width=304) (actual time=6.995..6.997 rows=21 loops=1)
+               Sort Key: gig.starts_at, gig.id
+               Sort Method: top-N heapsort  Memory: 33kB
+               Buffers: shared hit=581
+               ->  Nested Loop  (cost=85.39..1617.59 rows=1 width=304) (actual time=6.395..6.931 rows=108 loops=1)
+                     Buffers: shared hit=575
+                     ->  Bitmap Heap Scan on gig  (cost=85.11..1615.08 rows=1 width=230) (actual time=6.376..6.660 rows=108 loops=1)
+                           Recheck Cond: ((starts_at >= '2026-10-13 02:32:42+00'::timestamp(6) with time zone) AND (starts_at < '2026-11-12 02:32:42+00'::timestamp(6) with time zone))
+                           Filter: ((status <> 'UNLISTED'::text) AND st_dwithin(location, '0101000020E6100000A913D044D8F001C05AF5B9DA8ABD4A40'::geography, '25000'::double precision, true))
+                           Rows Removed by Filter: 10
+                           Heap Blocks: exact=110
+                           Buffers: shared hit=251
+                           ->  BitmapAnd  (cost=85.11..85.11 rows=113 width=0) (actual time=0.605..0.605 rows=0 loops=1)
+                                 Buffers: shared hit=54
+                                 ->  Bitmap Index Scan on gig_starts_at  (cost=0.00..32.91 rows=2040 width=0) (actual time=0.192..0.193 rows=2099 loops=1)
+                                       Index Cond: ((starts_at >= '2026-10-13 02:32:42+00'::timestamp(6) with time zone) AND (starts_at < '2026-11-12 02:32:42+00'::timestamp(6) with time zone))
+                                       Buffers: shared hit=13
+                                 ->  Bitmap Index Scan on gig_location_gix  (cost=0.00..51.95 rows=2766 width=0) (actual time=0.376..0.376 rows=2681 loops=1)
+                                       Index Cond: (location && _st_expand('0101000020E6100000A913D044D8F001C05AF5B9DA8ABD4A40'::geography, '25000'::double precision))
+                                       Buffers: shared hit=41
+                     ->  Index Scan using venue_pkey on venue  (cost=0.28..2.50 rows=1 width=106) (actual time=0.002..0.002 rows=1 loops=108)
+                           Index Cond: (id = gig.venue_id)
+                           Buffers: shared hit=324
+ Planning:
+   Buffers: shared hit=467 read=8
+ Planning Time: 8.541 ms
+ Execution Time: 7.199 ms
+(31 rows)
+
+
+## second execution (warm cache)
+                                                                                            QUERY PLAN                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1617.60..1630.13 rows=1 width=280) (actual time=7.873..7.924 rows=21 loops=1)
+   Buffers: shared hit=581
+   ->  Result  (cost=1617.60..1630.13 rows=1 width=280) (actual time=7.872..7.921 rows=21 loops=1)
+         Buffers: shared hit=581
+         ->  Sort  (cost=1617.60..1617.60 rows=1 width=304) (actual time=7.862..7.864 rows=21 loops=1)
+               Sort Key: gig.starts_at, gig.id
+               Sort Method: top-N heapsort  Memory: 33kB
+               Buffers: shared hit=581
+               ->  Nested Loop  (cost=85.39..1617.59 rows=1 width=304) (actual time=7.234..7.786 rows=108 loops=1)
+                     Buffers: shared hit=575
+                     ->  Bitmap Heap Scan on gig  (cost=85.11..1615.08 rows=1 width=230) (actual time=7.214..7.487 rows=108 loops=1)
+                           Recheck Cond: ((starts_at >= '2026-10-13 02:32:42+00'::timestamp(6) with time zone) AND (starts_at < '2026-11-12 02:32:42+00'::timestamp(6) with time zone))
+                           Filter: ((status <> 'UNLISTED'::text) AND st_dwithin(location, '0101000020E6100000A913D044D8F001C05AF5B9DA8ABD4A40'::geography, '25000'::double precision, true))
+                           Rows Removed by Filter: 10
+                           Heap Blocks: exact=110
+                           Buffers: shared hit=251
+                           ->  BitmapAnd  (cost=85.11..85.11 rows=113 width=0) (actual time=0.673..0.674 rows=0 loops=1)
+                                 Buffers: shared hit=54
+                                 ->  Bitmap Index Scan on gig_starts_at  (cost=0.00..32.91 rows=2040 width=0) (actual time=0.210..0.210 rows=2099 loops=1)
+                                       Index Cond: ((starts_at >= '2026-10-13 02:32:42+00'::timestamp(6) with time zone) AND (starts_at < '2026-11-12 02:32:42+00'::timestamp(6) with time zone))
+                                       Buffers: shared hit=13
+                                 ->  Bitmap Index Scan on gig_location_gix  (cost=0.00..51.95 rows=2766 width=0) (actual time=0.412..0.412 rows=2681 loops=1)
+                                       Index Cond: (location && _st_expand('0101000020E6100000A913D044D8F001C05AF5B9DA8ABD4A40'::geography, '25000'::double precision))
+                                       Buffers: shared hit=41
+                     ->  Index Scan using venue_pkey on venue  (cost=0.28..2.50 rows=1 width=106) (actual time=0.002..0.002 rows=1 loops=108)
+                           Index Cond: (id = gig.venue_id)
+                           Buffers: shared hit=324
+ Planning:
+   Buffers: shared hit=475
+ Planning Time: 8.311 ms
+ Execution Time: 8.083 ms
+(31 rows)
+

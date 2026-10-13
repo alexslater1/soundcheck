@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "scenario": "gigs",
+  "run": {
+    "utc_start": "2026-10-13T03:09:32Z",
+    "commit": "cfce53cdc05281d9847f83c9f5acba89bfdf9fa3",
+    "branch": "main",
+    "profile": "medium",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": false,
+    "warmup": false,
+    "noisy": false,
+    "notes": "measured: 1 m ramp + 5 m hold; standalone perf stack"
+  },
+  "environment": {
+    "uptime": " 04:09:32 up 4 days,  6:46,  1 user,  load average: 1.37, 2.82, 4.22",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       11326        1564        1631        4785        4384",
+      "Swap:           4095        4041          54"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "03:09:32 p=691 e=2839",
+        "03:09:42 p=1059 e=1507",
+        "03:09:52 p=674 e=1072",
+        "03:10:02 p=903 e=1416",
+        "03:10:12 p=1552 e=1801",
+        "03:10:22 p=1836 e=2581",
+        "03:10:32 p=1208 e=1338",
+        "03:10:42 p=1088 e=874",
+        "03:10:52 p=1178 e=1831",
+        "03:11:02 p=1458 e=1806",
+        "03:11:12 p=1513 e=3300",
+        "03:11:22 p=1074 e=1082",
+        "03:11:32 p=872 e=1424",
+        "03:11:42 p=1195 e=1573",
+        "03:11:52 p=672 e=1223",
+        "03:12:02 p=1293 e=1431",
+        "03:12:12 p=1662 e=2038",
+        "03:12:22 p=1252 e=2518",
+        "03:12:32 p=1099 e=1145",
+        "03:12:42 p=1049 e=1737",
+        "03:12:52 p=1036 e=1412",
+        "03:13:02 p=1603 e=1830",
+        "03:13:12 p=1326 e=2138",
+        "03:13:22 p=1894 e=1677",
+        "03:13:32 p=939 e=1032",
+        "03:13:42 p=820 e=1293",
+        "03:13:52 p=1181 e=928",
+        "03:14:02 p=1323 e=1716",
+        "03:14:12 p=1354 e=1544",
+        "03:14:22 p=1659 e=2032",
+        "03:14:32 p=2214 e=3226",
+        "03:14:42 p=1497 e=2059",
+        "03:14:52 p=1571 e=1640",
+        "03:15:02 p=1809 e=3015",
+        "03:15:12 p=1350 e=1164",
+        "03:15:22 p=1316 e=1332",
+        "03:15:32 p=1301 e=1726"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 10090020,
+    "post_likes": 8000040,
+    "gigs": 50000,
+    "users": 100000,
+    "posts": 1000000,
+    "user_follows": 2000000
+  },
+  "k6": {
+    "rate_scale": 1,
+    "iterations_per_s": 100,
+    "ramp": "1m",
+    "hold": "5m",
+    "test_run_ms": 368067.64,
+    "iterations": 32999,
+    "dropped_iterations": 0,
+    "vus_max": 300,
+    "checks": {
+      "rate": 1,
+      "passes": 32999,
+      "fails": 0
+    },
+    "http_reqs": 33499,
+    "http_req_failed_all": 0,
+    "http_req_duration_all_ms": {
+      "avg": 8.34,
+      "min": 2.64,
+      "med": 7.18,
+      "max": 100.2,
+      "p(90)": 11.74,
+      "p(95)": 13.6,
+      "p(99)": 55.09,
+      "count": 33499
+    },
+    "data_sent_bytes": 21037502,
+    "data_received_bytes": 464106987
+  },
+  "endpoints": {
+    "gigs_near": {
+      "target": {
+        "rate_per_s": 100,
+        "p95_ms": 80,
+        "errors_below": null
+      },
+      "asked_rate_per_s": 100,
+      "requests": 30000,
+      "achieved_rate_per_s": 100,
+      "latency_ms": {
+        "p(99)": 14.31,
+        "count": 30000,
+        "avg": 7.26,
+        "min": 2.64,
+        "med": 7,
+        "max": 27.05,
+        "p(90)": 10.3,
+        "p(95)": 12.09
+      },
+      "failed_rate": 0,
+      "p95_target_met": true,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_failed{endpoint:gigs_near,phase:hold}: rate<1": true,
+    "checks: rate>0.99": true,
+    "http_req_duration{endpoint:gigs_near,phase:hold}: p(95)<80": true
+  },
+  "scenario_notes": []
+}

@@ -1,0 +1,29 @@
+# pg-top.sh after feed on medium, run 20261013T025347Z (commit cfce53c)
+# Statements since pg_stat_statements_reset() at the start of the run: setup's logins included.
+ #  | calls | mean_ms | total_ms  |  rows   | blks_hit  | blks_read | hit_pct |                                                          query                                                           
+----+-------+---------+-----------+---------+-----------+-----------+---------+--------------------------------------------------------------------------------------------------------------------------
+  1 |  1504 | 1763.77 | 2652704.1 | 1737121 | 342940851 |    459905 |    99.9 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  2 |   169 | 1415.72 |  239256.2 |  171659 |  35838193 |      3111 |   100.0 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  3 |    64 | 2905.40 |  185945.8 |   61679 |  14733625 |     31724 |    99.8 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  4 |  1746 |   65.14 |  113732.5 |  240579 |  26205092 |     75564 |    99.7 | select "feed"."post_engager"."post_id", count(distinct "feed"."post_engager"."user_id") from "feed"."post_engager" where
+  5 |  1746 |   15.69 |   27400.4 | 1080427 |   2154712 |     68315 |    96.9 | select "feed"."post_stat"."post_id", "feed"."post_stat"."impressions", "feed"."post_stat"."likes", "feed"."post_stat"."c
+  6 |  1746 |    5.57 |    9723.4 | 1920170 |   1551382 |     14444 |    99.1 | select "feed"."post_tag"."post_id", "feed"."post_tag"."artist_id" from "feed"."post_tag" where "feed"."post_tag"."post_i
+  7 |     9 |  946.21 |    8515.9 |    7228 |   1267271 |        43 |   100.0 | select "candidates"."post_id", "candidates"."author_id", "candidates"."gig_id", "candidates"."published_at", "candidates
+  8 |     7 | 1115.44 |    7808.1 |   14000 |   1276767 |     26540 |    98.0 | select "feed"."post_stat_hourly"."post_id", cast(sum("feed"."post_stat_hourly"."engagements") as bigint) from "feed"."po
+  9 |  1746 |    3.83 |    6681.7 |   31154 |      9177 |     27237 |    25.2 | select "signals"."user_author_affinity"."user_id", "signals"."user_author_affinity"."author_id", "signals"."user_author_
+ 10 |  1746 |    3.73 |    6510.3 |   37240 |     12487 |     30069 |    29.3 | select "social"."user_follow"."followee_id" from "social"."user_follow" where "social"."user_follow"."follower_id" = cas
+ 11 |  1746 |    2.94 |    5132.4 |  619152 |   1022715 |         0 |   100.0 | select "feed"."gig_place"."gig_id", ST_Distance("feed"."gig_place"."location", ST_SetSRID(ST_MakePoint(cast($1 as double
+ 12 |  1746 |    2.57 |    4494.6 |   19722 |     66634 |     17520 |    79.2 | select "catalog"."gig_attendance"."gig_id", case when ("catalog"."gig_attendance"."status" = $1 and "catalog"."gig"."sta
+ 13 |  1746 |    2.55 |    4460.7 |    1746 |     53402 |       154 |    99.7 | insert into "feed"."feed_session" ("id", "user_id", "config_id", "created_at", "expires_at", "items") values (cast($1 as
+ 14 |  1746 |    2.52 |    4393.8 |   21502 |     29476 |     18864 |    61.0 | select "signals"."interaction_event"."post_id" from "signals"."interaction_event" where ("signals"."interaction_event"."
+ 15 |  1746 |    1.83 |    3197.3 |   12968 |      6023 |     12183 |    33.1 | select "signals"."user_artist_affinity"."user_id", "signals"."user_artist_affinity"."artist_id", "signals"."user_artist_
+ 16 |  1746 |    1.82 |    3177.0 |   11593 |      6025 |     10797 |    35.8 | select "signals"."user_genre_affinity"."user_id", "signals"."user_genre_affinity"."genre_id", "signals"."user_genre_affi
+ 17 |   500 |    5.85 |    2924.0 |     500 |   1785500 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+ 18 |  1746 |    1.09 |    1895.3 |    5014 |      4736 |      5516 |    46.2 | select "identity"."user_genre_preference"."genre_id", "identity"."user_genre_preference"."weight" from "identity"."user_
+ 19 |  1746 |    0.91 |    1585.2 |  412644 |    781697 |         1 |   100.0 | select "feed"."artist_genre"."artist_id", "feed"."artist_genre"."genre_id", "feed"."artist_genre"."weight" from "feed"."
+ 20 |  2702 |    0.56 |    1513.8 |    2702 |     19048 |       741 |    96.3 | select "feed"."feed_session"."id", "feed"."feed_session"."user_id", "feed"."feed_session"."config_id", "feed"."feed_sess
+
+      pg_stat_statements_info      
+-----------------------------------
+ since reset: 2026-10-13T02:53:48Z
+

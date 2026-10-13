@@ -1,0 +1,29 @@
+# pg-top.sh after following on medium, run 20261013T024505Z (commit cfce53c)
+# Statements since pg_stat_statements_reset() at the start of the run: setup's logins included.
+ #  | calls | mean_ms | total_ms |  rows  | blks_hit | blks_read | hit_pct |                                                          query                                                           
+----+-------+---------+----------+--------+----------+-----------+---------+--------------------------------------------------------------------------------------------------------------------------
+  1 |   500 |    5.69 |   2845.3 |    500 |  1785500 |         0 |   100.0 | select "identity"."app_user"."id", "identity"."app_user"."email", "identity"."app_user"."handle", "identity"."app_user".
+  2 |  5500 |    0.17 |    954.0 |   5500 |    26503 |        20 |    99.9 | SELECT state FROM shared.rate_limit_bucket WHERE id = $1 FOR UPDATE
+  3 |  4310 |    0.13 |    547.8 |     30 |   340980 |      2490 |    99.3 | select "content"."post_like"."post_id" from "content"."post_like" where ("content"."post_like"."user_id" = cast($1 as uu
+  4 |  4310 |    0.13 |    543.4 | 106796 |   338282 |      1649 |    99.5 | select "content"."post_clip"."id", "content"."post_clip"."post_id", "content"."post_clip"."owner_id", "content"."post_cl
+  5 |  3719 |    0.12 |    448.8 |  74380 |   398325 |         1 |   100.0 | select "catalog"."gig"."id", "catalog"."gig"."title", "catalog"."gig"."starts_at", "catalog"."gig"."status", "catalog"."
+  6 |  3719 |    0.10 |    382.3 | 159359 |   268252 |       734 |    99.7 | select "catalog"."gig_artist"."gig_id", "catalog"."gig_artist"."artist_id", "catalog"."gig_artist"."billing_order" from 
+  7 |  4310 |    0.07 |    300.9 |  90589 |   257250 |      1070 |    99.6 | select "content"."post_artist"."post_id", "content"."post_artist"."artist_id" from "content"."post_artist" where "conten
+  8 |  5500 |    0.04 |    225.1 |   5500 |    62917 |        17 |   100.0 | UPDATE shared.rate_limit_bucket SET state=$1 WHERE id=$2
+  9 |  4500 |    0.05 |    222.4 | 106520 |   120036 |       204 |    99.8 | select "social"."user_follow"."followee_id" from "social"."user_follow" where "social"."user_follow"."follower_id" = cas
+ 10 |   710 |    0.25 |    176.0 |  17040 |    55612 |       618 |    98.9 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 11 |   660 |    0.25 |    164.7 |  16500 |    51724 |       546 |    99.0 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 12 |   721 |    0.22 |    159.3 |  16583 |    56663 |       519 |    99.1 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 13 |   529 |    0.25 |    133.7 |  14283 |    41353 |       463 |    98.9 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 14 |   430 |    0.27 |    116.4 |   9030 |    52014 |       287 |    99.5 | select "content"."post"."id", "content"."post"."author_id", "content"."post"."media_id", "content"."post"."gig_id", "con
+ 15 |   440 |    0.25 |    110.0 |  11440 |    34658 |       362 |    99.0 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 16 |   470 |    0.23 |    109.2 |  10340 |    36598 |       362 |    99.0 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 17 |   340 |    0.27 |     91.0 |   6830 |    34699 |       281 |    99.2 | select "content"."post"."id", "content"."post"."author_id", "content"."post"."media_id", "content"."post"."gig_id", "con
+ 18 |   280 |    0.27 |     75.4 |   7840 |    22004 |       266 |    98.8 | select "media"."media_asset"."id", "media"."media_asset"."owner_id", "media"."media_asset"."kind", "media"."media_asset"
+ 19 |   280 |    0.27 |     75.1 |   5380 |    28481 |       259 |    99.1 | select "content"."post"."id", "content"."post"."author_id", "content"."post"."media_id", "content"."post"."gig_id", "con
+ 20 |    20 |    3.23 |     64.7 |    420 |    36440 |         0 |   100.0 | select "content"."post"."id", "content"."post"."author_id", "content"."post"."media_id", "content"."post"."gig_id", "con
+
+      pg_stat_statements_info      
+-----------------------------------
+ since reset: 2026-10-13T02:45:06Z
+

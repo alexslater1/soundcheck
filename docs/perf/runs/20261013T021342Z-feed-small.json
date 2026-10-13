@@ -1,0 +1,143 @@
+{
+  "schema": 1,
+  "scenario": "feed",
+  "run": {
+    "utc_start": "2026-10-13T02:13:43Z",
+    "commit": "8db165beeef87e03b601f92a71e297cfae7a8b20",
+    "branch": "main",
+    "profile": "small",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": true,
+    "warmup": false,
+    "noisy": false,
+    "notes": "smoke: script check on small at 0.1 of the target rates; standalone perf stack; MIN_MEM_GB=3"
+  },
+  "environment": {
+    "uptime": " 03:13:43 up 4 days,  5:50,  1 user,  load average: 0.28, 0.68, 0.94",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       10763         900        1284        5785        4947",
+      "Swap:           4095        3864         231"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "02:13:43 p=667 e=3295",
+        "02:13:54 p=436 e=636",
+        "02:14:04 p=1150 e=836",
+        "02:14:14 p=1730 e=2737",
+        "02:14:24 p=1453 e=1111",
+        "02:14:34 p=708 e=1396",
+        "02:14:44 p=1631 e=1363",
+        "02:14:54 p=2006 e=1492",
+        "02:15:04 p=2188 e=1787",
+        "02:15:14 p=1556 e=831",
+        "02:15:24 p=2767 e=1636",
+        "02:15:34 p=1562 e=1791",
+        "02:15:44 p=1788 e=1605",
+        "02:15:54 p=403 e=1080"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 1018020,
+    "post_likes": 300000,
+    "users": 5000,
+    "gigs": 8000,
+    "posts": 50000,
+    "user_follows": 100000
+  },
+  "k6": {
+    "rate_scale": 0.1,
+    "iterations_per_s": 5,
+    "ramp": "1m",
+    "hold": "1m",
+    "test_run_ms": 131467.24,
+    "iterations": 449,
+    "dropped_iterations": 0,
+    "vus_max": 66,
+    "checks": {
+      "rate": 1,
+      "passes": 1796,
+      "fails": 0
+    },
+    "http_reqs": 2296,
+    "http_req_failed_all": 0,
+    "http_req_duration_all_ms": {
+      "max": 502.9,
+      "p(90)": 78.24,
+      "p(95)": 89.61,
+      "p(99)": 130.37,
+      "count": 2296,
+      "avg": 35.73,
+      "min": 4.59,
+      "med": 21.04
+    },
+    "data_sent_bytes": 1163206,
+    "data_received_bytes": 53242613
+  },
+  "endpoints": {
+    "feed_first": {
+      "target": {
+        "rate_per_s": 50,
+        "p95_ms": 250,
+        "errors_below": 0.001
+      },
+      "asked_rate_per_s": 5,
+      "requests": 300,
+      "achieved_rate_per_s": 5,
+      "latency_ms": {
+        "p(95)": 134.1,
+        "p(99)": 308.63,
+        "count": 300,
+        "avg": 83.74,
+        "min": 41.52,
+        "med": 73.79,
+        "max": 329.25,
+        "p(90)": 102.54
+      },
+      "failed_rate": 0,
+      "p95_target_met": true,
+      "errors_target_met": true
+    },
+    "feed_later": {
+      "target": {
+        "rate_per_s": 150,
+        "p95_ms": 40,
+        "errors_below": null
+      },
+      "asked_rate_per_s": 15,
+      "requests": 900,
+      "achieved_rate_per_s": 15,
+      "latency_ms": {
+        "p(90)": 19.71,
+        "p(95)": 23,
+        "p(99)": 28.8,
+        "count": 900,
+        "avg": 11.09,
+        "min": 4.59,
+        "med": 9.43,
+        "max": 42.74
+      },
+      "failed_rate": 0,
+      "p95_target_met": true,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_failed{endpoint:feed_first,phase:hold}: rate<0.001": true,
+    "http_req_duration{endpoint:feed_later,phase:hold}: p(95)<40": true,
+    "http_req_duration{endpoint:feed_first,phase:hold}: p(95)<250": true,
+    "http_req_failed{endpoint:feed_later,phase:hold}: rate<1": true,
+    "checks: rate>0.99": true
+  },
+  "scenario_notes": []
+}

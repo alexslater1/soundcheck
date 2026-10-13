@@ -1,0 +1,283 @@
+{
+  "schema": 1,
+  "scenario": "mixed",
+  "run": {
+    "utc_start": "2026-10-13T03:52:49Z",
+    "commit": "cfce53cdc05281d9847f83c9f5acba89bfdf9fa3",
+    "branch": "main",
+    "profile": "medium",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": false,
+    "warmup": false,
+    "noisy": false,
+    "notes": "measured: 1 m ramp + 5 m hold; standalone perf stack; second attempt (the first, 03:28 UTC, lost k6 to its 3 GB scope's OOM killer: no run file)"
+  },
+  "environment": {
+    "uptime": " 04:52:49 up 4 days,  7:29,  1 user,  load average: 1.39, 4.66, 5.90",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       11172        2570        1605        3908        4539",
+      "Swap:           4095        4088           7"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "03:52:49 p=1087 e=3034",
+        "03:52:59 p=510 e=1987",
+        "03:53:09 p=1962 e=1584",
+        "03:53:19 p=2293 e=1579",
+        "03:53:29 p=1900 e=835",
+        "03:53:39 p=1724 e=915",
+        "03:53:49 p=1943 e=1043",
+        "03:53:59 p=1705 e=1684",
+        "03:54:09 p=1795 e=922",
+        "03:54:19 p=1386 e=1612",
+        "03:54:30 p=1416 e=1182",
+        "03:54:40 p=1704 e=1439",
+        "03:54:50 p=1748 e=972",
+        "03:55:00 p=1528 e=1176",
+        "03:55:10 p=1122 e=955",
+        "03:55:20 p=1517 e=1578",
+        "03:55:30 p=1229 e=1303",
+        "03:55:40 p=1445 e=1147",
+        "03:55:50 p=1886 e=893",
+        "03:56:00 p=1718 e=1482",
+        "03:56:10 p=1563 e=1093",
+        "03:56:20 p=1455 e=1500",
+        "03:56:30 p=1509 e=1502",
+        "03:56:40 p=1622 e=1181",
+        "03:56:50 p=1106 e=1118",
+        "03:57:00 p=400 e=400",
+        "03:57:10 p=1385 e=1161",
+        "03:57:20 p=1450 e=1048",
+        "03:57:30 p=1149 e=918",
+        "03:57:40 p=1541 e=939",
+        "03:57:50 p=1187 e=1332",
+        "03:58:00 p=1114 e=1037",
+        "03:58:10 p=1494 e=1097",
+        "03:58:20 p=1756 e=1056",
+        "03:58:30 p=1294 e=1179",
+        "03:58:40 p=1185 e=1045",
+        "03:58:50 p=1729 e=1297",
+        "03:59:00 p=1331 e=812",
+        "03:59:10 p=1218 e=1043"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 10753575,
+    "post_likes": 8000040,
+    "gigs": 50000,
+    "users": 100000,
+    "posts": 1000000,
+    "user_follows": 2000000
+  },
+  "k6": {
+    "rate_scale": 1,
+    "iterations_per_s": 250,
+    "ramp": "1m",
+    "hold": "5m",
+    "test_run_ms": 389536.95,
+    "iterations": 11204,
+    "dropped_iterations": 71271,
+    "vus_max": 1200,
+    "checks": {
+      "rate": 0.93,
+      "passes": 10466,
+      "fails": 738
+    },
+    "http_reqs": 12204,
+    "http_req_failed_all": 0.06,
+    "http_req_duration_all_ms": {
+      "p(99)": 54802.1,
+      "count": 12204,
+      "avg": 18062.76,
+      "min": 6.04,
+      "med": 16279.76,
+      "max": 59869.52,
+      "p(90)": 30006.76,
+      "p(95)": 33646.15
+    },
+    "data_sent_bytes": 13099616,
+    "data_received_bytes": 192372586
+  },
+  "endpoints": {
+    "feed_first": {
+      "target": {
+        "rate_per_s": 50,
+        "p95_ms": 250,
+        "errors_below": 0.001
+      },
+      "asked_rate_per_s": null,
+      "requests": 1361,
+      "achieved_rate_per_s": 4.54,
+      "latency_ms": {
+        "p(99)": 55938.49,
+        "count": 1361,
+        "avg": 25644.57,
+        "min": 2425.37,
+        "med": 22627.85,
+        "max": 59436.5,
+        "p(90)": 50220.02,
+        "p(95)": 54654.46
+      },
+      "failed_rate": 0.14,
+      "p95_target_met": false,
+      "errors_target_met": false
+    },
+    "feed_later": {
+      "target": {
+        "rate_per_s": 150,
+        "p95_ms": 40,
+        "errors_below": null
+      },
+      "asked_rate_per_s": null,
+      "requests": 2539,
+      "achieved_rate_per_s": 8.46,
+      "latency_ms": {
+        "max": 58414.84,
+        "p(90)": 25251.36,
+        "p(95)": 28690.58,
+        "p(99)": 32144.91,
+        "count": 2539,
+        "avg": 16638.88,
+        "min": 19.45,
+        "med": 15651.81
+      },
+      "failed_rate": 0.02,
+      "p95_target_met": false,
+      "errors_target_met": null
+    },
+    "events": {
+      "target": {
+        "rate_per_s": 100,
+        "p95_ms": 40,
+        "errors_below": null
+      },
+      "asked_rate_per_s": null,
+      "requests": 1840,
+      "achieved_rate_per_s": 6.13,
+      "latency_ms": {
+        "max": 57889.63,
+        "p(90)": 30005.76,
+        "p(95)": 34406.59,
+        "p(99)": 54618.65,
+        "count": 1840,
+        "avg": 19112.51,
+        "min": 6.6,
+        "med": 16136.38
+      },
+      "failed_rate": 0.06,
+      "p95_target_met": false,
+      "errors_target_met": null
+    },
+    "gigs_near": {
+      "target": {
+        "rate_per_s": 100,
+        "p95_ms": 80,
+        "errors_below": null
+      },
+      "asked_rate_per_s": null,
+      "requests": 1445,
+      "achieved_rate_per_s": 4.82,
+      "latency_ms": {
+        "p(90)": 30005.9,
+        "p(95)": 40375.02,
+        "p(99)": 54988.16,
+        "count": 1445,
+        "avg": 18978.06,
+        "min": 8.01,
+        "med": 16018.63,
+        "max": 57972.49
+      },
+      "failed_rate": 0.06,
+      "p95_target_met": false,
+      "errors_target_met": null
+    },
+    "profile": {
+      "target": null,
+      "asked_rate_per_s": null,
+      "requests": 883,
+      "achieved_rate_per_s": 2.94,
+      "latency_ms": {
+        "avg": 19900.59,
+        "min": 310.12,
+        "med": 16508.45,
+        "max": 56042.97,
+        "p(90)": 30013.48,
+        "p(95)": 46967.89,
+        "p(99)": 54983.17,
+        "count": 883
+      },
+      "failed_rate": 0.07,
+      "p95_target_met": null,
+      "errors_target_met": null
+    },
+    "post_detail": {
+      "target": null,
+      "asked_rate_per_s": null,
+      "requests": 975,
+      "achieved_rate_per_s": 3.25,
+      "latency_ms": {
+        "max": 57970.67,
+        "p(90)": 30006.27,
+        "p(95)": 39594.89,
+        "p(99)": 54619.05,
+        "count": 975,
+        "avg": 19233.09,
+        "min": 13.29,
+        "med": 16200.51
+      },
+      "failed_rate": 0.06,
+      "p95_target_met": null,
+      "errors_target_met": null
+    },
+    "interact": {
+      "target": null,
+      "asked_rate_per_s": null,
+      "requests": 493,
+      "achieved_rate_per_s": 1.64,
+      "latency_ms": {
+        "p(95)": 51313.33,
+        "p(99)": 54921,
+        "count": 493,
+        "avg": 19947.64,
+        "min": 8.85,
+        "med": 16129.12,
+        "max": 59869.52,
+        "p(90)": 30018.92
+      },
+      "failed_rate": 0.07,
+      "p95_target_met": null,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_duration{endpoint:interact,phase:hold}: max>=0": true,
+    "http_req_duration{endpoint:feed_first,phase:hold}: p(95)<250": false,
+    "http_req_failed{endpoint:events,phase:hold}: rate<1": true,
+    "http_req_failed{endpoint:feed_first,phase:hold}: rate<0.001": false,
+    "http_req_duration{endpoint:post_detail,phase:hold}: max>=0": true,
+    "checks: rate>0.99": false,
+    "http_req_failed{endpoint:feed_later,phase:hold}: rate<1": true,
+    "http_req_duration{endpoint:feed_later,phase:hold}: p(95)<40": false,
+    "http_req_duration{endpoint:gigs_near,phase:hold}: p(95)<80": false,
+    "http_req_failed{endpoint:gigs_near,phase:hold}: rate<1": true,
+    "http_req_failed{endpoint:interact,phase:hold}: rate>=0": true,
+    "http_req_failed{endpoint:post_detail,phase:hold}: rate>=0": true,
+    "http_req_duration{endpoint:events,phase:hold}: p(95)<40": false,
+    "http_req_failed{endpoint:profile,phase:hold}: rate>=0": true,
+    "http_req_duration{endpoint:profile,phase:hold}: max>=0": true
+  },
+  "scenario_notes": [
+    "250 operations/s before RATE_SCALE: 40 % feed pages, 20 % events, 15 % gigs, 10 % profile, 10 % post, 5 % like or comment"
+  ]
+}

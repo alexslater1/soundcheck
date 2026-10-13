@@ -1,0 +1,39 @@
+# explain.sh post_hydrate on medium
+utc:     2026-10-13T03:59:32Z
+commit:  cfce53cdc05281d9847f83c9f5acba89bfdf9fa3
+uptime:   04:59:32 up 4 days,  7:36,  1 user,  load average: 11.02, 10.73, 8.41
+power:   online=1 (1 = on mains)
+postgres: postgis/postgis:17-3.5 cpuset=4,6,8,10 mem=4294967296
+session: jit=off
+query:   ops/perf/queries/post_hydrate.sql
+-- post_hydrate: a For You page's 10 posts by id (PostRepository.findAll).
+-- Source: the statement's text as pg_stat_statements and auto_explain record it, with the binds auto_explain logged
+-- ("Query Parameters"), for one request as perf_u205 (01940483-6188-731a-a99b-54ec14467635) on medium (seed 42, loaded
+-- by seed-scale at 2026-10-13 02:21Z), logged at 2026-10-13 02:32:34.075 UTC (idle) by the perf API built at 8db165b.
+-- The ids exist only in that load: after another seed-scale, recapture them.
+
+## first execution (cold or partly warm cache)
+                                                                                                                                                                                                        QUERY PLAN                                                                                                                                                                                                        
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using post_pkey on post  (cost=0.42..16.52 rows=10 width=171) (actual time=0.041..0.116 rows=10 loops=1)
+   Index Cond: (id = ANY ('{01a132f7-4038-70c9-a18b-810ed8bc75dc,01a0fe22-f096-7e80-9c27-607b76ef99c9,01a12d56-c1fe-7c64-a81b-80d54bdd4630,01a08f72-22f2-77ca-91fc-1bf389813794,01a132f6-2a9d-7fe7-bcbd-a8b9f9f914ab,01a132f3-d9ea-7e91-b262-8c36940af764,01a12544-e210-7b0a-9399-54fbaedccd52,01a100f6-eae6-7233-af11-e6cf8217c078,01a132f3-fa72-7a4c-b64e-1d02c2849491,01a0905b-094f-7840-8777-c5bc40356dca}'::uuid[]))
+   Buffers: shared hit=34
+ Planning:
+   Buffers: shared hit=370
+ Planning Time: 0.932 ms
+ Execution Time: 0.145 ms
+(7 rows)
+
+
+## second execution (warm cache)
+                                                                                                                                                                                                        QUERY PLAN                                                                                                                                                                                                        
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using post_pkey on post  (cost=0.42..16.52 rows=10 width=171) (actual time=0.038..0.110 rows=10 loops=1)
+   Index Cond: (id = ANY ('{01a132f7-4038-70c9-a18b-810ed8bc75dc,01a0fe22-f096-7e80-9c27-607b76ef99c9,01a12d56-c1fe-7c64-a81b-80d54bdd4630,01a08f72-22f2-77ca-91fc-1bf389813794,01a132f6-2a9d-7fe7-bcbd-a8b9f9f914ab,01a132f3-d9ea-7e91-b262-8c36940af764,01a12544-e210-7b0a-9399-54fbaedccd52,01a100f6-eae6-7233-af11-e6cf8217c078,01a132f3-fa72-7a4c-b64e-1d02c2849491,01a0905b-094f-7840-8777-c5bc40356dca}'::uuid[]))
+   Buffers: shared hit=34
+ Planning:
+   Buffers: shared hit=370
+ Planning Time: 0.833 ms
+ Execution Time: 0.137 ms
+(7 rows)
+

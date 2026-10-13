@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "scenario": "gigs",
+  "run": {
+    "utc_start": "2026-10-13T03:45:29Z",
+    "commit": "cfce53cdc05281d9847f83c9f5acba89bfdf9fa3",
+    "branch": "main",
+    "profile": "medium",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": false,
+    "warmup": false,
+    "noisy": false,
+    "notes": "measured: 1 m ramp + 5 m hold; standalone perf stack"
+  },
+  "environment": {
+    "uptime": " 04:45:29 up 4 days,  7:22,  1 user,  load average: 1.83, 7.65, 7.11",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       12075        1933        1616        3653        3636",
+      "Swap:           4095        4093           2"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "03:45:29 p=608 e=3269",
+        "03:45:39 p=985 e=1516",
+        "03:45:49 p=687 e=1333",
+        "03:45:59 p=722 e=1050",
+        "03:46:09 p=897 e=1332",
+        "03:46:19 p=936 e=889",
+        "03:46:29 p=1903 e=2333",
+        "03:46:39 p=1008 e=1495",
+        "03:46:49 p=1217 e=1360",
+        "03:46:59 p=1877 e=2587",
+        "03:47:09 p=1048 e=1748",
+        "03:47:19 p=1041 e=1174",
+        "03:47:29 p=1354 e=1442",
+        "03:47:39 p=940 e=1228",
+        "03:47:49 p=932 e=1885",
+        "03:47:59 p=957 e=1240",
+        "03:48:09 p=849 e=1264",
+        "03:48:19 p=661 e=1342",
+        "03:48:29 p=1121 e=1038",
+        "03:48:39 p=1195 e=1749",
+        "03:48:49 p=1271 e=1795",
+        "03:48:59 p=1035 e=1430",
+        "03:49:09 p=1673 e=1862",
+        "03:49:19 p=2491 e=2420",
+        "03:49:29 p=2400 e=1900",
+        "03:49:39 p=1256 e=1010",
+        "03:49:49 p=970 e=1084",
+        "03:49:59 p=1423 e=1057",
+        "03:50:09 p=1086 e=1962",
+        "03:50:19 p=1158 e=1195",
+        "03:50:29 p=1171 e=1122",
+        "03:50:39 p=1623 e=1649",
+        "03:50:49 p=1376 e=2096",
+        "03:50:59 p=1719 e=1680",
+        "03:51:09 p=1123 e=1655",
+        "03:51:19 p=951 e=1595",
+        "03:51:29 p=1254 e=1511"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 10753575,
+    "post_likes": 8000040,
+    "gigs": 50000,
+    "users": 100000,
+    "posts": 1000000,
+    "user_follows": 2000000
+  },
+  "k6": {
+    "rate_scale": 1,
+    "iterations_per_s": 100,
+    "ramp": "1m",
+    "hold": "5m",
+    "test_run_ms": 366732.99,
+    "iterations": 32999,
+    "dropped_iterations": 0,
+    "vus_max": 300,
+    "checks": {
+      "rate": 1,
+      "passes": 32999,
+      "fails": 0
+    },
+    "http_reqs": 33499,
+    "http_req_failed_all": 0,
+    "http_req_duration_all_ms": {
+      "p(95)": 13.72,
+      "p(99)": 45.92,
+      "count": 33499,
+      "avg": 8.33,
+      "min": 2.62,
+      "med": 7.29,
+      "max": 103.99,
+      "p(90)": 11.92
+    },
+    "data_sent_bytes": 21037560,
+    "data_received_bytes": 463467041
+  },
+  "endpoints": {
+    "gigs_near": {
+      "target": {
+        "rate_per_s": 100,
+        "p95_ms": 80,
+        "errors_below": null
+      },
+      "asked_rate_per_s": 100,
+      "requests": 30000,
+      "achieved_rate_per_s": 100,
+      "latency_ms": {
+        "med": 7.14,
+        "max": 41.72,
+        "p(90)": 10.5,
+        "p(95)": 12.28,
+        "p(99)": 14.5,
+        "count": 30000,
+        "avg": 7.42,
+        "min": 2.62
+      },
+      "failed_rate": 0,
+      "p95_target_met": true,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_duration{endpoint:gigs_near,phase:hold}: p(95)<80": true,
+    "checks: rate>0.99": true,
+    "http_req_failed{endpoint:gigs_near,phase:hold}: rate<1": true
+  },
+  "scenario_notes": []
+}

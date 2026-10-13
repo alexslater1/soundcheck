@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "scenario": "upload",
+  "run": {
+    "utc_start": "2026-10-13T03:21:57Z",
+    "commit": "cfce53cdc05281d9847f83c9f5acba89bfdf9fa3",
+    "branch": "main",
+    "profile": "medium",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": false,
+    "warmup": false,
+    "noisy": false,
+    "notes": "measured: 1 m ramp + 5 m hold; standalone perf stack"
+  },
+  "environment": {
+    "uptime": " 04:21:57 up 4 days,  6:59,  1 user,  load average: 1.25, 1.62, 2.69",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       11131        2425        1628        4117        4580",
+      "Swap:           4095        4034          61"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "03:21:57 p=857 e=3295",
+        "03:22:07 p=400 e=904",
+        "03:22:17 p=843 e=1403",
+        "03:22:27 p=840 e=1258",
+        "03:22:37 p=786 e=1222",
+        "03:22:47 p=612 e=605",
+        "03:22:57 p=782 e=967",
+        "03:23:07 p=926 e=1964",
+        "03:23:17 p=1022 e=854",
+        "03:23:27 p=638 e=1640",
+        "03:23:37 p=2300 e=1762",
+        "03:23:47 p=915 e=1080",
+        "03:23:57 p=767 e=1086",
+        "03:24:07 p=1940 e=2243",
+        "03:24:17 p=1342 e=1036",
+        "03:24:27 p=877 e=1009",
+        "03:24:37 p=1279 e=2968",
+        "03:24:47 p=787 e=1695",
+        "03:24:57 p=2187 e=1527",
+        "03:25:07 p=1170 e=2050",
+        "03:25:17 p=3260 e=2692",
+        "03:25:27 p=987 e=1236",
+        "03:25:37 p=571 e=818",
+        "03:25:47 p=1466 e=2280",
+        "03:25:57 p=967 e=760",
+        "03:26:07 p=1286 e=1469",
+        "03:26:17 p=1612 e=2208",
+        "03:26:27 p=1528 e=1756",
+        "03:26:37 p=825 e=1425",
+        "03:26:47 p=2045 e=2405",
+        "03:26:57 p=1312 e=1628",
+        "03:27:07 p=1002 e=1450",
+        "03:27:17 p=1940 e=3001",
+        "03:27:27 p=1180 e=1375",
+        "03:27:37 p=968 e=841",
+        "03:27:47 p=1206 e=2224",
+        "03:27:57 p=1059 e=1398"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 10712731,
+    "post_likes": 8000040,
+    "gigs": 50000,
+    "users": 100000,
+    "posts": 1000000,
+    "user_follows": 2000000
+  },
+  "k6": {
+    "rate_scale": 1,
+    "iterations_per_s": 20,
+    "ramp": "1m",
+    "hold": "5m",
+    "test_run_ms": 367318.05,
+    "iterations": 6595,
+    "dropped_iterations": 6,
+    "vus_max": 61,
+    "checks": {
+      "rate": 1,
+      "passes": 19785,
+      "fails": 0
+    },
+    "http_reqs": 20285,
+    "http_req_failed_all": 0,
+    "http_req_duration_all_ms": {
+      "count": 20285,
+      "avg": 16.21,
+      "min": 3.47,
+      "med": 11.78,
+      "max": 1599.03,
+      "p(90)": 18.33,
+      "p(95)": 30.19,
+      "p(99)": 83.56
+    },
+    "data_sent_bytes": 13842746955,
+    "data_received_bytes": 12403155
+  },
+  "endpoints": {
+    "upload_create": {
+      "target": {
+        "rate_per_s": 20,
+        "p95_ms": 100,
+        "errors_below": null
+      },
+      "asked_rate_per_s": 20,
+      "requests": 5995,
+      "achieved_rate_per_s": 19.98,
+      "latency_ms": {
+        "avg": 19.99,
+        "min": 3.47,
+        "med": 10.95,
+        "max": 1599.03,
+        "p(90)": 16.5,
+        "p(95)": 21.43,
+        "p(99)": 265.36,
+        "count": 5995
+      },
+      "failed_rate": 0,
+      "p95_target_met": true,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_duration{endpoint:upload_create,phase:hold}: p(95)<100": true,
+    "http_req_failed{endpoint:upload_create,phase:hold}: rate<1": true,
+    "checks: rate>0.99": true
+  },
+  "scenario_notes": []
+}

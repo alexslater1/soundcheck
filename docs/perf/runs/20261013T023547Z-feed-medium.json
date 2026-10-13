@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "scenario": "feed",
+  "run": {
+    "utc_start": "2026-10-13T02:35:49Z",
+    "commit": "cfce53cdc05281d9847f83c9f5acba89bfdf9fa3",
+    "branch": "main",
+    "profile": "medium",
+    "base_url": "http://127.0.0.1:8200",
+    "smoke": false,
+    "warmup": true,
+    "noisy": false,
+    "notes": "warm-up: 30 s ramp + 30 s hold, unmeasured; standalone perf stack"
+  },
+  "environment": {
+    "uptime": " 03:35:49 up 4 days,  6:12,  1 user,  load average: 1.71, 1.49, 1.38",
+    "free_m": [
+      "               total        used        free      shared  buff/cache   available",
+      "Mem:           15711       10841         819        1673        6057        4869",
+      "Swap:           4095        3930         165"
+    ],
+    "power": "1 (1 = on mains)",
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H, 20 threads",
+    "k6": "k6 v1.0.0 (commit/41b4984b75, go1.24.2, linux/amd64)",
+    "cpu_split": {
+      "postgres": "4,6,8,10 (quota 4000000000 nano-CPUs, mem 4294967296 bytes)",
+      "api": "taskset 0,2, -Xmx1g",
+      "k6": "taskset 12-19"
+    },
+    "cpu_mhz": {
+      "every": "10s",
+      "p_cores_0_11_and_e_cores_12_19": [
+        "02:35:49 p=1720 e=2793",
+        "02:35:59 p=2779 e=1520",
+        "02:36:09 p=1427 e=1345",
+        "02:36:19 p=2230 e=897",
+        "02:36:29 p=1529 e=1614",
+        "02:36:39 p=1732 e=1048",
+        "02:36:49 p=1006 e=1302",
+        "02:36:59 p=1521 e=1333",
+        "02:37:09 p=1387 e=1362",
+        "02:37:19 p=1430 e=1383",
+        "02:37:29 p=1542 e=1202",
+        "02:37:39 p=400 e=400"
+      ]
+    }
+  },
+  "rows": {
+    "interaction_events": 10000000,
+    "post_likes": 8000040,
+    "gigs": 50000,
+    "users": 100000,
+    "posts": 1000000,
+    "user_follows": 2000000
+  },
+  "k6": {
+    "rate_scale": 1,
+    "iterations_per_s": 50,
+    "ramp": "30s",
+    "hold": "30s",
+    "test_run_ms": 111216.67,
+    "iterations": 409,
+    "dropped_iterations": 1105,
+    "vus_max": 1127,
+    "checks": {
+      "rate": 0.66,
+      "passes": 714,
+      "fails": 362
+    },
+    "http_reqs": 1576,
+    "http_req_failed_all": 0.23,
+    "http_req_duration_all_ms": {
+      "med": 15621.75,
+      "max": 55611.56,
+      "p(90)": 50067.57,
+      "p(95)": 51997.97,
+      "p(99)": 52403.46,
+      "count": 1576,
+      "avg": 17553.16,
+      "min": 20.04
+    },
+    "data_sent_bytes": 1132634,
+    "data_received_bytes": 22790159
+  },
+  "endpoints": {
+    "feed_first": {
+      "target": {
+        "rate_per_s": 50,
+        "p95_ms": 250,
+        "errors_below": 0.001
+      },
+      "asked_rate_per_s": 50,
+      "requests": 474,
+      "achieved_rate_per_s": 15.8,
+      "latency_ms": {
+        "count": 474,
+        "avg": 38119.22,
+        "min": 1150.13,
+        "med": 30102.35,
+        "max": 55611.56,
+        "p(90)": 52106.1,
+        "p(95)": 52266.55,
+        "p(99)": 53933.83
+      },
+      "failed_rate": 0.73,
+      "p95_target_met": false,
+      "errors_target_met": false
+    },
+    "feed_later": {
+      "target": {
+        "rate_per_s": 150,
+        "p95_ms": 40,
+        "errors_below": null
+      },
+      "asked_rate_per_s": 150,
+      "requests": 15,
+      "achieved_rate_per_s": 0.5,
+      "latency_ms": {
+        "p(99)": 30059.85,
+        "count": 15,
+        "avg": 25143.64,
+        "min": 20.04,
+        "med": 25847.74,
+        "max": 30066.78,
+        "p(90)": 29984.39,
+        "p(95)": 30032.13
+      },
+      "failed_rate": 0,
+      "p95_target_met": false,
+      "errors_target_met": null
+    }
+  },
+  "thresholds": {
+    "http_req_duration{endpoint:feed_first,phase:hold}: p(95)<250": false,
+    "http_req_failed{endpoint:feed_later,phase:hold}: rate<1": true,
+    "http_req_duration{endpoint:feed_later,phase:hold}: p(95)<40": false,
+    "http_req_failed{endpoint:feed_first,phase:hold}: rate<0.001": false,
+    "checks: rate>0.99": false
+  },
+  "scenario_notes": []
+}

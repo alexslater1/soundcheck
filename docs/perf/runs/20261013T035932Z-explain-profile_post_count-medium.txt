@@ -1,0 +1,67 @@
+# explain.sh profile_post_count on medium
+utc:     2026-10-13T03:59:32Z
+commit:  cfce53cdc05281d9847f83c9f5acba89bfdf9fa3
+uptime:   04:59:32 up 4 days,  7:36,  1 user,  load average: 11.02, 10.73, 8.41
+power:   online=1 (1 = on mains)
+postgres: postgis/postgis:17-3.5 cpuset=4,6,8,10 mem=4294967296
+session: jit=off
+query:   ops/perf/queries/profile_post_count.sql
+-- profile_post_count: a profile's post count, own posts plus posts the user is tagged in (PostRepository, onProfileOf count).
+-- Source: the statement's text as pg_stat_statements and auto_explain record it, with the binds auto_explain logged
+-- ("Query Parameters"), for one request as perf_u205 (01940483-6188-731a-a99b-54ec14467635) on medium (seed 42, loaded
+-- by seed-scale at 2026-10-13 02:21Z), logged at 2026-10-13 02:32:42.886 UTC (idle) by the perf API built at 8db165b.
+-- The ids exist only in that load: after another seed-scale, recapture them. The request viewed perf_u1's profile.
+
+## first execution (cold or partly warm cache)
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=20715.86..20715.87 rows=1 width=8) (actual time=48.487..54.978 rows=1 loops=1)
+   Buffers: shared hit=27806
+   ->  Gather  (cost=20715.65..20715.86 rows=2 width=8) (actual time=48.327..54.971 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=27806
+         ->  Partial Aggregate  (cost=19715.65..19715.66 rows=1 width=8) (actual time=46.363..46.364 rows=1 loops=3)
+               Buffers: shared hit=27806
+               ->  Parallel Index Only Scan using post_author_pub on post  (cost=0.43..19194.28 rows=208549 width=0) (actual time=46.359..46.360 rows=0 loops=3)
+                     Filter: ((author_id = '01929bbc-5ad7-72f6-8f5f-97f2b66634e2'::uuid) OR (ANY (id = (hashed SubPlan 1).col1)))
+                     Rows Removed by Filter: 333333
+                     Heap Fetches: 20673
+                     Buffers: shared hit=27806
+                     SubPlan 1
+                       ->  Seq Scan on post_person  (cost=0.00..0.00 rows=1 width=16) (actual time=0.026..0.026 rows=0 loops=3)
+                             Filter: ((user_id = '01929bbc-5ad7-72f6-8f5f-97f2b66634e2'::uuid) AND (status = 'ON_PROFILE'::text))
+                             Buffers: shared hit=42
+ Planning:
+   Buffers: shared hit=339
+ Planning Time: 0.848 ms
+ Execution Time: 55.128 ms
+(21 rows)
+
+
+## second execution (warm cache)
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=20715.86..20715.87 rows=1 width=8) (actual time=52.919..60.582 rows=1 loops=1)
+   Buffers: shared hit=27801
+   ->  Gather  (cost=20715.65..20715.86 rows=2 width=8) (actual time=52.822..60.574 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=27801
+         ->  Partial Aggregate  (cost=19715.65..19715.66 rows=1 width=8) (actual time=50.643..50.644 rows=1 loops=3)
+               Buffers: shared hit=27801
+               ->  Parallel Index Only Scan using post_author_pub on post  (cost=0.43..19194.28 rows=208549 width=0) (actual time=50.639..50.640 rows=0 loops=3)
+                     Filter: ((author_id = '01929bbc-5ad7-72f6-8f5f-97f2b66634e2'::uuid) OR (ANY (id = (hashed SubPlan 1).col1)))
+                     Rows Removed by Filter: 333333
+                     Heap Fetches: 20668
+                     Buffers: shared hit=27801
+                     SubPlan 1
+                       ->  Seq Scan on post_person  (cost=0.00..0.00 rows=1 width=16) (actual time=0.030..0.030 rows=0 loops=3)
+                             Filter: ((user_id = '01929bbc-5ad7-72f6-8f5f-97f2b66634e2'::uuid) AND (status = 'ON_PROFILE'::text))
+                             Buffers: shared hit=42
+ Planning:
+   Buffers: shared hit=339
+ Planning Time: 0.952 ms
+ Execution Time: 60.758 ms
+(21 rows)
+

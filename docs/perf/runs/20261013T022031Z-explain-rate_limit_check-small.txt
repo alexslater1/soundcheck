@@ -1,0 +1,43 @@
+# explain.sh rate_limit_check on small
+utc:     2026-10-13T02:20:31Z
+commit:  8db165beeef87e03b601f92a71e297cfae7a8b20
+uptime:   03:20:31 up 4 days,  5:57,  1 user,  load average: 1.31, 1.15, 1.06
+power:   online=1 (1 = on mains)
+postgres: postgis/postgis:17-3.5 cpuset=4,6,8,10 mem=4294967296
+session: jit=off
+query:   ops/perf/queries/rate_limit_check.sql
+-- rate_limit_check: the Postgres-backed rate limit's row lock (RateLimiter); rolled back.
+-- Source: the statement's text as pg_stat_statements and auto_explain record it, with the binds auto_explain logged
+-- ("Query Parameters") for one request as perf_u6 (01904b8f-23fc-7e81-99a6-eb4644d73a85) on the small profile (seed 42, loaded
+-- by seed-scale at 2025-10-02 18:55Z), captured 2025-10-02T19:16Z from the perf API built at 0acebf9. The ids exist only in
+-- that load: after another seed-scale, recapture them.
+
+## first execution (cold or partly warm cache)
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows  (cost=0.28..2.50 rows=1 width=114) (actual time=0.023..0.023 rows=0 loops=1)
+   Buffers: shared hit=2
+   ->  Index Scan using rate_limit_bucket_pkey on rate_limit_bucket  (cost=0.28..2.50 rows=1 width=114) (actual time=0.022..0.023 rows=0 loops=1)
+         Index Cond: (id = 'user:01904b8f-23fc-7e81-99a6-eb4644d73a85|1000000/PT1M'::text)
+         Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=126
+ Planning Time: 0.295 ms
+ Execution Time: 0.044 ms
+(9 rows)
+
+
+## second execution (warm cache)
+                                                                    QUERY PLAN                                                                    
+--------------------------------------------------------------------------------------------------------------------------------------------------
+ LockRows  (cost=0.28..2.50 rows=1 width=114) (actual time=0.022..0.023 rows=0 loops=1)
+   Buffers: shared hit=2
+   ->  Index Scan using rate_limit_bucket_pkey on rate_limit_bucket  (cost=0.28..2.50 rows=1 width=114) (actual time=0.022..0.022 rows=0 loops=1)
+         Index Cond: (id = 'user:01904b8f-23fc-7e81-99a6-eb4644d73a85|1000000/PT1M'::text)
+         Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=126
+ Planning Time: 0.300 ms
+ Execution Time: 0.044 ms
+(9 rows)
+
