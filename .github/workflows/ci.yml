@@ -110,7 +110,7 @@ jobs:
         run: ./gradlew spotlessCheck build --no-daemon --console=plain
       - name: Upload test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: backend-test-reports
           path: backend/build/reports/tests/test
@@ -324,7 +324,7 @@ jobs:
           CI: '1'
       - name: Upload logs and Playwright traces
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs
           path: |
