@@ -1,7 +1,7 @@
 # Versions checked against Maven Central on 2025-02-12.
 # Boot-managed libraries (Flyway, jOOQ, Testcontainers, Micrometer, Jackson, JUnit…) take their version from the Boot BOM.
 [versions]
-spring-boot = "3.5.0"
+spring-boot = "4.1.1"
 spring-modulith = "1.4.0"
 jooq = "3.19.23"               # must match Boot's managed jOOQ version (codegen classpath)
 aws-sdk = "2.31.52"
