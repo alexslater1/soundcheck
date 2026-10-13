@@ -89,11 +89,29 @@ flowchart TB
 
 Ingestion (Ticketmaster, the venue sites, enrichment) runs in the `scheduler` role, which shares the API service; setlists are looked up when a past gig's page is opened. Locally the same shape runs in Docker Compose: **Caddy** plays CloudFront (the same path routing on `localhost:8088`, and the security headers CloudFront will add), **LocalStack** plays S3 and SQS, **PostGIS** plays RDS, and **Grafana LGTM** collects the OpenTelemetry traces and metrics. `docs/diagrams/` has drawn versions in light and dark: the system context, the containers, an upload from start to ready, the feed pipeline and learning loop, the AWS deployment, the outbox and the system map.
 
+## Measured performance
+k6 against a separate perf stack on a laptop (i7-12700H; Postgres, the API and k6 on separate cores; not AWS), on
+the **medium** synthetic dataset: 100,000 users, 1,000,000 posts, 50,000 gigs, 2,000,000 follows (9.33 GB). Each run
+is a 1-minute ramp and a 5-minute hold at the target rate; p95 over the hold.
+
+| Endpoint | Target | Achieved | p95 | |
+|---|---|---:|---:|---|
+| Following feed | 100/s, < 60 ms | 100/s | 15.97 ms | met |
+| Gigs near + date | 100/s, < 80 ms | 100/s | 12.09 ms | met |
+| Interaction events (batches of 20) | 100/s, < 40 ms | 100/s | 9.01 ms | met |
+| Upload create | 20/s, < 100 ms | 19.98/s | 21.43 ms | met |
+| For You, first page | 50/s, < 250 ms | 8.56/s | 57,227 ms | **missed** |
+
+For You is the bottleneck: its candidate statement saturates Postgres's four CPUs at 50 visits a second, and in a
+mixed load every other endpoint queues behind it. Method, every run file, plans, a JFR profile and what to try
+next: [`docs/perf/`](docs/perf/REPORT.md).
+
 ## Repository layout
 | Path | Contents |
 |---|---|
 | `docs/SETUP.md` | Accounts, keys and Ubuntu toolchain |
 | `docs/AWS-REDEPLOY.md` | What the AWS teardown deleted and kept, and how to redeploy from zero |
+| `docs/perf/` | Load-test report, run files, plans and the machine they were measured on |
 | `docs/diagrams/` · `docs/screens/` | Architecture diagrams, drawn from `build.py` (`make diagrams`) · web and Android screenshots with their provenance |
 | `backend/` | Spring Boot 3.5 / Java 21 modular monolith (Spring Modulith, jOOQ, Flyway); roles `api`, `scheduler`, `worker` |
 | `app/` | Expo SDK 53 universal app (Android + web + admin console), TypeScript, Expo Router, TanStack Query, orval client |
