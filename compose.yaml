@@ -33,7 +33,7 @@ services:
       retries: 20
 
   localstack:
-    image: localstack/localstack:4.4.0
+    image: localstack/localstack:4.14.0
     environment:
       SERVICES: s3,sqs
       DEBUG: ${LOCALSTACK_DEBUG:-0}
