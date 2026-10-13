@@ -18,5 +18,7 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
+  // Google Chrome (preinstalled on GitHub's ubuntu runners) rather than Playwright's own Chromium build,
+  // which has no H.264/AAC: hls.js finds no playable rendition and no clip ever plays.
+  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], channel: 'chrome' } }],
 });
