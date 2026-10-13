@@ -1,6 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Platform } from 'react-native';
 
+import { launchImageLibraryAsync } from '@/lib/launchImageLibrary';
+
 import type { PickedVideo } from './types';
 import { MAX_DURATION_MS } from './validate';
 
@@ -59,7 +61,7 @@ export function result(picked: ImagePicker.ImagePickerResult, platform: string):
  */
 export async function pickFromLibrary(): Promise<PickResult> {
   return result(
-    await ImagePicker.launchImageLibraryAsync({
+    await launchImageLibraryAsync({
       ...OPTIONS,
       mediaTypes: ['images', 'videos'],
       allowsMultipleSelection: true,

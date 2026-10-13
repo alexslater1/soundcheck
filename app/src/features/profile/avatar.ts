@@ -3,6 +3,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { completeUpload, createUpload } from '@/api/generated/media/media';
 import { updateMe } from '@/api/generated/me/me';
 import { transport } from '@/features/upload/transport';
+import { launchImageLibraryAsync } from '@/lib/launchImageLibrary';
 
 /** A photo picked for the profile, in the shape the upload needs. */
 export type PickedImage = {
@@ -37,7 +38,7 @@ export function toPickedImage(asset: ImagePicker.ImagePickerAsset): PickedImage 
  * Null when the user cancels; throws when the picked file cannot be used.
  */
 export async function pickAvatar(): Promise<PickedImage | null> {
-  const picked = await ImagePicker.launchImageLibraryAsync({
+  const picked = await launchImageLibraryAsync({
     mediaTypes: ['images'],
     allowsEditing: true,
     aspect: [1, 1],
