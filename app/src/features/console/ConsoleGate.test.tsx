@@ -17,6 +17,11 @@ jest.mock('./lazy', () => {
   };
 });
 
+const mockReplace = jest.fn();
+jest.mock('expo-router', () => ({
+  useRouter: () => ({ replace: mockReplace }),
+}));
+
 let mockWidth = 1440;
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   __esModule: true,
@@ -82,6 +87,11 @@ describe('ConsoleGate', () => {
       fireEvent.press(screen.getByText('Sign out and sign in as admin'));
     });
     expect(signOut).toHaveBeenCalledTimes(1);
+    // The address is the console's own first, so the sign-in screen's `next` is /console (the Overview).
+    expect(mockReplace).toHaveBeenCalledWith('/console');
+    expect(mockReplace.mock.invocationCallOrder[0]).toBeLessThan(
+      signOut.mock.invocationCallOrder[0]!,
+    );
     useAuthStore.setState({ signOut: realSignOut });
   });
 

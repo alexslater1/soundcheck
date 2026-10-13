@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Suspense, type ReactNode } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, useWindowDimensions, View } from 'react-native';
 
@@ -23,6 +24,7 @@ export function ConsoleGate({ children }: { children: ReactNode }) {
   const role = useAuthStore((s) => s.me?.role);
   const handle = useAuthStore((s) => s.me?.handle);
   const signOut = useAuthStore((s) => s.signOut);
+  const router = useRouter();
   const { width } = useWindowDimensions();
   const access = consoleAccess({ platform: Platform.OS, status, role, width });
 
@@ -46,8 +48,15 @@ export function ConsoleGate({ children }: { children: ReactNode }) {
           detail={`The console is only for Soundcheck's admin account, and you're signed in as @${handle ?? '…'}.`}
         >
           {/* Signed out on a console page, the root layout sends the user to sign-in and then into the
-              console (its Overview: this page doesn't mount the console's pages, so the address is /console). */}
-          <Button title="Sign out and sign in as admin" onPress={() => void signOut()} />
+              console (its Overview: this page doesn't mount the console's pages, so the address is /console;
+              expo-router would otherwise keep the sub-page's path, /console/users, with nothing showing it). */}
+          <Button
+            title="Sign out and sign in as admin"
+            onPress={() => {
+              router.replace('/console');
+              void signOut();
+            }}
+          />
         </Message>
       );
     case 'narrow':
