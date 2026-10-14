@@ -3,21 +3,21 @@
 [versions]
 spring-boot = "3.5.0"
 spring-modulith = "1.4.0"
-jooq = "3.19.23"               # must match Boot's managed jOOQ version (codegen classpath)
-aws-sdk = "2.31.52"
+jooq = "3.21.9"               # must match Boot's managed jOOQ version (codegen classpath)
+aws-sdk = "2.55.14"
 shedlock = "6.7.0"
-uuid-generator = "5.1.0"
+uuid-generator = "5.2.0"
 springdoc = "2.8.8"
-archunit = "1.4.1"
-jqwik = "1.9.2"
-wiremock = "3.13.0"
-jsoup = "1.20.1"
+archunit = "1.5.1"
+jqwik = "1.10.2"
+wiremock = "3.13.2"
+jsoup = "1.23.2"
 spotless = "7.0.4"
 palantir-java-format = "2.67.0"
 bucket4j = "8.10.1"
 # Built against opentelemetry-api 1.49.0, the version Boot 3.5.0 manages: move both together (2.16 needs 1.50).
-otel-logback-appender = "2.15.0-alpha"
-bouncycastle = "1.80"          # Argon2id implementation used by Spring Security's Argon2PasswordEncoder
+otel-logback-appender = "2.32.0-alpha"
+bouncycastle = "1.86"          # Argon2id implementation used by Spring Security's Argon2PasswordEncoder
 
 [libraries]
 # Spring Boot starters
