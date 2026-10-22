@@ -2,7 +2,7 @@
 # Boot-managed libraries (Flyway, jOOQ, Testcontainers, Micrometer, Jackson, JUnit…) take their version from the Boot BOM.
 [versions]
 spring-boot = "3.5.0"
-spring-modulith = "1.4.0"
+spring-modulith = "2.1.1"
 jooq = "3.19.23"               # must match Boot's managed jOOQ version (codegen classpath)
 aws-sdk = "2.31.52"
 shedlock = "6.7.0"
