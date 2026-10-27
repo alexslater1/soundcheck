@@ -65,7 +65,7 @@ services:
       start_period: 20s
 
   lgtm:
-    image: grafana/otel-lgtm:0.11.3
+    image: grafana/otel-lgtm:0.38.0
     environment:
       GF_SECURITY_ADMIN_USER: admin
       GF_SECURITY_ADMIN_PASSWORD: admin
