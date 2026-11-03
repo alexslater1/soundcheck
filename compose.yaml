@@ -6,7 +6,7 @@ name: soundcheck
 
 services:
   db:
-    image: postgis/postgis:17-3.5
+    image: postgis/postgis:18-3.6
     command:
       - postgres
       - -c
